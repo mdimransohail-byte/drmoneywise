@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DrMoneyWise Admin TEST</title>
+
+  <style>
+    body { font-family: Arial; background:#0b0b0b; color:white; padding:20px; }
+    h1 span { color: gold; }
+    button { padding:10px; background:gold; border:none; cursor:pointer; margin:5px; }
+    .box { border:1px solid #333; padding:10px; margin:10px 0; border-radius:8px; cursor:pointer; }
+    textarea { width:100%; height:150px; background:#111; color:white; border:1px solid #333; margin-top:10px; }
+    input { padding:10px; width:60%; margin-top:10px; }
+  </style>
+</head>
+
+<body>
+
+<h1>Dr<span>Money</span>Wise Admin (TEST)</h1>
+
+<!-- ================= HEADLINES ================= -->
+<h2>1. Fetch Headlines</h2>
+<button onclick="fetchHeadlines()">Fetch Market News</button>
+<div id="feed"></div>
+
+<!-- ================= ARTICLE ================= -->
+<h2>2. Generate Article</h2>
+<input id="headlineInput" placeholder="Selected headline">
+<br>
+<button onclick="generateArticle()">Generate Article</button>
+<textarea id="articleOutput"></textarea>
+
+<!-- ================= PUBLISH ================= -->
+<h2>3. Publish</h2>
+<button onclick="publishArticle()">Publish to DB</button>
+
+<!-- ================= NEWSLETTER ================= -->
+<h2>4. Newsletter</h2>
+<button onclick="generateNewsletter()">Generate Newsletter</button>
+<textarea id="newsletterOutput"></textarea>
+
+<button onclick="sendNewsletter()">Send Newsletter</button>
+
+<!-- ================= SCRIPTS ================= -->
+
+<!-- SUPABASE -->
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<script>
+
+// ================= CONFIG =================
+const SUPABASE_URL = "https://eeeeeagtrfkpeqycjrya.supabase.co";
+const SUPABASE_KEY = "sb_publishable_MVlY_NMMWeCU5zgxjcNgcA_YR4nwAVH";
+const MARKET_API = "gKKt7bTGhT6AavOJ1vhSUoTSsC8ucZ7RASf6ruQx";
+
+// ================= INIT =================
+console.log("Supabase global:", window.supabase ? "OK" : "MISSING");
+
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+console.log("Client created:", client);
+
+// ================= FETCH HEADLINES =================
+window.fetchHeadlines = async function(){
+
+  const feed = document.getElementById("feed");
+  feed.innerHTML = "Loading...";
+
+  try {
+
+    const res = await fetch(
+      "https://api.marketaux.com/v1/news/all?language=en&limit=5&api_token=" + MARKET_API
+    );
+
+    const data = await res.json();
+    console.log("Market data:", data);
+
+    if(!data.data){
+      feed.innerHTML = "No data returned";
+      return;
+    }
+
+    feed.innerHTML = "";
+
+    data.data.forEach(item => {
+
+      const div = document.createElement("div");
+      div.className = "box";
+      div.innerText = item.title;
+
+      div.onclick = () => {
+        document.getElementById("headlineInput").value = item.title;
+      };
+
+      feed.appendChild(div);
+    });
+
+  } catch(err){
+    console.error(err);
+    feed.innerHTML = "❌ ERROR: " + err.message;
+  }
+};
+
+// ================= GENERATE ARTICLE =================
+window.generateArticle = function(){
+
+  const headline = document.getElementById("headlineInput").value;
+
+  if(!headline){
+    alert("Select headline first");
+    return;
+  }
+
+  const article =
+    headline + "\n\n" +
+    "This development affects markets via sentiment, liquidity, and sector movement.\n\n" +
+    "Example: Higher interest rates reduce borrowing and slow growth.";
+
+  document.getElementById("articleOutput").value = article;
+};
+
+// ================= PUBLISH =================
+window.publishArticle = async function(){
+
+  const title = document.getElementById("headlineInput").value;
+  const content = document.getElementById("articleOutput").value;
+
+  if(!title || !content){
+    alert("Missing data");
+    return;
+  }
+
+  const { error } = await client.from('articles').insert([{
+    title: title,
+    content: content,
+    created_at: new Date()
+  }]);
+
+  if(error){
+    alert("❌ DB ERROR: " + error.message);
+  } else {
+    alert("✅ Article Published");
+  }
+};
+
+// ================= GENERATE NEWSLETTER =================
+window.generateNewsletter = async function(){
+
+  const box = document.getElementById("newsletterOutput");
+  box.value = "Loading...";
+
+  try {
+
+    const { data, error } = await client
+      .from('articles')
+      .select('*')
+      .order('created_at', { ascending:false })
+      .limit(5);
+
+    console.log("Articles:", data);
+
+    if(error){
+      box.value = "DB ERROR: " + error.message;
+      return;
+    }
+
+    if(!data || data.length === 0){
+      box.value = "No articles found";
+      return;
+    }
+
+    let text = "DrMoneyWise Weekly Intelligence\n\n";
+
+    data.forEach((a,i)=>{
+      text += (i+1) + ". " + a.title + "\n\n";
+    });
+
+    box.value = text;
+
+  } catch(err){
+    box.value = "JS ERROR: " + err.message;
+  }
+};
+
+// ================= SEND NEWSLETTER =================
+window.sendNewsletter = async function(){
+
+  const content = document.getElementById("newsletterOutput").value;
+
+  if(!content){
+    alert("Generate newsletter first");
+    return;
+  }
+
+  alert("🚀 Sending via server...");
+
+  try {
+
+const res = await fetch(
+  "https://eeeeeagtrfkpeqycjrya.supabase.co/functions/v1/smooth-function",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZWVlYWd0cmZrcGVxeWNqcnlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MTI3MjQsImV4cCI6MjA5MTk4ODcyNH0.LV9u8KSXR2PUNfZIN6sl-0VxtcgOHPIRefDCUKKo0B4"
+    },
+    body: JSON.stringify({ content })
+  }
+);
+ 
+    const text = await res.text();
+
+    console.log("Function response:", text);
+
+    alert(text);
+
+  } catch(err){
+    alert("❌ SEND ERROR: " + err.message);
+  }
+};
+
+</script>
+
+</body>
+</html>
