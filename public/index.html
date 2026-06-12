@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dr MoneyWise</title>
+    <meta
+      name="description"
+      content="Dr MoneyWise makes market news easier to follow with plain-English stories, learning points, watchlists, and portfolio reviews."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="site-body">
+    <div class="page-shell">
+      <header class="topbar" data-reveal>
+        <a class="brand" href="/">
+          <span class="brand-mark">DM</span>
+          <span>
+            <strong>Dr MoneyWise</strong>
+            <small>Markets made easier to understand</small>
+          </span>
+        </a>
+
+        <nav class="topnav">
+          <a href="#newsroom">Newsroom</a>
+          <a href="#learning">Learning Points</a>
+          <a href="#membership">Membership</a>
+          <a href="/admin.html">Admin</a>
+        </nav>
+
+        <div class="topbar-actions">
+          <span id="memberBadge" class="subtle-chip">Loading</span>
+          <button id="signOutButton" class="button secondary hidden" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero hero-grid" data-reveal>
+          <div class="hero-copy hero-copy-dark">
+            <div>
+              <span class="eyebrow">DrMoneyWise.com</span>
+              <h1>Global market news, explained in simple language.</h1>
+              <p>
+                Readers can choose their region and interests, save a watchlist, build a portfolio,
+                and read free or paid articles written in a calmer, clearer style.
+              </p>
+            </div>
+
+            <div class="hero-actions">
+              <a class="button primary" href="#newsroom">See Today's Feed</a>
+              <a class="button tertiary" href="#membership">See Plans</a>
+            </div>
+
+            <div id="summaryStrip" class="summary-strip"></div>
+          </div>
+
+          <aside class="glass-card onboarding-card">
+            <div class="section-head compact">
+              <div>
+                <span class="eyebrow">Join Free</span>
+                <h2>Your reading profile</h2>
+              </div>
+              <span id="accountState" class="subtle-chip">Guest</span>
+            </div>
+
+            <form id="signupForm" class="stack-form">
+              <div class="form-grid">
+                <label>
+                  Full name
+                  <input id="nameInput" type="text" placeholder="Your name" />
+                </label>
+                <label>
+                  Email
+                  <input id="emailInput" type="email" placeholder="you@example.com" />
+                </label>
+              </div>
+
+              <div class="form-grid">
+                <label>
+                  Password
+                  <input id="passwordInput" type="password" placeholder="Create a password" />
+                </label>
+                <label>
+                  Region
+                  <select id="regionSelect"></select>
+                </label>
+              </div>
+
+              <div>
+                <label class="field-label">Pick your interests</label>
+                <div id="interestPicker" class="chip-grid"></div>
+              </div>
+
+              <div class="button-row">
+                <button class="button primary" type="submit">Create Free Account</button>
+                <button id="toggleAuthModeButton" class="button secondary" type="button">Already a member</button>
+              </div>
+            </form>
+
+            <form id="signinForm" class="stack-form hidden">
+              <label>
+                Email
+                <input id="loginEmailInput" type="email" placeholder="you@example.com" />
+              </label>
+              <label>
+                Password
+                <input id="loginPasswordInput" type="password" placeholder="Your password" />
+              </label>
+              <div class="button-row">
+                <button class="button primary" type="submit">Sign In</button>
+                <button id="toggleSignupModeButton" class="button secondary" type="button">New here</button>
+              </div>
+            </form>
+
+            <div id="authMessage" class="helper-note"></div>
+            <div class="helper-note">
+              Contact: <a href="mailto:hello@drmoneywise.com">hello@drmoneywise.com</a>
+            </div>
+          </aside>
+        </section>
+
+        <section class="section-filter glass-card" data-reveal>
+          <div class="section-head compact">
+            <div>
+              <span class="eyebrow">Reader Controls</span>
+              <h2>Choose region and interests</h2>
+            </div>
+            <button id="refreshHomeButton" class="button secondary" type="button">Refresh</button>
+          </div>
+
+          <div class="filter-grid">
+            <div>
+              <label class="field-label" for="interestRegionSelect">Region</label>
+              <select id="interestRegionSelect"></select>
+            </div>
+            <div>
+              <span class="field-label">Interests</span>
+              <div id="interestFilterChips" class="chip-grid"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="newsroom" class="section-grid" data-reveal>
+          <div class="glass-card feature-card">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Featured Story</span>
+                <h2>Top headline right now</h2>
+              </div>
+              <span id="feedState" class="status-pill">Loading</span>
+            </div>
+
+            <div id="featuredStory" class="featured-story"></div>
+          </div>
+
+          <aside class="glass-card brief-card light-brief">
+            <div class="section-head compact">
+              <div>
+                <span class="eyebrow">Clear Brief</span>
+                <h2>What matters today</h2>
+              </div>
+            </div>
+            <div id="briefBoard" class="brief-board"></div>
+          </aside>
+        </section>
+
+        <section class="glass-card" data-reveal>
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">By Interest</span>
+              <h2>Top 3 stories in each area</h2>
+            </div>
+          </div>
+          <div id="feedAreas" class="area-grid"></div>
+        </section>
+
+        <section id="learning" class="section-grid tools-grid" data-reveal>
+          <div class="glass-card">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Learning Points</span>
+                <h2>Simple explainers and examples</h2>
+              </div>
+            </div>
+            <div id="learningPoints" class="card-grid"></div>
+          </div>
+
+          <aside class="glass-card accent-panel">
+            <div class="section-head compact">
+              <div>
+                <span class="eyebrow">Daily Habit</span>
+                <h2>Build a calm routine</h2>
+              </div>
+            </div>
+            <ul class="plain-list">
+              <li>Pick one region.</li>
+              <li>Follow only the interests that matter to you.</li>
+              <li>Read one learning point every day.</li>
+              <li>Review your watchlist once, not twenty times.</li>
+            </ul>
+          </aside>
+        </section>
+
+        <section class="section-grid tools-grid" data-reveal>
+          <div class="glass-card">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Watchlist</span>
+                <h2>Save ideas you want to monitor</h2>
+              </div>
+            </div>
+            <form id="watchlistForm" class="stack-form compact-form">
+              <div class="inline-form">
+                <input id="watchlistTickerInput" type="text" placeholder="Add ticker like NVDA" />
+                <button class="button primary" type="submit">Add</button>
+              </div>
+            </form>
+            <div id="watchlistList" class="chip-row"></div>
+          </div>
+
+          <div class="glass-card">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Portfolio</span>
+                <h2>Add your holdings</h2>
+              </div>
+            </div>
+            <form id="portfolioForm" class="stack-form compact-form">
+              <div class="form-grid">
+                <input id="portfolioTickerInput" type="text" placeholder="Ticker" />
+                <input id="portfolioNameInput" type="text" placeholder="Name" />
+              </div>
+              <div class="form-grid">
+                <input id="portfolioWeightInput" type="text" placeholder="Weight e.g. 25%" />
+                <input id="portfolioCostInput" type="text" placeholder="Cost basis" />
+              </div>
+              <button class="button primary" type="submit">Add Holding</button>
+            </form>
+            <div id="portfolioList" class="stack-list"></div>
+          </div>
+        </section>
+
+        <section class="glass-card" data-reveal>
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Portfolio Review</span>
+              <h2>Member-only review of your holdings</h2>
+            </div>
+            <button id="refreshReviewButton" class="button secondary" type="button">Refresh Review</button>
+          </div>
+          <div id="portfolioReview" class="review-board"></div>
+        </section>
+
+        <section id="membership" class="glass-card" data-reveal>
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Membership</span>
+              <h2>Free, Regular, and Premium</h2>
+            </div>
+            <div class="coupon-box">
+              <input id="couponInput" type="text" placeholder="Coupon code" />
+              <button id="applyCouponButton" class="button secondary" type="button">Apply</button>
+            </div>
+          </div>
+          <div id="couponMessage" class="helper-note"></div>
+          <div id="pricingCards" class="pricing-grid"></div>
+        </section>
+
+        <section class="glass-card newsletter-strip" data-reveal>
+          <div>
+            <span class="eyebrow">Newsletter</span>
+            <h2>Get clear market notes by email</h2>
+            <p>Use Zoho with <strong>hello@drmoneywise.com</strong> for the public inbox and member replies.</p>
+          </div>
+          <a class="button primary" href="mailto:hello@drmoneywise.com">Email Us</a>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div>
+          <strong>Dr MoneyWise</strong>
+          <p>drmoneywise.com</p>
+        </div>
+        <div>
+          <a href="mailto:hello@drmoneywise.com">hello@drmoneywise.com</a>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
