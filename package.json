@@ -1,0 +1,10 @@
+{
+  "name": "drmoneywise-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dr MoneyWise commercial starter for market news, learning points, memberships, watchlists, portfolios, and admin analytics.",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
