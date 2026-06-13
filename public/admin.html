@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dr MoneyWise Admin</title>
+    <link rel="stylesheet" href="/styles.css?v=20260506-owner-controls" />
+  </head>
+  <body class="site-body admin-body">
+    <div class="page-shell admin-shell">
+      <header class="topbar admin-topbar">
+        <a class="brand" href="/">
+          <span class="brand-mark">DM</span>
+          <span>
+            <strong>Dr MoneyWise Admin</strong>
+            <small>Editorial and revenue control room</small>
+          </span>
+        </a>
+        <div class="topbar-actions">
+          <a class="button secondary" href="/">View site</a>
+          <button id="adminSignOutButton" class="button primary hidden" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="adminLoginPanel" class="glass-card admin-login-card">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Admin Login</span>
+              <h2>Sign in to manage the site</h2>
+            </div>
+          </div>
+          <form id="adminLoginForm" class="stack-form">
+            <label>
+              Email
+              <input id="adminEmailInput" type="email" placeholder="hello@drmoneywise.com" />
+            </label>
+            <label>
+              Password
+              <input id="adminPasswordInput" type="password" placeholder="Admin password" />
+            </label>
+            <button class="button primary" type="submit">Sign In</button>
+          </form>
+          <div id="adminLoginMessage" class="helper-note"></div>
+        </section>
+
+        <section id="adminPanel" class="hidden">
+          <section class="metric-grid" id="adminMetrics"></section>
+
+          <section class="glass-card owner-controls">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Owner Controls</span>
+                <h2>Edit the business without touching code</h2>
+              </div>
+            </div>
+            <form id="businessSettingsForm" class="stack-form">
+              <div class="admin-grid">
+                <div>
+                  <h3 class="compact-heading">Plans and prices</h3>
+                  <div id="businessPlansEditor" class="stack-list"></div>
+                </div>
+                <div>
+                  <h3 class="compact-heading">Keys and payment links</h3>
+                  <div class="form-grid">
+                    <label>
+                      OpenAI key
+                      <input id="ownerOpenAiKeyInput" type="text" placeholder="Paste OpenAI key" />
+                    </label>
+                    <label>
+                      Claude key
+                      <input id="ownerClaudeKeyInput" type="text" placeholder="Paste Claude key" />
+                    </label>
+                  </div>
+                  <div class="form-grid">
+                    <label>
+                      Marketaux key
+                      <input id="ownerMarketauxKeyInput" type="text" />
+                    </label>
+                    <label>
+                      NewsAPI key
+                      <input id="ownerNewsApiKeyInput" type="text" />
+                    </label>
+                  </div>
+                  <div class="form-grid">
+                    <label>
+                      Finnhub key
+                      <input id="ownerFinnhubKeyInput" type="text" />
+                    </label>
+                    <label>
+                      Free checkout link
+                      <input id="ownerCheckoutFreeInput" type="text" />
+                    </label>
+                  </div>
+                  <div class="form-grid">
+                    <label>
+                      Regular monthly Stripe link
+                      <input id="ownerStripeRegularMonthlyInput" type="text" />
+                    </label>
+                    <label>
+                      Regular yearly Stripe link
+                      <input id="ownerStripeRegularAnnualInput" type="text" />
+                    </label>
+                  </div>
+                  <div class="form-grid">
+                    <label>
+                      Premium monthly Stripe link
+                      <input id="ownerStripePremiumMonthlyInput" type="text" />
+                    </label>
+                    <label>
+                      Premium yearly Stripe link
+                      <input id="ownerStripePremiumAnnualInput" type="text" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="admin-grid">
+                <div>
+                  <h3 class="compact-heading">Coupon rules</h3>
+                  <div class="form-grid">
+                    <label>
+                      Maximum discount %
+                      <input id="ownerMaxDiscountInput" type="number" min="1" max="100" />
+                    </label>
+                    <label>
+                      Default coupon scope
+                      <select id="ownerDefaultCouponScopeSelect">
+                        <option value="all">All plans</option>
+                        <option value="regular">Regular only</option>
+                        <option value="premium">Premium only</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <h3 class="compact-heading">News priority</h3>
+                  <div id="newsPriorityEditor" class="priority-grid"></div>
+                </div>
+              </div>
+
+              <div class="button-row">
+                <button class="button primary" type="submit">Save Owner Controls</button>
+                <button id="reloadBusinessSettingsButton" class="button secondary" type="button">Reload</button>
+              </div>
+              <div id="businessSettingsMessage" class="helper-note"></div>
+            </form>
+          </section>
+
+          <section class="admin-grid">
+            <div class="glass-card">
+              <div class="section-head">
+                <div>
+                  <span class="eyebrow">Traffic and Revenue</span>
+                  <h2>Trend overview</h2>
+                </div>
+              </div>
+              <div id="timelineChart" class="chart-board"></div>
+            </div>
+
+            <div class="glass-card">
+              <div class="section-head">
+                <div>
+                  <span class="eyebrow">Reader Mix</span>
+                  <h2>Plans and article flow</h2>
+                </div>
+              </div>
+              <div id="tierMixChart" class="stack-list"></div>
+              <div id="articleStatusChart" class="stack-list spaced-top"></div>
+            </div>
+          </section>
+
+          <section class="admin-grid">
+            <div class="glass-card">
+              <div class="section-head">
+                <div>
+                  <span class="eyebrow">Publishing</span>
+                  <h2>Create and schedule content</h2>
+                </div>
+              </div>
+              <form id="learningDraftForm" class="stack-form">
+                <label>
+                  Topic for a new learning point
+                  <input id="topicInput" type="text" placeholder="Example: How inflation changes spending power" />
+                </label>
+                <div class="form-grid">
+                  <label>
+                    Access
+                    <select id="topicAccessSelect">
+                      <option value="free">Free</option>
+                      <option value="regular">Regular</option>
+                      <option value="premium">Premium</option>
+                    </select>
+                  </label>
+                  <label>
+                    Region
+                    <select id="topicRegionSelect"></select>
+                  </label>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Interest
+                    <select id="topicInterestSelect"></select>
+                  </label>
+                  <label>
+                    Publish at
+                    <input id="topicPublishInput" type="datetime-local" />
+                  </label>
+                </div>
+                <button class="button primary" type="submit">Create Draft</button>
+              </form>
+              <div id="adminDraftMessage" class="helper-note">Leave publish time empty for a draft. Use a future time to schedule, or a current time to publish now.</div>
+            </div>
+
+            <div class="glass-card">
+              <div class="section-head">
+                <div>
+                  <span class="eyebrow">Coupons</span>
+                  <h2>Discount codes</h2>
+                </div>
+              </div>
+              <form id="couponForm" class="stack-form compact-form">
+                <div class="form-grid">
+                  <input id="couponCodeInput" type="text" placeholder="WELCOME20" />
+                  <input id="couponPercentInput" type="number" min="1" max="100" placeholder="20" />
+                </div>
+                <div class="form-grid">
+                  <select id="couponScopeSelect">
+                    <option value="all">All plans</option>
+                    <option value="regular">Regular only</option>
+                    <option value="premium">Premium only</option>
+                  </select>
+                  <button class="button primary" type="submit">Create Coupon</button>
+                </div>
+              </form>
+              <div id="adminCouponMessage" class="helper-note"></div>
+              <div id="couponList" class="stack-list"></div>
+            </div>
+          </section>
+
+          <section class="admin-grid">
+            <div class="glass-card">
+              <div class="section-head">
+                <div>
+                  <span class="eyebrow">Keys and Links</span>
+                  <h2>Site settings</h2>
+                </div>
+              </div>
+              <form id="settingsForm" class="stack-form">
+                <div class="form-grid">
+                  <label>
+                    Site name
+                    <input id="siteNameInput" type="text" />
+                  </label>
+                  <label>
+                    Domain
+                    <input id="siteDomainInput" type="text" />
+                  </label>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Support email
+                    <input id="supportEmailInput" type="email" />
+                  </label>
+                  <label>
+                    OpenAI key
+                    <input id="openAiKeyInput" type="text" placeholder="Paste key" />
+                  </label>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Claude key
+                    <input id="claudeKeyInput" type="text" placeholder="Paste key" />
+                  </label>
+                  <label>
+                    Marketaux key
+                    <input id="marketauxKeyInput" type="text" />
+                  </label>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    NewsAPI key
+                    <input id="newsApiKeyInput" type="text" />
+                  </label>
+                  <label>
+                    Finnhub key
+                    <input id="finnhubKeyInput" type="text" />
+                  </label>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Regular monthly link
+                    <input id="stripeRegularMonthlyInput" type="text" />
+                  </label>
+                  <label>
+                    Regular yearly link
+                    <input id="stripeRegularAnnualInput" type="text" />
+                  </label>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Premium monthly link
+                    <input id="stripePremiumMonthlyInput" type="text" />
+                  </label>
+                  <label>
+                    Premium yearly link
+                    <input id="stripePremiumAnnualInput" type="text" />
+                  </label>
+                </div>
+                <div class="form-grid">
+                  <label>
+                    Writer 1 model
+                    <input id="writerAModelInput" type="text" />
+                  </label>
+                  <label>
+                    Writer 2 model
+                    <input id="writerBModelInput" type="text" />
+                  </label>
+                </div>
+                <button class="button primary" type="submit">Save Settings</button>
+              </form>
+              <div id="settingsMessage" class="helper-note"></div>
+            </div>
+
+            <div class="glass-card">
+              <div class="section-head">
+                <div>
+                  <span class="eyebrow">Inventory</span>
+                  <h2>Articles and members</h2>
+                </div>
+              </div>
+              <div id="articleInventory" class="stack-list"></div>
+              <div id="memberInventory" class="stack-list spaced-top"></div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/admin.js?v=20260506-owner-controls"></script>
+  </body>
+</html>
