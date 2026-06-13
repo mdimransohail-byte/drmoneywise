@@ -12,11 +12,16 @@ import { updateStore, readStore } from './storeService.js';
 export async function ensureAdminUser() {
   await updateStore((store) => {
     const existing = store.users.find((user) => user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+
+    const passwordBundle = createPasswordBundle(ADMIN_PASSWORD);
+
     if (existing) {
+      existing.passwordHash = passwordBundle.passwordHash;
+      existing.passwordSalt = passwordBundle.passwordSalt;
+      existing.email = ADMIN_EMAIL.toLowerCase();
       return store;
     }
 
-    const passwordBundle = createPasswordBundle(ADMIN_PASSWORD);
     store.users.push({
       id: crypto.randomUUID(),
       email: ADMIN_EMAIL.toLowerCase(),
