@@ -1,342 +1,337 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dr MoneyWise Admin</title>
-    <link rel="stylesheet" href="/styles.css?v=20260506-owner-controls" />
-  </head>
-  <body class="site-body admin-body">
-    <div class="page-shell admin-shell">
-      <header class="topbar admin-topbar">
-        <a class="brand" href="/">
-          <span class="brand-mark">DM</span>
-          <span>
-            <strong>Dr MoneyWise Admin</strong>
-            <small>Editorial and revenue control room</small>
-          </span>
-        </a>
-        <div class="topbar-actions">
-          <a class="button secondary" href="/">View site</a>
-          <button id="adminSignOutButton" class="button primary hidden" type="button">Sign out</button>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dr MoneyWise Admin</title>
+  <style>
+    /* ─────────────────────────────────────────────────────────────
+       BASE
+       To change fonts or root colours: edit this block only
+    ───────────────────────────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;background:#06111f;color:#ecf3ff;font-size:14px;line-height:1.55}
+    button,input,select,textarea{font:inherit}
+    a{color:inherit;text-decoration:none}
+    .hidden{display:none!important}
+    ::-webkit-scrollbar{width:3px}
+    ::-webkit-scrollbar-thumb{background:rgba(255,215,140,.18);border-radius:4px}
+
+    /* ─────────────────────────────────────────────────────────────
+       LOGIN PAGE
+       To redesign login: edit this block only
+    ───────────────────────────────────────────────────────────── */
+    .login-wrap{min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,rgba(60,181,196,.12),transparent 50%),#06111f}
+    .login-card{width:min(440px,calc(100% - 32px));background:linear-gradient(170deg,rgba(9,24,43,.92),rgba(5,16,30,.88));border:1px solid rgba(255,215,140,.1);border-radius:22px;padding:36px}
+    .login-brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+    .login-mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#ffd982,#d29d33,#8e5d0f);display:grid;place-items:center;font-weight:900;color:#1d1303;font-size:.9rem;flex-shrink:0}
+    .login-brand strong{display:block;font-size:1rem}
+    .login-brand small{display:block;font-size:.65rem;color:#9eb3cc;text-transform:uppercase;letter-spacing:.1em}
+    .login-title{font-family:'Playfair Display',Georgia,serif;font-size:1.7rem;margin-bottom:6px}
+    .login-sub{color:#9eb3cc;font-size:.8rem;margin-bottom:24px}
+    .login-form{display:grid;gap:14px}
+    .login-form label{display:block;font-size:.75rem;color:#9eb3cc;margin-bottom:5px}
+    .login-form input{width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);color:#ecf3ff}
+    .login-form input:focus{outline:none;border-color:rgba(60,181,196,.35)}
+    .login-msg{font-size:.78rem;color:#f26a6a;min-height:18px}
+    .login-hint{font-size:.72rem;color:#9eb3cc;margin-top:12px;text-align:center}
+
+    /* ─────────────────────────────────────────────────────────────
+       SHELL LAYOUT
+       To change sidebar width or main padding: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .shell{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+
+    /* ─────────────────────────────────────────────────────────────
+       SIDEBAR
+       To change sidebar colours or nav items: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .side{background:linear-gradient(180deg,#03090f,#050d18);border-right:1px solid rgba(255,215,140,.08);padding:18px 12px;display:flex;flex-direction:column;gap:3px;position:sticky;top:0;height:100vh;overflow:hidden}
+    .side-brand{display:flex;align-items:center;gap:9px;padding:8px 6px 18px;border-bottom:1px solid rgba(255,215,140,.08);margin-bottom:8px}
+    .side-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#ffd982,#d29d33,#8e5d0f);display:grid;place-items:center;font-weight:900;color:#1d1303;font-size:.8rem;flex-shrink:0}
+    .side-brand strong{display:block;font-size:.82rem;color:#ecf3ff}
+    .side-brand small{font-size:.6rem;color:#9eb3cc;text-transform:uppercase;letter-spacing:.1em}
+    .nav-btn{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:11px;border:1px solid transparent;cursor:pointer;font-size:.8rem;color:#9eb3cc;background:none;width:100%;text-align:left;transition:all 140ms;font-weight:500}
+    .nav-btn:hover{background:rgba(255,255,255,.04);color:#ecf3ff}
+    .nav-btn.active{background:var(--nb);border-color:var(--nbr);color:var(--nc)}
+    .nav-icon{font-size:.85rem;width:16px;text-align:center;flex-shrink:0}
+    .side-foot{margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,215,140,.08)}
+    .side-user{padding:10px 10px;font-size:.72rem;color:#9eb3cc}
+    .side-user strong{display:block;color:#ecf3ff;margin-bottom:2px}
+
+    /* ─────────────────────────────────────────────────────────────
+       MAIN CONTENT AREA
+       To change page padding or background: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .main{padding:26px;background:radial-gradient(circle at 75% 0%,rgba(60,181,196,.05),transparent 40%),#06111f;overflow-y:auto;max-height:100vh}
+    .pg-head{margin-bottom:22px}
+    .pg-head h1{font-family:'Playfair Display',Georgia,serif;font-size:1.8rem;font-weight:700;margin-bottom:3px}
+    .pg-head p{color:#9eb3cc;font-size:.78rem}
+    .eyebrow{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.16em;color:var(--ac,#ffcb6b);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+    .eyebrow::before{content:'';width:14px;height:1px;background:currentColor;opacity:.55}
+
+    /* ─────────────────────────────────────────────────────────────
+       CARDS
+       To change card appearance: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .card{background:linear-gradient(170deg,rgba(9,24,43,.88),rgba(5,16,30,.82));border:1px solid rgba(255,215,140,.08);border-radius:16px;padding:18px}
+    .card-title{font-size:.72rem;font-weight:600;color:#9eb3cc;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px}
+    .card-grid{display:grid;gap:14px}
+    .two-col{grid-template-columns:1fr 1fr}
+    .three-col{grid-template-columns:repeat(3,1fr)}
+    .chart-col{grid-template-columns:1.6fr 1fr}
+
+    /* ─────────────────────────────────────────────────────────────
+       METRIC CARDS
+       To change metric card style: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .met-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+    .met-card{padding:14px 16px;border-radius:13px;border:1px solid rgba(255,255,255,.05);background:linear-gradient(135deg,rgba(9,20,36,.9),rgba(5,13,25,.9));position:relative;overflow:hidden}
+    .met-card::after{content:'';position:absolute;top:-14px;right:-14px;width:48px;height:48px;border-radius:50%;background:var(--ac);opacity:.12}
+    .met-val{font-family:'Playfair Display',Georgia,serif;font-size:1.55rem;font-weight:700;margin-bottom:2px}
+    .met-lbl{font-size:.68rem;color:#9eb3cc;margin-bottom:6px}
+    .met-trend{font-size:.64rem;font-weight:700;padding:2px 7px;border-radius:99px;display:inline-flex;align-items:center;gap:3px}
+    .trend-up{background:rgba(43,196,138,.14);color:#2bc48a}
+    .trend-dn{background:rgba(242,106,106,.14);color:#f26a6a}
+
+    /* ─────────────────────────────────────────────────────────────
+       BUTTONS
+       To change button styles: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .btn{border:none;border-radius:99px;padding:8px 16px;font-size:.76rem;font-weight:600;cursor:pointer;transition:all 140ms;display:inline-flex;align-items:center;gap:5px;letter-spacing:.02em}
+    .btn:hover{transform:translateY(-1px)}
+    .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .btn-gold  {background:linear-gradient(135deg,#f7d07c,#d4a03a,#8f6512);color:#161006;box-shadow:0 6px 14px rgba(215,165,70,.18)}
+    .btn-teal  {background:rgba(60,181,196,.14);color:#3cb5c4;border:1px solid rgba(60,181,196,.24)}
+    .btn-purple{background:rgba(167,139,250,.14);color:#a78bfa;border:1px solid rgba(167,139,250,.24)}
+    .btn-green {background:rgba(43,196,138,.14);color:#2bc48a;border:1px solid rgba(43,196,138,.24)}
+    .btn-rose  {background:rgba(242,106,106,.14);color:#f26a6a;border:1px solid rgba(242,106,106,.2)}
+    .btn-ghost {background:rgba(255,255,255,.05);color:#9eb3cc;border:1px solid rgba(255,255,255,.07)}
+    .btn-sm    {padding:4px 10px;font-size:.68rem}
+    .btn-teal:hover  {background:rgba(60,181,196,.24)}
+    .btn-purple:hover{background:rgba(167,139,250,.24)}
+    .btn-green:hover {background:rgba(43,196,138,.24)}
+    .btn-rose:hover  {background:rgba(242,106,106,.24)}
+
+    /* ─────────────────────────────────────────────────────────────
+       TAGS / PILLS / BADGES
+       To change tag colours: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .tag{display:inline-flex;align-items:center;border-radius:99px;padding:2px 8px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .tag-free     {background:rgba(158,179,204,.13);color:#9eb3cc}
+    .tag-regular  {background:rgba(60,181,196,.14); color:#3cb5c4}
+    .tag-premium  {background:rgba(255,203,107,.14);color:#ffcb6b}
+    .tag-published{background:rgba(43,196,138,.14); color:#2bc48a}
+    .tag-scheduled{background:rgba(255,203,107,.14);color:#ffcb6b}
+    .tag-draft    {background:rgba(158,179,204,.10);color:#9eb3cc}
+    .tier-pills{display:flex;gap:3px}
+    .tier-pill{padding:2px 8px;border-radius:99px;font-size:.6rem;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);color:#9eb3cc;transition:all 110ms}
+    .tier-pill.f{background:rgba(158,179,204,.18);color:#ecf3ff;border-color:rgba(158,179,204,.28)}
+    .tier-pill.r{background:rgba(60,181,196,.18); color:#3cb5c4;border-color:rgba(60,181,196,.3)}
+    .tier-pill.p{background:rgba(255,203,107,.18);color:#ffcb6b;border-color:rgba(255,203,107,.3)}
+
+    /* ─────────────────────────────────────────────────────────────
+       FORM ELEMENTS
+       To change input styles: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .field{display:block;font-size:.72rem;color:#9eb3cc;margin-bottom:4px}
+    .input,textarea,select{width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);color:#ecf3ff;font-size:.78rem;font-family:inherit}
+    textarea{resize:vertical}
+    .input:focus,textarea:focus,select:focus{outline:none;border-color:rgba(60,181,196,.35)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .form-gap{display:grid;gap:12px}
+
+    /* ─────────────────────────────────────────────────────────────
+       ANALYTICS PAGE
+       To change analytics layout: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .svg-chart{width:100%;overflow:visible}
+
+    /* ─────────────────────────────────────────────────────────────
+       NEWS FEED PAGE
+       To change news feed layout: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .news-bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}
+    .news-row{display:flex;gap:8px}
+    .news-item{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:start;padding:11px 13px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);margin-bottom:6px;transition:all 140ms}
+    .news-item.selected{background:rgba(60,181,196,.06);border-color:rgba(60,181,196,.18)}
+    .news-check{width:15px;height:15px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);cursor:pointer;display:grid;place-items:center;margin-top:2px;transition:all 110ms;flex-shrink:0;font-size:.6rem;font-weight:700;color:#fff}
+    .news-check.on{background:#3cb5c4;border-color:#3cb5c4}
+    .news-item h4{font-size:.82rem;line-height:1.38;margin-bottom:4px;cursor:pointer}
+    .news-item h4:hover{color:#3cb5c4}
+    .news-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .news-src{font-size:.62rem;color:#9eb3cc;background:rgba(255,255,255,.06);padding:2px 6px;border-radius:5px}
+    .news-time{font-size:.62rem;color:#9eb3cc}
+    .news-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+
+    /* ─────────────────────────────────────────────────────────────
+       AI WRITER PAGE
+       To change writer layout: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .writer-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .model-row{display:flex;gap:7px;margin-bottom:12px}
+    .model-btn{flex:1;padding:9px;border-radius:11px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);color:#9eb3cc;cursor:pointer;font-size:.76rem;font-weight:500;transition:all 140ms;text-align:center}
+    .model-btn.claude{background:rgba(167,139,250,.14);border-color:rgba(167,139,250,.28);color:#a78bfa}
+    .model-btn.openai{background:rgba(43,196,138,.14); border-color:rgba(43,196,138,.28); color:#2bc48a}
+    .preview-box{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:13px;padding:16px;min-height:280px;font-size:.8rem;line-height:1.75;color:#d0dff0;white-space:pre-wrap;overflow-y:auto}
+    .preview-empty{color:#9eb3cc;font-style:italic;font-size:.76rem}
+    .writer-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+    .writer-status{font-size:.7rem;color:#9eb3cc;margin-top:6px;height:16px}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    .cursor::after{content:'▋';animation:blink .65s step-end infinite;color:#a78bfa}
+
+    /* ─────────────────────────────────────────────────────────────
+       INVENTORY PAGE
+       To change inventory layout: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .inv-bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}
+    .inv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .inv-card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);border-radius:13px;padding:13px;transition:border-color 140ms}
+    .inv-card:hover{border-color:rgba(255,215,140,.12)}
+    .inv-top{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:7px}
+    .inv-card h4{font-size:.82rem;line-height:1.32;margin-bottom:9px}
+    .yt-row{display:flex;gap:5px;align-items:center;margin-bottom:7px}
+    .yt-row input{flex:1;margin-top:0;padding:5px 9px;font-size:.68rem;border-radius:7px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);color:#ecf3ff}
+    .sched-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+    .sched-row input{flex:1;margin-top:0;padding:5px 9px;font-size:.68rem;border-radius:7px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);color:#ecf3ff}
+    .inv-actions{display:flex;gap:4px;flex-wrap:wrap}
+
+    /* ─────────────────────────────────────────────────────────────
+       SETTINGS PAGE
+       To change settings layout: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .api-row{display:flex;gap:9px;align-items:center;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);margin-bottom:6px}
+    .api-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+    .api-label{flex:0 0 120px;font-size:.76rem;font-weight:500}
+    .api-hint{font-size:.6rem;color:#9eb3cc}
+    .api-val{flex:1}
+    .api-val input{margin-top:0;padding:5px 9px;font-size:.7rem;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);color:#ecf3ff;width:100%}
+    .coupon-form{display:grid;grid-template-columns:1fr 70px 1fr auto;gap:7px;align-items:end;margin-bottom:12px}
+    .coupon-form input,.coupon-form select{margin-top:0;padding:7px 9px;font-size:.74rem;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);color:#ecf3ff;width:100%}
+    .coupon-row{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);margin-bottom:5px}
+    .coupon-code{font-family:'Courier New',monospace;font-weight:700;color:#ffcb6b;font-size:.8rem}
+
+    /* ─────────────────────────────────────────────────────────────
+       TOAST
+       To change toast style: edit this block
+    ───────────────────────────────────────────────────────────── */
+    .toast{position:fixed;bottom:20px;right:20px;z-index:999;background:rgba(9,24,43,.96);border:1px solid rgba(255,203,107,.28);border-radius:11px;padding:10px 16px;color:#ffcb6b;font-size:.78rem;box-shadow:0 16px 36px rgba(0,0,0,.4);backdrop-filter:blur(12px);animation:slide-in .2s ease}
+    @keyframes slide-in{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+    /* ─────────────────────────────────────────────────────────────
+       LOADING / SKELETON
+    ───────────────────────────────────────────────────────────── */
+    .loading{padding:60px;text-align:center;color:#9eb3cc;font-size:.85rem}
+    .skeleton{border-radius:10px;background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.1),rgba(255,255,255,.05));background-size:200%;animation:shimmer 1.4s infinite}
+    @keyframes shimmer{0%{background-position:200%}100%{background-position:-200%}}
+
+    /* ─────────────────────────────────────────────────────────────
+       RESPONSIVE
+       To adjust breakpoints: edit this block
+    ───────────────────────────────────────────────────────────── */
+    @media(max-width:1100px){
+      .met-grid{grid-template-columns:repeat(2,1fr)}
+      .card-grid.chart-col,.writer-grid,.settings-grid,.inv-grid,.card-grid.two-col{grid-template-columns:1fr}
+    }
+    @media(max-width:760px){
+      .shell{grid-template-columns:1fr}
+      .side{display:none}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── LOGIN PANEL ──────────────────────────────────────────────────── -->
+  <div id="loginPanel" class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-mark">$</div>
+        <div>
+          <strong>Dr MoneyWise</strong>
+          <small>Admin Panel</small>
         </div>
-      </header>
-
-      <main>
-        <section id="adminLoginPanel" class="glass-card admin-login-card">
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Admin Login</span>
-              <h2>Sign in to manage the site</h2>
-            </div>
-          </div>
-          <form id="adminLoginForm" class="stack-form">
-            <label>
-              Email
-              <input id="adminEmailInput" type="email" placeholder="hello@drmoneywise.com" />
-            </label>
-            <label>
-              Password
-              <input id="adminPasswordInput" type="password" placeholder="Admin password" />
-            </label>
-            <button class="button primary" type="submit">Sign In</button>
-          </form>
-          <div id="adminLoginMessage" class="helper-note"></div>
-        </section>
-
-        <section id="adminPanel" class="hidden">
-          <section class="metric-grid" id="adminMetrics"></section>
-
-          <section class="glass-card owner-controls">
-            <div class="section-head">
-              <div>
-                <span class="eyebrow">Owner Controls</span>
-                <h2>Edit the business without touching code</h2>
-              </div>
-            </div>
-            <form id="businessSettingsForm" class="stack-form">
-              <div class="admin-grid">
-                <div>
-                  <h3 class="compact-heading">Plans and prices</h3>
-                  <div id="businessPlansEditor" class="stack-list"></div>
-                </div>
-                <div>
-                  <h3 class="compact-heading">Keys and payment links</h3>
-                  <div class="form-grid">
-                    <label>
-                      OpenAI key
-                      <input id="ownerOpenAiKeyInput" type="text" placeholder="Paste OpenAI key" />
-                    </label>
-                    <label>
-                      Claude key
-                      <input id="ownerClaudeKeyInput" type="text" placeholder="Paste Claude key" />
-                    </label>
-                  </div>
-                  <div class="form-grid">
-                    <label>
-                      Marketaux key
-                      <input id="ownerMarketauxKeyInput" type="text" />
-                    </label>
-                    <label>
-                      NewsAPI key
-                      <input id="ownerNewsApiKeyInput" type="text" />
-                    </label>
-                  </div>
-                  <div class="form-grid">
-                    <label>
-                      Finnhub key
-                      <input id="ownerFinnhubKeyInput" type="text" />
-                    </label>
-                    <label>
-                      Free checkout link
-                      <input id="ownerCheckoutFreeInput" type="text" />
-                    </label>
-                  </div>
-                  <div class="form-grid">
-                    <label>
-                      Regular monthly Stripe link
-                      <input id="ownerStripeRegularMonthlyInput" type="text" />
-                    </label>
-                    <label>
-                      Regular yearly Stripe link
-                      <input id="ownerStripeRegularAnnualInput" type="text" />
-                    </label>
-                  </div>
-                  <div class="form-grid">
-                    <label>
-                      Premium monthly Stripe link
-                      <input id="ownerStripePremiumMonthlyInput" type="text" />
-                    </label>
-                    <label>
-                      Premium yearly Stripe link
-                      <input id="ownerStripePremiumAnnualInput" type="text" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div class="admin-grid">
-                <div>
-                  <h3 class="compact-heading">Coupon rules</h3>
-                  <div class="form-grid">
-                    <label>
-                      Maximum discount %
-                      <input id="ownerMaxDiscountInput" type="number" min="1" max="100" />
-                    </label>
-                    <label>
-                      Default coupon scope
-                      <select id="ownerDefaultCouponScopeSelect">
-                        <option value="all">All plans</option>
-                        <option value="regular">Regular only</option>
-                        <option value="premium">Premium only</option>
-                      </select>
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <h3 class="compact-heading">News priority</h3>
-                  <div id="newsPriorityEditor" class="priority-grid"></div>
-                </div>
-              </div>
-
-              <div class="button-row">
-                <button class="button primary" type="submit">Save Owner Controls</button>
-                <button id="reloadBusinessSettingsButton" class="button secondary" type="button">Reload</button>
-              </div>
-              <div id="businessSettingsMessage" class="helper-note"></div>
-            </form>
-          </section>
-
-          <section class="admin-grid">
-            <div class="glass-card">
-              <div class="section-head">
-                <div>
-                  <span class="eyebrow">Traffic and Revenue</span>
-                  <h2>Trend overview</h2>
-                </div>
-              </div>
-              <div id="timelineChart" class="chart-board"></div>
-            </div>
-
-            <div class="glass-card">
-              <div class="section-head">
-                <div>
-                  <span class="eyebrow">Reader Mix</span>
-                  <h2>Plans and article flow</h2>
-                </div>
-              </div>
-              <div id="tierMixChart" class="stack-list"></div>
-              <div id="articleStatusChart" class="stack-list spaced-top"></div>
-            </div>
-          </section>
-
-          <section class="admin-grid">
-            <div class="glass-card">
-              <div class="section-head">
-                <div>
-                  <span class="eyebrow">Publishing</span>
-                  <h2>Create and schedule content</h2>
-                </div>
-              </div>
-              <form id="learningDraftForm" class="stack-form">
-                <label>
-                  Topic for a new learning point
-                  <input id="topicInput" type="text" placeholder="Example: How inflation changes spending power" />
-                </label>
-                <div class="form-grid">
-                  <label>
-                    Access
-                    <select id="topicAccessSelect">
-                      <option value="free">Free</option>
-                      <option value="regular">Regular</option>
-                      <option value="premium">Premium</option>
-                    </select>
-                  </label>
-                  <label>
-                    Region
-                    <select id="topicRegionSelect"></select>
-                  </label>
-                </div>
-                <div class="form-grid">
-                  <label>
-                    Interest
-                    <select id="topicInterestSelect"></select>
-                  </label>
-                  <label>
-                    Publish at
-                    <input id="topicPublishInput" type="datetime-local" />
-                  </label>
-                </div>
-                <button class="button primary" type="submit">Create Draft</button>
-              </form>
-              <div id="adminDraftMessage" class="helper-note">Leave publish time empty for a draft. Use a future time to schedule, or a current time to publish now.</div>
-            </div>
-
-            <div class="glass-card">
-              <div class="section-head">
-                <div>
-                  <span class="eyebrow">Coupons</span>
-                  <h2>Discount codes</h2>
-                </div>
-              </div>
-              <form id="couponForm" class="stack-form compact-form">
-                <div class="form-grid">
-                  <input id="couponCodeInput" type="text" placeholder="WELCOME20" />
-                  <input id="couponPercentInput" type="number" min="1" max="100" placeholder="20" />
-                </div>
-                <div class="form-grid">
-                  <select id="couponScopeSelect">
-                    <option value="all">All plans</option>
-                    <option value="regular">Regular only</option>
-                    <option value="premium">Premium only</option>
-                  </select>
-                  <button class="button primary" type="submit">Create Coupon</button>
-                </div>
-              </form>
-              <div id="adminCouponMessage" class="helper-note"></div>
-              <div id="couponList" class="stack-list"></div>
-            </div>
-          </section>
-
-          <section class="admin-grid">
-            <div class="glass-card">
-              <div class="section-head">
-                <div>
-                  <span class="eyebrow">Keys and Links</span>
-                  <h2>Site settings</h2>
-                </div>
-              </div>
-              <form id="settingsForm" class="stack-form">
-                <div class="form-grid">
-                  <label>
-                    Site name
-                    <input id="siteNameInput" type="text" />
-                  </label>
-                  <label>
-                    Domain
-                    <input id="siteDomainInput" type="text" />
-                  </label>
-                </div>
-                <div class="form-grid">
-                  <label>
-                    Support email
-                    <input id="supportEmailInput" type="email" />
-                  </label>
-                  <label>
-                    OpenAI key
-                    <input id="openAiKeyInput" type="text" placeholder="Paste key" />
-                  </label>
-                </div>
-                <div class="form-grid">
-                  <label>
-                    Claude key
-                    <input id="claudeKeyInput" type="text" placeholder="Paste key" />
-                  </label>
-                  <label>
-                    Marketaux key
-                    <input id="marketauxKeyInput" type="text" />
-                  </label>
-                </div>
-                <div class="form-grid">
-                  <label>
-                    NewsAPI key
-                    <input id="newsApiKeyInput" type="text" />
-                  </label>
-                  <label>
-                    Finnhub key
-                    <input id="finnhubKeyInput" type="text" />
-                  </label>
-                </div>
-                <div class="form-grid">
-                  <label>
-                    Regular monthly link
-                    <input id="stripeRegularMonthlyInput" type="text" />
-                  </label>
-                  <label>
-                    Regular yearly link
-                    <input id="stripeRegularAnnualInput" type="text" />
-                  </label>
-                </div>
-                <div class="form-grid">
-                  <label>
-                    Premium monthly link
-                    <input id="stripePremiumMonthlyInput" type="text" />
-                  </label>
-                  <label>
-                    Premium yearly link
-                    <input id="stripePremiumAnnualInput" type="text" />
-                  </label>
-                </div>
-                <div class="form-grid">
-                  <label>
-                    Writer 1 model
-                    <input id="writerAModelInput" type="text" />
-                  </label>
-                  <label>
-                    Writer 2 model
-                    <input id="writerBModelInput" type="text" />
-                  </label>
-                </div>
-                <button class="button primary" type="submit">Save Settings</button>
-              </form>
-              <div id="settingsMessage" class="helper-note"></div>
-            </div>
-
-            <div class="glass-card">
-              <div class="section-head">
-                <div>
-                  <span class="eyebrow">Inventory</span>
-                  <h2>Articles and members</h2>
-                </div>
-              </div>
-              <div id="articleInventory" class="stack-list"></div>
-              <div id="memberInventory" class="stack-list spaced-top"></div>
-            </div>
-          </section>
-        </section>
-      </main>
+      </div>
+      <h2 class="login-title">Sign in to admin</h2>
+      <p class="login-sub">Use your admin email and password.</p>
+      <form id="loginForm" class="login-form">
+        <div>
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" placeholder="hello@drmoneywise.com" autocomplete="email"/>
+        </div>
+        <div>
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"/>
+        </div>
+        <div id="loginMsg" class="login-msg"></div>
+        <button class="btn btn-gold" type="submit">Sign in</button>
+      </form>
     </div>
+  </div>
 
-    <script type="module" src="/admin.js?v=20260506-owner-controls"></script>
-  </body>
+  <!-- ── ADMIN SHELL (shown after login) ──────────────────────────────── -->
+  <div id="adminShell" class="shell hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="side">
+      <div class="side-brand">
+        <div class="side-mark">$</div>
+        <div>
+          <strong>Dr MoneyWise</strong>
+          <small>Admin</small>
+        </div>
+      </div>
+
+      <!-- Nav buttons — data-page must match PAGE keys in admin.js -->
+      <button class="nav-btn active"
+        style="--nb:rgba(255,203,107,.10);--nbr:rgba(255,203,107,.22);--nc:#ffcb6b"
+        data-page="analytics">
+        <span class="nav-icon">▲</span>Analytics
+      </button>
+      <button class="nav-btn"
+        style="--nb:rgba(60,181,196,.10);--nbr:rgba(60,181,196,.22);--nc:#3cb5c4"
+        data-page="news">
+        <span class="nav-icon">◈</span>News Feed
+      </button>
+      <button class="nav-btn"
+        style="--nb:rgba(167,139,250,.10);--nbr:rgba(167,139,250,.22);--nc:#a78bfa"
+        data-page="writer">
+        <span class="nav-icon">✦</span>AI Writer
+      </button>
+      <button class="nav-btn"
+        style="--nb:rgba(43,196,138,.10);--nbr:rgba(43,196,138,.22);--nc:#2bc48a"
+        data-page="inventory">
+        <span class="nav-icon">▣</span>Inventory
+      </button>
+      <button class="nav-btn"
+        style="--nb:rgba(242,106,106,.10);--nbr:rgba(242,106,106,.22);--nc:#f26a6a"
+        data-page="settings">
+        <span class="nav-icon">◎</span>APIs &amp; More
+      </button>
+
+      <div class="side-foot">
+        <div class="side-user">
+          <strong id="sideUserName">Admin</strong>
+          <span id="sideUserPlan">Premium</span>
+        </div>
+        <button class="nav-btn" id="signOutBtn" style="color:#f26a6a">
+          <span class="nav-icon">⊘</span>Sign out
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN — content injected by admin.js router -->
+    <main id="mainArea" class="main">
+      <div class="loading">Loading…</div>
+    </main>
+
+  </div>
+
+  <!-- TOAST (shown by showToast() in admin.js) -->
+  <div id="toastEl" class="toast hidden"></div>
+
+  <script src="/admin.js"></script>
+</body>
 </html>
