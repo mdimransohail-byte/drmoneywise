@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dr MoneyWise</title>
+    <title>Dr MoneyWise — Understand Money. Decide Wisely.</title>
     <meta
       name="description"
       content="Dr MoneyWise makes market news easier to follow with plain-English stories, learning points, watchlists, and portfolio reviews."
@@ -35,20 +35,24 @@
       </header>
 
       <main>
+        <!-- ══════════════════════════════════════════════════════════════
+             HERO
+             ══════════════════════════════════════════════════════════════ -->
         <section class="hero hero-grid" data-reveal>
           <div class="hero-copy hero-copy-dark">
             <div>
               <span class="eyebrow">DrMoneyWise.com</span>
-              <h1>Global market news, explained in simple language.</h1>
+              <h1>Understand Money. Decide Wisely.</h1>
               <p>
-                Readers can choose their region and interests, save a watchlist, build a portfolio,
-                and read free or paid articles written in a calmer, clearer style.
+                Global market news, explained in plain language. Choose your region and
+                interests, save a watchlist, build a portfolio, and read clear, calm
+                stories — free or paid, your choice.
               </p>
             </div>
 
             <div class="hero-actions">
               <a class="button primary" href="#newsroom">See Today's Feed</a>
-              <a class="button tertiary" href="#membership">See Plans</a>
+              <a class="button tertiary" href="#membership">View Membership</a>
             </div>
 
             <div id="summaryStrip" class="summary-strip"></div>
@@ -58,7 +62,7 @@
             <div class="section-head compact">
               <div>
                 <span class="eyebrow">Join Free</span>
-                <h2>Your reading profile</h2>
+                <h2>Create your account</h2>
               </div>
               <span id="accountState" class="subtle-chip">Guest</span>
             </div>
@@ -114,16 +118,21 @@
 
             <div id="authMessage" class="helper-note"></div>
             <div class="helper-note">
-              Contact: <a href="mailto:hello@drmoneywise.com">hello@drmoneywise.com</a>
+              Looking for Regular or Premium?
+              <a href="#membership">See plans below</a> ·
+              <a href="mailto:hello@drmoneywise.com">hello@drmoneywise.com</a>
             </div>
           </aside>
         </section>
 
+        <!-- ══════════════════════════════════════════════════════════════
+             READER CONTROLS — News Bank (region + interests)
+             ══════════════════════════════════════════════════════════════ -->
         <section class="section-filter glass-card" data-reveal>
           <div class="section-head compact">
             <div>
-              <span class="eyebrow">Reader Controls</span>
-              <h2>Choose region and interests</h2>
+              <span class="eyebrow">News Bank</span>
+              <h2>Choose your region and interests</h2>
             </div>
             <button id="refreshHomeButton" class="button secondary" type="button">Refresh</button>
           </div>
@@ -140,6 +149,9 @@
           </div>
         </section>
 
+        <!-- ══════════════════════════════════════════════════════════════
+             NEWSROOM — featured story + live scrolling wire
+             ══════════════════════════════════════════════════════════════ -->
         <section id="newsroom" class="section-grid" data-reveal>
           <div class="glass-card feature-card">
             <div class="section-head">
@@ -156,24 +168,35 @@
           <aside class="glass-card brief-card light-brief">
             <div class="section-head compact">
               <div>
-                <span class="eyebrow">Clear Brief</span>
-                <h2>What matters today</h2>
+                <span class="eyebrow">Live Wire</span>
+                <h2>Today's headlines</h2>
               </div>
             </div>
-            <div id="briefBoard" class="brief-board"></div>
+            <p class="helper-note" style="margin-bottom: 14px;">
+              Scrolls automatically. Hover to pause, click any headline to read.
+            </p>
+            <div class="ticker-viewport">
+              <div id="briefBoard" class="ticker-track"></div>
+            </div>
           </aside>
         </section>
 
+        <!-- ══════════════════════════════════════════════════════════════
+             BY INTEREST
+             ══════════════════════════════════════════════════════════════ -->
         <section class="glass-card" data-reveal>
           <div class="section-head">
             <div>
               <span class="eyebrow">By Interest</span>
-              <h2>Top 3 stories in each area</h2>
+              <h2>Top stories in each area</h2>
             </div>
           </div>
           <div id="feedAreas" class="area-grid"></div>
         </section>
 
+        <!-- ══════════════════════════════════════════════════════════════
+             LEARNING POINTS
+             ══════════════════════════════════════════════════════════════ -->
         <section id="learning" class="section-grid tools-grid" data-reveal>
           <div class="glass-card">
             <div class="section-head">
@@ -201,6 +224,9 @@
           </aside>
         </section>
 
+        <!-- ══════════════════════════════════════════════════════════════
+             WATCHLIST & PORTFOLIO
+             ══════════════════════════════════════════════════════════════ -->
         <section class="section-grid tools-grid" data-reveal>
           <div class="glass-card">
             <div class="section-head">
@@ -240,6 +266,9 @@
           </div>
         </section>
 
+        <!-- ══════════════════════════════════════════════════════════════
+             PORTFOLIO REVIEW
+             ══════════════════════════════════════════════════════════════ -->
         <section class="glass-card" data-reveal>
           <div class="section-head">
             <div>
@@ -251,6 +280,9 @@
           <div id="portfolioReview" class="review-board"></div>
         </section>
 
+        <!-- ══════════════════════════════════════════════════════════════
+             MEMBERSHIP
+             ══════════════════════════════════════════════════════════════ -->
         <section id="membership" class="glass-card" data-reveal>
           <div class="section-head">
             <div>
@@ -266,11 +298,14 @@
           <div id="pricingCards" class="pricing-grid"></div>
         </section>
 
+        <!-- ══════════════════════════════════════════════════════════════
+             NEWSLETTER
+             ══════════════════════════════════════════════════════════════ -->
         <section class="glass-card newsletter-strip" data-reveal>
           <div>
             <span class="eyebrow">Newsletter</span>
             <h2>Get clear market notes by email</h2>
-            <p>Use Zoho with <strong>hello@drmoneywise.com</strong> for the public inbox and member replies.</p>
+            <p>Weekly notes for Regular and Premium members. Use <strong>hello@drmoneywise.com</strong> for the public inbox and member replies.</p>
           </div>
           <a class="button primary" href="mailto:hello@drmoneywise.com">Email Us</a>
         </section>
