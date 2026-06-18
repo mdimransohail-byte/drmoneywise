@@ -41,7 +41,7 @@ export async function getAdminDashboard() {
       openAiKey: envSettings.OPENAI_API_KEY || '',
       claudeKey: envSettings.CLAUDE_API_KEY || '',
       marketauxKey: envSettings.MARKETAUX_API_KEY || '',
-      newsApiKey: envSettings.NEWSAPI_KEY || '',
+      tiingoKey: envSettings.TIINGO_API_KEY || '',
       finnhubKey: envSettings.FINNHUB_API_KEY || '',
       stripeRegularMonthly: envSettings.STRIPE_REGULAR_MONTHLY_URL || '',
       stripeRegularAnnual: envSettings.STRIPE_REGULAR_ANNUAL_URL || '',
@@ -50,7 +50,7 @@ export async function getAdminDashboard() {
       openAiConfigured: Boolean(envSettings.OPENAI_API_KEY),
       claudeConfigured: Boolean(envSettings.CLAUDE_API_KEY),
       marketauxConfigured: Boolean(envSettings.MARKETAUX_API_KEY),
-      newsApiConfigured: Boolean(envSettings.NEWSAPI_KEY),
+      tiingoConfigured: Boolean(envSettings.TIINGO_API_KEY),
       finnhubConfigured: Boolean(envSettings.FINNHUB_API_KEY),
       stripeRegularMonthlyConfigured: Boolean(envSettings.STRIPE_REGULAR_MONTHLY_URL),
       stripeRegularAnnualConfigured: Boolean(envSettings.STRIPE_REGULAR_ANNUAL_URL),
@@ -191,8 +191,8 @@ export async function saveAdminSettings(payload) {
   if (payload.marketauxKey !== undefined) {
     envChanges.MARKETAUX_API_KEY = payload.marketauxKey;
   }
-  if (payload.newsApiKey !== undefined) {
-    envChanges.NEWSAPI_KEY = payload.newsApiKey;
+  if (payload.tiingoKey !== undefined) {
+    envChanges.TIINGO_API_KEY = payload.tiingoKey;
   }
   if (payload.finnhubKey !== undefined) {
     envChanges.FINNHUB_API_KEY = payload.finnhubKey;
