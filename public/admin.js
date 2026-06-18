@@ -856,12 +856,12 @@ function render_settings() {
   const s = STATE.dashboard?.settings || {};
   const coupons = STATE.coupons;
 
-  const apiRows = [
-    { l: 'Anthropic (Claude)', k: 'claudeKey',     c: '#a78bfa', hint: 'console.anthropic.com' },
-    { l: 'OpenAI (GPT-4)',     k: 'openAiKey',     c: '#2bc48a', hint: 'platform.openai.com'   },
-    { l: 'Marketaux',          k: 'marketauxKey',  c: '#3cb5c4', hint: 'marketaux.com — free 100 req/day' },
-    { l: 'NewsAPI',            k: 'newsApiKey',     c: '#3cb5c4', hint: 'newsapi.org — free 100 req/day'  },
-    { l: 'Finnhub',            k: 'finnhubKey',     c: '#3cb5c4', hint: 'finnhub.io — free tier' },
+const apiRows = [
+    { l: 'Anthropic (Claude)',    k: 'claudeKey',    c: '#a78bfa', hint: 'console.anthropic.com' },
+    { l: 'OpenAI (GPT-4)',        k: 'openAiKey',    c: '#2bc48a', hint: 'platform.openai.com'   },
+    { l: 'Marketaux',             k: 'marketauxKey', c: '#3cb5c4', hint: 'marketaux.com — free 100 req/day' },
+    { l: 'Tiingo (testing only)', k: 'tiingoKey',    c: '#ffcb6b', hint: 'tiingo.com — individual-use license, remove before launch' },
+    { l: 'Finnhub',               k: 'finnhubKey',   c: '#3cb5c4', hint: 'finnhub.io — free tier' },
   ];
 
   const stripeRows = [
@@ -992,7 +992,7 @@ function bind_settings() {
   qs('#saveApiKeysBtn')?.addEventListener('click', async () => {
     const msg = qs('#apiKeysMsg');
     try {
-      const keys = ['claudeKey','openAiKey','marketauxKey','newsApiKey','finnhubKey'];
+      const keys = ['claudeKey','openAiKey','marketauxKey','tiingoKey','finnhubKey'];
       const body = Object.fromEntries(keys.map(k => [k, qs(`#key_${k}`)?.value?.trim() || '']));
       await API.saveSettings(body);
       if (msg) msg.textContent = '✓ API keys saved';
