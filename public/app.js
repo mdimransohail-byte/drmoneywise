@@ -306,42 +306,66 @@ function renderFeaturedStory() {
   });
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   LIVE WIRE — scrolling headline ticker
+   ───────────────────────────────────────────────────────────────────────
+   CHANGED FUNCTION (homepage redesign — everything else in this file is
+   identical to the original). Renders into the same #briefBoard element,
+   reuses the same state.home data already fetched by refreshHome() — no
+   new API calls. Each headline is a clickable link: it opens the original
+   source if one exists, otherwise the internal article page. The list is
+   duplicated so the CSS marquee animation (.ticker-track, see styles.css)
+   loops seamlessly forever.
+   ════════════════════════════════════════════════════════════════════════ */
 function renderBriefBoard() {
+  const currentPlan = state.user?.plan || 'free';
   const featured = state.home?.featured;
-  const lines = [];
+  const items = [];
 
   if (featured) {
-    lines.push({
-      title: 'Headline',
-      body: featured.headline,
-    });
+    items.push(featured);
   }
 
   for (const area of state.home?.areas || []) {
-    if (area.articles?.[0]) {
-      lines.push({
-        title: area.label,
-        body: area.articles[0].headline,
-      });
+    for (const article of (area.articles || []).slice(0, 2)) {
+      if (article && article.slug !== featured?.slug) {
+        items.push(article);
+      }
     }
   }
 
-  if (!lines.length) {
-    elements.briefBoard.innerHTML = createEmptyCard('Choose a region and interests to fill today\'s clear brief.');
+  if (!items.length) {
+    elements.briefBoard.innerHTML = createEmptyCard("Choose a region and interests to fill today's live wire.");
+    elements.briefBoard.style.animation = 'none';
     return;
   }
 
-  elements.briefBoard.innerHTML = lines
-    .slice(0, 4)
-    .map(
-      (line) => `
-        <div class="brief-line">
-          <strong>${escapeHtml(line.title)}</strong>
-          <div class="helper-note">${escapeHtml(line.body)}</div>
+  const renderTickerItem = (article) => {
+    const href = article.sourceUrl
+      ? article.sourceUrl
+      : `/article.html?slug=${encodeURIComponent(article.slug)}&plan=${encodeURIComponent(currentPlan)}`;
+    const targetAttrs = article.sourceUrl ? ' target="_blank" rel="noopener"' : '';
+    const sourceLabel = article.source || 'Dr MoneyWise';
+
+    return `
+      <a class="ticker-item" href="${href}"${targetAttrs}>
+        <strong>${escapeHtml(article.headline)}</strong>
+        <div class="ticker-meta">
+          <span>${escapeHtml(sourceLabel)}</span>
+          <span>·</span>
+          <span>${formatDate(article.publishAt)}</span>
         </div>
-      `,
-    )
-    .join('');
+      </a>
+    `;
+  };
+
+  // Duplicate the list so the marquee (translateY 0 -> -50%) loops with no visible seam
+  const doubled = [...items, ...items];
+  elements.briefBoard.innerHTML = doubled.map(renderTickerItem).join('');
+
+  // Scroll speed scales with content length so longer lists don't feel rushed
+  const duration = Math.max(18, items.length * 4);
+  elements.briefBoard.style.animationDuration = `${duration}s`;
 }
 
 function renderAreas() {
