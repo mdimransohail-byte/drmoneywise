@@ -28,6 +28,8 @@ import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOu
 import { trackEvent } from './src/services/analyticsService.js';
 import { saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
 import { ensureStore } from './src/services/storeService.js';
+import { getWatchlistSnapshot } from './src/services/watchlistService.js';
+import { getPortfolioSnapshot } from './src/services/portfolioService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -145,11 +147,21 @@ export const server = http.createServer(async (request, response) => {
       });
     }
 
+    if (requestUrl.pathname === '/api/member/watchlist/quotes' && request.method === 'POST') {
+      const body = await parseJsonBody(request);
+      return sendJson(response, 200, await getWatchlistSnapshot({ tickers: body.tickers || [] }));
+    }
+
     if (requestUrl.pathname === '/api/member/portfolio' && request.method === 'POST') {
       const body = await parseJsonBody(request);
       return sendJson(response, 200, {
         portfolio: await saveMemberPortfolio(token, body.holdings),
       });
+    }
+
+    if (requestUrl.pathname === '/api/member/portfolio/quotes' && request.method === 'POST') {
+      const body = await parseJsonBody(request);
+      return sendJson(response, 200, await getPortfolioSnapshot({ holdings: body.holdings || [] }));
     }
 
     if (requestUrl.pathname === '/api/member/portfolio-review' && request.method === 'GET') {
