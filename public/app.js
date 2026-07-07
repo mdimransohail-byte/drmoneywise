@@ -13,6 +13,8 @@ const state = {
   guestPortfolio: [],
   couponResults: {},
   couponCode: '',
+  watchlistQuotes: null,
+  portfolioQuotes: null,
 };
 
 const elements = {};
@@ -33,6 +35,7 @@ async function init() {
   await refreshHome();
   await refreshPortfolioReview();
   renderAll();
+  await refreshMarketDataQuotes();
   await trackView('/', 'page_view');
   window.setInterval(() => refreshHome({ quiet: true }), 300000);
 }
@@ -65,12 +68,14 @@ function cacheElements() {
   elements.watchlistForm = document.querySelector('#watchlistForm');
   elements.watchlistTickerInput = document.querySelector('#watchlistTickerInput');
   elements.watchlistList = document.querySelector('#watchlistList');
+  elements.watchlistQuotaNotice = document.querySelector('#watchlistQuotaNotice');
   elements.portfolioForm = document.querySelector('#portfolioForm');
   elements.portfolioTickerInput = document.querySelector('#portfolioTickerInput');
   elements.portfolioNameInput = document.querySelector('#portfolioNameInput');
   elements.portfolioWeightInput = document.querySelector('#portfolioWeightInput');
   elements.portfolioCostInput = document.querySelector('#portfolioCostInput');
   elements.portfolioList = document.querySelector('#portfolioList');
+  elements.portfolioQuotaNotice = document.querySelector('#portfolioQuotaNotice');
   elements.portfolioReview = document.querySelector('#portfolioReview');
   elements.refreshReviewButton = document.querySelector('#refreshReviewButton');
   elements.couponInput = document.querySelector('#couponInput');
@@ -421,16 +426,50 @@ function renderWatchlist() {
     return;
   }
 
+  const quotesByTicker = Object.fromEntries(
+    (state.watchlistQuotes?.items || []).map((item) => [item.ticker, item]),
+  );
+
   elements.watchlistList.innerHTML = watchlist
-    .map(
-      (ticker) => `
-        <span class="choice-chip active">
-          ${escapeHtml(ticker)}
+    .map((ticker) => {
+      const quote = quotesByTicker[ticker];
+      const priceLabel = quote?.price != null ? ` · $${formatMoney(quote.price)}` : '';
+
+      return `
+        <span class="choice-chip active" title="${escapeHtml(quote?.note || '')}">
+          ${escapeHtml(ticker)}${priceLabel}
           <button class="button secondary mini-button" type="button" data-remove-watchlist="${ticker}">Remove</button>
         </span>
-      `,
-    )
+      `;
+    })
     .join('');
+}
+
+/**
+ * Fetch live prices for the current watchlist from Marketstack (via our
+ * server) and re-render the chips with price data. Also updates the quota
+ * notice so a warning shows up once Marketstack's monthly allowance is
+ * running low or has run out.
+ */
+async function refreshWatchlistQuotes() {
+  const tickers = getCurrentWatchlist();
+
+  if (!tickers.length) {
+    state.watchlistQuotes = null;
+    renderWatchlist();
+    renderQuotaNotice(elements.watchlistQuotaNotice, null);
+    return;
+  }
+
+  try {
+    state.watchlistQuotes = await apiPost('/api/member/watchlist/quotes', { tickers }, { allowGuest: true });
+  } catch (error) {
+    console.error(error);
+    state.watchlistQuotes = null;
+  }
+
+  renderWatchlist();
+  renderQuotaNotice(elements.watchlistQuotaNotice, state.watchlistQuotes?.quota);
 }
 
 function renderPortfolio() {
@@ -447,19 +486,76 @@ function renderPortfolio() {
     return;
   }
 
+  const quotesByTicker = Object.fromEntries(
+    (state.portfolioQuotes?.holdings || []).map((item) => [item.ticker, item]),
+  );
+
   elements.portfolioList.innerHTML = portfolio
-    .map(
-      (holding) => `
+    .map((holding) => {
+      const quote = quotesByTicker[holding.ticker];
+      const priceLine = quote?.price != null ? ` · $${formatMoney(quote.price)}${quote.note ? ` — ${escapeHtml(quote.note)}` : ''}` : '';
+
+      return `
         <div class="list-row">
           <div>
             <strong>${escapeHtml(holding.ticker)}${holding.name ? ` · ${escapeHtml(holding.name)}` : ''}</strong>
-            <div class="helper-note">${escapeHtml(holding.weight || 'Weight not set')} · Cost ${escapeHtml(holding.cost || 'n/a')}</div>
+            <div class="helper-note">${escapeHtml(holding.weight || 'Weight not set')} · Cost ${escapeHtml(holding.cost || 'n/a')}${priceLine}</div>
           </div>
           <button class="button secondary" type="button" data-remove-holding="${holding.id}">Remove</button>
         </div>
-      `,
-    )
+      `;
+    })
     .join('');
+}
+
+/**
+ * Fetch live prices for the current portfolio holdings from Marketstack (via
+ * our server) and re-render with price data. Updates the quota notice too.
+ */
+async function refreshPortfolioQuotes() {
+  const holdings = getCurrentPortfolio();
+
+  if (!holdings.length) {
+    state.portfolioQuotes = null;
+    renderPortfolio();
+    renderQuotaNotice(elements.portfolioQuotaNotice, null);
+    return;
+  }
+
+  try {
+    state.portfolioQuotes = await apiPost('/api/member/portfolio/quotes', { holdings }, { allowGuest: true });
+  } catch (error) {
+    console.error(error);
+    state.portfolioQuotes = null;
+  }
+
+  renderPortfolio();
+  renderQuotaNotice(elements.portfolioQuotaNotice, state.portfolioQuotes?.quota);
+}
+
+async function refreshMarketDataQuotes() {
+  await Promise.all([refreshWatchlistQuotes(), refreshPortfolioQuotes()]);
+}
+
+/**
+ * Shows/hides a quota-warning notice element based on the `quota` object
+ * returned from the watchlist/portfolio quotes endpoints. Reuses the
+ * existing `hidden` class already used throughout this file — no new CSS
+ * needed.
+ */
+function renderQuotaNotice(element, quota) {
+  if (!element) {
+    return;
+  }
+
+  if (!quota || !quota.warningLevel) {
+    element.classList.add('hidden');
+    element.textContent = '';
+    return;
+  }
+
+  element.classList.remove('hidden');
+  element.textContent = quota.message || '';
 }
 
 function renderPortfolioReview(review) {
@@ -650,6 +746,7 @@ async function handleSignOut() {
   await refreshHome();
   await refreshPortfolioReview();
   renderAll();
+  await refreshMarketDataQuotes();
 }
 
 async function finishAuth(session, message) {
@@ -670,6 +767,7 @@ async function finishAuth(session, message) {
   await refreshHome();
   await refreshPortfolioReview();
   renderAll();
+  await refreshMarketDataQuotes();
 }
 
 async function handleInterestToggle(event) {
@@ -713,7 +811,7 @@ async function handleAddWatchlist(event) {
   }
 
   elements.watchlistTickerInput.value = '';
-  renderWatchlist();
+  await refreshWatchlistQuotes();
 }
 
 async function handleRemoveWatchlist(event) {
@@ -732,7 +830,7 @@ async function handleRemoveWatchlist(event) {
     persistLocalState();
   }
 
-  renderWatchlist();
+  await refreshWatchlistQuotes();
 }
 
 async function handleAddPortfolioHolding(event) {
@@ -761,7 +859,7 @@ async function handleAddPortfolioHolding(event) {
   }
 
   elements.portfolioForm.reset();
-  renderPortfolio();
+  await refreshPortfolioQuotes();
   await refreshPortfolioReview();
 }
 
@@ -781,7 +879,7 @@ async function handleRemovePortfolioHolding(event) {
     persistLocalState();
   }
 
-  renderPortfolio();
+  await refreshPortfolioQuotes();
   await refreshPortfolioReview();
 }
 
