@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "description": "Dr MoneyWise commercial starter for market news, learning points, memberships, watchlists, portfolios, and admin analytics.",
   "scripts": {
     "start": "node server.js"
