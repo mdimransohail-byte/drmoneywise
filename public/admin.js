@@ -337,7 +337,7 @@ function bind_analytics() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function render_news() {
-  const srcs = ['All', 'Marketaux', 'NewsAPI', 'Finnhub', 'Dr MoneyWise'];
+  const srcs = ['All', 'Marketaux', 'Tiingo', 'Finnhub', 'Dr MoneyWise'];
   const vis   = STATE.newsFilter === 'All'
     ? STATE.newsItems
     : STATE.newsItems.filter(n => n.src === STATE.newsFilter);
@@ -369,7 +369,7 @@ function render_news() {
       <div class="card" style="text-align:center;padding:40px;color:#9eb3cc">
         <div style="font-size:1.4rem;margin-bottom:10px">◈</div>
         <p>No headlines yet. Click <strong style="color:#3cb5c4">Load draft articles</strong> to pull in your pending content.</p>
-        <p style="margin-top:8px;font-size:.72rem">When you configure Marketaux, NewsAPI, or Finnhub keys in Settings, live headlines will appear here automatically.</p>
+        <p style="margin-top:8px;font-size:.72rem">When you configure Marketaux, Tiingo, or Finnhub keys in Settings, live headlines will appear here automatically.</p>
       </div>
     ` : vis.map(n => `
       <div class="news-item ${n.sel?'selected':''}" data-nid="${n.id}">
@@ -862,6 +862,7 @@ const apiRows = [
     { l: 'Marketaux',             k: 'marketauxKey', c: '#3cb5c4', hint: 'marketaux.com — free 100 req/day' },
     { l: 'Tiingo (testing only)', k: 'tiingoKey',    c: '#ffcb6b', hint: 'tiingo.com — individual-use license, remove before launch' },
     { l: 'Finnhub',               k: 'finnhubKey',   c: '#3cb5c4', hint: 'finnhub.io — free tier' },
+    { l: 'Marketstack',           k: 'marketstackKey', c: '#d4af37', hint: 'marketstack.com — free 100 req/month for testing, upgrade to Basic ($9.99/mo) before launch' },
   ];
 
   const stripeRows = [
@@ -992,7 +993,7 @@ function bind_settings() {
   qs('#saveApiKeysBtn')?.addEventListener('click', async () => {
     const msg = qs('#apiKeysMsg');
     try {
-      const keys = ['claudeKey','openAiKey','marketauxKey','tiingoKey','finnhubKey'];
+      const keys = ['claudeKey','openAiKey','marketauxKey','tiingoKey','finnhubKey','marketstackKey'];
       const body = Object.fromEntries(keys.map(k => [k, qs(`#key_${k}`)?.value?.trim() || '']));
       await API.saveSettings(body);
       if (msg) msg.textContent = '✓ API keys saved';
