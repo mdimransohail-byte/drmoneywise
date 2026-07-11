@@ -15,6 +15,7 @@ const state = {
   couponCode: '',
   watchlistQuotes: null,
   portfolioQuotes: null,
+  liveHeadlines: null,
 };
 
 const elements = {};
@@ -33,11 +34,13 @@ async function init() {
   setupRevealObserver();
   await loadBootstrap();
   await refreshHome();
+  await refreshLiveHeadlines();
   await refreshPortfolioReview();
   renderAll();
   await refreshMarketDataQuotes();
   await trackView('/', 'page_view');
   window.setInterval(() => refreshHome({ quiet: true }), 300000);
+  window.setInterval(() => refreshLiveHeadlines(), 6 * 60 * 60 * 1000);
 }
 
 function cacheElements() {
@@ -61,7 +64,6 @@ function cacheElements() {
   elements.refreshHomeButton = document.querySelector('#refreshHomeButton');
   elements.summaryStrip = document.querySelector('#summaryStrip');
   elements.feedState = document.querySelector('#feedState');
-  elements.featuredStory = document.querySelector('#featuredStory');
   elements.briefBoard = document.querySelector('#briefBoard');
   elements.feedAreas = document.querySelector('#feedAreas');
   elements.learningPoints = document.querySelector('#learningPoints');
@@ -117,7 +119,6 @@ function bindEvents() {
   elements.refreshReviewButton.addEventListener('click', refreshPortfolioReview);
   elements.applyCouponButton.addEventListener('click', applyCoupon);
   elements.pricingCards.addEventListener('click', handlePricingClick);
-  elements.featuredStory.addEventListener('click', handleSaveArticleClick);
   elements.feedAreas.addEventListener('click', handleSaveArticleClick);
   elements.learningPoints.addEventListener('click', handleSaveArticleClick);
 }
@@ -193,7 +194,6 @@ async function refreshPortfolioReview() {
 function renderAll() {
   renderAccountState();
   renderSummaryStrip();
-  renderFeaturedStory();
   renderBriefBoard();
   renderAreas();
   renderLearningPoints();
@@ -296,73 +296,46 @@ function renderSummaryStrip() {
     .join('');
 }
 
-function renderFeaturedStory() {
-  const article = state.home?.featured;
-  if (!article) {
-    elements.featuredStory.innerHTML = createEmptyCard('No featured story is available yet.');
-    return;
-  }
-
-  elements.featuredStory.innerHTML = renderStoryCard(article, {
-    className: 'featured-story',
-    description: article.summary,
-    actionLabel: article.accessible ? 'Read story' : 'Preview article',
-    includeSource: true,
-  });
-}
-
 /* ════════════════════════════════════════════════════════════════════════
    LIVE WIRE — scrolling headline ticker
    ───────────────────────────────────────────────────────────────────────
-   CHANGED FUNCTION (homepage redesign — everything else in this file is
-   identical to the original). Renders into the same #briefBoard element,
-   reuses the same state.home data already fetched by refreshHome() — no
-   new API calls. Each headline is a clickable link: it opens the original
-   source if one exists, otherwise the internal article page. The list is
-   duplicated so the CSS marquee animation (.ticker-track, see styles.css)
-   loops seamlessly forever.
+   Sourced from its own /api/site/live-headlines endpoint (raw Marketaux
+   headlines, cached server-side for 6 hours) rather than the personalized
+   region/interest feed — see refreshLiveHeadlines() below. Each headline
+   links straight out to its original source. The list is duplicated so the
+   CSS marquee animation (.ticker-track, see styles.css) loops seamlessly.
    ════════════════════════════════════════════════════════════════════════ */
+async function refreshLiveHeadlines() {
+  setFeedState('Refreshing');
+  try {
+    state.liveHeadlines = await apiGet('/api/site/live-headlines', { allowGuest: true });
+    setFeedState('Live');
+  } catch (error) {
+    console.error(error);
+    setFeedState('Unavailable');
+  }
+  renderBriefBoard();
+}
+
 function renderBriefBoard() {
-  const currentPlan = state.user?.plan || 'free';
-  const featured = state.home?.featured;
-  const items = [];
-
-  if (featured) {
-    items.push(featured);
-  }
-
-  for (const area of state.home?.areas || []) {
-    for (const article of (area.articles || []).slice(0, 2)) {
-      if (article && article.slug !== featured?.slug) {
-        items.push(article);
-      }
-    }
-  }
+  const items = state.liveHeadlines?.items || [];
 
   if (!items.length) {
-    elements.briefBoard.innerHTML = createEmptyCard("Choose a region and interests to fill today's live wire.");
+    elements.briefBoard.innerHTML = createEmptyCard('Live headlines are loading — check back shortly.');
     elements.briefBoard.style.animation = 'none';
     return;
   }
 
-  const renderTickerItem = (article) => {
-    const href = article.sourceUrl
-      ? article.sourceUrl
-      : `/article.html?slug=${encodeURIComponent(article.slug)}&plan=${encodeURIComponent(currentPlan)}`;
-    const targetAttrs = article.sourceUrl ? ' target="_blank" rel="noopener"' : '';
-    const sourceLabel = article.source || 'Dr MoneyWise';
-
-    return `
-      <a class="ticker-item" href="${href}"${targetAttrs}>
-        <strong>${escapeHtml(article.headline)}</strong>
-        <div class="ticker-meta">
-          <span>${escapeHtml(sourceLabel)}</span>
-          <span>·</span>
-          <span>${formatDate(article.publishAt)}</span>
-        </div>
-      </a>
-    `;
-  };
+  const renderTickerItem = (item) => `
+    <a class="ticker-item" href="${escapeAttribute(item.url || '#')}" target="_blank" rel="noopener">
+      <strong>${escapeHtml(item.title)}</strong>
+      <div class="ticker-meta">
+        <span>${escapeHtml(item.source || 'Market feed')}</span>
+        <span>·</span>
+        <span>${formatDate(item.publishedAt)}</span>
+      </div>
+    </a>
+  `;
 
   // Duplicate the list so the marquee (translateY 0 -> -50%) loops with no visible seam
   const doubled = [...items, ...items];
@@ -641,7 +614,6 @@ function renderPricingCards() {
 
 function renderLoadingBoards() {
   const loadingCard = '<div class="story-card"><div class="skeleton line"></div><div class="skeleton card"></div></div>';
-  elements.featuredStory.innerHTML = loadingCard;
   elements.briefBoard.innerHTML = loadingCard;
   elements.feedAreas.innerHTML = loadingCard.repeat(3);
   elements.learningPoints.innerHTML = loadingCard.repeat(2);
@@ -929,7 +901,6 @@ async function handleSaveArticleClick(event) {
   });
 
   state.user.savedArticleSlugs = response.savedArticleSlugs;
-  renderFeaturedStory();
   renderAreas();
   renderLearningPoints();
 }
@@ -1162,6 +1133,10 @@ function escapeHtml(value) {
     .replace(/>/gu, '&gt;')
     .replace(/"/gu, '&quot;')
     .replace(/'/gu, '&#39;');
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/`/gu, '&#96;');
 }
 
 function cryptoId() {

@@ -321,6 +321,10 @@ textarea {
   letter-spacing: -0.01em;
 }
 
+.gold-word {
+  color: var(--gold-strong);
+}
+
 .hero-copy p,
 .helper-note,
 .article-meta,
