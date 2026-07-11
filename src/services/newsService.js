@@ -72,6 +72,108 @@ export async function getMarketSnapshot({ region = 'global', asset = 'all' } = {
   };
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   LIVE WIRE — homepage scrolling headline ticker
+   ───────────────────────────────────────────────────────────────────────
+   Deliberately separate from getNews()/getHomeExperience(): those exist to
+   build personalized, AI-rewritten "articles" gated by region/interest/plan,
+   and calling that pipeline just to fill a ticker meant burning AI-writer
+   and news-provider calls on every homepage load for no real benefit. This
+   function instead fetches a small set of raw headlines (title/source/link
+   only, no AI rewrite) and caches them in memory for 6 hours, shared across
+   every visitor — so Marketaux only gets hit a handful of times a day
+   regardless of traffic.
+
+   TESTING CONFIGURATION: Marketaux only for now (safe for production use).
+   Add more providers here later using the same fallback pattern as
+   fetchLiveNews() below, once ready to expand beyond Marketaux.
+   ════════════════════════════════════════════════════════════════════════ */
+const LIVE_HEADLINES_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const LIVE_HEADLINES_LIMIT = 20;
+let liveHeadlinesCache = null; // { payload, fetchedAt }
+
+export async function getLiveHeadlines() {
+  const now = Date.now();
+
+  if (liveHeadlinesCache && now - liveHeadlinesCache.fetchedAt < LIVE_HEADLINES_CACHE_TTL_MS) {
+    return { ...liveHeadlinesCache.payload, cached: true };
+  }
+
+  try {
+    const items = await fetchMarketauxHeadlines({ limit: LIVE_HEADLINES_LIMIT });
+    if (items.length) {
+      const payload = {
+        mode: 'live',
+        provider: 'Marketaux',
+        updatedAt: new Date().toISOString(),
+        items,
+      };
+      liveHeadlinesCache = { payload, fetchedAt: now };
+      return { ...payload, cached: false };
+    }
+  } catch {
+    // Fall through to a stale cache (if any) or demo headlines below.
+  }
+
+  if (liveHeadlinesCache) {
+    return { ...liveHeadlinesCache.payload, cached: true, stale: true };
+  }
+
+  return {
+    mode: 'demo',
+    provider: 'Curated demo feed',
+    updatedAt: new Date().toISOString(),
+    items: fallbackNews.slice(0, LIVE_HEADLINES_LIMIT).map((item) => ({
+      title: item.title,
+      source: item.source,
+      url: item.url || '',
+      publishedAt: item.publishedAt,
+    })),
+  };
+}
+
+async function fetchMarketauxHeadlines({ limit }) {
+  if (!process.env.MARKETAUX_API_KEY) {
+    return [];
+  }
+
+  const url = new URL('https://api.marketaux.com/v1/news/all');
+  url.searchParams.set('api_token', process.env.MARKETAUX_API_KEY);
+  url.searchParams.set('language', 'en');
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('search', ASSET_KEYWORDS.all.join(' OR '));
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    return [];
+  }
+
+  const payload = await response.json();
+  return (payload.data || [])
+    .filter((article) => article.title)
+    .map((article) => ({
+      title: article.title,
+      source: article.source || 'Marketaux',
+      url: article.url || '',
+      publishedAt: article.published_at || new Date().toISOString(),
+    }));
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   NEWS SOURCES — TESTING CONFIGURATION
+   ───────────────────────────────────────────────────────────────────────
+   Marketaux: free tier, safe for production, keep long-term.
+   Tiingo: free tier, but its free-tier license is INDIVIDUAL USE ONLY.
+     Fine to use during development/testing — must be removed (or upgraded
+     to a commercial Tiingo plan) before the site goes live. Search this
+     file for "TESTING ONLY" to find every spot that needs to change.
+   NewsAPI.org: removed entirely — its free Developer plan forbids
+     production use, including internal use. See businessSettings.js and
+     envService.js for matching notes.
+   Finnhub: kept — free tier is production-safe, also supplies some
+     company-specific news alongside its main role as the live stock
+     price source.
+   ════════════════════════════════════════════════════════════════════════ */
 async function fetchLiveNews({ region, asset, limit }) {
   const providers = [
     {
@@ -80,9 +182,9 @@ async function fetchLiveNews({ region, asset, limit }) {
       fetcher: () => fetchMarketauxNews({ region, asset, limit }),
     },
     {
-      name: 'NewsAPI',
-      enabled: Boolean(process.env.NEWSAPI_KEY),
-      fetcher: () => fetchNewsApiHeadlines({ region, asset, limit }),
+      name: 'Tiingo', // TESTING ONLY — remove this provider before launch (individual-use license)
+      enabled: Boolean(process.env.TIINGO_API_KEY),
+      fetcher: () => fetchTiingoNews({ region, asset, limit }),
     },
     {
       name: 'Finnhub',
@@ -156,16 +258,16 @@ async function fetchMarketauxNews({ region, asset, limit }) {
   );
 }
 
-async function fetchNewsApiHeadlines({ region, asset, limit }) {
-  const country = (REGION_COUNTRY_MAP[region] || [])[0] || 'us';
+// TESTING ONLY — Tiingo's free tier is individual-use only.
+// Remove this function and its provider entry above before going live.
+async function fetchTiingoNews({ region, asset, limit }) {
   const keywords = ASSET_KEYWORDS[asset] || ASSET_KEYWORDS.all;
-  const url = new URL('https://newsapi.org/v2/top-headlines');
+  const url = new URL('https://api.tiingo.com/tiingo/news');
 
-  url.searchParams.set('apiKey', process.env.NEWSAPI_KEY);
-  url.searchParams.set('category', 'business');
-  url.searchParams.set('pageSize', String(limit));
-  url.searchParams.set('country', country);
-  url.searchParams.set('q', keywords[0]);
+  url.searchParams.set('token', process.env.TIINGO_API_KEY);
+  url.searchParams.set('tags', keywords.join(','));
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('sortBy', 'publishedDate');
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -174,23 +276,23 @@ async function fetchNewsApiHeadlines({ region, asset, limit }) {
 
   const payload = await response.json();
   return normalizeLiveArticles(
-    payload.articles?.map((article, index) => ({
-      id: `${country}-newsapi-${index}`,
+    (Array.isArray(payload) ? payload : []).map((article, index) => ({
+      id: article.id ? `tiingo-${article.id}` : `tiingo-${index}`,
       title: article.title,
-      summary: article.description || article.content || 'Market headline',
-      whyItMatters: article.description || 'This headline changes how investors think about growth, rates, or risk appetite.',
-      source: article.source?.name || 'NewsAPI',
+      summary: article.description || 'Market headline',
+      whyItMatters: article.description || 'This headline could affect positioning and sentiment across related assets.',
+      source: article.source || 'Tiingo',
       region,
       asset: resolveAssetFromText(`${article.title} ${article.description || ''}`, asset),
-      topics: keywords,
-      tickers: [],
-      sentiment: index % 2 === 0 ? 'positive' : 'neutral',
+      topics: article.tags || keywords,
+      tickers: article.tickers || [],
+      sentiment: 'neutral',
       urgency: index < 2 ? 'high' : 'medium',
       accessTier: index % 5 === 0 ? 'premium' : index % 2 === 0 ? 'regular' : 'free',
-      publishedAt: article.publishedAt || new Date().toISOString(),
+      publishedAt: article.publishedDate || article.crawlDate || new Date().toISOString(),
       readTime: '3 min',
       url: article.url,
-    })) || [],
+    })),
   );
 }
 
