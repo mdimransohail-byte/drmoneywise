@@ -26,6 +26,7 @@ import {
 import { deleteArticleById, generateLearningPointDraft, getAdminArticles, getArticleBySlug, getHomeExperience, saveAdminArticle } from './src/services/articleService.js';
 import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOutSession, signUpMember } from './src/services/authService.js';
 import { trackEvent } from './src/services/analyticsService.js';
+import { getLiveHeadlines } from './src/services/newsService.js';
 import { saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
 import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
@@ -64,6 +65,10 @@ export const server = http.createServer(async (request, response) => {
         interests: INTEREST_OPTIONS,
         sessionUser,
       });
+    }
+
+    if (requestUrl.pathname === '/api/site/live-headlines' && request.method === 'GET') {
+      return sendJson(response, 200, await getLiveHeadlines());
     }
 
     if (requestUrl.pathname === '/api/site/home' && request.method === 'GET') {
