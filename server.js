@@ -72,7 +72,12 @@ export const server = http.createServer(async (request, response) => {
     }
 
     if (requestUrl.pathname === '/api/site/home' && request.method === 'GET') {
-      const region = requestUrl.searchParams.get('region') || sessionUser?.region || 'global';
+      const regionsParam = parseCsv(requestUrl.searchParams.get('regions'));
+      const regions = regionsParam.length
+        ? regionsParam
+        : sessionUser?.regions?.length
+          ? sessionUser.regions
+          : ['global'];
       const interests = parseCsv(requestUrl.searchParams.get('interests')) || sessionUser?.interests || [];
       const plan = sessionUser?.plan || requestUrl.searchParams.get('plan') || 'free';
 
@@ -80,7 +85,7 @@ export const server = http.createServer(async (request, response) => {
         response,
         200,
         await getHomeExperience({
-          region,
+          regions,
           interests,
           plan,
         }),
