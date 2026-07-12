@@ -22,14 +22,14 @@ const ASSET_KEYWORDS = {
   crypto: ['crypto', 'bitcoin', 'ethereum', 'digital assets'],
 };
 
-export async function getNews({ tier = 'free', region = 'global', asset = 'all', query = '' } = {}) {
+export async function getNews({ tier = 'free', regions = ['global'], asset = 'all', query = '' } = {}) {
   const plan = getPlanConfig(tier);
   const limit = plan.articleLimit || plan.newsLimit || 12;
-  const liveResult = await fetchLiveNews({ region, asset, limit });
+  const liveResult = await fetchLiveNews({ regions, asset, limit });
   const sourceItems = liveResult.items.length ? liveResult.items : fallbackNews;
 
   const filtered = sortByNewsPriority(
-    sourceItems.filter((item) => matchesRegion(item.region, region) && matchesAsset(item.asset, asset) && matchesQuery(item, query)),
+    sourceItems.filter((item) => matchesRegion(item.region, regions) && matchesAsset(item.asset, asset) && matchesQuery(item, query)),
   );
 
   const visible = filtered.slice(0, limit).map((item, index) => {
@@ -174,22 +174,22 @@ async function fetchMarketauxHeadlines({ limit }) {
      company-specific news alongside its main role as the live stock
      price source.
    ════════════════════════════════════════════════════════════════════════ */
-async function fetchLiveNews({ region, asset, limit }) {
+async function fetchLiveNews({ regions, asset, limit }) {
   const providers = [
     {
       name: 'Marketaux',
       enabled: Boolean(process.env.MARKETAUX_API_KEY),
-      fetcher: () => fetchMarketauxNews({ region, asset, limit }),
+      fetcher: () => fetchMarketauxNews({ regions, asset, limit }),
     },
     {
       name: 'Tiingo', // TESTING ONLY — remove this provider before launch (individual-use license)
       enabled: Boolean(process.env.TIINGO_API_KEY),
-      fetcher: () => fetchTiingoNews({ region, asset, limit }),
+      fetcher: () => fetchTiingoNews({ regions, asset, limit }),
     },
     {
       name: 'Finnhub',
       enabled: Boolean(process.env.FINNHUB_API_KEY),
-      fetcher: () => fetchFinnhubNews({ region, asset, limit }),
+      fetcher: () => fetchFinnhubNews({ regions, asset, limit }),
     },
   ];
 
@@ -217,8 +217,8 @@ async function fetchLiveNews({ region, asset, limit }) {
   };
 }
 
-async function fetchMarketauxNews({ region, asset, limit }) {
-  const countries = REGION_COUNTRY_MAP[region] || [];
+async function fetchMarketauxNews({ regions, asset, limit }) {
+  const countries = [...new Set(regions.flatMap((region) => REGION_COUNTRY_MAP[region] || []))];
   const keywords = ASSET_KEYWORDS[asset] || ASSET_KEYWORDS.all;
   const url = new URL('https://api.marketaux.com/v1/news/all');
 
@@ -244,7 +244,7 @@ async function fetchMarketauxNews({ region, asset, limit }) {
       summary: article.description || article.snippet || 'Market headline',
       whyItMatters: article.description || 'This headline matters because it could affect positioning and sentiment.',
       source: article.source || 'Marketaux',
-      region: resolveRegionFromArticle(article, region),
+      region: resolveRegionFromArticle(article, regions[0] || 'global'),
       asset: resolveAssetFromText(article.title || article.description || '', asset),
       topics: article.entities?.map((entity) => entity.symbol).filter(Boolean).slice(0, 4) || [],
       tickers: article.entities?.map((entity) => entity.symbol).filter(Boolean).slice(0, 4) || [],
@@ -260,7 +260,7 @@ async function fetchMarketauxNews({ region, asset, limit }) {
 
 // TESTING ONLY — Tiingo's free tier is individual-use only.
 // Remove this function and its provider entry above before going live.
-async function fetchTiingoNews({ region, asset, limit }) {
+async function fetchTiingoNews({ regions, asset, limit }) {
   const keywords = ASSET_KEYWORDS[asset] || ASSET_KEYWORDS.all;
   const url = new URL('https://api.tiingo.com/tiingo/news');
 
@@ -282,7 +282,7 @@ async function fetchTiingoNews({ region, asset, limit }) {
       summary: article.description || 'Market headline',
       whyItMatters: article.description || 'This headline could affect positioning and sentiment across related assets.',
       source: article.source || 'Tiingo',
-      region,
+      region: regions[0] || 'global',
       asset: resolveAssetFromText(`${article.title} ${article.description || ''}`, asset),
       topics: article.tags || keywords,
       tickers: article.tickers || [],
@@ -296,7 +296,7 @@ async function fetchTiingoNews({ region, asset, limit }) {
   );
 }
 
-async function fetchFinnhubNews({ region, asset, limit }) {
+async function fetchFinnhubNews({ regions, asset, limit }) {
   const category = asset === 'crypto' ? 'crypto' : 'general';
   const url = new URL('https://finnhub.io/api/v1/news');
 
@@ -316,7 +316,7 @@ async function fetchFinnhubNews({ region, asset, limit }) {
       summary: article.summary || 'Market headline',
       whyItMatters: article.summary || 'This headline could affect sector leadership and cross-asset risk appetite.',
       source: article.source || 'Finnhub',
-      region,
+      region: regions[0] || 'global',
       asset: resolveAssetFromText(`${article.headline} ${article.summary || ''}`, asset),
       topics: ASSET_KEYWORDS[asset] || ASSET_KEYWORDS.all,
       tickers: [],

@@ -19,7 +19,15 @@ export async function saveMemberPreferences(token, payload) {
     }
 
     target.name = payload.name || target.name;
-    target.region = payload.region || target.region || 'global';
+    target.regions =
+      Array.isArray(payload.regions) && payload.regions.length
+        ? payload.regions
+        : target.regions && target.regions.length
+          ? target.regions
+          : target.region
+            ? [target.region]
+            : ['global'];
+    target.region = target.regions[0];
     target.interests =
       Array.isArray(payload.interests) && payload.interests.length ? payload.interests : target.interests || DEFAULT_MEMBER_INTERESTS;
     target.preferencesSavedAt = new Date().toISOString();

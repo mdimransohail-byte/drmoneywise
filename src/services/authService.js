@@ -29,7 +29,7 @@ export async function signInMember(payload) {
       role: 'admin',
       plan: 'premium',
       billingCycle: 'annual',
-      region: 'global',
+      regions: ['global'],
       interests: ['equities', 'etfs', 'fixed-income'],
       watchlist: ['SPY', 'QQQ', 'GLD'],
       portfolio: [],
@@ -89,7 +89,8 @@ export async function signUpMember(payload) {
       billingCycle: 'monthly',
       passwordHash: passwordBundle.passwordHash,
       passwordSalt: passwordBundle.passwordSalt,
-      region: payload.region || 'global',
+      region: Array.isArray(payload.regions) && payload.regions.length ? payload.regions[0] : 'global',
+      regions: Array.isArray(payload.regions) && payload.regions.length ? payload.regions : ['global'],
       interests: Array.isArray(payload.interests) && payload.interests.length
         ? payload.interests
         : ['equities', 'etfs', 'fixed-income'],
@@ -172,7 +173,8 @@ export function sanitizeUser(user) {
     role: user.role,
     plan: user.plan,
     billingCycle: user.billingCycle || 'monthly',
-    region: user.region || 'global',
+    regions: user.regions && user.regions.length ? user.regions : user.region ? [user.region] : ['global'],
+    region: user.region || (user.regions && user.regions[0]) || 'global',
     interests: user.interests || ['equities', 'etfs', 'fixed-income'],
     watchlist: user.watchlist || [],
     portfolio: user.portfolio || [],

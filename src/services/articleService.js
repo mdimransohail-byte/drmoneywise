@@ -4,7 +4,7 @@ import { canAccess, getInterestLabel, getPlanCatalog as getConfiguredPlanCatalog
 import { getNews } from './newsService.js';
 import { readStore, updateStore } from './storeService.js';
 import { createLearningArticleFromTopic, summarizeNewsItem } from './writerService.js';
-import { sortByNewsPriority } from '../utils/filters.js';
+import { matchesRegion, sortByNewsPriority } from '../utils/filters.js';
 
 export async function publishDueArticles() {
   await updateStore((store) => {
@@ -19,16 +19,17 @@ export async function publishDueArticles() {
   });
 }
 
-export async function getHomeExperience({ region = 'global', interests = [], plan = 'free' } = {}) {
+export async function getHomeExperience({ regions = ['global'], interests = [], plan = 'free' } = {}) {
   await publishDueArticles();
   const selectedInterests = interests.length ? interests : ['equities', 'etfs', 'fixed-income'];
-  await ingestLatestNews({ region, interests: selectedInterests });
+  const selectedRegions = regions.length ? regions : ['global'];
+  await ingestLatestNews({ regions: selectedRegions, interests: selectedInterests });
 
   const store = await readStore();
   const planConfig = getPlanConfig(plan);
   const publishedArticles = sortByNewsPriority(store.articles
     .filter((article) => article.status === 'published')
-    .filter((article) => article.region === region || article.region === 'global' || region === 'global')
+    .filter((article) => matchesRegion(article.region, selectedRegions))
     .filter((article) => selectedInterests.includes(article.interest) || article.interest === 'retirement' || article.interest === 'income'));
 
   const groupedAreas = selectedInterests.map((interestId) => {
@@ -40,7 +41,7 @@ export async function getHomeExperience({ region = 'global', interests = [], pla
     return {
       id: interestId,
       label: getInterestLabel(interestId),
-      summary: `${getInterestLabel(interestId)} made simpler for ${getRegionLabel(region)} readers.`,
+      summary: `${getInterestLabel(interestId)} made simpler for ${getRegionsLabel(selectedRegions)} readers.`,
       articles: areaArticles,
     };
   });
@@ -60,13 +61,26 @@ export async function getHomeExperience({ region = 'global', interests = [], pla
   };
 }
 
-export async function ingestLatestNews({ region = 'global', interests = [] } = {}) {
+function getRegionsLabel(regions) {
+  if (!regions.length || regions.includes('global')) {
+    return 'Global';
+  }
+
+  if (regions.length > 2) {
+    return 'your selected regions';
+  }
+
+  return regions.map((regionId) => getRegionLabel(regionId)).join(' & ');
+}
+
+export async function ingestLatestNews({ regions = ['global'], interests = [] } = {}) {
   const selectedInterests = interests.length ? interests : ['equities', 'etfs', 'fixed-income'];
+  const selectedRegions = regions.length ? regions : ['global'];
 
   for (const interest of selectedInterests) {
     const payload = await getNews({
       tier: 'premium',
-      region,
+      regions: selectedRegions,
       asset: interest,
       query: '',
     });
