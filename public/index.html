@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dr MoneyWise — Understand Money. Invest Wisely.</title>
+    <title>Dr MoneyWise — Understand Money. Invest Wise.</title>
     <meta
       name="description"
       content="Dr MoneyWise makes market news easier to follow with plain-English stories, learning points, watchlists, and portfolio reviews."
@@ -42,9 +42,9 @@
           <div class="hero-copy hero-copy-dark">
             <div>
               <span class="eyebrow">DrMoneyWise.com</span>
-              <h1>Understand <span class="gold-word">Money</span>.<br />Invest <span class="gold-word">Wisely</span>.</h1>
+              <h1>Understand <span class="gold-word">Money</span>.<br />Invest <span class="gold-word">Wise</span>.</h1>
               <p>
-                Global market news, explained in plain language. Choose your region and
+                Global market news, explained in plain language. Choose your regions and
                 interests, save a watchlist, build a portfolio, and read clear, calm
                 stories — free or paid, your choice.
               </p>
@@ -79,15 +79,14 @@
                 </label>
               </div>
 
-              <div class="form-grid">
-                <label>
-                  Password
-                  <input id="passwordInput" type="password" placeholder="Create a password" />
-                </label>
-                <label>
-                  Region
-                  <select id="regionSelect"></select>
-                </label>
+              <label>
+                Password
+                <input id="passwordInput" type="password" placeholder="Create a password" />
+              </label>
+
+              <div>
+                <label class="field-label">Pick your region(s)</label>
+                <div id="regionPicker" class="chip-grid"></div>
               </div>
 
               <div>
@@ -126,30 +125,6 @@
         </section>
 
         <!-- ══════════════════════════════════════════════════════════════
-             READER CONTROLS — News Bank (region + interests)
-             ══════════════════════════════════════════════════════════════ -->
-        <section class="section-filter glass-card" data-reveal>
-          <div class="section-head compact">
-            <div>
-              <span class="eyebrow">News Bank</span>
-              <h2>Choose your region and interests</h2>
-            </div>
-            <button id="refreshHomeButton" class="button secondary" type="button">Refresh</button>
-          </div>
-
-          <div class="filter-grid">
-            <div>
-              <label class="field-label" for="interestRegionSelect">Region</label>
-              <select id="interestRegionSelect"></select>
-            </div>
-            <div>
-              <span class="field-label">Interests</span>
-              <div id="interestFilterChips" class="chip-grid"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ══════════════════════════════════════════════════════════════
              NEWSROOM — live scrolling headline wire (Marketaux, cached 6h)
              ══════════════════════════════════════════════════════════════ -->
         <section id="newsroom" class="glass-card" data-reveal>
@@ -165,6 +140,30 @@
           </p>
           <div class="ticker-viewport">
             <div id="briefBoard" class="ticker-track"></div>
+          </div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             READER CONTROLS — News Bank (regions + interests)
+             ══════════════════════════════════════════════════════════════ -->
+        <section class="section-filter glass-card" data-reveal>
+          <div class="section-head compact">
+            <div>
+              <span class="eyebrow">News Bank</span>
+              <h2>Choose your regions and interests</h2>
+            </div>
+            <button id="refreshHomeButton" class="button secondary" type="button">Refresh</button>
+          </div>
+
+          <div class="filter-grid">
+            <div>
+              <span class="field-label">Regions</span>
+              <div id="regionFilterChips" class="chip-grid"></div>
+            </div>
+            <div>
+              <span class="field-label">Interests</span>
+              <div id="interestFilterChips" class="chip-grid"></div>
+            </div>
           </div>
         </section>
 
