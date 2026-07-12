@@ -1,7 +1,12 @@
 import { getNewsPriorityConfig } from '../config.js';
 
-export function matchesRegion(itemRegion, selectedRegion) {
-  return selectedRegion === 'global' || itemRegion === selectedRegion || itemRegion === 'global';
+export function matchesRegion(itemRegion, selectedRegions) {
+  const regions = Array.isArray(selectedRegions) ? selectedRegions : [selectedRegions];
+  if (!regions.length || regions.includes('global')) {
+    return true;
+  }
+
+  return itemRegion === 'global' || regions.includes(itemRegion);
 }
 
 export function matchesAsset(itemAsset, selectedAsset) {
