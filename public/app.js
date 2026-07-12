@@ -7,7 +7,7 @@ const state = {
   bootstrap: null,
   home: null,
   authMode: 'signup',
-  selectedRegion: 'global',
+  selectedRegions: ['global'],
   selectedInterests: [],
   guestWatchlist: [],
   guestPortfolio: [],
@@ -57,9 +57,9 @@ function cacheElements() {
   elements.passwordInput = document.querySelector('#passwordInput');
   elements.loginEmailInput = document.querySelector('#loginEmailInput');
   elements.loginPasswordInput = document.querySelector('#loginPasswordInput');
-  elements.regionSelect = document.querySelector('#regionSelect');
+  elements.regionPicker = document.querySelector('#regionPicker');
   elements.interestPicker = document.querySelector('#interestPicker');
-  elements.interestRegionSelect = document.querySelector('#interestRegionSelect');
+  elements.regionFilterChips = document.querySelector('#regionFilterChips');
   elements.interestFilterChips = document.querySelector('#interestFilterChips');
   elements.refreshHomeButton = document.querySelector('#refreshHomeButton');
   elements.summaryStrip = document.querySelector('#summaryStrip');
@@ -92,20 +92,8 @@ function bindEvents() {
   elements.toggleAuthModeButton.addEventListener('click', () => setAuthMode('signin'));
   elements.toggleSignupModeButton.addEventListener('click', () => setAuthMode('signup'));
   elements.signOutButton.addEventListener('click', handleSignOut);
-  elements.regionSelect.addEventListener('change', async () => {
-    state.selectedRegion = elements.regionSelect.value;
-    syncRegionControls();
-    persistLocalState();
-    await savePreferencesIfSignedIn();
-    await refreshHome();
-  });
-  elements.interestRegionSelect.addEventListener('change', async () => {
-    state.selectedRegion = elements.interestRegionSelect.value;
-    syncRegionControls();
-    persistLocalState();
-    await savePreferencesIfSignedIn();
-    await refreshHome();
-  });
+  elements.regionPicker.addEventListener('click', handleRegionToggle);
+  elements.regionFilterChips.addEventListener('click', handleRegionToggle);
   elements.interestPicker.addEventListener('click', handleInterestToggle);
   elements.interestFilterChips.addEventListener('click', handleInterestToggle);
   elements.refreshHomeButton.addEventListener('click', async () => {
@@ -137,16 +125,15 @@ async function loadBootstrap() {
   }
 
   const fallbackInterests = (state.bootstrap.interests || []).slice(0, 3).map((interest) => interest.id);
-  state.selectedRegion = state.user?.region || state.selectedRegion || state.bootstrap.regions?.[0]?.id || 'global';
+  state.selectedRegions = normalizeRegions(state.user?.regions || state.selectedRegions, [state.bootstrap.regions?.[0]?.id || 'global']);
   state.selectedInterests = normalizeInterests(state.user?.interests || state.selectedInterests, fallbackInterests);
 
   if (state.user) {
     await syncGuestStateIntoMember();
   }
 
-  populateRegionSelects();
+  renderRegionChoices();
   renderInterestChoices();
-  syncRegionControls();
   setAuthMode(state.user ? 'signed-in' : state.authMode);
 }
 
@@ -157,7 +144,7 @@ async function refreshHome({ quiet = false } = {}) {
   }
 
   const params = new URLSearchParams({
-    region: state.selectedRegion,
+    regions: state.selectedRegions.join(','),
     interests: state.selectedInterests.join(','),
     plan: state.user?.plan || 'free',
   });
@@ -262,18 +249,41 @@ function renderInterestChoices() {
   elements.interestFilterChips.innerHTML = filters;
 }
 
-function populateRegionSelects() {
-  const options = (state.bootstrap.regions || [])
-    .map((region) => `<option value="${region.id}">${region.label}</option>`)
+function renderRegionChoices() {
+  const choices = (state.bootstrap.regions || [])
+    .map((region) => {
+      const active = state.selectedRegions.includes(region.id);
+      return `
+        <button
+          class="choice-chip ${active ? 'active' : ''}"
+          type="button"
+          data-region-id="${region.id}"
+          aria-pressed="${active ? 'true' : 'false'}"
+        >
+          ${region.label}
+        </button>
+      `;
+    })
     .join('');
 
-  elements.regionSelect.innerHTML = options;
-  elements.interestRegionSelect.innerHTML = options;
-}
+  const filters = (state.bootstrap.regions || [])
+    .map((region) => {
+      const active = state.selectedRegions.includes(region.id);
+      return `
+        <button
+          class="filter-chip ${active ? 'active' : ''}"
+          type="button"
+          data-region-id="${region.id}"
+          aria-pressed="${active ? 'true' : 'false'}"
+        >
+          ${region.label}
+        </button>
+      `;
+    })
+    .join('');
 
-function syncRegionControls() {
-  elements.regionSelect.value = state.selectedRegion;
-  elements.interestRegionSelect.value = state.selectedRegion;
+  elements.regionPicker.innerHTML = choices;
+  elements.regionFilterChips.innerHTML = filters;
 }
 
 function renderSummaryStrip() {
@@ -665,7 +675,7 @@ async function handleSignUp(event) {
       name: elements.nameInput.value.trim(),
       email: elements.emailInput.value.trim(),
       password: elements.passwordInput.value.trim(),
-      region: state.selectedRegion,
+      regions: state.selectedRegions,
       interests: state.selectedInterests,
       plan: 'free',
       billingCycle: 'monthly',
@@ -726,7 +736,7 @@ async function finishAuth(session, message) {
   state.user = session.user;
   writeSessionState(session.token, session.expiresAt);
   await syncGuestStateIntoMember();
-  state.selectedRegion = state.user.region || state.selectedRegion;
+  state.selectedRegions = normalizeRegions(state.user.regions, state.selectedRegions);
   state.selectedInterests = normalizeInterests(
     state.user.interests,
     (state.bootstrap.interests || []).slice(0, 3).map((interest) => interest.id),
@@ -734,12 +744,35 @@ async function finishAuth(session, message) {
   setAuthMode('signed-in');
   setAuthMessage(message);
   persistLocalState();
+  renderRegionChoices();
   renderInterestChoices();
-  syncRegionControls();
   await refreshHome();
   await refreshPortfolioReview();
   renderAll();
   await refreshMarketDataQuotes();
+}
+
+async function handleRegionToggle(event) {
+  const button = event.target.closest('[data-region-id]');
+  if (!button) {
+    return;
+  }
+
+  const regionId = button.dataset.regionId;
+  const exists = state.selectedRegions.includes(regionId);
+  if (exists && state.selectedRegions.length === 1) {
+    setAuthMessage('Keep at least one region selected.');
+    return;
+  }
+
+  state.selectedRegions = exists
+    ? state.selectedRegions.filter((region) => region !== regionId)
+    : [...state.selectedRegions, regionId];
+
+  renderRegionChoices();
+  persistLocalState();
+  await savePreferencesIfSignedIn();
+  await refreshHome();
 }
 
 async function handleInterestToggle(event) {
@@ -937,7 +970,7 @@ async function savePreferencesIfSignedIn() {
 
   const user = await apiPost('/api/member/preferences', {
     name: state.user.name,
-    region: state.selectedRegion,
+    regions: state.selectedRegions,
     interests: state.selectedInterests,
   });
 
@@ -967,7 +1000,7 @@ async function syncGuestStateIntoMember() {
 
 function restoreLocalState() {
   const guest = readJsonStorage(GUEST_KEY);
-  state.selectedRegion = guest.selectedRegion || state.selectedRegion;
+  state.selectedRegions = Array.isArray(guest.selectedRegions) && guest.selectedRegions.length ? guest.selectedRegions : state.selectedRegions;
   state.selectedInterests = Array.isArray(guest.selectedInterests) ? guest.selectedInterests : state.selectedInterests;
   state.guestWatchlist = Array.isArray(guest.guestWatchlist) ? guest.guestWatchlist : [];
   state.guestPortfolio = Array.isArray(guest.guestPortfolio) ? guest.guestPortfolio : [];
@@ -976,7 +1009,7 @@ function restoreLocalState() {
 
 function persistLocalState() {
   writeJsonStorage(GUEST_KEY, {
-    selectedRegion: state.selectedRegion,
+    selectedRegions: state.selectedRegions,
     selectedInterests: state.selectedInterests,
     guestWatchlist: state.guestWatchlist,
     guestPortfolio: state.guestPortfolio,
@@ -1020,6 +1053,11 @@ function getCurrentPortfolio() {
 
 function normalizeInterests(interests, fallback) {
   const cleaned = Array.isArray(interests) ? interests.filter(Boolean) : [];
+  return cleaned.length ? cleaned : fallback;
+}
+
+function normalizeRegions(regions, fallback) {
+  const cleaned = Array.isArray(regions) ? regions.filter(Boolean) : [];
   return cleaned.length ? cleaned : fallback;
 }
 
