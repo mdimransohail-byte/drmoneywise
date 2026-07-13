@@ -41,6 +41,11 @@ export async function writeEnvSettings(changes) {
   // individual use only — remove TIINGO_API_KEY (here and from Railway
   // Variables) before the site goes live. See businessSettings.js for
   // the matching note on sourceWeights.
+  //
+  // DEEPSEEK PRICING NOTE: DeepSeek V4 bills double during Beijing peak
+  // hours (9:00-12:00 and 14:00-18:00 Beijing Time). Off-peak stays at
+  // standard pricing. Worth keeping in mind if/when article generation
+  // gets scheduled automatically.
   const orderedKeys = [
     'PORT',
     'SITE_NAME',
@@ -49,12 +54,16 @@ export async function writeEnvSettings(changes) {
     'ADMIN_EMAIL',
     'ADMIN_PASSWORD',
     'OPENAI_API_KEY',
+    'OPENAI_MODEL',
     'CLAUDE_API_KEY',
-    'WRITER_A_MODEL',
-    'WRITER_B_MODEL',
+    'CLAUDE_MODEL',
+    'DEEPSEEK_API_KEY',
+    'DEEPSEEK_MODEL',
     'MARKETAUX_API_KEY',
     'TIINGO_API_KEY',
     'FINNHUB_API_KEY',
+    'MARKETSTACK_API_KEY',
+    'MARKETSTACK_MONTHLY_LIMIT',
     'WATCHLIST_API_URL',
     'WATCHLIST_API_KEY',
     'PORTFOLIO_API_URL',

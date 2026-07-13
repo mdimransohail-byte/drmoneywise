@@ -34,24 +34,27 @@ export async function getAdminDashboard() {
       siteName: store.settings.siteName,
       siteDomain: store.settings.siteDomain,
       supportEmail: store.settings.supportEmail,
-      writerAProvider: store.settings.writerA?.provider || 'openai',
-      writerAModel: envSettings.WRITER_A_MODEL || '',
-      writerBProvider: store.settings.writerB?.provider || 'claude',
-      writerBModel: envSettings.WRITER_B_MODEL || '',
+      deepseekModel: envSettings.DEEPSEEK_MODEL || '',
+      openAiModel: envSettings.OPENAI_MODEL || '',
+      claudeModel: envSettings.CLAUDE_MODEL || '',
       openAiKey: envSettings.OPENAI_API_KEY || '',
       claudeKey: envSettings.CLAUDE_API_KEY || '',
+      deepseekKey: envSettings.DEEPSEEK_API_KEY || '',
       marketauxKey: envSettings.MARKETAUX_API_KEY || '',
       tiingoKey: envSettings.TIINGO_API_KEY || '',
       finnhubKey: envSettings.FINNHUB_API_KEY || '',
+      marketstackKey: envSettings.MARKETSTACK_API_KEY || '',
       stripeRegularMonthly: envSettings.STRIPE_REGULAR_MONTHLY_URL || '',
       stripeRegularAnnual: envSettings.STRIPE_REGULAR_ANNUAL_URL || '',
       stripePremiumMonthly: envSettings.STRIPE_PREMIUM_MONTHLY_URL || '',
       stripePremiumAnnual: envSettings.STRIPE_PREMIUM_ANNUAL_URL || '',
       openAiConfigured: Boolean(envSettings.OPENAI_API_KEY),
       claudeConfigured: Boolean(envSettings.CLAUDE_API_KEY),
+      deepseekConfigured: Boolean(envSettings.DEEPSEEK_API_KEY),
       marketauxConfigured: Boolean(envSettings.MARKETAUX_API_KEY),
       tiingoConfigured: Boolean(envSettings.TIINGO_API_KEY),
       finnhubConfigured: Boolean(envSettings.FINNHUB_API_KEY),
+      marketstackConfigured: Boolean(envSettings.MARKETSTACK_API_KEY),
       stripeRegularMonthlyConfigured: Boolean(envSettings.STRIPE_REGULAR_MONTHLY_URL),
       stripeRegularAnnualConfigured: Boolean(envSettings.STRIPE_REGULAR_ANNUAL_URL),
       stripePremiumMonthlyConfigured: Boolean(envSettings.STRIPE_PREMIUM_MONTHLY_URL),
@@ -182,11 +185,17 @@ export async function saveAdminSettings(payload) {
   if (payload.claudeKey !== undefined) {
     envChanges.CLAUDE_API_KEY = payload.claudeKey;
   }
-  if (payload.writerAModel !== undefined) {
-    envChanges.WRITER_A_MODEL = payload.writerAModel;
+  if (payload.deepseekKey !== undefined) {
+    envChanges.DEEPSEEK_API_KEY = payload.deepseekKey;
   }
-  if (payload.writerBModel !== undefined) {
-    envChanges.WRITER_B_MODEL = payload.writerBModel;
+  if (payload.deepseekModel !== undefined) {
+    envChanges.DEEPSEEK_MODEL = payload.deepseekModel;
+  }
+  if (payload.openAiModel !== undefined) {
+    envChanges.OPENAI_MODEL = payload.openAiModel;
+  }
+  if (payload.claudeModel !== undefined) {
+    envChanges.CLAUDE_MODEL = payload.claudeModel;
   }
   if (payload.marketauxKey !== undefined) {
     envChanges.MARKETAUX_API_KEY = payload.marketauxKey;
@@ -196,6 +205,9 @@ export async function saveAdminSettings(payload) {
   }
   if (payload.finnhubKey !== undefined) {
     envChanges.FINNHUB_API_KEY = payload.finnhubKey;
+  }
+  if (payload.marketstackKey !== undefined) {
+    envChanges.MARKETSTACK_API_KEY = payload.marketstackKey;
   }
   if (payload.stripeRegularMonthly !== undefined) {
     envChanges.STRIPE_REGULAR_MONTHLY_URL = payload.stripeRegularMonthly;
@@ -216,8 +228,6 @@ export async function saveAdminSettings(payload) {
     store.settings.siteName = payload.siteName || store.settings.siteName;
     store.settings.siteDomain = payload.siteDomain || store.settings.siteDomain;
     store.settings.supportEmail = payload.supportEmail || store.settings.supportEmail;
-    store.settings.writerA.provider = payload.writerAProvider || store.settings.writerA.provider;
-    store.settings.writerB.provider = payload.writerBProvider || store.settings.writerB.provider;
     return store;
   });
 
