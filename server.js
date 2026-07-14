@@ -23,7 +23,7 @@ import {
   updateMemberPlan,
   validateCoupon,
 } from './src/services/adminService.js';
-import { deleteArticleById, generateLearningPointDraft, getAdminArticles, getArticleBySlug, getHomeExperience, saveAdminArticle } from './src/services/articleService.js';
+import { deleteArticleById, discoverArticleCandidates, generateLearningPointDraft, getAdminArticles, getArticleBySlug, getHomeExperience, saveAdminArticle } from './src/services/articleService.js';
 import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOutSession, signUpMember } from './src/services/authService.js';
 import { trackEvent } from './src/services/analyticsService.js';
 import { getLiveHeadlines } from './src/services/newsService.js';
@@ -212,6 +212,11 @@ export const server = http.createServer(async (request, response) => {
     if (requestUrl.pathname === '/api/admin/learning/generate' && request.method === 'POST') {
       await requireAdminUser(token);
       return sendJson(response, 200, await generateLearningPointDraft(await parseJsonBody(request)));
+    }
+
+    if (requestUrl.pathname === '/api/admin/articles/discover' && request.method === 'POST') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, await discoverArticleCandidates(await parseJsonBody(request)));
     }
 
     if (requestUrl.pathname === '/api/admin/users' && request.method === 'GET') {
