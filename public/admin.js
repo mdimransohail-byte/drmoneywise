@@ -118,6 +118,7 @@ const API = {
   dashboard:           ()   => API.get('/api/admin/dashboard'),
   listArticles:        ()   => API.get('/api/admin/articles'),
   saveArticle:         (b)  => API.post('/api/admin/articles', b),
+  discoverCandidates:  (b)  => API.post('/api/admin/articles/discover', b),
   deleteArticle:       (id) => API.delete(`/api/admin/articles?id=${encodeURIComponent(id)}`),
   generateArticle:     (b)  => API.post('/api/admin/learning/generate', b),
   listUsers:           ()   => API.get('/api/admin/users'),
@@ -170,7 +171,7 @@ function tagClass(tier) {
   return { free: 'tag-free', regular: 'tag-regular', premium: 'tag-premium' }[tier] || 'tag-free';
 }
 function statusClass(st) {
-  return { published: 'tag-published', scheduled: 'tag-scheduled', draft: 'tag-draft' }[st] || 'tag-draft';
+  return { published: 'tag-published', scheduled: 'tag-scheduled', draft: 'tag-draft', candidate: 'tag-candidate' }[st] || 'tag-draft';
 }
 
 // Simple SVG sparkline — used by analytics charts
@@ -698,7 +699,7 @@ async function generateArticle() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function render_inventory() {
-  const filters = ['all', 'published', 'scheduled', 'draft'];
+  const filters = ['all', 'candidate', 'published', 'scheduled', 'draft'];
   const counts  = Object.fromEntries(
     filters.map(f => [f, f === 'all' ? STATE.articles.length : STATE.articles.filter(a => a.status === f).length])
   );
@@ -706,11 +707,18 @@ function render_inventory() {
     ? STATE.articles
     : STATE.articles.filter(a => a.status === STATE.invFilter);
 
+  const PRE_LAUNCH_TARGET = 25;
+  const liveInventory = counts.published + counts.scheduled;
+
   return `
     <div class="pg-head">
       <div class="eyebrow" style="--ac:#2bc48a">Content library</div>
       <h1>Article Inventory</h1>
       <p>${STATE.articles.length} articles — edit tiers, add YouTube links, schedule, publish, or delete.</p>
+      <p style="font-size:.72rem;color:#9eb3cc;margin-top:4px">
+        ${liveInventory} / ${PRE_LAUNCH_TARGET} toward launch inventory (published + scheduled)
+        ${counts.candidate ? ` · ${counts.candidate} candidate${counts.candidate === 1 ? '' : 's'} awaiting review` : ''}
+      </p>
     </div>
 
     <div class="inv-bar">
@@ -721,6 +729,7 @@ function render_inventory() {
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <span style="font-size:.7rem;color:#9eb3cc">${vis.length} showing</span>
+        <button class="btn btn-sm btn-teal" id="discoverBtn" title="Pull fresh headlines from your news APIs and AI-rewrite them into candidate articles for review">✨ Discover candidates</button>
         <button class="btn btn-sm btn-teal" id="refreshInvBtn">↻ Refresh</button>
       </div>
     </div>
@@ -783,6 +792,23 @@ function bind_inventory() {
 
   // Refresh
   qs('#refreshInvBtn')?.addEventListener('click', load_inventory);
+
+  // Discover candidates from news APIs
+  qs('#discoverBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = 'Searching…';
+    try {
+      const res = await API.discoverCandidates({});
+      showToast(res.discovered ? `Found ${res.discovered} new candidate${res.discovered === 1 ? '' : 's'}` : 'No new headlines found right now — try again later');
+      STATE.invFilter = 'candidate';
+      await load_inventory();
+    } catch (err) {
+      showToast('Discovery failed: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = '✨ Discover candidates';
+    }
+  });
 
   // YouTube link
   qsa('[data-ytid]').forEach(inp => inp.addEventListener('input', () => {
