@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import { canAccess, getInterestLabel, getPlanCatalog as getConfiguredPlanCatalog, getPlanConfig, getRegionLabel } from '../config.js';
+import { canAccess, DEFAULT_MEMBER_INTERESTS, getInterestLabel, getPlanCatalog as getConfiguredPlanCatalog, getPlanConfig, getRegionLabel } from '../config.js';
 import { getNews } from './newsService.js';
 import { readStore, updateStore } from './storeService.js';
 import { createLearningArticleFromTopic, summarizeNewsItem } from './writerService.js';
@@ -23,7 +23,6 @@ export async function getHomeExperience({ regions = ['global'], interests = [], 
   await publishDueArticles();
   const selectedInterests = interests.length ? interests : ['equities', 'etfs', 'fixed-income'];
   const selectedRegions = regions.length ? regions : ['global'];
-  await ingestLatestNews({ regions: selectedRegions, interests: selectedInterests });
 
   const store = await readStore();
   const planConfig = getPlanConfig(plan);
@@ -73,9 +72,24 @@ function getRegionsLabel(regions) {
   return regions.map((regionId) => getRegionLabel(regionId)).join(' & ');
 }
 
-export async function ingestLatestNews({ regions = ['global'], interests = [] } = {}) {
-  const selectedInterests = interests.length ? interests : ['equities', 'etfs', 'fixed-income'];
+/* ════════════════════════════════════════════════════════════════════════
+   ARTICLE BANK — discovery queue
+   ───────────────────────────────────────────────────────────────────────
+   Deliberately NOT called from getHomeExperience() (the homepage just
+   reads already-published articles). This runs only when the admin clicks
+   "Discover candidates" in the Article Bank page. It pulls fresh headlines
+   from the news APIs, AI-rewrites each one into an original article (see
+   writerService.js — never reproduces the source's own text), and saves
+   them with status: 'candidate' — a holding queue the admin reviews and
+   either Publishes or Schedules from the existing Inventory page, exactly
+   like a manually-written draft. Nothing here auto-publishes.
+   ════════════════════════════════════════════════════════════════════════ */
+export async function discoverArticleCandidates({ regions = ['global'], interests = [], limit = 12 } = {}) {
+  const selectedInterests = interests.length ? interests : DEFAULT_MEMBER_INTERESTS;
   const selectedRegions = regions.length ? regions : ['global'];
+  const perInterestLimit = Math.max(1, Math.ceil(limit / selectedInterests.length));
+
+  const discoveredSlugs = [];
 
   for (const interest of selectedInterests) {
     const payload = await getNews({
@@ -85,11 +99,26 @@ export async function ingestLatestNews({ regions = ['global'], interests = [] } 
       query: '',
     });
 
-    const topItems = (payload.items || []).slice(0, 3);
+    const topItems = (payload.items || []).slice(0, perInterestLimit);
     for (const item of topItems) {
-      await upsertNewsArticle(item);
+      const result = await upsertNewsArticle(item, { defaultStatus: 'candidate' });
+      if (result.wasNew) {
+        discoveredSlugs.push(result.slug);
+      }
+      if (discoveredSlugs.length >= limit) {
+        break;
+      }
+    }
+
+    if (discoveredSlugs.length >= limit) {
+      break;
     }
   }
+
+  return {
+    discovered: discoveredSlugs.length,
+    slugs: discoveredSlugs,
+  };
 }
 
 export async function getArticleBySlug({ slug, plan = 'free' }) {
@@ -199,12 +228,15 @@ export async function deleteArticleById(id) {
   });
 }
 
-async function upsertNewsArticle(item) {
+async function upsertNewsArticle(item, { defaultStatus = 'candidate' } = {}) {
   const generated = await summarizeNewsItem(item);
   const slug = slugify(`${item.title}-${item.id || item.source || 'story'}`);
+  let wasNew = false;
 
   await updateStore((store) => {
     const existingIndex = store.articles.findIndex((article) => article.slug === slug);
+    wasNew = existingIndex < 0;
+
     const nextArticle = {
       id: existingIndex >= 0 ? store.articles[existingIndex].id : crypto.randomUUID(),
       slug,
@@ -213,8 +245,11 @@ async function upsertNewsArticle(item) {
       accessTier: item.accessTier || 'free',
       region: item.region || 'global',
       interest: item.asset || 'equities',
-      status: 'published',
-      publishAt: item.publishedAt || new Date().toISOString(),
+      // Only set status/publishAt on first discovery — re-running discovery and
+      // finding the same headline again must never revert an article the admin
+      // has already reviewed, scheduled, or published.
+      status: existingIndex >= 0 ? store.articles[existingIndex].status : defaultStatus,
+      publishAt: existingIndex >= 0 ? store.articles[existingIndex].publishAt : (item.publishedAt || new Date().toISOString()),
       source: item.source || 'Market feed',
       sourceUrl: item.url || '',
       summary: generated.summary,
@@ -249,6 +284,8 @@ async function upsertNewsArticle(item) {
     }
     return store;
   });
+
+  return { slug, wasNew };
 }
 
 function toPublicArticle(article, plan) {
