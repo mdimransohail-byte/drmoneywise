@@ -24,6 +24,7 @@ import {
   validateCoupon,
 } from './src/services/adminService.js';
 import { deleteArticleById, discoverArticleCandidates, generateLearningPointDraft, getAdminArticles, getArticleBySlug, getHomeExperience, saveAdminArticle } from './src/services/articleService.js';
+import { getDeepSeekSurgeStatus } from './src/services/writerService.js';
 import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOutSession, signUpMember } from './src/services/authService.js';
 import { trackEvent } from './src/services/analyticsService.js';
 import { getLiveHeadlines } from './src/services/newsService.js';
@@ -217,6 +218,13 @@ export const server = http.createServer(async (request, response) => {
     if (requestUrl.pathname === '/api/admin/articles/discover' && request.method === 'POST') {
       await requireAdminUser(token);
       return sendJson(response, 200, await discoverArticleCandidates(await parseJsonBody(request)));
+    }
+
+    if (requestUrl.pathname === '/api/admin/writer-status' && request.method === 'GET') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, {
+        deepseekSurge: getDeepSeekSurgeStatus(),
+      });
     }
 
     if (requestUrl.pathname === '/api/admin/users' && request.method === 'GET') {
