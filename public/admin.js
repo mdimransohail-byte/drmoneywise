@@ -61,7 +61,7 @@ const STATE = {
   newsFilter:     'All',
 
   // AI writer
-  writerModel:    'claude',
+  writerModel:    'deepseek',
   writerTopic:    '',
   writerTier:     'free',
   writerRegion:   'Global',
@@ -121,6 +121,7 @@ const API = {
   discoverCandidates:  (b)  => API.post('/api/admin/articles/discover', b),
   deleteArticle:       (id) => API.delete(`/api/admin/articles?id=${encodeURIComponent(id)}`),
   generateArticle:     (b)  => API.post('/api/admin/learning/generate', b),
+  getWriterStatus:     ()   => API.get('/api/admin/writer-status'),
   listUsers:           ()   => API.get('/api/admin/users'),
   updateUserPlan:      (b)  => API.post('/api/admin/users/plan', b),
   listCoupons:         ()   => API.get('/api/admin/coupons'),
@@ -172,6 +173,24 @@ function tagClass(tier) {
 }
 function statusClass(st) {
   return { published: 'tag-published', scheduled: 'tag-scheduled', draft: 'tag-draft', candidate: 'tag-candidate' }[st] || 'tag-draft';
+}
+
+// Shared between the AI Writer page and the Inventory page's Discover button —
+// both spend DeepSeek tokens, so both should show the same warning.
+async function refreshSurgeBanner() {
+  const el = qs('#surgeBanner');
+  if (!el) return;
+  try {
+    const res = await API.getWriterStatus();
+    STATE.deepseekSurge = res.deepseekSurge;
+    el.innerHTML = res.deepseekSurge?.active
+      ? `<div style="background:rgba(124,92,255,.12);border:1px solid rgba(124,92,255,.3);color:#7c5cff;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.78rem">
+          ⚡ DeepSeek surge pricing is on till ${h(res.deepseekSurge.untilLabel)} — API calls cost 2x right now. Consider waiting, or switch writers for now.
+        </div>`
+      : '';
+  } catch {
+    el.innerHTML = '';
+  }
 }
 
 // Simple SVG sparkline — used by analytics charts
@@ -514,8 +533,10 @@ function render_writer() {
     <div class="pg-head">
       <div class="eyebrow" style="--ac:#a78bfa">Content creation</div>
       <h1>AI Writer</h1>
-      <p>Give a topic — the server drafts it using Claude or GPT via your API keys. Approve, schedule, or regenerate.</p>
+      <p>Give a topic — the server drafts it using DeepSeek, GPT, or Claude via your API keys. Approve, schedule, or regenerate.</p>
     </div>
+
+    <div id="surgeBanner"></div>
 
     <div class="writer-grid">
 
@@ -524,6 +545,7 @@ function render_writer() {
         <div>
           <div class="field">AI model</div>
           <div class="model-row">
+            <button class="model-btn ${STATE.writerModel==='deepseek'?'deepseek':''}" id="mDeepSeek">⚡ DeepSeek (cheapest)</button>
             <button class="model-btn ${STATE.writerModel==='claude'?'claude':''}" id="mClaude">✦ Claude (Anthropic)</button>
             <button class="model-btn ${STATE.writerModel==='openai'?'openai':''}" id="mOpenAI">⊕ GPT-4 (OpenAI)</button>
           </div>
@@ -583,8 +605,10 @@ function render_writer() {
 }
 
 function bind_writer() {
+  qs('#mDeepSeek')?.addEventListener('click', () => { STATE.writerModel = 'deepseek'; setMain(render_writer()); bind_writer(); });
   qs('#mClaude')?.addEventListener('click', () => { STATE.writerModel = 'claude'; setMain(render_writer()); bind_writer(); });
   qs('#mOpenAI')?.addEventListener('click', () => { STATE.writerModel = 'openai'; setMain(render_writer()); bind_writer(); });
+  refreshSurgeBanner();
   qs('#topicTA')?.addEventListener('input', e => STATE.writerTopic    = e.target.value);
   qs('#wrTier')?.addEventListener('change', e => STATE.writerTier      = e.target.value);
   qs('#wrRegion')?.addEventListener('change', e => STATE.writerRegion  = e.target.value);
@@ -642,6 +666,12 @@ function bind_writer() {
 async function generateArticle() {
   const topic = (qs('#topicTA')?.value || STATE.writerTopic || '').trim();
   if (!topic) { showToast('Enter a topic first'); return; }
+
+  if (STATE.writerModel === 'deepseek' && STATE.deepseekSurge?.active) {
+    const proceed = confirm(`DeepSeek surge pricing is on till ${STATE.deepseekSurge.untilLabel} — this generation will cost 2x. Continue anyway?`);
+    if (!proceed) return;
+  }
+
   STATE.writerTopic = topic;
   STATE.writerGenerating = true;
   STATE.writerDone = false;
@@ -721,6 +751,8 @@ function render_inventory() {
       </p>
     </div>
 
+    <div id="surgeBanner"></div>
+
     <div class="inv-bar">
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${filters.map(f => `<button class="btn btn-sm ${STATE.invFilter===f?'btn-green':'btn-ghost'}" data-invf="${f}">
@@ -784,6 +816,8 @@ async function load_inventory() {
 }
 
 function bind_inventory() {
+  refreshSurgeBanner();
+
   // Filter tabs
   qsa('[data-invf]').forEach(b => b.addEventListener('click', () => {
     STATE.invFilter = b.dataset.invf;
@@ -795,6 +829,11 @@ function bind_inventory() {
 
   // Discover candidates from news APIs
   qs('#discoverBtn')?.addEventListener('click', async (e) => {
+    if (STATE.deepseekSurge?.active) {
+      const proceed = confirm(`DeepSeek surge pricing is on till ${STATE.deepseekSurge.untilLabel} — discovery may use DeepSeek at 2x cost. Continue anyway?`);
+      if (!proceed) return;
+    }
+
     const btn = e.currentTarget;
     btn.disabled = true;
     btn.textContent = 'Searching…';
