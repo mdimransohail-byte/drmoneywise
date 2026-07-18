@@ -191,6 +191,7 @@ export async function generateLearningPointDraft(payload) {
     payload.accessTier || 'free',
     payload.region || 'global',
     payload.interest || 'equities',
+    payload.model || '',
   );
 
   return saveAdminArticle({

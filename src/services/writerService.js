@@ -26,6 +26,35 @@ const MODEL_ENV_KEYS = {
   claude: 'CLAUDE_MODEL',
 };
 
+const DEEPSEEK_PEAK_WINDOWS = [
+  [9, 12],
+  [14, 18],
+];
+
+/**
+ * DeepSeek V4 doubles token pricing during Beijing-time peak windows
+ * (9:00-12:00 and 14:00-18:00). This checks the current time against those
+ * windows so the admin UI can warn before spending money at 2x the rate.
+ * Returns { active, untilLabel } — untilLabel is a human-readable Beijing
+ * time string for when the current peak window ends, or null if off-peak.
+ */
+export function getDeepSeekSurgeStatus() {
+  const beijingNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+  const hour = beijingNow.getHours();
+  const minute = beijingNow.getMinutes();
+  const decimalHour = hour + minute / 60;
+
+  const activeWindow = DEEPSEEK_PEAK_WINDOWS.find(([start, end]) => decimalHour >= start && decimalHour < end);
+
+  if (!activeWindow) {
+    return { active: false, untilLabel: null };
+  }
+
+  const [, end] = activeWindow;
+  const untilLabel = `${String(end).padStart(2, '0')}:00 Beijing Time`;
+  return { active: true, untilLabel };
+}
+
 export async function summarizeNewsItem(item) {
   const writer = await getNextWriter();
   const sourceNotes = [
@@ -50,8 +79,8 @@ export async function summarizeNewsItem(item) {
   };
 }
 
-export async function createLearningArticleFromTopic(topic, accessTier = 'free', region = 'global', interest = 'equities') {
-  const writer = await getNextWriter();
+export async function createLearningArticleFromTopic(topic, accessTier = 'free', region = 'global', interest = 'equities', forceProvider = '') {
+  const writer = await getNextWriter(forceProvider);
   const sourceNotes = [
     `Region: ${region}`,
     `Interest: ${interest}`,
@@ -139,7 +168,27 @@ function buildArticlePrompt({ accessTier, headline, sourceNotes }) {
   ].join('\n');
 }
 
-async function getNextWriter() {
+async function getNextWriter(forceProvider = '') {
+  // Per-call override (e.g. the admin picking a specific writer for one
+  // article) takes priority over everything else.
+  const explicitProvider = WRITER_ROTATION.includes(forceProvider) ? forceProvider : '';
+
+  // Global override for testing phases — set WRITER_FORCE_PROVIDER in
+  // Railway Variables (or Admin → Settings, once wired there) to
+  // temporarily pin every generation to one provider without touching
+  // code. Unset it to go back to the normal DeepSeek → OpenAI → Claude
+  // rotation.
+  const envProvider = WRITER_ROTATION.includes(process.env.WRITER_FORCE_PROVIDER) ? process.env.WRITER_FORCE_PROVIDER : '';
+
+  const forced = explicitProvider || envProvider;
+  if (forced) {
+    return {
+      slot: forced,
+      provider: forced,
+      model: process.env[MODEL_ENV_KEYS[forced]] || '',
+    };
+  }
+
   let index = 0;
   const updated = await updateStore((store) => {
     index = (store.meta.nextWriterSlot || 0) % WRITER_ROTATION.length;
@@ -156,16 +205,38 @@ async function getNextWriter() {
 }
 
 async function requestStructuredWriting(writer, prompt) {
-  if (writer.provider === 'deepseek' && process.env.DEEPSEEK_API_KEY) {
-    return callDeepSeek(writer.model, prompt);
+  const hasKey = {
+    deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
+    openai: Boolean(process.env.OPENAI_API_KEY),
+    claude: Boolean(process.env.CLAUDE_API_KEY),
+  };
+
+  if (writer.provider === 'deepseek' && !hasKey.deepseek) {
+    console.warn(`[writerService] Skipping DeepSeek — DEEPSEEK_API_KEY is not set. Falling back to local draft.`);
+    return null;
+  }
+  if (writer.provider === 'openai' && !hasKey.openai) {
+    console.warn(`[writerService] Skipping OpenAI — OPENAI_API_KEY is not set. Falling back to local draft.`);
+    return null;
+  }
+  if ((writer.provider === 'claude' || writer.provider === 'anthropic') && !hasKey.claude) {
+    console.warn(`[writerService] Skipping Claude — CLAUDE_API_KEY is not set. Falling back to local draft.`);
+    return null;
   }
 
-  if (writer.provider === 'openai' && process.env.OPENAI_API_KEY) {
-    return callOpenAI(writer.model, prompt);
-  }
-
-  if ((writer.provider === 'claude' || writer.provider === 'anthropic') && process.env.CLAUDE_API_KEY) {
-    return callClaude(writer.model, prompt);
+  try {
+    if (writer.provider === 'deepseek') {
+      return await callDeepSeek(writer.model, prompt);
+    }
+    if (writer.provider === 'openai') {
+      return await callOpenAI(writer.model, prompt);
+    }
+    if (writer.provider === 'claude' || writer.provider === 'anthropic') {
+      return await callClaude(writer.model, prompt);
+    }
+  } catch (error) {
+    console.error(`[writerService] ${writer.provider} call failed — falling back to local draft. Reason:`, error.message);
+    return null;
   }
 
   return null;
@@ -180,13 +251,14 @@ async function callDeepSeek(model, prompt) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: model || 'deepseek-chat',
+      model: model || 'deepseek-v4-flash',
       messages: [{ role: 'user', content: prompt }],
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`DeepSeek request failed with status ${response.status}`);
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`DeepSeek request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();
@@ -208,7 +280,8 @@ async function callOpenAI(model, prompt) {
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI request failed with status ${response.status}`);
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`OpenAI request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   return parseResponseText(await response.json());
@@ -230,7 +303,8 @@ async function callClaude(model, prompt) {
   });
 
   if (!response.ok) {
-    throw new Error(`Claude request failed with status ${response.status}`);
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`Claude request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();
