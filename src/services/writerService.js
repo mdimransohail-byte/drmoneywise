@@ -18,12 +18,14 @@ import { updateStore } from './storeService.js';
    article-generation cost matters, consider running the admin "Generate"
    workflow or any future auto-scheduling outside those windows.
    ════════════════════════════════════════════════════════════════════════ */
-const WRITER_ROTATION = ['deepseek', 'openai', 'claude'];
+const WRITER_ROTATION = ['deepseek', 'openai', 'claude']; // automatic rotation order — unchanged
+const ALL_PROVIDERS = ['deepseek', 'openai', 'claude', 'perplexity']; // valid for manual/forced selection
 
 const MODEL_ENV_KEYS = {
   deepseek: 'DEEPSEEK_MODEL',
   openai: 'OPENAI_MODEL',
   claude: 'CLAUDE_MODEL',
+  perplexity: 'PERPLEXITY_MODEL',
 };
 
 const DEEPSEEK_PEAK_WINDOWS = [
@@ -171,14 +173,14 @@ function buildArticlePrompt({ accessTier, headline, sourceNotes }) {
 async function getNextWriter(forceProvider = '') {
   // Per-call override (e.g. the admin picking a specific writer for one
   // article) takes priority over everything else.
-  const explicitProvider = WRITER_ROTATION.includes(forceProvider) ? forceProvider : '';
+  const explicitProvider = ALL_PROVIDERS.includes(forceProvider) ? forceProvider : '';
 
   // Global override for testing phases — set WRITER_FORCE_PROVIDER in
   // Railway Variables (or Admin → Settings, once wired there) to
   // temporarily pin every generation to one provider without touching
   // code. Unset it to go back to the normal DeepSeek → OpenAI → Claude
   // rotation.
-  const envProvider = WRITER_ROTATION.includes(process.env.WRITER_FORCE_PROVIDER) ? process.env.WRITER_FORCE_PROVIDER : '';
+  const envProvider = ALL_PROVIDERS.includes(process.env.WRITER_FORCE_PROVIDER) ? process.env.WRITER_FORCE_PROVIDER : '';
 
   const forced = explicitProvider || envProvider;
   if (forced) {
@@ -209,6 +211,7 @@ async function requestStructuredWriting(writer, prompt) {
     deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
     openai: Boolean(process.env.OPENAI_API_KEY),
     claude: Boolean(process.env.CLAUDE_API_KEY),
+    perplexity: Boolean(process.env.PERPLEXITY_API_KEY),
   };
 
   if (writer.provider === 'deepseek' && !hasKey.deepseek) {
@@ -223,6 +226,10 @@ async function requestStructuredWriting(writer, prompt) {
     console.warn(`[writerService] Skipping Claude — CLAUDE_API_KEY is not set. Falling back to local draft.`);
     return null;
   }
+  if (writer.provider === 'perplexity' && !hasKey.perplexity) {
+    console.warn(`[writerService] Skipping Perplexity — PERPLEXITY_API_KEY is not set. Falling back to local draft.`);
+    return null;
+  }
 
   try {
     if (writer.provider === 'deepseek') {
@@ -233,6 +240,9 @@ async function requestStructuredWriting(writer, prompt) {
     }
     if (writer.provider === 'claude' || writer.provider === 'anthropic') {
       return await callClaude(writer.model, prompt);
+    }
+    if (writer.provider === 'perplexity') {
+      return await callPerplexity(writer.model, prompt);
     }
   } catch (error) {
     console.error(`[writerService] ${writer.provider} call failed — falling back to local draft. Reason:`, error.message);
@@ -259,6 +269,34 @@ async function callDeepSeek(model, prompt) {
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '');
     throw new Error(`DeepSeek request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
+  }
+
+  const payload = await response.json();
+  const text = payload.choices?.[0]?.message?.content || '';
+  return parseJson(text);
+}
+
+// Perplexity's Sonar API is also OpenAI-compatible. Unlike the other three
+// providers, Sonar does its own live web search per call — useful for
+// topic-based articles where fresh context helps, but note it bills an
+// extra ~$5 per 1,000 requests on top of token costs (not just tokens like
+// DeepSeek/OpenAI/Claude), so it's not directly cost-comparable per-token.
+async function callPerplexity(model, prompt) {
+  const response = await fetch(process.env.PERPLEXITY_BASE_URL || 'https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: model || 'sonar',
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`Perplexity request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();

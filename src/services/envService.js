@@ -59,6 +59,8 @@ export async function writeEnvSettings(changes) {
     'CLAUDE_MODEL',
     'DEEPSEEK_API_KEY',
     'DEEPSEEK_MODEL',
+    'PERPLEXITY_API_KEY',
+    'PERPLEXITY_MODEL',
     'MARKETAUX_API_KEY',
     'TIINGO_API_KEY',
     'FINNHUB_API_KEY',
