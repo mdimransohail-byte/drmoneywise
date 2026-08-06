@@ -61,6 +61,8 @@ export async function writeEnvSettings(changes) {
     'DEEPSEEK_MODEL',
     'PERPLEXITY_API_KEY',
     'PERPLEXITY_MODEL',
+    'GEMINI_API_KEY',
+    'GEMINI_MODEL',
     'MARKETAUX_API_KEY',
     'TIINGO_API_KEY',
     'FINNHUB_API_KEY',

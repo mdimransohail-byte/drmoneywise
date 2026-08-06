@@ -36,12 +36,14 @@ export async function getAdminDashboard() {
       supportEmail: store.settings.supportEmail,
       deepseekModel: envSettings.DEEPSEEK_MODEL || '',
       perplexityModel: envSettings.PERPLEXITY_MODEL || '',
+      geminiModel: envSettings.GEMINI_MODEL || '',
       openAiModel: envSettings.OPENAI_MODEL || '',
       claudeModel: envSettings.CLAUDE_MODEL || '',
       openAiKey: envSettings.OPENAI_API_KEY || '',
       claudeKey: envSettings.CLAUDE_API_KEY || '',
       deepseekKey: envSettings.DEEPSEEK_API_KEY || '',
       perplexityKey: envSettings.PERPLEXITY_API_KEY || '',
+      geminiKey: envSettings.GEMINI_API_KEY || '',
       marketauxKey: envSettings.MARKETAUX_API_KEY || '',
       tiingoKey: envSettings.TIINGO_API_KEY || '',
       finnhubKey: envSettings.FINNHUB_API_KEY || '',
@@ -54,6 +56,7 @@ export async function getAdminDashboard() {
       claudeConfigured: Boolean(envSettings.CLAUDE_API_KEY),
       deepseekConfigured: Boolean(envSettings.DEEPSEEK_API_KEY),
       perplexityConfigured: Boolean(envSettings.PERPLEXITY_API_KEY),
+      geminiConfigured: Boolean(envSettings.GEMINI_API_KEY),
       marketauxConfigured: Boolean(envSettings.MARKETAUX_API_KEY),
       tiingoConfigured: Boolean(envSettings.TIINGO_API_KEY),
       finnhubConfigured: Boolean(envSettings.FINNHUB_API_KEY),
@@ -194,11 +197,17 @@ export async function saveAdminSettings(payload) {
   if (payload.perplexityKey !== undefined) {
     envChanges.PERPLEXITY_API_KEY = payload.perplexityKey;
   }
+  if (payload.geminiKey !== undefined) {
+    envChanges.GEMINI_API_KEY = payload.geminiKey;
+  }
   if (payload.deepseekModel !== undefined) {
     envChanges.DEEPSEEK_MODEL = payload.deepseekModel;
   }
   if (payload.perplexityModel !== undefined) {
     envChanges.PERPLEXITY_MODEL = payload.perplexityModel;
+  }
+  if (payload.geminiModel !== undefined) {
+    envChanges.GEMINI_MODEL = payload.geminiModel;
   }
   if (payload.openAiModel !== undefined) {
     envChanges.OPENAI_MODEL = payload.openAiModel;

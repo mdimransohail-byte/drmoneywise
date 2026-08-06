@@ -19,13 +19,14 @@ import { updateStore } from './storeService.js';
    workflow or any future auto-scheduling outside those windows.
    ════════════════════════════════════════════════════════════════════════ */
 const WRITER_ROTATION = ['deepseek', 'openai', 'claude']; // automatic rotation order — unchanged
-const ALL_PROVIDERS = ['deepseek', 'openai', 'claude', 'perplexity']; // valid for manual/forced selection
+const ALL_PROVIDERS = ['deepseek', 'openai', 'claude', 'perplexity', 'gemini']; // valid for manual/forced selection
 
 const MODEL_ENV_KEYS = {
   deepseek: 'DEEPSEEK_MODEL',
   openai: 'OPENAI_MODEL',
   claude: 'CLAUDE_MODEL',
   perplexity: 'PERPLEXITY_MODEL',
+  gemini: 'GEMINI_MODEL',
 };
 
 const DEEPSEEK_PEAK_WINDOWS = [
@@ -212,6 +213,7 @@ async function requestStructuredWriting(writer, prompt) {
     openai: Boolean(process.env.OPENAI_API_KEY),
     claude: Boolean(process.env.CLAUDE_API_KEY),
     perplexity: Boolean(process.env.PERPLEXITY_API_KEY),
+    gemini: Boolean(process.env.GEMINI_API_KEY),
   };
 
   if (writer.provider === 'deepseek' && !hasKey.deepseek) {
@@ -230,6 +232,10 @@ async function requestStructuredWriting(writer, prompt) {
     console.warn(`[writerService] Skipping Perplexity — PERPLEXITY_API_KEY is not set. Falling back to local draft.`);
     return null;
   }
+  if (writer.provider === 'gemini' && !hasKey.gemini) {
+    console.warn(`[writerService] Skipping Gemini — GEMINI_API_KEY is not set. Falling back to local draft.`);
+    return null;
+  }
 
   try {
     if (writer.provider === 'deepseek') {
@@ -243,6 +249,9 @@ async function requestStructuredWriting(writer, prompt) {
     }
     if (writer.provider === 'perplexity') {
       return await callPerplexity(writer.model, prompt);
+    }
+    if (writer.provider === 'gemini') {
+      return await callGemini(writer.model, prompt);
     }
   } catch (error) {
     console.error(`[writerService] ${writer.provider} call failed — falling back to local draft. Reason:`, error.message);
@@ -297,6 +306,35 @@ async function callPerplexity(model, prompt) {
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '');
     throw new Error(`Perplexity request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
+  }
+
+  const payload = await response.json();
+  const text = payload.choices?.[0]?.message?.content || '';
+  return parseJson(text);
+}
+
+// Gemini's OpenAI-compatibility layer — confirmed against Google's own docs.
+// Default model is Flash-Lite: cheap and fine for structured article JSON.
+// Update GEMINI_MODEL in Admin → Settings if Google ships a newer Flash-Lite.
+async function callGemini(model, prompt) {
+  const response = await fetch(
+    process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.GEMINI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: model || 'gemini-2.5-flash-lite',
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`Gemini request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();
