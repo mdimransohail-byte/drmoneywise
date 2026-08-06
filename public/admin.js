@@ -549,6 +549,7 @@ function render_writer() {
             <button class="model-btn ${STATE.writerModel==='claude'?'claude':''}" id="mClaude">✦ Claude (Anthropic)</button>
             <button class="model-btn ${STATE.writerModel==='openai'?'openai':''}" id="mOpenAI">⊕ GPT-4 (OpenAI)</button>
             <button class="model-btn ${STATE.writerModel==='perplexity'?'perplexity':''}" id="mPerplexity">◎ Perplexity (live search)</button>
+            <button class="model-btn ${STATE.writerModel==='gemini'?'gemini':''}" id="mGemini">◆ Gemini (Google, cheap)</button>
           </div>
         </div>
 
@@ -610,6 +611,7 @@ function bind_writer() {
   qs('#mClaude')?.addEventListener('click', () => { STATE.writerModel = 'claude'; setMain(render_writer()); bind_writer(); });
   qs('#mOpenAI')?.addEventListener('click', () => { STATE.writerModel = 'openai'; setMain(render_writer()); bind_writer(); });
   qs('#mPerplexity')?.addEventListener('click', () => { STATE.writerModel = 'perplexity'; setMain(render_writer()); bind_writer(); });
+  qs('#mGemini')?.addEventListener('click', () => { STATE.writerModel = 'gemini'; setMain(render_writer()); bind_writer(); });
   refreshSurgeBanner();
   qs('#topicTA')?.addEventListener('input', e => STATE.writerTopic    = e.target.value);
   qs('#wrTier')?.addEventListener('change', e => STATE.writerTier      = e.target.value);
@@ -926,6 +928,7 @@ function render_settings() {
 const apiRows = [
     { l: 'DeepSeek',               k: 'deepseekKey',  c: '#7c5cff', hint: 'platform.deepseek.com — cheapest writer, used first in rotation' },
     { l: 'Perplexity',             k: 'perplexityKey', c: '#4f9eff', hint: 'perplexity.ai — Sonar API, includes live web search, manual pick only' },
+    { l: 'Gemini',                 k: 'geminiKey',     c: '#4285f4', hint: 'aistudio.google.com — Flash-Lite, cheapest reliable option, manual pick only' },
     { l: 'Anthropic (Claude)',    k: 'claudeKey',    c: '#a78bfa', hint: 'console.anthropic.com' },
     { l: 'OpenAI (GPT-4)',        k: 'openAiKey',    c: '#2bc48a', hint: 'platform.openai.com'   },
     { l: 'Marketaux',             k: 'marketauxKey', c: '#3cb5c4', hint: 'marketaux.com — free 100 req/day' },
@@ -992,7 +995,7 @@ const apiRows = [
         <div class="card">
           <div class="card-title">Site settings</div>
           <div class="form-gap">
-            ${[['Site name','siteName','Dr MoneyWise'],['Domain','siteDomain','drmoneywise.com'],['Support email','supportEmail','hello@drmoneywise.com'],['DeepSeek model','deepseekModel','deepseek-v4-flash'],['OpenAI model','openAiModel','gpt-4o'],['Claude model','claudeModel','claude-sonnet-4-5'],['Perplexity model','perplexityModel','sonar']].map(([l,k,ph]) => `
+            ${[['Site name','siteName','Dr MoneyWise'],['Domain','siteDomain','drmoneywise.com'],['Support email','supportEmail','hello@drmoneywise.com'],['DeepSeek model','deepseekModel','deepseek-v4-flash'],['OpenAI model','openAiModel','gpt-4o'],['Claude model','claudeModel','claude-sonnet-4-5'],['Perplexity model','perplexityModel','sonar'],['Gemini model','geminiModel','gemini-2.5-flash-lite']].map(([l,k,ph]) => `
               <div>
                 <label class="field" for="site_${k}">${h(l)}</label>
                 <input class="input" type="text" id="site_${k}" placeholder="${h(ph)}" value="${h(s[k]||'')}"/>
@@ -1062,7 +1065,7 @@ function bind_settings() {
   qs('#saveApiKeysBtn')?.addEventListener('click', async () => {
     const msg = qs('#apiKeysMsg');
     try {
-      const keys = ['deepseekKey','perplexityKey','claudeKey','openAiKey','marketauxKey','tiingoKey','finnhubKey','marketstackKey'];
+      const keys = ['deepseekKey','perplexityKey','geminiKey','claudeKey','openAiKey','marketauxKey','tiingoKey','finnhubKey','marketstackKey'];
       const body = Object.fromEntries(keys.map(k => [k, qs(`#key_${k}`)?.value?.trim() || '']));
       await API.saveSettings(body);
       if (msg) msg.textContent = '✓ API keys saved';
@@ -1086,7 +1089,7 @@ function bind_settings() {
   qs('#saveSiteBtn')?.addEventListener('click', async () => {
     const msg = qs('#siteMsg');
     try {
-      const keys = ['siteName','siteDomain','supportEmail','deepseekModel','openAiModel','claudeModel','perplexityModel'];
+      const keys = ['siteName','siteDomain','supportEmail','deepseekModel','openAiModel','claudeModel','perplexityModel','geminiModel'];
       const body = Object.fromEntries(keys.map(k => [k, qs(`#site_${k}`)?.value?.trim() || '']));
       await API.saveSettings(body);
       if (msg) msg.textContent = '✓ Settings saved';
