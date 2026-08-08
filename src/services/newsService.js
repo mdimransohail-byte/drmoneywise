@@ -111,7 +111,8 @@ export async function getLiveHeadlines() {
       liveHeadlinesCache = { payload, fetchedAt: now };
       return { ...payload, cached: false };
     }
-  } catch {
+  } catch (error) {
+    console.error('[newsService] Live Wire headline fetch failed:', error.message);
     // Fall through to a stale cache (if any) or demo headlines below.
   }
 
@@ -145,7 +146,8 @@ async function fetchMarketauxHeadlines({ limit }) {
 
   const response = await fetch(url);
   if (!response.ok) {
-    return [];
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`Marketaux (Live Wire) request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();
@@ -195,6 +197,7 @@ async function fetchLiveNews({ regions, asset, limit }) {
 
   for (const provider of providers) {
     if (!provider.enabled) {
+      console.warn(`[newsService] Skipping ${provider.name} — no API key configured.`);
       continue;
     }
 
@@ -206,10 +209,14 @@ async function fetchLiveNews({ regions, asset, limit }) {
           items,
         };
       }
-    } catch {
+      console.warn(`[newsService] ${provider.name} returned 0 items for this request (region/asset filter may be too narrow, or the API had no fresh matches).`);
+    } catch (error) {
+      console.error(`[newsService] ${provider.name} request failed:`, error.message);
       continue;
     }
   }
+
+  console.warn('[newsService] All news providers failed or returned nothing — falling back to demo headlines.');
 
   return {
     provider: null,
@@ -233,7 +240,8 @@ async function fetchMarketauxNews({ regions, asset, limit }) {
 
   const response = await fetch(url);
   if (!response.ok) {
-    return [];
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`Marketaux request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();
@@ -271,7 +279,8 @@ async function fetchTiingoNews({ regions, asset, limit }) {
 
   const response = await fetch(url);
   if (!response.ok) {
-    return [];
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`Tiingo request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();
@@ -305,7 +314,8 @@ async function fetchFinnhubNews({ regions, asset, limit }) {
 
   const response = await fetch(url);
   if (!response.ok) {
-    return [];
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`Finnhub request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();
