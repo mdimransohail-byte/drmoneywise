@@ -36,147 +36,76 @@
 
       <main>
         <!-- ══════════════════════════════════════════════════════════════
-             HERO
+             HERO — slim. Account creation lives further down the page now.
              ══════════════════════════════════════════════════════════════ -->
-        <section class="hero hero-grid" data-reveal>
-          <div class="hero-copy hero-copy-dark">
-            <div>
-              <span class="eyebrow">DrMoneyWise.com</span>
-              <h1>Understand <span class="gold-word">Money</span>.<br />Invest <span class="gold-word">Wise</span>.</h1>
-              <p>
-                Global market news, explained in plain language. Choose your regions and
-                interests, save a watchlist, build a portfolio, and read clear, calm
-                stories — free or paid, your choice.
-              </p>
-            </div>
-
+        <section class="hero" data-reveal>
+          <div class="hero-copy hero-copy-dark hero-copy-slim">
+            <span class="eyebrow">DrMoneyWise.com</span>
+            <h1>Understand <span class="gold-word">Money</span>.<br />Invest <span class="gold-word">Wise</span>.</h1>
+            <p>
+              Global market news, explained in plain language — free or paid, your choice.
+            </p>
             <div class="hero-actions">
               <a class="button primary" href="#newsroom">See Today's Feed</a>
-              <a class="button tertiary" href="#membership">View Membership</a>
+              <a class="button tertiary" href="#join">Join Free</a>
             </div>
-
             <div id="summaryStrip" class="summary-strip"></div>
           </div>
-
-          <aside class="glass-card onboarding-card">
-            <div class="section-head compact">
-              <div>
-                <span class="eyebrow">Join Free</span>
-                <h2>Create your account</h2>
-              </div>
-              <span id="accountState" class="subtle-chip">Guest</span>
-            </div>
-
-            <form id="signupForm" class="stack-form">
-              <div class="form-grid">
-                <label>
-                  Full name
-                  <input id="nameInput" type="text" placeholder="Your name" />
-                </label>
-                <label>
-                  Email
-                  <input id="emailInput" type="email" placeholder="you@example.com" />
-                </label>
-              </div>
-
-              <label>
-                Password
-                <input id="passwordInput" type="password" placeholder="Create a password" />
-              </label>
-
-              <div>
-                <label class="field-label">Pick your region(s)</label>
-                <div id="regionPicker" class="chip-grid"></div>
-              </div>
-
-              <div>
-                <label class="field-label">Pick your interests</label>
-                <div id="interestPicker" class="chip-grid"></div>
-              </div>
-
-              <div class="button-row">
-                <button class="button primary" type="submit">Create Free Account</button>
-                <button id="toggleAuthModeButton" class="button secondary" type="button">Already a member</button>
-              </div>
-            </form>
-
-            <form id="signinForm" class="stack-form hidden">
-              <label>
-                Email
-                <input id="loginEmailInput" type="email" placeholder="you@example.com" />
-              </label>
-              <label>
-                Password
-                <input id="loginPasswordInput" type="password" placeholder="Your password" />
-              </label>
-              <div class="button-row">
-                <button class="button primary" type="submit">Sign In</button>
-                <button id="toggleSignupModeButton" class="button secondary" type="button">New here</button>
-              </div>
-            </form>
-
-            <div id="authMessage" class="helper-note"></div>
-            <div class="helper-note">
-              Looking for Regular or Premium?
-              <a href="#membership">See plans below</a> ·
-              <a href="mailto:hello@drmoneywise.com">hello@drmoneywise.com</a>
-            </div>
-          </aside>
         </section>
 
         <!-- ══════════════════════════════════════════════════════════════
-             NEWSROOM — live scrolling headline wire (Marketaux, cached 6h)
+             TOP STORY — magazine layout: featured headline + secondary list.
+             Raw headlines from Marketaux (cached 6h) — links go to the
+             original source, not an internal article.
              ══════════════════════════════════════════════════════════════ -->
         <section id="newsroom" class="glass-card" data-reveal>
           <div class="section-head compact">
             <div>
-              <span class="eyebrow">Live Wire</span>
-              <h2>Today's headlines</h2>
+              <span class="eyebrow">Top Story</span>
+              <h2>What's moving markets right now</h2>
             </div>
             <span id="feedState" class="status-pill">Loading</span>
           </div>
-          <p class="helper-note" style="margin-bottom: 14px;">
-            Scrolls automatically. Hover to pause, click any headline to open the source.
-          </p>
-          <div class="ticker-viewport">
-            <div id="briefBoard" class="ticker-track"></div>
+          <div class="news-hero-grid">
+            <a id="briefFeatured" class="news-feature-card" href="#" target="_blank" rel="noopener"></a>
+            <div id="briefBoard" class="news-secondary-list"></div>
           </div>
         </section>
 
         <!-- ══════════════════════════════════════════════════════════════
-             READER CONTROLS — News Bank (regions + interests)
-             ══════════════════════════════════════════════════════════════ -->
-        <section class="section-filter glass-card" data-reveal>
-          <div class="section-head compact">
-            <div>
-              <span class="eyebrow">News Bank</span>
-              <h2>Choose your regions and interests</h2>
-            </div>
-            <button id="refreshHomeButton" class="button secondary" type="button">Refresh</button>
-          </div>
-
-          <div class="filter-grid">
-            <div>
-              <span class="field-label">Regions</span>
-              <div id="regionFilterChips" class="chip-grid"></div>
-            </div>
-            <div>
-              <span class="field-label">Interests</span>
-              <div id="interestFilterChips" class="chip-grid"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ══════════════════════════════════════════════════════════════
-             BY INTEREST
+             EXPLORE BY INTEREST — compact dropdown picker sits directly
+             above its own results, instead of being a separate section
+             far above "By Interest" like before.
              ══════════════════════════════════════════════════════════════ -->
         <section class="glass-card" data-reveal>
           <div class="section-head">
             <div>
-              <span class="eyebrow">By Interest</span>
-              <h2>Top stories in each area</h2>
+              <span class="eyebrow">Explore by Interest</span>
+              <h2>Pick your regions and interests</h2>
+            </div>
+            <button id="refreshHomeButton" class="button secondary" type="button">Refresh</button>
+          </div>
+          <p class="helper-note" style="margin-bottom: 14px;">
+            Deeper reads, organized by what you follow — not the same headlines as the top story above.
+          </p>
+
+          <div class="picker-row">
+            <div class="picker-dropdown">
+              <button type="button" class="picker-trigger" id="regionPickerTrigger">
+                <span id="regionPickerLabel">Region: Global</span>
+                <span class="picker-chevron">▾</span>
+              </button>
+              <div id="regionFilterChips" class="chip-grid picker-panel hidden"></div>
+            </div>
+            <div class="picker-dropdown">
+              <button type="button" class="picker-trigger" id="interestPickerTrigger">
+                <span id="interestPickerLabel">Interests</span>
+                <span class="picker-chevron">▾</span>
+              </button>
+              <div id="interestFilterChips" class="chip-grid picker-panel hidden"></div>
             </div>
           </div>
+
           <div id="feedAreas" class="area-grid"></div>
         </section>
 
@@ -186,7 +115,7 @@
         <section id="learning" class="glass-card" data-reveal>
           <div class="section-head">
             <div>
-              <span class="eyebrow">Learning Points</span>
+              <span class="eyebrow">Dr MoneyWise Explains</span>
               <h2>Simple explainers and examples</h2>
             </div>
           </div>
@@ -249,6 +178,74 @@
             <button id="refreshReviewButton" class="button secondary" type="button">Refresh Review</button>
           </div>
           <div id="portfolioReview" class="review-board"></div>
+        </section>
+
+        <!-- ══════════════════════════════════════════════════════════════
+             JOIN — relocated here from the hero, so news comes first
+             ══════════════════════════════════════════════════════════════ -->
+        <section id="join" class="glass-card join-card" data-reveal>
+          <div class="section-head compact">
+            <div>
+              <span class="eyebrow">Join Free</span>
+              <h2>Create your account</h2>
+            </div>
+            <span id="accountState" class="subtle-chip">Guest</span>
+          </div>
+
+          <form id="signupForm" class="stack-form">
+            <div class="form-grid">
+              <label>
+                Full name
+                <input id="nameInput" type="text" placeholder="Your name" />
+              </label>
+              <label>
+                Email
+                <input id="emailInput" type="email" placeholder="you@example.com" />
+              </label>
+            </div>
+
+            <label>
+              Password
+              <input id="passwordInput" type="password" placeholder="Create a password" />
+            </label>
+
+            <div>
+              <label class="field-label">Pick your region(s)</label>
+              <div id="regionPicker" class="chip-grid"></div>
+            </div>
+
+            <div>
+              <label class="field-label">Pick your interests</label>
+              <div id="interestPicker" class="chip-grid"></div>
+            </div>
+
+            <div class="button-row">
+              <button class="button primary" type="submit">Create Free Account</button>
+              <button id="toggleAuthModeButton" class="button secondary" type="button">Already a member</button>
+            </div>
+          </form>
+
+          <form id="signinForm" class="stack-form hidden">
+            <label>
+              Email
+              <input id="loginEmailInput" type="email" placeholder="you@example.com" />
+            </label>
+            <label>
+              Password
+              <input id="loginPasswordInput" type="password" placeholder="Your password" />
+            </label>
+            <div class="button-row">
+              <button class="button primary" type="submit">Sign In</button>
+              <button id="toggleSignupModeButton" class="button secondary" type="button">New here</button>
+            </div>
+          </form>
+
+          <div id="authMessage" class="helper-note"></div>
+          <div class="helper-note">
+            Looking for Regular or Premium?
+            <a href="#membership">See plans below</a> ·
+            <a href="mailto:hello@drmoneywise.com">hello@drmoneywise.com</a>
+          </div>
         </section>
 
         <!-- ══════════════════════════════════════════════════════════════

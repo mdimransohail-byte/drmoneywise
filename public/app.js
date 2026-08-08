@@ -61,9 +61,14 @@ function cacheElements() {
   elements.interestPicker = document.querySelector('#interestPicker');
   elements.regionFilterChips = document.querySelector('#regionFilterChips');
   elements.interestFilterChips = document.querySelector('#interestFilterChips');
+  elements.regionPickerTrigger = document.querySelector('#regionPickerTrigger');
+  elements.regionPickerLabel = document.querySelector('#regionPickerLabel');
+  elements.interestPickerTrigger = document.querySelector('#interestPickerTrigger');
+  elements.interestPickerLabel = document.querySelector('#interestPickerLabel');
   elements.refreshHomeButton = document.querySelector('#refreshHomeButton');
   elements.summaryStrip = document.querySelector('#summaryStrip');
   elements.feedState = document.querySelector('#feedState');
+  elements.briefFeatured = document.querySelector('#briefFeatured');
   elements.briefBoard = document.querySelector('#briefBoard');
   elements.feedAreas = document.querySelector('#feedAreas');
   elements.learningPoints = document.querySelector('#learningPoints');
@@ -96,6 +101,20 @@ function bindEvents() {
   elements.regionFilterChips.addEventListener('click', handleRegionToggle);
   elements.interestPicker.addEventListener('click', handleInterestToggle);
   elements.interestFilterChips.addEventListener('click', handleInterestToggle);
+
+  elements.regionPickerTrigger.addEventListener('click', (event) => {
+    event.stopPropagation();
+    togglePickerPanel('region');
+  });
+  elements.interestPickerTrigger.addEventListener('click', (event) => {
+    event.stopPropagation();
+    togglePickerPanel('interest');
+  });
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.picker-dropdown')) {
+      closeAllPickerPanels();
+    }
+  });
   elements.refreshHomeButton.addEventListener('click', async () => {
     await refreshHome();
     await refreshPortfolioReview();
@@ -247,6 +266,7 @@ function renderInterestChoices() {
 
   elements.interestPicker.innerHTML = choices;
   elements.interestFilterChips.innerHTML = filters;
+  renderPickerLabels();
 }
 
 function renderRegionChoices() {
@@ -284,6 +304,50 @@ function renderRegionChoices() {
 
   elements.regionPicker.innerHTML = choices;
   elements.regionFilterChips.innerHTML = filters;
+  renderPickerLabels();
+}
+
+/**
+ * Compact dropdown behavior for the Explore-by-Interest picker. Clicking a
+ * trigger opens its panel and closes the other one; clicking outside either
+ * dropdown closes both. Selecting a chip inside an open panel doesn't close
+ * it — see the click-outside listener in bindEvents(), which only fires for
+ * clicks outside .picker-dropdown entirely.
+ */
+function togglePickerPanel(which) {
+  const isRegionOpen = !elements.regionFilterChips.classList.contains('hidden');
+  const isInterestOpen = !elements.interestFilterChips.classList.contains('hidden');
+
+  closeAllPickerPanels();
+
+  if (which === 'region' && !isRegionOpen) {
+    elements.regionFilterChips.classList.remove('hidden');
+    elements.regionPickerTrigger.classList.add('open');
+  } else if (which === 'interest' && !isInterestOpen) {
+    elements.interestFilterChips.classList.remove('hidden');
+    elements.interestPickerTrigger.classList.add('open');
+  }
+}
+
+function closeAllPickerPanels() {
+  elements.regionFilterChips.classList.add('hidden');
+  elements.interestFilterChips.classList.add('hidden');
+  elements.regionPickerTrigger.classList.remove('open');
+  elements.interestPickerTrigger.classList.remove('open');
+}
+
+function renderPickerLabels() {
+  const regionLabels = state.selectedRegions.map(
+    (id) => (state.bootstrap.regions || []).find((region) => region.id === id)?.label || id,
+  );
+  elements.regionPickerLabel.textContent = `Region: ${regionLabels.join(', ') || 'Global'}`;
+
+  const interestLabels = state.selectedInterests.map(
+    (id) => (state.bootstrap.interests || []).find((interest) => interest.id === id)?.label || id,
+  );
+  elements.interestPickerLabel.textContent = interestLabels.length
+    ? `Interests: ${interestLabels.join(', ')}`
+    : 'Interests';
 }
 
 function renderSummaryStrip() {
@@ -307,13 +371,12 @@ function renderSummaryStrip() {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   LIVE WIRE — scrolling headline ticker
+   TOP STORY — magazine layout (featured headline + secondary list)
    ───────────────────────────────────────────────────────────────────────
    Sourced from its own /api/site/live-headlines endpoint (raw Marketaux
    headlines, cached server-side for 6 hours) rather than the personalized
    region/interest feed — see refreshLiveHeadlines() below. Each headline
-   links straight out to its original source. The list is duplicated so the
-   CSS marquee animation (.ticker-track, see styles.css) loops seamlessly.
+   links straight out to its original source.
    ════════════════════════════════════════════════════════════════════════ */
 async function refreshLiveHeadlines() {
   setFeedState('Refreshing');
@@ -331,29 +394,35 @@ function renderBriefBoard() {
   const items = state.liveHeadlines?.items || [];
 
   if (!items.length) {
-    elements.briefBoard.innerHTML = createEmptyCard('Live headlines are loading — check back shortly.');
-    elements.briefBoard.style.animation = 'none';
+    elements.briefFeatured.innerHTML = createEmptyCard('Live headlines are loading — check back shortly.');
+    elements.briefFeatured.removeAttribute('href');
+    elements.briefBoard.innerHTML = '';
     return;
   }
 
-  const renderTickerItem = (item) => `
-    <a class="ticker-item" href="${escapeAttribute(item.url || '#')}" target="_blank" rel="noopener">
-      <strong>${escapeHtml(item.title)}</strong>
-      <div class="ticker-meta">
-        <span>${escapeHtml(item.source || 'Market feed')}</span>
-        <span>·</span>
-        <span>${formatDate(item.publishedAt)}</span>
-      </div>
-    </a>
+  const [featured, ...rest] = items;
+
+  elements.briefFeatured.href = featured.url || '#';
+  elements.briefFeatured.innerHTML = `
+    <div class="news-feature-media">📈</div>
+    <div class="news-feature-body">
+      <span class="tag gold">${escapeHtml(featured.source || 'Market feed')}</span>
+      <p class="news-feature-headline">${escapeHtml(featured.title)}</p>
+      <p class="news-feature-meta">${escapeHtml(featured.source || 'Market feed')} &middot; ${formatDate(featured.publishedAt)}</p>
+    </div>
   `;
 
-  // Duplicate the list so the marquee (translateY 0 -> -50%) loops with no visible seam
-  const doubled = [...items, ...items];
-  elements.briefBoard.innerHTML = doubled.map(renderTickerItem).join('');
-
-  // Scroll speed scales with content length so longer lists don't feel rushed
-  const duration = Math.max(18, items.length * 4);
-  elements.briefBoard.style.animationDuration = `${duration}s`;
+  elements.briefBoard.innerHTML = rest
+    .slice(0, 5)
+    .map(
+      (item) => `
+        <a class="news-list-item" href="${escapeAttribute(item.url || '#')}" target="_blank" rel="noopener">
+          <p class="news-list-headline">${escapeHtml(item.title)}</p>
+          <p class="news-list-meta">${escapeHtml(item.source || 'Market feed')} &middot; ${formatDate(item.publishedAt)}</p>
+        </a>
+      `,
+    )
+    .join('');
 }
 
 function renderAreas() {
@@ -624,6 +693,7 @@ function renderPricingCards() {
 
 function renderLoadingBoards() {
   const loadingCard = '<div class="story-card"><div class="skeleton line"></div><div class="skeleton card"></div></div>';
+  elements.briefFeatured.innerHTML = loadingCard;
   elements.briefBoard.innerHTML = loadingCard;
   elements.feedAreas.innerHTML = loadingCard.repeat(3);
   elements.learningPoints.innerHTML = loadingCard.repeat(2);
@@ -899,7 +969,7 @@ async function handlePricingClick(event) {
   const checkoutUrl = button.dataset.checkoutUrl || '';
 
   if (planId === 'free') {
-    document.querySelector('.onboarding-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelector('#join')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setAuthMode(state.user ? 'signed-in' : 'signup');
     setAuthMessage(state.user ? 'Your free account is active.' : 'Create your free account to get started.');
     return;
@@ -925,7 +995,7 @@ async function handleSaveArticleClick(event) {
   if (!state.user) {
     setAuthMode('signin');
     setAuthMessage('Sign in to save articles to your account.');
-    document.querySelector('.onboarding-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelector('#join')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return;
   }
 

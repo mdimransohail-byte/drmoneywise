@@ -283,10 +283,29 @@ textarea {
    HERO
    ════════════════════════════════════════════════════════════════════════ */
 
-.hero-grid {
+.hero {
   margin-top: 32px;
-  grid-template-columns: minmax(0, 1.25fr) minmax(380px, 0.75fr);
-  align-items: start;
+}
+
+.hero-copy-slim {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 40px 48px 32px;
+}
+
+.hero-copy-slim h1,
+.hero-copy-slim p {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-copy-slim .hero-actions {
+  justify-content: center;
+}
+
+.hero-copy-slim .summary-strip {
+  margin-top: 18px;
 }
 
 .hero-copy {
@@ -380,17 +399,16 @@ textarea {
   font-size: 1.05rem;
 }
 
-.onboarding-card {
+.join-card {
   background: linear-gradient(180deg, rgba(14, 30, 52, 0.96), rgba(8, 19, 34, 0.93));
+  max-width: 640px;
+  margin: 0 auto;
 }
 
 /* ════════════════════════════════════════════════════════════════════════
    SECTIONS — generic
    ════════════════════════════════════════════════════════════════════════ */
 
-.section-filter {
-  margin-top: var(--space-section);
-}
 
 .filter-grid {
   grid-template-columns: 260px 1fr;
@@ -729,65 +747,155 @@ textarea {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   LIVE WIRE / TICKER  — scrolling headline feed
-   (Built on the existing #briefBoard element — see app.js renderBriefBoard)
+   TOP STORY — magazine layout (featured headline + secondary list)
+   (Built on #briefFeatured / #briefBoard — see app.js renderBriefBoard)
    ════════════════════════════════════════════════════════════════════════ */
 
-.ticker-viewport {
-  height: 400px;
+.news-hero-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 24px;
+  margin-top: 6px;
+}
+
+.news-feature-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  position: relative;
-  border-radius: 18px;
-  mask-image: linear-gradient(180deg, transparent, black 8%, black 90%, transparent);
-  -webkit-mask-image: linear-gradient(180deg, transparent, black 8%, black 90%, transparent);
+  transition: border-color 160ms ease;
 }
 
-.ticker-track {
+.news-feature-card:hover {
+  border-color: var(--line-strong);
+}
+
+.news-feature-media {
+  height: 150px;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  animation-name: ticker-scroll-y;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(200, 154, 74, 0.28), transparent 60%),
+    linear-gradient(135deg, rgba(200, 154, 74, 0.18), rgba(200, 154, 74, 0.04));
 }
 
-.ticker-viewport:hover .ticker-track {
-  animation-play-state: paused;
+.news-feature-body {
+  padding: 18px;
 }
 
-@keyframes ticker-scroll-y {
-  from { transform: translateY(0); }
-  to   { transform: translateY(-50%); }
-}
-
-.ticker-item {
-  display: block;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: background 140ms ease, border-color 140ms ease;
-}
-
-.ticker-item:hover {
-  background: rgba(227, 181, 99, 0.08);
-  border-color: rgba(227, 181, 99, 0.18);
-}
-
-.ticker-item strong {
-  display: block;
-  font-size: 0.92rem;
+.news-feature-headline {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
   line-height: 1.4;
-  margin-bottom: 4px;
+  margin: 10px 0 6px;
   color: var(--text);
 }
 
-.ticker-item .ticker-meta {
+.news-feature-meta {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  margin: 0;
+}
+
+.news-secondary-list {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+}
+
+.news-list-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--line);
+  transition: opacity 140ms ease;
+}
+
+.news-secondary-list .news-list-item:last-child {
+  border-bottom: none;
+}
+
+.news-list-item:hover {
+  opacity: 0.72;
+}
+
+.news-list-headline {
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.45;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+
+.news-list-meta {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  margin: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PICKER DROPDOWN — compact region/interest selector (Explore by Interest)
+   ════════════════════════════════════════════════════════════════════════ */
+
+.picker-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.picker-dropdown {
+  position: relative;
+}
+
+.picker-trigger {
+  display: flex;
   align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 160ms ease;
+}
+
+.picker-trigger:hover,
+.picker-trigger.open {
+  border-color: var(--line-strong);
+}
+
+.picker-chevron {
   font-size: 0.7rem;
   color: var(--text-soft);
+  transition: transform 160ms ease;
+}
+
+.picker-trigger.open .picker-chevron {
+  transform: rotate(180deg);
+}
+
+.picker-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  min-width: 280px;
+  max-width: 90vw;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(14, 30, 52, 0.98), rgba(8, 19, 34, 0.97));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1028,11 +1136,11 @@ textarea {
    ════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 1160px) {
-  .hero-grid,
   .section-grid,
   .tools-grid,
   .admin-grid,
-  .article-grid {
+  .article-grid,
+  .news-hero-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1067,7 +1175,6 @@ textarea {
   }
 
   .summary-strip,
-  .filter-grid,
   .form-grid,
   .priority-grid {
     grid-template-columns: 1fr;
@@ -1079,7 +1186,18 @@ textarea {
     padding: 26px;
   }
 
-  .ticker-viewport {
-    height: 320px;
+  .hero-copy-slim {
+    padding: 32px 22px 24px;
+  }
+
+  .picker-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .picker-panel {
+    left: 0;
+    right: 0;
+    min-width: 0;
   }
 }
