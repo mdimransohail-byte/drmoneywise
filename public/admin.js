@@ -1000,7 +1000,7 @@ const apiRows = [
         <div class="card">
           <div class="card-title">Site settings</div>
           <div class="form-gap">
-            ${[['Site name','siteName','Dr MoneyWise'],['Domain','siteDomain','drmoneywise.com'],['Support email','supportEmail','hello@drmoneywise.com'],['DeepSeek model','deepseekModel','deepseek-v4-flash'],['OpenAI model','openAiModel','gpt-4o'],['Claude model','claudeModel','claude-sonnet-4-5'],['Perplexity model','perplexityModel','sonar'],['Gemini model','geminiModel','gemini-2.5-flash-lite']].map(([l,k,ph]) => `
+            ${[['Site name','siteName','Dr MoneyWise'],['Domain','siteDomain','drmoneywise.com'],['Support email','supportEmail','hello@drmoneywise.com'],['DeepSeek model','deepseekModel','deepseek-v4-flash'],['OpenAI model','openAiModel','gpt-4o'],['Claude model','claudeModel','claude-sonnet-4-5'],['Perplexity model','perplexityModel','sonar'],['Gemini model','geminiModel','gemini-3.5-flash-lite']].map(([l,k,ph]) => `
               <div>
                 <label class="field" for="site_${k}">${h(l)}</label>
                 <input class="input" type="text" id="site_${k}" placeholder="${h(ph)}" value="${h(s[k]||'')}"/>
