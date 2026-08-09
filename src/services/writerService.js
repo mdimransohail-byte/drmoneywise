@@ -76,8 +76,8 @@ export async function summarizeNewsItem(item) {
 
   const generated = await requestStructuredWriting(writer, prompt).catch(() => null);
   return {
-    writerSlot: writer.slot,
-    provider: writer.provider,
+    writerSlot: generated ? writer.slot : 'local-fallback',
+    provider: generated ? writer.provider : 'local-fallback',
     ...(generated || createLocalNewsDraft(item)),
   };
 }
@@ -98,8 +98,8 @@ export async function createLearningArticleFromTopic(topic, accessTier = 'free',
 
   const generated = await requestStructuredWriting(writer, prompt).catch(() => null);
   return {
-    writerSlot: writer.slot,
-    provider: writer.provider,
+    writerSlot: generated ? writer.slot : 'local-fallback',
+    provider: generated ? writer.provider : 'local-fallback',
     ...(generated || createLocalLearningDraft(topic, accessTier, region, interest)),
   };
 }
