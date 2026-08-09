@@ -136,7 +136,6 @@ function buildArticlePrompt({ accessTier, headline, sourceNotes }) {
         '2. Why institutional investors care',
         '3. Second-order implication',
         '4. Forward scenario',
-        'Length: 800-1200 words of total article content, spread naturally across the JSON fields below.',
       ]
     : [
         'You are writing for intelligent readers who are not finance professionals.',
@@ -159,11 +158,40 @@ function buildArticlePrompt({ accessTier, headline, sourceNotes }) {
         '2. Why this matters',
         '3. Immediate implication',
         '4. One practical takeaway',
-        'Length: 500-700 words of total article content, spread naturally across the JSON fields below.',
+      ];
+
+  // Explicit per-field word targets — critical. plainEnglish, whyItMatters,
+  // and everydayExample each render as their own full-width card on the
+  // article page. A blanket "500-700 words total, spread across the JSON
+  // fields" instruction lets the model default to one sentence per field,
+  // which reads as broken/empty cards even though nothing is technically
+  // wrong. Each of those three fields needs real paragraph length on its
+  // own — this is what actually fixes that, not the total word count.
+  const fieldTargets = isPaidTier
+    ? [
+        'Field-by-field length targets (this is what matters — hit these, not just an overall total):',
+        '- summary: 2-3 sentences (about 40-60 words) — a standalone teaser, used in preview cards elsewhere',
+        '- plainEnglish: 3-4 full paragraphs (about 250-350 words) — this is the main body of the article',
+        '- whyItMatters: 2-3 full paragraphs (about 150-200 words)',
+        '- everydayExample: 1-2 full paragraphs with a concrete, specific example (about 120-180 words)',
+        '- takeaways: exactly 3 items, one full sentence each (15-25 words per item)',
+        '- jargonBuster: 2-3 terms, each with a one-sentence plain-language definition',
+        'Total across all fields should land around 800-1200 words — but hit the per-field targets above, not just the total.',
+      ]
+    : [
+        'Field-by-field length targets (this is what matters — hit these, not just an overall total):',
+        '- summary: 1-2 sentences (about 25-40 words) — a standalone teaser, used in preview cards elsewhere',
+        '- plainEnglish: 2-3 full paragraphs (about 150-220 words) — this is the main body of the article',
+        '- whyItMatters: 1-2 full paragraphs (about 100-150 words)',
+        '- everydayExample: 1 full paragraph with a concrete, specific example (about 100-150 words)',
+        '- takeaways: exactly 3 items, one full sentence each (12-20 words per item)',
+        '- jargonBuster: 2 terms, each with a one-sentence plain-language definition',
+        'Total across all fields should land around 500-700 words — but hit the per-field targets above, not just the total.',
       ];
 
   return [
     ...instructions,
+    ...fieldTargets,
     `Headline: ${headline}`,
     `Source Notes: ${sourceNotes}`,
     'Return strict JSON with keys:',
@@ -326,7 +354,7 @@ async function callGemini(model, prompt) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: model || 'gemini-2.5-flash-lite',
+        model: model || 'gemini-3.5-flash-lite',
         messages: [{ role: 'user', content: prompt }],
       }),
     },
