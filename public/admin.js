@@ -777,6 +777,11 @@ function render_inventory() {
             <span class="tag ${tagClass(a.accessTier)}">${h(a.accessTier)}</span>
             <span class="tag ${statusClass(a.status)}">${h(a.status)}</span>
             <span class="tag tag-free" style="font-size:.6rem">${h(a.interest || a.contentType || '')}</span>
+            ${a.engineSlot === 'local-fallback'
+              ? `<span class="tag" style="font-size:.6rem;background:rgba(255,107,107,.14);color:#ff6b6b" title="AI writer failed for this article — content is the generic template, not real AI writing. Check Railway logs, then regenerate.">⚠ fallback</span>`
+              : a.engineSlot
+                ? `<span class="tag" style="font-size:.6rem;background:rgba(158,179,204,.10);color:#9eb3cc">${h(a.engineSlot)}</span>`
+                : ''}
             <span style="font-size:.65rem;color:#9eb3cc;margin-left:auto">${fmtDate(a.publishAt)}</span>
           </div>
           <h4>${h(a.headline)}</h4>
