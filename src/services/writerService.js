@@ -75,10 +75,11 @@ export async function summarizeNewsItem(item) {
   });
 
   const generated = await requestStructuredWriting(writer, prompt).catch(() => null);
+  const sanitized = sanitizeGeneratedContent(generated);
   return {
-    writerSlot: generated ? writer.slot : 'local-fallback',
-    provider: generated ? writer.provider : 'local-fallback',
-    ...(generated || createLocalNewsDraft(item)),
+    writerSlot: sanitized ? writer.slot : 'local-fallback',
+    provider: sanitized ? writer.provider : 'local-fallback',
+    ...(sanitized || createLocalNewsDraft(item)),
   };
 }
 
@@ -97,10 +98,11 @@ export async function createLearningArticleFromTopic(topic, accessTier = 'free',
   });
 
   const generated = await requestStructuredWriting(writer, prompt).catch(() => null);
+  const sanitized = sanitizeGeneratedContent(generated);
   return {
-    writerSlot: generated ? writer.slot : 'local-fallback',
-    provider: generated ? writer.provider : 'local-fallback',
-    ...(generated || createLocalLearningDraft(topic, accessTier, region, interest)),
+    writerSlot: sanitized ? writer.slot : 'local-fallback',
+    provider: sanitized ? writer.provider : 'local-fallback',
+    ...(sanitized || createLocalLearningDraft(topic, accessTier, region, interest)),
   };
 }
 
@@ -192,11 +194,76 @@ function buildArticlePrompt({ accessTier, headline, sourceNotes }) {
   return [
     ...instructions,
     ...fieldTargets,
+    'CRITICAL FORMATTING RULE: every string value must be plain text only.',
+    'Do not use HTML tags of any kind (no <strong>, <br>, <p>, <ul>, <li>, etc).',
+    'Do not use Markdown formatting either (no **bold**, no # headings, no - bullet dashes inside a string).',
+    'Write plain sentences and paragraphs only — the app applies its own formatting.',
     `Headline: ${headline}`,
     `Source Notes: ${sourceNotes}`,
     'Return strict JSON with keys:',
     RESPONSE_JSON_SCHEMA,
   ].join('\n');
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   SANITIZATION — code-level guarantee against HTML/markdown leaking into
+   article text. The prompt already tells every provider to return plain
+   text only, but models don't always comply — this strips it regardless,
+   so a provider misbehaving can never break the site's rendering again.
+   ════════════════════════════════════════════════════════════════════════ */
+function stripHtmlTags(value) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  return value
+    .replace(/<[^>]*>/g, '') // actual HTML tags
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;/gi, "'")
+    .replace(/\*\*/g, '') // stray markdown bold markers
+    .trim();
+}
+
+function sanitizeGeneratedContent(generated) {
+  if (!generated || typeof generated !== 'object') {
+    return generated;
+  }
+
+  const sanitized = { ...generated };
+
+  for (const key of ['headline', 'summary', 'plainEnglish', 'whyItMatters', 'everydayExample', 'visualSuggestion']) {
+    if (typeof sanitized[key] === 'string') {
+      sanitized[key] = stripHtmlTags(sanitized[key]);
+    }
+  }
+
+  if (Array.isArray(sanitized.takeaways)) {
+    sanitized.takeaways = sanitized.takeaways.map((item) => stripHtmlTags(item));
+  }
+
+  if (Array.isArray(sanitized.jargonBuster)) {
+    sanitized.jargonBuster = sanitized.jargonBuster.map((entry) => ({
+      term: stripHtmlTags(entry?.term || ''),
+      meaning: stripHtmlTags(entry?.meaning || ''),
+    }));
+  }
+
+  if (sanitized.infographic) {
+    sanitized.infographic = {
+      title: stripHtmlTags(sanitized.infographic.title || ''),
+      items: (sanitized.infographic.items || []).map((item) => ({
+        label: stripHtmlTags(item?.label || ''),
+        value: stripHtmlTags(item?.value || ''),
+        context: stripHtmlTags(item?.context || ''),
+      })),
+    };
+  }
+
+  return sanitized;
 }
 
 async function getNextWriter(forceProvider = '') {

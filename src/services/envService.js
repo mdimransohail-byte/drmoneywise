@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { getEnvPath } from '../config.js';
 
 export async function readEnvSettings() {
@@ -83,6 +84,7 @@ export async function writeEnvSettings(changes) {
     ...Object.keys(next).filter((key) => !orderedKeys.includes(key)).sort(),
   ];
   const contents = finalKeys.map((key) => `${key}=${next[key] ?? ''}`).join('\n');
+  await fs.mkdir(path.dirname(envPath), { recursive: true });
   await fs.writeFile(envPath, `${contents}\n`, 'utf8');
   return next;
 }
