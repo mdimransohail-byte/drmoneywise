@@ -119,7 +119,12 @@ export function getInterestLabel(interestId) {
 }
 
 export function getEnvPath() {
-  return path.join(process.cwd(), '.env');
+  // Lives on the same persistent Railway Volume as platform-store.json and
+  // business-settings.json (both under data/). Previously this pointed at
+  // the project root, which is NOT persistent — every fresh deploy wiped
+  // it, silently losing every API key saved through Admin. Moving it here
+  // fixes that for good.
+  return path.join(process.cwd(), 'data', '.env');
 }
 
 export function getCouponConfig() {
