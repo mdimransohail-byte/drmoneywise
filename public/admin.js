@@ -67,6 +67,7 @@ const STATE = {
   writerRegion:   'Global',
   writerInterest: 'equities',
   writerText:     '',
+  generatedArticle: null,
   writerDone:     false,
   writerGenerating: false,
   writerStatus:   '',
@@ -621,47 +622,42 @@ function bind_writer() {
   qs('#genBtn')?.addEventListener('click', generateArticle);
 
   qs('#approveArt')?.addEventListener('click', async () => {
-    const lines    = STATE.writerText.split('\n');
-    const hlLine   = lines.find(l => l.startsWith('HEADLINE:'));
-    const headline = hlLine ? hlLine.replace('HEADLINE:', '').trim() : (STATE.writerTopic || 'New Article');
+    if (!STATE.generatedArticle) {
+      showToast('Nothing to save — generate an article first');
+      return;
+    }
     try {
       await API.saveArticle({
-        headline,
-        contentType: 'learning',
-        accessTier:  STATE.writerTier,
-        region:      STATE.writerRegion,
-        interest:    STATE.writerInterest,
-        status:      'draft',
-        publishAt:   new Date().toISOString(),
-        summary:     lines.find(l => l.startsWith('SUMMARY:'))?.replace('SUMMARY:','').trim() || '',
-        bodySections:[{ heading: 'Article', body: STATE.writerText }],
-        tags:        [],
+        ...STATE.generatedArticle,
+        status: 'draft',
+        publishAt: new Date().toISOString(),
       });
-      STATE.writerText = ''; STATE.writerDone = false; STATE.writerTopic = '';
+      STATE.writerText = ''; STATE.writerDone = false; STATE.writerTopic = ''; STATE.generatedArticle = null;
       showToast('Article saved to Inventory as draft');
       setMain(render_writer()); bind_writer();
     } catch (e) { showToast('Save failed: ' + e.message); }
   });
 
   qs('#schedArt')?.addEventListener('click', async () => {
-    const lines    = STATE.writerText.split('\n');
-    const headline = lines.find(l => l.startsWith('HEADLINE:'))?.replace('HEADLINE:','').trim() || STATE.writerTopic || 'New Article';
+    if (!STATE.generatedArticle) {
+      showToast('Nothing to schedule — generate an article first');
+      return;
+    }
     try {
       const tomorrow = new Date(Date.now() + 86400000).toISOString();
       await API.saveArticle({
-        headline, contentType:'learning', accessTier:STATE.writerTier,
-        region:STATE.writerRegion, interest:STATE.writerInterest,
-        status:'scheduled', publishAt:tomorrow,
-        summary:'', bodySections:[{heading:'Article',body:STATE.writerText}], tags:[],
+        ...STATE.generatedArticle,
+        status: 'scheduled',
+        publishAt: tomorrow,
       });
-      STATE.writerText = ''; STATE.writerDone = false; STATE.writerTopic = '';
+      STATE.writerText = ''; STATE.writerDone = false; STATE.writerTopic = ''; STATE.generatedArticle = null;
       showToast('Article scheduled for tomorrow');
       setMain(render_writer()); bind_writer();
     } catch (e) { showToast('Save failed: ' + e.message); }
   });
 
   qs('#regenArt')?.addEventListener('click', () => {
-    STATE.writerText = ''; STATE.writerDone = false;
+    STATE.writerText = ''; STATE.writerDone = false; STATE.generatedArticle = null;
     setMain(render_writer()); bind_writer();
     generateArticle();
   });
@@ -680,6 +676,7 @@ async function generateArticle() {
   STATE.writerGenerating = true;
   STATE.writerDone = false;
   STATE.writerText = '';
+  STATE.generatedArticle = null;
   STATE.writerStatus = 'Sending to AI writer…';
   setMain(render_writer()); bind_writer();
 
@@ -694,8 +691,14 @@ async function generateArticle() {
       status:     'draft',
     });
 
-    const raw = payload.article?.headline
-      ? `HEADLINE: ${payload.article.headline}\n\nSUMMARY: ${payload.article.summary || ''}\n\nBODY:\n${(payload.article.bodySections || []).map(s => s.body).join('\n\n')}\n\nTAKEAWAYS:\n${(payload.article.takeaways || []).map(t => '- ' + t).join('\n')}`
+    // /api/admin/learning/generate returns the saved article directly —
+    // NOT wrapped in { article: ... }. Store the real object so Approve/
+    // Schedule can reuse it as-is instead of reconstructing (lossily) from
+    // display text.
+    STATE.generatedArticle = payload;
+
+    const raw = payload?.headline
+      ? `HEADLINE: ${payload.headline}\n\nSUMMARY: ${payload.summary || ''}\n\nBODY:\n${(payload.bodySections || []).map(s => s.body).join('\n\n')}\n\nTAKEAWAYS:\n${(payload.takeaways || []).map(t => '- ' + t).join('\n')}`
       : JSON.stringify(payload, null, 2);
 
     STATE.writerStatus = 'Streaming…';
