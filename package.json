@@ -7,6 +7,9 @@
     "node": ">=18"
   },
   "description": "Dr MoneyWise commercial starter for market news, learning points, memberships, watchlists, portfolios, and admin analytics.",
+  "dependencies": {
+    "adm-zip": "^0.5.10"
+  },
   "scripts": {
     "start": "node server.js"
   }

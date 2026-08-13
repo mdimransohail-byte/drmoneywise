@@ -23,8 +23,9 @@ import {
   updateMemberPlan,
   validateCoupon,
 } from './src/services/adminService.js';
-import { deleteArticleById, discoverArticleCandidates, generateLearningPointDraft, getAdminArticles, getArticleBySlug, getHomeExperience, saveAdminArticle } from './src/services/articleService.js';
+import { attachGammaInfographic, attachPexelsImage, deleteArticleById, discoverArticleCandidates, generateLearningPointDraft, getAdminArticles, getArticleBySlug, getHomeExperience, saveAdminArticle } from './src/services/articleService.js';
 import { getDeepSeekSurgeStatus } from './src/services/writerService.js';
+import { getMediaDir } from './src/services/visualsService.js';
 import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOutSession, signUpMember } from './src/services/authService.js';
 import { trackEvent } from './src/services/analyticsService.js';
 import { getLiveHeadlines } from './src/services/newsService.js';
@@ -42,6 +43,8 @@ const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.txt': 'text/plain; charset=utf-8',
@@ -274,10 +277,28 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, await saveBusinessSettingsForAdmin(await parseJsonBody(request)));
     }
 
+    if (requestUrl.pathname === '/api/admin/articles/visual/pexels' && request.method === 'POST') {
+      await requireAdminUser(token);
+      const body = await parseJsonBody(request);
+      const article = await attachPexelsImage(body.articleId, body.query);
+      return sendJson(response, 200, { article });
+    }
+
+    if (requestUrl.pathname === '/api/admin/articles/visual/gamma' && request.method === 'POST') {
+      await requireAdminUser(token);
+      const body = await parseJsonBody(request);
+      const article = await attachGammaInfographic(body.articleId);
+      return sendJson(response, 200, { article });
+    }
+
     if (requestUrl.pathname.startsWith('/api/')) {
       return sendJson(response, 404, {
         error: 'API route not found. Restart the website after uploading the latest server files.',
       });
+    }
+
+    if (requestUrl.pathname.startsWith('/media/') && request.method === 'GET') {
+      return serveMediaFile(requestUrl.pathname, response);
     }
 
     if (request.method === 'GET') {
@@ -318,6 +339,35 @@ async function serveStatic(requestPath, response) {
   } catch {
     return sendJson(response, 404, {
       error: 'File not found',
+    });
+  }
+}
+
+// Serves generated images (Pexels-linked metadata doesn't need this — only
+// Gamma's downloaded PNGs, which live on the persistent data/ volume, not
+// in publicDir). Same path-traversal protection as serveStatic above.
+async function serveMediaFile(requestPath, response) {
+  const mediaDir = getMediaDir();
+  const filename = requestPath.replace(/^\/media\//u, '');
+  const normalized = path.normalize(path.join(mediaDir, filename));
+
+  if (!normalized.startsWith(mediaDir)) {
+    return sendJson(response, 403, { error: 'Forbidden' });
+  }
+
+  try {
+    const contents = await readFile(normalized);
+    const extension = path.extname(normalized).toLowerCase();
+    response.writeHead(200, {
+      'Content-Type': MIME_TYPES[extension] || 'application/octet-stream',
+      // Generated images are content-addressed (random filename per
+      // generation) and never change once created, so cache forever.
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    });
+    response.end(contents);
+  } catch {
+    return sendJson(response, 404, {
+      error: 'Image not found',
     });
   }
 }
