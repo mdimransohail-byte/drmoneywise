@@ -44,6 +44,8 @@ export async function getAdminDashboard() {
       deepseekKey: envSettings.DEEPSEEK_API_KEY || '',
       perplexityKey: envSettings.PERPLEXITY_API_KEY || '',
       geminiKey: envSettings.GEMINI_API_KEY || '',
+      pexelsKey: envSettings.PEXELS_API_KEY || '',
+      gammaKey: envSettings.GAMMA_API_KEY || '',
       marketauxKey: envSettings.MARKETAUX_API_KEY || '',
       tiingoKey: envSettings.TIINGO_API_KEY || '',
       finnhubKey: envSettings.FINNHUB_API_KEY || '',
@@ -57,6 +59,8 @@ export async function getAdminDashboard() {
       deepseekConfigured: Boolean(envSettings.DEEPSEEK_API_KEY),
       perplexityConfigured: Boolean(envSettings.PERPLEXITY_API_KEY),
       geminiConfigured: Boolean(envSettings.GEMINI_API_KEY),
+      pexelsConfigured: Boolean(envSettings.PEXELS_API_KEY),
+      gammaConfigured: Boolean(envSettings.GAMMA_API_KEY),
       marketauxConfigured: Boolean(envSettings.MARKETAUX_API_KEY),
       tiingoConfigured: Boolean(envSettings.TIINGO_API_KEY),
       finnhubConfigured: Boolean(envSettings.FINNHUB_API_KEY),
@@ -199,6 +203,12 @@ export async function saveAdminSettings(payload) {
   }
   if (payload.geminiKey !== undefined) {
     envChanges.GEMINI_API_KEY = payload.geminiKey;
+  }
+  if (payload.pexelsKey !== undefined) {
+    envChanges.PEXELS_API_KEY = payload.pexelsKey;
+  }
+  if (payload.gammaKey !== undefined) {
+    envChanges.GAMMA_API_KEY = payload.gammaKey;
   }
   if (payload.deepseekModel !== undefined) {
     envChanges.DEEPSEEK_MODEL = payload.deepseekModel;

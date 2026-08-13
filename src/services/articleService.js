@@ -4,6 +4,7 @@ import { canAccess, DEFAULT_MEMBER_INTERESTS, getInterestLabel, getPlanCatalog a
 import { getNews } from './newsService.js';
 import { readStore, updateStore } from './storeService.js';
 import { createLearningArticleFromTopic, summarizeNewsItem } from './writerService.js';
+import { generateGammaInfographic, searchPexelsImage } from './visualsService.js';
 import { matchesRegion, sortByNewsPriority } from '../utils/filters.js';
 
 export async function publishDueArticles() {
@@ -34,6 +35,7 @@ export async function getHomeExperience({ regions = ['global'], interests = [], 
   const groupedAreas = selectedInterests.map((interestId) => {
     const areaArticles = publishedArticles
       .filter((article) => article.interest === interestId)
+      .filter((article) => article.contentType !== 'learning')
       .slice(0, 3)
       .map((article) => toPublicArticle(article, planConfig));
 
@@ -119,6 +121,59 @@ export async function discoverArticleCandidates({ regions = ['global'], interest
     discovered: discoveredSlugs.length,
     slugs: discoveredSlugs,
   };
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   VISUALS — attach a Pexels photo or a Gamma-generated infographic to an
+   existing article. Both do a targeted, safe partial update — only the
+   image field changes, nothing else about the article is touched.
+   ════════════════════════════════════════════════════════════════════════ */
+export async function attachPexelsImage(articleId, query) {
+  const image = await searchPexelsImage(query);
+  if (!image) {
+    return null;
+  }
+
+  const updated = await updateStore((store) => {
+    const article = store.articles.find((entry) => entry.id === articleId);
+    if (!article) {
+      throw new Error('Article not found.');
+    }
+    article.heroImage = image;
+    article.updatedAt = new Date().toISOString();
+    return store;
+  });
+
+  return updated.articles.find((entry) => entry.id === articleId);
+}
+
+export async function attachGammaInfographic(articleId) {
+  const store = await readStore();
+  const article = store.articles.find((entry) => entry.id === articleId);
+  if (!article) {
+    throw new Error('Article not found.');
+  }
+
+  const imagePath = await generateGammaInfographic({
+    headline: article.headline,
+    infographic: article.infographic,
+  });
+
+  if (!imagePath) {
+    return null;
+  }
+
+  const updated = await updateStore((store) => {
+    const target = store.articles.find((entry) => entry.id === articleId);
+    if (!target) {
+      throw new Error('Article not found.');
+    }
+    target.infographicImageUrl = imagePath;
+    target.updatedAt = new Date().toISOString();
+    return store;
+  });
+
+  return updated.articles.find((entry) => entry.id === articleId);
 }
 
 export async function getArticleBySlug({ slug, plan = 'free' }) {
