@@ -68,6 +68,8 @@ const STATE = {
   writerInterest: 'equities',
   writerText:     '',
   generatedArticle: null,
+  visualBusy: false,
+  visualStatus: '',
   writerDone:     false,
   writerGenerating: false,
   writerStatus:   '',
@@ -123,6 +125,8 @@ const API = {
   deleteArticle:       (id) => API.delete(`/api/admin/articles?id=${encodeURIComponent(id)}`),
   generateArticle:     (b)  => API.post('/api/admin/learning/generate', b),
   getWriterStatus:     ()   => API.get('/api/admin/writer-status'),
+  attachPexels:        (b)  => API.post('/api/admin/articles/visual/pexels', b),
+  attachGamma:         (b)  => API.post('/api/admin/articles/visual/gamma', b),
   listUsers:           ()   => API.get('/api/admin/users'),
   updateUserPlan:      (b)  => API.post('/api/admin/users/plan', b),
   listCoupons:         ()   => API.get('/api/admin/coupons'),
@@ -590,6 +594,11 @@ function render_writer() {
             <button class="btn btn-teal btn-sm"   id="schedArt"  >◷ Schedule</button>
             <button class="btn btn-ghost btn-sm"  id="regenArt"  >↺ Regenerate</button>
           </div>
+          <div class="writer-actions" style="margin-top:8px">
+            <button class="btn btn-ghost btn-sm" id="addPexelsBtn" ${STATE.visualBusy?'disabled':''}>📷 Add Pexels photo</button>
+            <button class="btn btn-ghost btn-sm" id="addGammaBtn" ${STATE.visualBusy?'disabled':''}>🎨 Generate Gamma infographic</button>
+          </div>
+          ${STATE.visualStatus ? `<div class="writer-status">${h(STATE.visualStatus)}</div>` : ''}
         ` : ''}
       </div>
 
@@ -632,7 +641,7 @@ function bind_writer() {
         status: 'draft',
         publishAt: new Date().toISOString(),
       });
-      STATE.writerText = ''; STATE.writerDone = false; STATE.writerTopic = ''; STATE.generatedArticle = null;
+      STATE.writerText = ''; STATE.writerDone = false; STATE.writerTopic = ''; STATE.generatedArticle = null; STATE.visualStatus = '';
       showToast('Article saved to Inventory as draft');
       setMain(render_writer()); bind_writer();
     } catch (e) { showToast('Save failed: ' + e.message); }
@@ -650,7 +659,7 @@ function bind_writer() {
         status: 'scheduled',
         publishAt: tomorrow,
       });
-      STATE.writerText = ''; STATE.writerDone = false; STATE.writerTopic = ''; STATE.generatedArticle = null;
+      STATE.writerText = ''; STATE.writerDone = false; STATE.writerTopic = ''; STATE.generatedArticle = null; STATE.visualStatus = '';
       showToast('Article scheduled for tomorrow');
       setMain(render_writer()); bind_writer();
     } catch (e) { showToast('Save failed: ' + e.message); }
@@ -660,6 +669,52 @@ function bind_writer() {
     STATE.writerText = ''; STATE.writerDone = false; STATE.generatedArticle = null;
     setMain(render_writer()); bind_writer();
     generateArticle();
+  });
+
+  qs('#addPexelsBtn')?.addEventListener('click', async () => {
+    if (!STATE.generatedArticle) return;
+    STATE.visualBusy = true;
+    STATE.visualStatus = 'Searching Pexels…';
+    setMain(render_writer()); bind_writer();
+    try {
+      const res = await API.attachPexels({ articleId: STATE.generatedArticle.id, query: STATE.generatedArticle.headline });
+      if (res.article) {
+        STATE.generatedArticle = res.article;
+        STATE.visualStatus = 'Photo attached ✓';
+        showToast('Pexels photo attached to article');
+      } else {
+        STATE.visualStatus = 'No matching photo found on Pexels';
+      }
+    } catch (e) {
+      STATE.visualStatus = '';
+      showToast('Pexels search failed: ' + e.message);
+    }
+    STATE.visualBusy = false;
+    setMain(render_writer()); bind_writer();
+  });
+
+  qs('#addGammaBtn')?.addEventListener('click', async () => {
+    if (!STATE.generatedArticle) return;
+    const proceed = confirm('Generating a Gamma infographic can take 1-2 minutes and uses your Gamma Pro plan credits. Continue?');
+    if (!proceed) return;
+    STATE.visualBusy = true;
+    STATE.visualStatus = 'Generating infographic with Gamma — this can take up to 2 minutes…';
+    setMain(render_writer()); bind_writer();
+    try {
+      const res = await API.attachGamma({ articleId: STATE.generatedArticle.id });
+      if (res.article) {
+        STATE.generatedArticle = res.article;
+        STATE.visualStatus = 'Infographic attached ✓';
+        showToast('Gamma infographic attached to article');
+      } else {
+        STATE.visualStatus = 'Gamma did not return an infographic';
+      }
+    } catch (e) {
+      STATE.visualStatus = '';
+      showToast('Gamma generation failed: ' + e.message);
+    }
+    STATE.visualBusy = false;
+    setMain(render_writer()); bind_writer();
   });
 }
 
@@ -677,6 +732,8 @@ async function generateArticle() {
   STATE.writerDone = false;
   STATE.writerText = '';
   STATE.generatedArticle = null;
+  STATE.visualStatus = '';
+  STATE.visualBusy = false;
   STATE.writerStatus = 'Sending to AI writer…';
   setMain(render_writer()); bind_writer();
 
@@ -937,6 +994,8 @@ const apiRows = [
     { l: 'DeepSeek',               k: 'deepseekKey',  c: '#7c5cff', hint: 'platform.deepseek.com — cheapest writer, used first in rotation' },
     { l: 'Perplexity',             k: 'perplexityKey', c: '#4f9eff', hint: 'perplexity.ai — Sonar API, includes live web search, manual pick only' },
     { l: 'Gemini',                 k: 'geminiKey',     c: '#4285f4', hint: 'aistudio.google.com — Flash-Lite, cheapest reliable option, manual pick only' },
+    { l: 'Pexels',                 k: 'pexelsKey',     c: '#05a081', hint: 'pexels.com — free stock photos for article images' },
+    { l: 'Gamma',                  k: 'gammaKey',      c: '#ff6b6b', hint: 'gamma.app — requires Pro+ plan, generates infographic images (slow: ~1-2 min per call)' },
     { l: 'Anthropic (Claude)',    k: 'claudeKey',    c: '#a78bfa', hint: 'console.anthropic.com' },
     { l: 'OpenAI (GPT-4)',        k: 'openAiKey',    c: '#2bc48a', hint: 'platform.openai.com'   },
     { l: 'Marketaux',             k: 'marketauxKey', c: '#3cb5c4', hint: 'marketaux.com — free 100 req/day' },
@@ -1073,7 +1132,7 @@ function bind_settings() {
   qs('#saveApiKeysBtn')?.addEventListener('click', async () => {
     const msg = qs('#apiKeysMsg');
     try {
-      const keys = ['deepseekKey','perplexityKey','geminiKey','claudeKey','openAiKey','marketauxKey','tiingoKey','finnhubKey','marketstackKey'];
+      const keys = ['deepseekKey','perplexityKey','geminiKey','pexelsKey','gammaKey','claudeKey','openAiKey','marketauxKey','tiingoKey','finnhubKey','marketstackKey'];
       const body = Object.fromEntries(keys.map(k => [k, qs(`#key_${k}`)?.value?.trim() || '']));
       await API.saveSettings(body);
       if (msg) msg.textContent = '✓ API keys saved';

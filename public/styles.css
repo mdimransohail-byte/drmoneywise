@@ -989,6 +989,36 @@ textarea {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.article-hero-image {
+  margin: 20px 0 0;
+}
+
+.article-hero-image img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 22px;
+  display: block;
+}
+
+.article-hero-image figcaption {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  margin-top: 8px;
+  text-align: right;
+}
+
+.article-hero-image figcaption a {
+  color: var(--text-soft);
+}
+
+.article-infographic-image {
+  width: 100%;
+  border-radius: 16px;
+  display: block;
+  margin-top: 8px;
+}
+
 .article-body h3 {
   font-family: var(--font-display);
   font-size: 1.22rem;

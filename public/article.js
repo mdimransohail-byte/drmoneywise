@@ -115,55 +115,159 @@ function renderArticle() {
       </div>
     </header>
 
-    <div class="article-grid">
-      <div class="stack-form">
-        ${renderArticleSections(article)}
-        ${renderAccessPanel(article)}
-      </div>
+    ${renderHeroImage(article)}
 
-      <aside class="visual-grid">
-        ${renderInfographic(article)}
-        ${renderTakeaways(article)}
-        ${renderJargon(article)}
-        ${renderExample(article)}
-      </aside>
+    <div class="article-body-stack">
+      ${renderBriefRow(article)}
+      ${renderArticleBody(article)}
+      ${renderInfographic(article)}
+      ${article.accessible ? '' : renderLockedPanel(article)}
     </div>
   `;
 }
 
-function renderArticleSections(article) {
-  const sections = article.visibleSections || [];
-  if (!sections.length) {
-    return `
-      <section class="article-block">
-        <h3>No content available yet</h3>
-        <p>This article body has not been filled in yet.</p>
-      </section>
-    `;
+/**
+ * Key takeaways + jargon, side by side, right under the header — a quick
+ * "brief" the reader can scan before committing to the full article below.
+ */
+/**
+ * Pexels photo attached via Admin → AI Writer. Optional — articles without
+ * one just skip straight to the brief row, no broken-image gap.
+ */
+function renderHeroImage(article) {
+  if (!article.heroImage?.url) {
+    return '';
   }
 
-  return sections
-    .map(
-      (section) => `
-        <section class="article-block">
-          <h3>${escapeHtml(section.heading || 'Section')}</h3>
-          <p>${escapeHtml(section.body || '')}</p>
-        </section>
-      `,
-    )
-    .join('');
+  return `
+    <figure class="article-hero-image">
+      <img src="${escapeAttribute(article.heroImage.url)}" alt="${escapeAttribute(article.headline)}" loading="lazy" />
+      ${
+        article.heroImage.photographer
+          ? `<figcaption>Photo by <a href="${escapeAttribute(article.heroImage.photographerUrl || article.heroImage.pexelsPageUrl || '#')}" target="_blank" rel="noopener">${escapeHtml(article.heroImage.photographer)}</a> on Pexels</figcaption>`
+          : ''
+      }
+    </figure>
+  `;
 }
 
-function renderAccessPanel(article) {
-  if (article.accessible) {
+function renderBriefRow(article) {
+  const takeaways = article.visibleTakeaways || [];
+  const jargon = article.visibleJargon || [];
+
+  if (!takeaways.length && !jargon.length) {
+    return '';
+  }
+
+  return `
+    <div class="article-brief-row">
+      ${
+        takeaways.length
+          ? `
+            <section class="article-block">
+              <h3>Key takeaways</h3>
+              <ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+            </section>
+          `
+          : ''
+      }
+      ${
+        jargon.length
+          ? `
+            <section class="article-block">
+              <h3>Jargon made simple</h3>
+              <ul>
+                ${jargon
+                  .map((item) => `<li><strong>${escapeHtml(item.term)}:</strong> ${escapeHtml(item.meaning)}</li>`)
+                  .join('')}
+              </ul>
+            </section>
+          `
+          : ''
+      }
+    </div>
+  `;
+}
+
+/**
+ * The article itself as one continuous block — all bodySections flow
+ * together under their own subheadings, not as separate boxed cards.
+ * "Everyday example" lives here as the third section; it is NOT repeated
+ * elsewhere on the page.
+ */
+function renderArticleBody(article) {
+  const sections = article.visibleSections || [];
+
+  if (!sections.length) {
+    return `
+      <div class="article-body">
+        <h3>No content available yet</h3>
+        <p>This article body has not been filled in yet.</p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="article-body">
+      ${sections
+        .map((section) => {
+          // "Everyday example" reads as a natural continuation of the
+          // article rather than its own labeled section — no heading,
+          // just the paragraph, right after "Why this matters."
+          if (section.heading === 'Everyday example') {
+            return `<p>${escapeHtml(section.body || '')}</p>`;
+          }
+          return `
+            <h3>${escapeHtml(section.heading || 'Section')}</h3>
+            <p>${escapeHtml(section.body || '')}</p>
+          `;
+        })
+        .join('')}
+    </div>
+  `;
+}
+
+function renderInfographic(article) {
+  // A Gamma-generated infographic image takes priority over the plain
+  // data-card version — no point showing both for the same content.
+  if (article.infographicImageUrl) {
     return `
       <section class="article-block">
-        <h3>Why readers keep this saved</h3>
-        <p>${escapeHtml(article.whyItMatters || article.summary)}</p>
+        <h3>${escapeHtml(article.infographic?.title || 'Quick breakdown')}</h3>
+        <img class="article-infographic-image" src="${escapeAttribute(article.infographicImageUrl)}" alt="${escapeAttribute(article.infographic?.title || 'Infographic')}" loading="lazy" />
       </section>
     `;
   }
 
+  const items = article.infographic?.items || [];
+  if (!items.length) {
+    return '';
+  }
+
+  return `
+    <section class="article-block">
+      <h3>${escapeHtml(article.infographic?.title || 'Quick breakdown')}</h3>
+      <div class="visual-grid">
+        ${items
+          .map(
+            (item) => `
+              <div class="visual-item">
+                <strong>${escapeHtml(item.label)}</strong>
+                <div>${escapeHtml(item.value)}</div>
+                <div class="helper-note">${escapeHtml(item.context)}</div>
+              </div>
+            `,
+          )
+          .join('')}
+      </div>
+    </section>
+  `;
+}
+
+/** Only rendered when the article is actually locked — no more duplicate
+ * "why readers keep this saved" panel for articles the reader can already
+ * read in full. */
+function renderLockedPanel(article) {
   const plans = (state.bootstrap?.plans || []).filter((plan) => plan.id !== 'free');
   return `
     <section class="article-block">
@@ -185,61 +289,6 @@ function renderAccessPanel(article) {
           })
           .join('')}
       </div>
-    </section>
-  `;
-}
-
-function renderInfographic(article) {
-  const items = article.infographic?.items || [];
-  return `
-    <section class="article-block">
-      <h3>${escapeHtml(article.infographic?.title || 'Quick breakdown')}</h3>
-      <div class="visual-grid">
-        ${items
-          .map(
-            (item) => `
-              <div class="visual-item">
-                <strong>${escapeHtml(item.label)}</strong>
-                <div>${escapeHtml(item.value)}</div>
-                <div class="helper-note">${escapeHtml(item.context)}</div>
-              </div>
-            `,
-          )
-          .join('')}
-      </div>
-    </section>
-  `;
-}
-
-function renderTakeaways(article) {
-  const takeaways = article.visibleTakeaways || [];
-  return `
-    <section class="article-block">
-      <h3>Key takeaways</h3>
-      <ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-    </section>
-  `;
-}
-
-function renderJargon(article) {
-  const jargon = article.visibleJargon || [];
-  return `
-    <section class="article-block">
-      <h3>Jargon made simple</h3>
-      <ul>
-        ${jargon
-          .map((item) => `<li><strong>${escapeHtml(item.term)}:</strong> ${escapeHtml(item.meaning)}</li>`)
-          .join('')}
-      </ul>
-    </section>
-  `;
-}
-
-function renderExample(article) {
-  return `
-    <section class="article-block">
-      <h3>Everyday example</h3>
-      <p>${escapeHtml(article.everydayExample || 'A simple real-life example will appear here.')}</p>
     </section>
   `;
 }
