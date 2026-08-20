@@ -37,16 +37,9 @@ export async function writeEnvSettings(changes) {
   for (const [key, value] of Object.entries(changes)) {
     process.env[key] = String(value ?? '');
   }
-  // NEWS SOURCES — TESTING CONFIGURATION
-  // TIINGO_API_KEY replaces NEWSAPI_KEY here. Tiingo's free tier is for
-  // individual use only — remove TIINGO_API_KEY (here and from Railway
-  // Variables) before the site goes live. See businessSettings.js for
-  // the matching note on sourceWeights.
-  //
-  // DEEPSEEK PRICING NOTE: DeepSeek V4 bills double during Beijing peak
-  // hours (9:00-12:00 and 14:00-18:00 Beijing Time). Off-peak stays at
-  // standard pricing. Worth keeping in mind if/when article generation
-  // gets scheduled automatically.
+  // NEWS SOURCES — CURRENT CONFIGURATION
+  // Marketaux and NewsData.io are both commercial-use-safe on their free
+  // tiers. Tiingo (individual-use license) and Finnhub have been removed.
   const orderedKeys = [
     'PORT',
     'SITE_NAME',
@@ -58,8 +51,6 @@ export async function writeEnvSettings(changes) {
     'OPENAI_MODEL',
     'CLAUDE_API_KEY',
     'CLAUDE_MODEL',
-    'DEEPSEEK_API_KEY',
-    'DEEPSEEK_MODEL',
     'PERPLEXITY_API_KEY',
     'PERPLEXITY_MODEL',
     'GEMINI_API_KEY',
@@ -67,8 +58,7 @@ export async function writeEnvSettings(changes) {
     'PEXELS_API_KEY',
     'GAMMA_API_KEY',
     'MARKETAUX_API_KEY',
-    'TIINGO_API_KEY',
-    'FINNHUB_API_KEY',
+    'NEWSDATA_API_KEY',
     'MARKETSTACK_API_KEY',
     'MARKETSTACK_MONTHLY_LIMIT',
     'WATCHLIST_API_URL',

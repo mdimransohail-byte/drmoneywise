@@ -84,9 +84,9 @@ export async function getMarketSnapshot({ region = 'global', asset = 'all' } = {
    every visitor — so Marketaux only gets hit a handful of times a day
    regardless of traffic.
 
-   TESTING CONFIGURATION: Marketaux only for now (safe for production use).
-   Add more providers here later using the same fallback pattern as
-   fetchLiveNews() below, once ready to expand beyond Marketaux.
+   PRIMARY SOURCE: NewsData.io — commercial-use-safe free tier, 200
+   credits/day. Falls back to Marketaux if NewsData fails or returns
+   nothing, then to a stale cache, then to demo headlines.
    ════════════════════════════════════════════════════════════════════════ */
 const LIVE_HEADLINES_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const LIVE_HEADLINES_LIMIT = 20;
@@ -99,21 +99,28 @@ export async function getLiveHeadlines() {
     return { ...liveHeadlinesCache.payload, cached: true };
   }
 
-  try {
-    const items = await fetchMarketauxHeadlines({ limit: LIVE_HEADLINES_LIMIT });
-    if (items.length) {
-      const payload = {
-        mode: 'live',
-        provider: 'Marketaux',
-        updatedAt: new Date().toISOString(),
-        items,
-      };
-      liveHeadlinesCache = { payload, fetchedAt: now };
-      return { ...payload, cached: false };
+  const headlineProviders = [
+    { name: 'NewsData.io', fetcher: fetchNewsDataHeadlines },
+    { name: 'Marketaux', fetcher: fetchMarketauxHeadlines },
+  ];
+
+  for (const provider of headlineProviders) {
+    try {
+      const items = await provider.fetcher({ limit: LIVE_HEADLINES_LIMIT });
+      if (items.length) {
+        const payload = {
+          mode: 'live',
+          provider: provider.name,
+          updatedAt: new Date().toISOString(),
+          items,
+        };
+        liveHeadlinesCache = { payload, fetchedAt: now };
+        return { ...payload, cached: false };
+      }
+    } catch (error) {
+      console.error(`[newsService] Live Wire headline fetch failed (${provider.name}):`, error.message);
+      // Try the next provider before falling back to stale cache/demo.
     }
-  } catch (error) {
-    console.error('[newsService] Live Wire headline fetch failed:', error.message);
-    // Fall through to a stale cache (if any) or demo headlines below.
   }
 
   if (liveHeadlinesCache) {
@@ -131,6 +138,46 @@ export async function getLiveHeadlines() {
       publishedAt: item.publishedAt,
     })),
   };
+}
+
+/**
+ * No `country` filter on purpose — the free plan caps country codes at 5
+ * per query, and omitting it gives broader "international" coverage than
+ * any 5-country subset would. `breaking` was dropped from category (not a
+ * valid NewsData category); business/technology/politics/top are.
+ */
+async function fetchNewsDataHeadlines({ limit }) {
+  if (!process.env.NEWSDATA_API_KEY) {
+    return [];
+  }
+
+  const url = new URL('https://newsdata.io/api/1/latest');
+  url.searchParams.set('apikey', process.env.NEWSDATA_API_KEY);
+  url.searchParams.set(
+    'q',
+    'stocks OR business OR crypto OR commodities OR oil OR gold OR USD OR Nasdaq OR S&P OR China OR AI',
+  );
+  url.searchParams.set('category', 'business,technology,politics,top');
+  url.searchParams.set('language', 'en');
+  url.searchParams.set('image', '0');
+  url.searchParams.set('video', '0');
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`NewsData.io (Live Wire) request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
+  }
+
+  const payload = await response.json();
+  return (payload.results || [])
+    .filter((article) => article.title)
+    .slice(0, limit)
+    .map((article) => ({
+      title: article.title,
+      source: article.source_name || 'NewsData.io',
+      url: article.link || '',
+      publishedAt: article.pubDate || new Date().toISOString(),
+    }));
 }
 
 async function fetchMarketauxHeadlines({ limit }) {
@@ -162,19 +209,14 @@ async function fetchMarketauxHeadlines({ limit }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   NEWS SOURCES — TESTING CONFIGURATION
+   NEWS SOURCES — CURRENT CONFIGURATION
    ───────────────────────────────────────────────────────────────────────
    Marketaux: free tier, safe for production, keep long-term.
-   Tiingo: free tier, but its free-tier license is INDIVIDUAL USE ONLY.
-     Fine to use during development/testing — must be removed (or upgraded
-     to a commercial Tiingo plan) before the site goes live. Search this
-     file for "TESTING ONLY" to find every spot that needs to change.
+   NewsData.io: free tier, ALSO commercial-use-safe, more generous quota
+     (200 credits/day). Replaces Tiingo (individual-use license, removed)
+     and Finnhub (removed in favor of NewsData's broader free tier).
    NewsAPI.org: removed entirely — its free Developer plan forbids
-     production use, including internal use. See businessSettings.js and
-     envService.js for matching notes.
-   Finnhub: kept — free tier is production-safe, also supplies some
-     company-specific news alongside its main role as the live stock
-     price source.
+     production use, including internal use.
    ════════════════════════════════════════════════════════════════════════ */
 async function fetchLiveNews({ regions, asset, limit }) {
   const providers = [
@@ -184,14 +226,9 @@ async function fetchLiveNews({ regions, asset, limit }) {
       fetcher: () => fetchMarketauxNews({ regions, asset, limit }),
     },
     {
-      name: 'Tiingo', // TESTING ONLY — remove this provider before launch (individual-use license)
-      enabled: Boolean(process.env.TIINGO_API_KEY),
-      fetcher: () => fetchTiingoNews({ regions, asset, limit }),
-    },
-    {
-      name: 'Finnhub',
-      enabled: Boolean(process.env.FINNHUB_API_KEY),
-      fetcher: () => fetchFinnhubNews({ regions, asset, limit }),
+      name: 'NewsData.io',
+      enabled: Boolean(process.env.NEWSDATA_API_KEY),
+      fetcher: () => fetchNewsDataArticles({ regions, asset, limit }),
     },
   ];
 
@@ -266,76 +303,48 @@ async function fetchMarketauxNews({ regions, asset, limit }) {
   );
 }
 
-// TESTING ONLY — Tiingo's free tier is individual-use only.
-// Remove this function and its provider entry above before going live.
-async function fetchTiingoNews({ regions, asset, limit }) {
+/**
+ * Discovery-side NewsData.io fetcher (distinct from fetchNewsDataHeadlines
+ * above, which is for the Live Wire ticker specifically). No country
+ * filter here either, for the same reason.
+ */
+async function fetchNewsDataArticles({ regions, asset, limit }) {
   const keywords = ASSET_KEYWORDS[asset] || ASSET_KEYWORDS.all;
-  const url = new URL('https://api.tiingo.com/tiingo/news');
+  const url = new URL('https://newsdata.io/api/1/latest');
 
-  url.searchParams.set('token', process.env.TIINGO_API_KEY);
-  url.searchParams.set('tags', keywords.join(','));
-  url.searchParams.set('limit', String(limit));
-  url.searchParams.set('sortBy', 'publishedDate');
+  url.searchParams.set('apikey', process.env.NEWSDATA_API_KEY);
+  url.searchParams.set('q', keywords.join(' OR '));
+  url.searchParams.set('category', 'business,technology,politics,top');
+  url.searchParams.set('language', 'en');
+  url.searchParams.set('image', '0');
+  url.searchParams.set('video', '0');
 
   const response = await fetch(url);
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '');
-    throw new Error(`Tiingo request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
+    throw new Error(`NewsData.io request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
   const payload = await response.json();
+  const results = (payload.results || []).slice(0, limit);
+
   return normalizeLiveArticles(
-    (Array.isArray(payload) ? payload : []).map((article, index) => ({
-      id: article.id ? `tiingo-${article.id}` : `tiingo-${index}`,
+    results.map((article, index) => ({
+      id: article.article_id || `newsdata-${index}`,
       title: article.title,
       summary: article.description || 'Market headline',
       whyItMatters: article.description || 'This headline could affect positioning and sentiment across related assets.',
-      source: article.source || 'Tiingo',
+      source: article.source_name || 'NewsData.io',
       region: regions[0] || 'global',
       asset: resolveAssetFromText(`${article.title} ${article.description || ''}`, asset),
-      topics: article.tags || keywords,
-      tickers: article.tickers || [],
-      sentiment: 'neutral',
-      urgency: index < 2 ? 'high' : 'medium',
-      accessTier: index % 5 === 0 ? 'premium' : index % 2 === 0 ? 'regular' : 'free',
-      publishedAt: article.publishedDate || article.crawlDate || new Date().toISOString(),
-      readTime: '3 min',
-      url: article.url,
-    })),
-  );
-}
-
-async function fetchFinnhubNews({ regions, asset, limit }) {
-  const category = asset === 'crypto' ? 'crypto' : 'general';
-  const url = new URL('https://finnhub.io/api/v1/news');
-
-  url.searchParams.set('category', category);
-  url.searchParams.set('token', process.env.FINNHUB_API_KEY);
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    throw new Error(`Finnhub request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
-  }
-
-  const payload = await response.json();
-  return normalizeLiveArticles(
-    payload.slice(0, limit).map((article, index) => ({
-      id: `finnhub-${article.id || index}`,
-      title: article.headline,
-      summary: article.summary || 'Market headline',
-      whyItMatters: article.summary || 'This headline could affect sector leadership and cross-asset risk appetite.',
-      source: article.source || 'Finnhub',
-      region: regions[0] || 'global',
-      asset: resolveAssetFromText(`${article.headline} ${article.summary || ''}`, asset),
-      topics: ASSET_KEYWORDS[asset] || ASSET_KEYWORDS.all,
+      topics: article.category || keywords,
       tickers: [],
       sentiment: 'neutral',
       urgency: index < 2 ? 'high' : 'medium',
       accessTier: index % 5 === 0 ? 'premium' : index % 2 === 0 ? 'regular' : 'free',
-      publishedAt: article.datetime ? new Date(article.datetime * 1000).toISOString() : new Date().toISOString(),
-      readTime: '2 min',
-      url: article.url,
+      publishedAt: article.pubDate || new Date().toISOString(),
+      readTime: '3 min',
+      url: article.link,
     })),
   );
 }

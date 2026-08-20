@@ -34,21 +34,18 @@ export async function getAdminDashboard() {
       siteName: store.settings.siteName,
       siteDomain: store.settings.siteDomain,
       supportEmail: store.settings.supportEmail,
-      deepseekModel: envSettings.DEEPSEEK_MODEL || '',
       perplexityModel: envSettings.PERPLEXITY_MODEL || '',
       geminiModel: envSettings.GEMINI_MODEL || '',
       openAiModel: envSettings.OPENAI_MODEL || '',
       claudeModel: envSettings.CLAUDE_MODEL || '',
       openAiKey: envSettings.OPENAI_API_KEY || '',
       claudeKey: envSettings.CLAUDE_API_KEY || '',
-      deepseekKey: envSettings.DEEPSEEK_API_KEY || '',
       perplexityKey: envSettings.PERPLEXITY_API_KEY || '',
       geminiKey: envSettings.GEMINI_API_KEY || '',
       pexelsKey: envSettings.PEXELS_API_KEY || '',
       gammaKey: envSettings.GAMMA_API_KEY || '',
       marketauxKey: envSettings.MARKETAUX_API_KEY || '',
-      tiingoKey: envSettings.TIINGO_API_KEY || '',
-      finnhubKey: envSettings.FINNHUB_API_KEY || '',
+      newsdataKey: envSettings.NEWSDATA_API_KEY || '',
       marketstackKey: envSettings.MARKETSTACK_API_KEY || '',
       stripeRegularMonthly: envSettings.STRIPE_REGULAR_MONTHLY_URL || '',
       stripeRegularAnnual: envSettings.STRIPE_REGULAR_ANNUAL_URL || '',
@@ -56,14 +53,12 @@ export async function getAdminDashboard() {
       stripePremiumAnnual: envSettings.STRIPE_PREMIUM_ANNUAL_URL || '',
       openAiConfigured: Boolean(envSettings.OPENAI_API_KEY),
       claudeConfigured: Boolean(envSettings.CLAUDE_API_KEY),
-      deepseekConfigured: Boolean(envSettings.DEEPSEEK_API_KEY),
       perplexityConfigured: Boolean(envSettings.PERPLEXITY_API_KEY),
       geminiConfigured: Boolean(envSettings.GEMINI_API_KEY),
       pexelsConfigured: Boolean(envSettings.PEXELS_API_KEY),
       gammaConfigured: Boolean(envSettings.GAMMA_API_KEY),
       marketauxConfigured: Boolean(envSettings.MARKETAUX_API_KEY),
-      tiingoConfigured: Boolean(envSettings.TIINGO_API_KEY),
-      finnhubConfigured: Boolean(envSettings.FINNHUB_API_KEY),
+      newsdataConfigured: Boolean(envSettings.NEWSDATA_API_KEY),
       marketstackConfigured: Boolean(envSettings.MARKETSTACK_API_KEY),
       stripeRegularMonthlyConfigured: Boolean(envSettings.STRIPE_REGULAR_MONTHLY_URL),
       stripeRegularAnnualConfigured: Boolean(envSettings.STRIPE_REGULAR_ANNUAL_URL),
@@ -195,9 +190,6 @@ export async function saveAdminSettings(payload) {
   if (payload.claudeKey !== undefined) {
     envChanges.CLAUDE_API_KEY = payload.claudeKey;
   }
-  if (payload.deepseekKey !== undefined) {
-    envChanges.DEEPSEEK_API_KEY = payload.deepseekKey;
-  }
   if (payload.perplexityKey !== undefined) {
     envChanges.PERPLEXITY_API_KEY = payload.perplexityKey;
   }
@@ -209,9 +201,6 @@ export async function saveAdminSettings(payload) {
   }
   if (payload.gammaKey !== undefined) {
     envChanges.GAMMA_API_KEY = payload.gammaKey;
-  }
-  if (payload.deepseekModel !== undefined) {
-    envChanges.DEEPSEEK_MODEL = payload.deepseekModel;
   }
   if (payload.perplexityModel !== undefined) {
     envChanges.PERPLEXITY_MODEL = payload.perplexityModel;
@@ -228,11 +217,8 @@ export async function saveAdminSettings(payload) {
   if (payload.marketauxKey !== undefined) {
     envChanges.MARKETAUX_API_KEY = payload.marketauxKey;
   }
-  if (payload.tiingoKey !== undefined) {
-    envChanges.TIINGO_API_KEY = payload.tiingoKey;
-  }
-  if (payload.finnhubKey !== undefined) {
-    envChanges.FINNHUB_API_KEY = payload.finnhubKey;
+  if (payload.newsdataKey !== undefined) {
+    envChanges.NEWSDATA_API_KEY = payload.newsdataKey;
   }
   if (payload.marketstackKey !== undefined) {
     envChanges.MARKETSTACK_API_KEY = payload.marketstackKey;

@@ -4,59 +4,25 @@ import { updateStore } from './storeService.js';
    WRITER ROTATION — fixed order, not admin-configurable
    ───────────────────────────────────────────────────────────────────────
    Every article generation (news rewrite or admin-given topic) cycles
-   through these three providers in this exact order: DeepSeek first
-   (cheapest), then OpenAI, then Claude. store.meta.nextWriterSlot just
-   counts up forever; the modulo picks the provider.
+   through these providers in this order: OpenAI first, then Claude.
+   store.meta.nextWriterSlot just counts up forever; the modulo picks the
+   provider. DeepSeek was removed (repeated price increases) — Perplexity
+   and Gemini remain available as manual picks only, same as before.
 
    Per-provider model overrides come straight from env vars — set
-   DEEPSEEK_MODEL / OPENAI_MODEL / CLAUDE_MODEL in Admin → Settings (or
-   Railway Variables) to pin a specific model. Leave blank to use each
-   provider's default below.
-
-   NOTE ON DEEPSEEK PRICING: DeepSeek V4 (mid-2026) bills double during
-   Beijing peak hours (9:00-12:00 and 14:00-18:00 Beijing Time). If daily
-   article-generation cost matters, consider running the admin "Generate"
-   workflow or any future auto-scheduling outside those windows.
+   OPENAI_MODEL / CLAUDE_MODEL in Admin → Settings (or Railway Variables)
+   to pin a specific model. Leave blank to use each provider's default
+   below.
    ════════════════════════════════════════════════════════════════════════ */
-const WRITER_ROTATION = ['deepseek', 'openai', 'claude']; // automatic rotation order — unchanged
-const ALL_PROVIDERS = ['deepseek', 'openai', 'claude', 'perplexity', 'gemini']; // valid for manual/forced selection
+const WRITER_ROTATION = ['openai', 'claude']; // automatic rotation order
+const ALL_PROVIDERS = ['openai', 'claude', 'perplexity', 'gemini']; // valid for manual/forced selection
 
 const MODEL_ENV_KEYS = {
-  deepseek: 'DEEPSEEK_MODEL',
   openai: 'OPENAI_MODEL',
   claude: 'CLAUDE_MODEL',
   perplexity: 'PERPLEXITY_MODEL',
   gemini: 'GEMINI_MODEL',
 };
-
-const DEEPSEEK_PEAK_WINDOWS = [
-  [9, 12],
-  [14, 18],
-];
-
-/**
- * DeepSeek V4 doubles token pricing during Beijing-time peak windows
- * (9:00-12:00 and 14:00-18:00). This checks the current time against those
- * windows so the admin UI can warn before spending money at 2x the rate.
- * Returns { active, untilLabel } — untilLabel is a human-readable Beijing
- * time string for when the current peak window ends, or null if off-peak.
- */
-export function getDeepSeekSurgeStatus() {
-  const beijingNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
-  const hour = beijingNow.getHours();
-  const minute = beijingNow.getMinutes();
-  const decimalHour = hour + minute / 60;
-
-  const activeWindow = DEEPSEEK_PEAK_WINDOWS.find(([start, end]) => decimalHour >= start && decimalHour < end);
-
-  if (!activeWindow) {
-    return { active: false, untilLabel: null };
-  }
-
-  const [, end] = activeWindow;
-  const untilLabel = `${String(end).padStart(2, '0')}:00 Beijing Time`;
-  return { active: true, untilLabel };
-}
 
 export async function summarizeNewsItem(item) {
   const writer = await getNextWriter();
@@ -274,8 +240,7 @@ async function getNextWriter(forceProvider = '') {
   // Global override for testing phases — set WRITER_FORCE_PROVIDER in
   // Railway Variables (or Admin → Settings, once wired there) to
   // temporarily pin every generation to one provider without touching
-  // code. Unset it to go back to the normal DeepSeek → OpenAI → Claude
-  // rotation.
+  // code. Unset it to go back to the normal OpenAI → Claude rotation.
   const envProvider = ALL_PROVIDERS.includes(process.env.WRITER_FORCE_PROVIDER) ? process.env.WRITER_FORCE_PROVIDER : '';
 
   const forced = explicitProvider || envProvider;
@@ -304,17 +269,12 @@ async function getNextWriter(forceProvider = '') {
 
 async function requestStructuredWriting(writer, prompt) {
   const hasKey = {
-    deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
     openai: Boolean(process.env.OPENAI_API_KEY),
     claude: Boolean(process.env.CLAUDE_API_KEY),
     perplexity: Boolean(process.env.PERPLEXITY_API_KEY),
     gemini: Boolean(process.env.GEMINI_API_KEY),
   };
 
-  if (writer.provider === 'deepseek' && !hasKey.deepseek) {
-    console.warn(`[writerService] Skipping DeepSeek — DEEPSEEK_API_KEY is not set. Falling back to local draft.`);
-    return null;
-  }
   if (writer.provider === 'openai' && !hasKey.openai) {
     console.warn(`[writerService] Skipping OpenAI — OPENAI_API_KEY is not set. Falling back to local draft.`);
     return null;
@@ -333,9 +293,6 @@ async function requestStructuredWriting(writer, prompt) {
   }
 
   try {
-    if (writer.provider === 'deepseek') {
-      return await callDeepSeek(writer.model, prompt);
-    }
     if (writer.provider === 'openai') {
       return await callOpenAI(writer.model, prompt);
     }
@@ -356,35 +313,11 @@ async function requestStructuredWriting(writer, prompt) {
   return null;
 }
 
-// DeepSeek's API is OpenAI-SDK compatible — same chat-completions shape as callOpenAI below.
-async function callDeepSeek(model, prompt) {
-  const response = await fetch(process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: model || 'deepseek-v4-flash',
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    throw new Error(`DeepSeek request failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
-  }
-
-  const payload = await response.json();
-  const text = payload.choices?.[0]?.message?.content || '';
-  return parseJson(text);
-}
-
-// Perplexity's Sonar API is also OpenAI-compatible. Unlike the other three
+// Perplexity's Sonar API is also OpenAI-compatible. Unlike the other
 // providers, Sonar does its own live web search per call — useful for
 // topic-based articles where fresh context helps, but note it bills an
 // extra ~$5 per 1,000 requests on top of token costs (not just tokens like
-// DeepSeek/OpenAI/Claude), so it's not directly cost-comparable per-token.
+// OpenAI/Claude/Gemini), so it's not directly cost-comparable per-token.
 async function callPerplexity(model, prompt) {
   const response = await fetch(process.env.PERPLEXITY_BASE_URL || 'https://api.perplexity.ai/chat/completions', {
     method: 'POST',

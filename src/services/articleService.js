@@ -58,7 +58,6 @@ export async function getHomeExperience({ regions = ['global'], interests = [], 
     featured,
     areas: groupedAreas,
     learningPoints,
-    summaryStrip: buildSummaryStrip(groupedAreas),
   };
 }
 
@@ -361,6 +360,7 @@ function toPublicArticle(article, plan) {
     accessible,
     tags: article.tags || [],
     readingTime: article.readingTime || '4 min read',
+    heroImage: article.heroImage || null,
   };
 }
 
@@ -378,14 +378,6 @@ function toFullArticle(article, plan) {
     visibleTakeaways: accessible ? article.takeaways : article.takeaways.slice(0, 1),
     visibleJargon: accessible ? article.jargonBuster : article.jargonBuster.slice(0, 1),
   };
-}
-
-function buildSummaryStrip(groupedAreas) {
-  return groupedAreas.map((area) => ({
-    label: area.label,
-    articleCount: area.articles.length,
-    highlight: area.articles[0]?.headline || 'Fresh stories loading',
-  }));
 }
 
 export function slugify(input) {
