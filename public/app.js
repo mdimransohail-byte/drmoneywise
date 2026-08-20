@@ -66,7 +66,6 @@ function cacheElements() {
   elements.interestPickerTrigger = document.querySelector('#interestPickerTrigger');
   elements.interestPickerLabel = document.querySelector('#interestPickerLabel');
   elements.refreshHomeButton = document.querySelector('#refreshHomeButton');
-  elements.summaryStrip = document.querySelector('#summaryStrip');
   elements.feedState = document.querySelector('#feedState');
   elements.briefFeatured = document.querySelector('#briefFeatured');
   elements.briefBoard = document.querySelector('#briefBoard');
@@ -199,7 +198,6 @@ async function refreshPortfolioReview() {
 
 function renderAll() {
   renderAccountState();
-  renderSummaryStrip();
   renderBriefBoard();
   renderAreas();
   renderLearningPoints();
@@ -348,26 +346,6 @@ function renderPickerLabels() {
   elements.interestPickerLabel.textContent = interestLabels.length
     ? `Interests: ${interestLabels.join(', ')}`
     : 'Interests';
-}
-
-function renderSummaryStrip() {
-  const summaryStrip = state.home?.summaryStrip || [];
-  if (!summaryStrip.length) {
-    elements.summaryStrip.innerHTML = createEmptyCard('Fresh stories are loading for your selected region and interests.');
-    return;
-  }
-
-  elements.summaryStrip.innerHTML = summaryStrip
-    .map(
-      (item) => `
-        <div class="summary-chip">
-          <strong>${escapeHtml(item.label)}</strong>
-          <div>${item.articleCount} stories</div>
-          <div class="helper-note">${escapeHtml(item.highlight)}</div>
-        </div>
-      `,
-    )
-    .join('');
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -713,6 +691,7 @@ function renderStoryCard(article, options = {}) {
 
   return `
     <article class="${options.className || 'story-card'} ${article.accessible ? '' : 'locked'}">
+      ${article.heroImage?.url ? `<img class="story-card-thumb" src="${escapeAttribute(article.heroImage.url)}" alt="" loading="lazy" />` : ''}
       <div class="feature-story-meta">
         <div class="chip-row">
           <span class="tag">${escapeHtml(accessTag)}</span>

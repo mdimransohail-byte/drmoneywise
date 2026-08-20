@@ -61,7 +61,7 @@ const STATE = {
   newsFilter:     'All',
 
   // AI writer
-  writerModel:    'deepseek',
+  writerModel:    'openai',
   writerTopic:    '',
   writerTier:     'free',
   writerRegion:   'Global',
@@ -124,7 +124,6 @@ const API = {
   discoverCandidates:  (b)  => API.post('/api/admin/articles/discover', b),
   deleteArticle:       (id) => API.delete(`/api/admin/articles?id=${encodeURIComponent(id)}`),
   generateArticle:     (b)  => API.post('/api/admin/learning/generate', b),
-  getWriterStatus:     ()   => API.get('/api/admin/writer-status'),
   attachPexels:        (b)  => API.post('/api/admin/articles/visual/pexels', b),
   attachGamma:         (b)  => API.post('/api/admin/articles/visual/gamma', b),
   listUsers:           ()   => API.get('/api/admin/users'),
@@ -178,24 +177,6 @@ function tagClass(tier) {
 }
 function statusClass(st) {
   return { published: 'tag-published', scheduled: 'tag-scheduled', draft: 'tag-draft', candidate: 'tag-candidate' }[st] || 'tag-draft';
-}
-
-// Shared between the AI Writer page and the Inventory page's Discover button —
-// both spend DeepSeek tokens, so both should show the same warning.
-async function refreshSurgeBanner() {
-  const el = qs('#surgeBanner');
-  if (!el) return;
-  try {
-    const res = await API.getWriterStatus();
-    STATE.deepseekSurge = res.deepseekSurge;
-    el.innerHTML = res.deepseekSurge?.active
-      ? `<div style="background:rgba(124,92,255,.12);border:1px solid rgba(124,92,255,.3);color:#7c5cff;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.78rem">
-          ⚡ DeepSeek surge pricing is on till ${h(res.deepseekSurge.untilLabel)} — API calls cost 2x right now. Consider waiting, or switch writers for now.
-        </div>`
-      : '';
-  } catch {
-    el.innerHTML = '';
-  }
 }
 
 // Simple SVG sparkline — used by analytics charts
@@ -362,7 +343,7 @@ function bind_analytics() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function render_news() {
-  const srcs = ['All', 'Marketaux', 'Tiingo', 'Finnhub', 'Dr MoneyWise'];
+  const srcs = ['All', 'Marketaux', 'NewsData.io', 'Dr MoneyWise'];
   const vis   = STATE.newsFilter === 'All'
     ? STATE.newsItems
     : STATE.newsItems.filter(n => n.src === STATE.newsFilter);
@@ -394,7 +375,7 @@ function render_news() {
       <div class="card" style="text-align:center;padding:40px;color:#9eb3cc">
         <div style="font-size:1.4rem;margin-bottom:10px">◈</div>
         <p>No headlines yet. Click <strong style="color:#3cb5c4">Load draft articles</strong> to pull in your pending content.</p>
-        <p style="margin-top:8px;font-size:.72rem">When you configure Marketaux, Tiingo, or Finnhub keys in Settings, live headlines will appear here automatically.</p>
+        <p style="margin-top:8px;font-size:.72rem">When you configure Marketaux or NewsData.io keys in Settings, live headlines will appear here automatically.</p>
       </div>
     ` : vis.map(n => `
       <div class="news-item ${n.sel?'selected':''}" data-nid="${n.id}">
@@ -538,10 +519,8 @@ function render_writer() {
     <div class="pg-head">
       <div class="eyebrow" style="--ac:#a78bfa">Content creation</div>
       <h1>AI Writer</h1>
-      <p>Give a topic — the server drafts it using DeepSeek, GPT, or Claude via your API keys. Approve, schedule, or regenerate.</p>
+      <p>Give a topic — the server drafts it using GPT, Claude, Perplexity, or Gemini via your API keys. Approve, schedule, or regenerate.</p>
     </div>
-
-    <div id="surgeBanner"></div>
 
     <div class="writer-grid">
 
@@ -550,7 +529,6 @@ function render_writer() {
         <div>
           <div class="field">AI model</div>
           <div class="model-row">
-            <button class="model-btn ${STATE.writerModel==='deepseek'?'deepseek':''}" id="mDeepSeek">⚡ DeepSeek (cheapest)</button>
             <button class="model-btn ${STATE.writerModel==='claude'?'claude':''}" id="mClaude">✦ Claude (Anthropic)</button>
             <button class="model-btn ${STATE.writerModel==='openai'?'openai':''}" id="mOpenAI">⊕ GPT-4 (OpenAI)</button>
             <button class="model-btn ${STATE.writerModel==='perplexity'?'perplexity':''}" id="mPerplexity">◎ Perplexity (live search)</button>
@@ -617,12 +595,10 @@ function render_writer() {
 }
 
 function bind_writer() {
-  qs('#mDeepSeek')?.addEventListener('click', () => { STATE.writerModel = 'deepseek'; setMain(render_writer()); bind_writer(); });
   qs('#mClaude')?.addEventListener('click', () => { STATE.writerModel = 'claude'; setMain(render_writer()); bind_writer(); });
   qs('#mOpenAI')?.addEventListener('click', () => { STATE.writerModel = 'openai'; setMain(render_writer()); bind_writer(); });
   qs('#mPerplexity')?.addEventListener('click', () => { STATE.writerModel = 'perplexity'; setMain(render_writer()); bind_writer(); });
   qs('#mGemini')?.addEventListener('click', () => { STATE.writerModel = 'gemini'; setMain(render_writer()); bind_writer(); });
-  refreshSurgeBanner();
   qs('#topicTA')?.addEventListener('input', e => STATE.writerTopic    = e.target.value);
   qs('#wrTier')?.addEventListener('change', e => STATE.writerTier      = e.target.value);
   qs('#wrRegion')?.addEventListener('change', e => STATE.writerRegion  = e.target.value);
@@ -722,11 +698,6 @@ async function generateArticle() {
   const topic = (qs('#topicTA')?.value || STATE.writerTopic || '').trim();
   if (!topic) { showToast('Enter a topic first'); return; }
 
-  if (STATE.writerModel === 'deepseek' && STATE.deepseekSurge?.active) {
-    const proceed = confirm(`DeepSeek surge pricing is on till ${STATE.deepseekSurge.untilLabel} — this generation will cost 2x. Continue anyway?`);
-    if (!proceed) return;
-  }
-
   STATE.writerTopic = topic;
   STATE.writerGenerating = true;
   STATE.writerDone = false;
@@ -815,8 +786,6 @@ function render_inventory() {
       </p>
     </div>
 
-    <div id="surgeBanner"></div>
-
     <div class="inv-bar">
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${filters.map(f => `<button class="btn btn-sm ${STATE.invFilter===f?'btn-green':'btn-ghost'}" data-invf="${f}">
@@ -885,8 +854,6 @@ async function load_inventory() {
 }
 
 function bind_inventory() {
-  refreshSurgeBanner();
-
   // Filter tabs
   qsa('[data-invf]').forEach(b => b.addEventListener('click', () => {
     STATE.invFilter = b.dataset.invf;
@@ -898,11 +865,6 @@ function bind_inventory() {
 
   // Discover candidates from news APIs
   qs('#discoverBtn')?.addEventListener('click', async (e) => {
-    if (STATE.deepseekSurge?.active) {
-      const proceed = confirm(`DeepSeek surge pricing is on till ${STATE.deepseekSurge.untilLabel} — discovery may use DeepSeek at 2x cost. Continue anyway?`);
-      if (!proceed) return;
-    }
-
     const btn = e.currentTarget;
     btn.disabled = true;
     btn.textContent = 'Searching…';
@@ -991,7 +953,6 @@ function render_settings() {
   const coupons = STATE.coupons;
 
 const apiRows = [
-    { l: 'DeepSeek',               k: 'deepseekKey',  c: '#7c5cff', hint: 'platform.deepseek.com — cheapest writer, used first in rotation' },
     { l: 'Perplexity',             k: 'perplexityKey', c: '#4f9eff', hint: 'perplexity.ai — Sonar API, includes live web search, manual pick only' },
     { l: 'Gemini',                 k: 'geminiKey',     c: '#4285f4', hint: 'aistudio.google.com — Flash-Lite, cheapest reliable option, manual pick only' },
     { l: 'Pexels',                 k: 'pexelsKey',     c: '#05a081', hint: 'pexels.com — free stock photos for article images' },
@@ -999,8 +960,7 @@ const apiRows = [
     { l: 'Anthropic (Claude)',    k: 'claudeKey',    c: '#a78bfa', hint: 'console.anthropic.com' },
     { l: 'OpenAI (GPT-4)',        k: 'openAiKey',    c: '#2bc48a', hint: 'platform.openai.com'   },
     { l: 'Marketaux',             k: 'marketauxKey', c: '#3cb5c4', hint: 'marketaux.com — free 100 req/day' },
-    { l: 'Tiingo (testing only)', k: 'tiingoKey',    c: '#ffcb6b', hint: 'tiingo.com — individual-use license, remove before launch' },
-    { l: 'Finnhub',               k: 'finnhubKey',   c: '#3cb5c4', hint: 'finnhub.io — free tier' },
+    { l: 'NewsData.io',           k: 'newsdataKey',  c: '#e8a33d', hint: 'newsdata.io — free 200 credits/day, commercial use allowed' },
     { l: 'Marketstack',           k: 'marketstackKey', c: '#d4af37', hint: 'marketstack.com — free 100 req/month for testing, upgrade to Basic ($9.99/mo) before launch' },
   ];
 
@@ -1062,7 +1022,7 @@ const apiRows = [
         <div class="card">
           <div class="card-title">Site settings</div>
           <div class="form-gap">
-            ${[['Site name','siteName','Dr MoneyWise'],['Domain','siteDomain','drmoneywise.com'],['Support email','supportEmail','hello@drmoneywise.com'],['DeepSeek model','deepseekModel','deepseek-v4-flash'],['OpenAI model','openAiModel','gpt-4o'],['Claude model','claudeModel','claude-sonnet-4-5'],['Perplexity model','perplexityModel','sonar'],['Gemini model','geminiModel','gemini-3.5-flash-lite']].map(([l,k,ph]) => `
+            ${[['Site name','siteName','Dr MoneyWise'],['Domain','siteDomain','drmoneywise.com'],['Support email','supportEmail','hello@drmoneywise.com'],['OpenAI model','openAiModel','gpt-4o'],['Claude model','claudeModel','claude-sonnet-4-5'],['Perplexity model','perplexityModel','sonar'],['Gemini model','geminiModel','gemini-3.5-flash-lite']].map(([l,k,ph]) => `
               <div>
                 <label class="field" for="site_${k}">${h(l)}</label>
                 <input class="input" type="text" id="site_${k}" placeholder="${h(ph)}" value="${h(s[k]||'')}"/>
@@ -1132,7 +1092,7 @@ function bind_settings() {
   qs('#saveApiKeysBtn')?.addEventListener('click', async () => {
     const msg = qs('#apiKeysMsg');
     try {
-      const keys = ['deepseekKey','perplexityKey','geminiKey','pexelsKey','gammaKey','claudeKey','openAiKey','marketauxKey','tiingoKey','finnhubKey','marketstackKey'];
+      const keys = ['perplexityKey','geminiKey','pexelsKey','gammaKey','claudeKey','openAiKey','marketauxKey','newsdataKey','marketstackKey'];
       const body = Object.fromEntries(keys.map(k => [k, qs(`#key_${k}`)?.value?.trim() || '']));
       await API.saveSettings(body);
       if (msg) msg.textContent = '✓ API keys saved';
@@ -1156,7 +1116,7 @@ function bind_settings() {
   qs('#saveSiteBtn')?.addEventListener('click', async () => {
     const msg = qs('#siteMsg');
     try {
-      const keys = ['siteName','siteDomain','supportEmail','deepseekModel','openAiModel','claudeModel','perplexityModel','geminiModel'];
+      const keys = ['siteName','siteDomain','supportEmail','openAiModel','claudeModel','perplexityModel','geminiModel'];
       const body = Object.fromEntries(keys.map(k => [k, qs(`#site_${k}`)?.value?.trim() || '']));
       await API.saveSettings(body);
       if (msg) msg.textContent = '✓ Settings saved';
