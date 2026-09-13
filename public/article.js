@@ -113,6 +113,8 @@ function renderArticle() {
             : `<a class="button primary" href="/">Sign in to save</a>`
         }
       </div>
+
+      ${renderShareRow(article)}
     </header>
 
     ${renderHeroImage(article)}
@@ -124,6 +126,8 @@ function renderArticle() {
       ${article.accessible ? '' : renderLockedPanel(article)}
     </div>
   `;
+
+  setupShareRow(article);
 }
 
 /**
@@ -291,6 +295,77 @@ function renderLockedPanel(article) {
       </div>
     </section>
   `;
+}
+
+/**
+ * Share row — a native share-sheet button where the browser supports it
+ * (covers WhatsApp, Messages, Mail, etc. in one tap on most phones), with
+ * explicit WhatsApp/Email/X/Facebook/LinkedIn links plus a "Copy link"
+ * button as the fallback everywhere else (desktop browsers mostly).
+ * setupShareRow() below decides which set to actually show once the
+ * markup is in the DOM, since that decision needs `navigator.share`.
+ */
+function renderShareRow(article) {
+  const shareUrl = buildArticleShareUrl(article);
+  const shareText = article.headline;
+
+  return `
+    <div class="article-share-row" id="articleShareRow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px">
+      <span class="subtle-chip">Share</span>
+      <button class="button secondary" type="button" id="nativeShareBtn" style="display:none">Share…</button>
+      <a class="button secondary" id="shareWhatsapp" href="https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="button secondary" id="shareEmail" href="mailto:?subject=${encodeURIComponent(shareText)}&amp;body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}">Email</a>
+      <a class="button secondary" id="shareX" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&amp;url=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener">X</a>
+      <a class="button secondary" id="shareFacebook" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener">Facebook</a>
+      <a class="button secondary" id="shareLinkedIn" href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener">LinkedIn</a>
+      <button class="button secondary" type="button" id="copyLinkBtn">Copy link</button>
+    </div>
+  `;
+}
+
+function buildArticleShareUrl(article) {
+  return `${window.location.origin}/article?slug=${encodeURIComponent(article.slug)}`;
+}
+
+function setupShareRow(article) {
+  const nativeBtn = document.querySelector('#nativeShareBtn');
+  const copyBtn = document.querySelector('#copyLinkBtn');
+  const explicitLinks = ['#shareWhatsapp', '#shareEmail', '#shareX', '#shareFacebook', '#shareLinkedIn']
+    .map((selector) => document.querySelector(selector))
+    .filter(Boolean);
+  const shareUrl = buildArticleShareUrl(article);
+
+  if (navigator.share && nativeBtn) {
+    // Prefer the OS-native share sheet when it's available — it already
+    // covers WhatsApp/Messages/Mail/etc. in one tap, so the explicit
+    // per-platform links underneath would just be redundant.
+    nativeBtn.style.display = '';
+    explicitLinks.forEach((link) => {
+      link.style.display = 'none';
+    });
+    nativeBtn.addEventListener('click', async () => {
+      try {
+        await navigator.share({ title: article.headline, text: article.summary || article.headline, url: shareUrl });
+      } catch {
+        // Sharing was cancelled by the reader — nothing to do.
+      }
+    });
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      const original = copyBtn.textContent;
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        copyBtn.textContent = 'Copied!';
+      } catch {
+        window.prompt('Copy this link:', shareUrl);
+      }
+      window.setTimeout(() => {
+        copyBtn.textContent = original;
+      }, 2000);
+    });
+  }
 }
 
 function renderMessage(message) {

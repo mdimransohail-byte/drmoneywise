@@ -179,7 +179,7 @@ function tagClass(tier) {
   return { free: 'tag-free', regular: 'tag-regular', premium: 'tag-premium' }[tier] || 'tag-free';
 }
 function statusClass(st) {
-  return { published: 'tag-published', scheduled: 'tag-scheduled', draft: 'tag-draft', candidate: 'tag-candidate' }[st] || 'tag-draft';
+  return { published: 'tag-published', scheduled: 'tag-scheduled', draft: 'tag-draft', candidate: 'tag-candidate', archived: 'tag-draft' }[st] || 'tag-draft';
 }
 
 // Simple SVG sparkline — used by analytics charts
@@ -801,7 +801,7 @@ async function generateArticle() {
 // ════════════════════════════════════════════════════════════════════════════
 
 function render_inventory() {
-  const filters = ['all', 'candidate', 'published', 'scheduled', 'draft'];
+  const filters = ['all', 'candidate', 'published', 'scheduled', 'draft', 'archived'];
   const counts  = Object.fromEntries(
     filters.map(f => [f, f === 'all' ? STATE.articles.length : STATE.articles.filter(a => a.status === f).length])
   );
@@ -820,6 +820,7 @@ function render_inventory() {
       <p style="font-size:.72rem;color:#9eb3cc;margin-top:4px">
         ${liveInventory} / ${PRE_LAUNCH_TARGET} toward launch inventory (published + scheduled)
         ${counts.candidate ? ` · ${counts.candidate} candidate${counts.candidate === 1 ? '' : 's'} awaiting review` : ''}
+        ${counts.archived ? ` · ${counts.archived} archived (rotated off the homepage — reschedule any time)` : ''}
       </p>
     </div>
 
@@ -957,6 +958,19 @@ function bind_inventory() {
     const a = STATE.articles.find(x => x.id === b.dataset.isch);
     if (!a) return;
     const dt = a._schedDate ? new Date(a._schedDate).toISOString() : new Date(Date.now() + 86400000).toISOString();
+
+    if (a.contentType === 'learning' && a.source !== 'trending-auto') {
+      const otherAdminScheduled = STATE.articles.filter(x =>
+        x.id !== a.id && x.contentType === 'learning' && x.status === 'scheduled' && x.source !== 'trending-auto'
+      ).length;
+      if (otherAdminScheduled >= 10) {
+        const proceed = confirm(
+          `You already have ${otherAdminScheduled} Learning Points scheduled. Only 10 show on the homepage at a time (rotating every 2 days), and your scheduled topics always take priority over trending auto-picks — so this one will still get a slot, it'll just push a trending pick out sooner. Schedule it anyway?`
+        );
+        if (!proceed) return;
+      }
+    }
+
     try {
       await API.saveArticle({ ...a, status: 'scheduled', publishAt: dt });
       a.status = 'scheduled'; a.publishAt = dt;
