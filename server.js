@@ -23,11 +23,11 @@ import {
   updateMemberPlan,
   validateCoupon,
 } from './src/services/adminService.js';
-import { attachGammaInfographic, attachPexelsImage, deleteArticleById, discoverArticleCandidates, generateLearningPointDraft, getAdminArticles, getArticleBySlug, getHomeExperience, saveAdminArticle } from './src/services/articleService.js';
+import { attachGammaInfographic, attachPexelsImage, autoGenerateTrendingLearningPoint, deleteArticleById, discoverArticleCandidates, generateLearningPointDraft, getAdminArticles, getArticleBySlug, getHomeExperience, saveAdminArticle } from './src/services/articleService.js';
 import { getMediaDir } from './src/services/visualsService.js';
 import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOutSession, signUpMember } from './src/services/authService.js';
 import { trackEvent } from './src/services/analyticsService.js';
-import { getLiveHeadlines } from './src/services/newsService.js';
+import { getInterestHeadlines, getLiveHeadlines } from './src/services/newsService.js';
 import { saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
 import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
@@ -72,6 +72,11 @@ export const server = http.createServer(async (request, response) => {
 
     if (requestUrl.pathname === '/api/site/live-headlines' && request.method === 'GET') {
       return sendJson(response, 200, await getLiveHeadlines());
+    }
+
+    if (requestUrl.pathname === '/api/site/interest-headlines' && request.method === 'GET') {
+      const interestId = requestUrl.searchParams.get('interest') || 'equities';
+      return sendJson(response, 200, await getInterestHeadlines(interestId));
     }
 
     if (requestUrl.pathname === '/api/site/home' && request.method === 'GET') {
@@ -215,6 +220,19 @@ export const server = http.createServer(async (request, response) => {
     if (requestUrl.pathname === '/api/admin/learning/generate' && request.method === 'POST') {
       await requireAdminUser(token);
       return sendJson(response, 200, await generateLearningPointDraft(await parseJsonBody(request)));
+    }
+
+    if (requestUrl.pathname === '/api/admin/learning/generate-trending' && request.method === 'POST') {
+      await requireAdminUser(token);
+      const body = await parseJsonBody(request);
+      const article = await autoGenerateTrendingLearningPoint({
+        accessTier: body.accessTier || 'free',
+        region: body.region || 'global',
+      });
+      if (!article) {
+        return sendJson(response, 200, { ok: false, message: 'No trending topic available right now — try again in a bit.' });
+      }
+      return sendJson(response, 200, { ok: true, article });
     }
 
     if (requestUrl.pathname === '/api/admin/articles/discover' && request.method === 'POST') {
