@@ -74,6 +74,8 @@ const STATE = {
   writerGenerating: false,
   writerStatus:   '',
   writerInterval: null,
+  trendingBusy:   false,
+  trendingStatus: '',
 
   // Inventory
   articles:       [],
@@ -124,6 +126,7 @@ const API = {
   discoverCandidates:  (b)  => API.post('/api/admin/articles/discover', b),
   deleteArticle:       (id) => API.delete(`/api/admin/articles?id=${encodeURIComponent(id)}`),
   generateArticle:     (b)  => API.post('/api/admin/learning/generate', b),
+  generateTrending:    (b)  => API.post('/api/admin/learning/generate-trending', b),
   attachPexels:        (b)  => API.post('/api/admin/articles/visual/pexels', b),
   attachGamma:         (b)  => API.post('/api/admin/articles/visual/gamma', b),
   listUsers:           ()   => API.get('/api/admin/users'),
@@ -522,6 +525,20 @@ function render_writer() {
       <p>Give a topic — the server drafts it using GPT, Claude, Perplexity, or Gemini via your API keys. Approve, schedule, or regenerate.</p>
     </div>
 
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">🔥 Trending auto-pick</div>
+      <p style="font-size:.75rem;color:#9eb3cc;margin-bottom:10px">
+        Finds whatever's trending across your news sources right now (a topic showing up in
+        several separate headlines) and writes a Learning Point about it in simple, jargon-free
+        language — then attaches a Pexels photo automatically. Saved to Inventory as
+        <strong>scheduled</strong> for your review, using the tier and region selected below.
+      </p>
+      <button class="btn btn-teal" id="genTrendingBtn" ${STATE.trendingBusy?'disabled':''}>
+        ${STATE.trendingBusy ? '<span class="cursor">Finding what\'s trending</span>' : '🔥 Auto-generate from trending'}
+      </button>
+      ${STATE.trendingStatus ? `<div class="writer-status">${h(STATE.trendingStatus)}</div>` : ''}
+    </div>
+
     <div class="writer-grid">
 
       <!-- LEFT: Controls -->
@@ -605,6 +622,26 @@ function bind_writer() {
   qs('#wrInterest')?.addEventListener('change', e => STATE.writerInterest = e.target.value);
 
   qs('#genBtn')?.addEventListener('click', generateArticle);
+
+  qs('#genTrendingBtn')?.addEventListener('click', async () => {
+    STATE.trendingBusy = true;
+    STATE.trendingStatus = 'Scanning your news sources for what\u2019s trending…';
+    setMain(render_writer()); bind_writer();
+    try {
+      const res = await API.generateTrending({ accessTier: STATE.writerTier, region: STATE.writerRegion });
+      if (res.ok && res.article) {
+        STATE.trendingStatus = '';
+        showToast(`Scheduled: "${res.article.headline}"`);
+      } else {
+        STATE.trendingStatus = res.message || 'Nothing trending enough right now — try again later.';
+      }
+    } catch (e) {
+      STATE.trendingStatus = '';
+      showToast('Trending auto-generate failed: ' + e.message);
+    }
+    STATE.trendingBusy = false;
+    setMain(render_writer()); bind_writer();
+  });
 
   qs('#approveArt')?.addEventListener('click', async () => {
     if (!STATE.generatedArticle) {
