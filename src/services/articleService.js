@@ -5,6 +5,7 @@ import { getNews } from './newsService.js';
 import { readStore, updateStore } from './storeService.js';
 import { createLearningArticleFromTopic, summarizeNewsItem } from './writerService.js';
 import { generateGammaInfographic, searchPexelsImage } from './visualsService.js';
+import { pickTrendingLearningTopic } from './trendingService.js';
 import { matchesRegion, sortByNewsPriority } from '../utils/filters.js';
 
 export async function publishDueArticles() {
@@ -274,6 +275,118 @@ export async function generateLearningPointDraft(payload) {
     engineSlot: generated.writerSlot,
     heroMood: payload.interest || 'equities',
   });
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   LEARNING POINTS — trending auto-pick
+   ───────────────────────────────────────────────────────────────────────
+   Picks the single highest-scoring trending topic (see trendingService.js)
+   that hasn't been auto-covered recently, writes a Learning Point about it,
+   and auto-attaches a Pexels photo (free, instant — safe to do
+   automatically). Gamma infographics are NOT auto-attached here on
+   purpose: Gamma requires a paid Pro+ plan and bills per call, so
+   attaching one automatically to every trending pick could run up cost
+   without Imran seeing it happen first — that stays a manual button in
+   Admin → AI Writer, same as for any other article.
+
+   Always writes using the SIMPLE/free-tier prompt style (see
+   writerService.buildArticlePrompt), regardless of which accessTier the
+   article is actually published under — Learning Points exist to explain
+   things in plain language with a real-life example; the "professional
+   tone" prompt variant is meant for paid-tier News articles, not this.
+
+   Saved with status 'scheduled' (not published immediately) and
+   source: 'trending-auto', so it shows up in Inventory for review same as
+   anything else, and is distinguishable from admin-picked topics.
+   ════════════════════════════════════════════════════════════════════════ */
+export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', region = 'global' } = {}) {
+  const store = await readStore();
+  const recentTopics = store.articles
+    .filter((article) => article.contentType === 'learning' && article.source === 'trending-auto' && article.trendingTopic)
+    .slice(-15)
+    .map((article) => article.trendingTopic);
+
+  const topic = await pickTrendingLearningTopic({ excludeTopics: recentTopics });
+  if (!topic) {
+    console.warn('[articleService] No trending topic available for the Learning Points auto-pick right now.');
+    return null;
+  }
+
+  const interest = guessInterestFromTopic(topic.label);
+
+  const generated = await createLearningArticleFromTopic(
+    topic.label,
+    'free', // forces the simple-language prompt — see note above
+    region,
+    interest,
+    '',
+  );
+
+  const saved = await saveAdminArticle({
+    headline: generated.headline,
+    contentType: 'learning',
+    accessTier,
+    region,
+    interest,
+    status: 'scheduled',
+    publishAt: new Date().toISOString(),
+    source: 'trending-auto',
+    summary: generated.summary,
+    plainEnglish: generated.plainEnglish,
+    whyItMatters: generated.whyItMatters,
+    everydayExample: generated.everydayExample,
+    takeaways: generated.takeaways,
+    jargonBuster: generated.jargonBuster,
+    infographic: generated.infographic,
+    bodySections: [
+      { heading: 'The simple version', body: generated.plainEnglish },
+      { heading: 'Why this matters', body: generated.whyItMatters },
+      { heading: 'Everyday example', body: generated.everydayExample },
+    ],
+    tags: ['learning', 'trending', interest],
+    readingTime: '5 min read',
+    engineSlot: generated.writerSlot,
+    heroMood: interest,
+  });
+
+  // Record which trending topic this came from, so future auto-picks can
+  // avoid repeating it (see recentTopics above). saveAdminArticle doesn't
+  // know about this field, so it's patched in as a small follow-up write.
+  await updateStore((storeToPatch) => {
+    const target = storeToPatch.articles.find((article) => article.id === saved.id);
+    if (target) {
+      target.trendingTopic = topic.label;
+    }
+    return storeToPatch;
+  });
+
+  try {
+    await attachPexelsImage(saved.id, generated.headline);
+  } catch (error) {
+    console.error('[articleService] Auto Pexels attach failed for trending Learning Point:', error.message);
+  }
+
+  return { ...saved, trendingTopic: topic.label };
+}
+
+function guessInterestFromTopic(label) {
+  const lower = label.toLowerCase();
+  if (lower.includes('bitcoin') || lower.includes('crypto') || lower.includes('ethereum')) {
+    return 'crypto';
+  }
+  if (lower.includes('bond') || lower.includes('yield') || lower.includes('treasury') || lower.includes('rate')) {
+    return 'fixed-income';
+  }
+  if (lower.includes('oil') || lower.includes('gold') || lower.includes('metal')) {
+    return 'commodities';
+  }
+  if (lower.includes('etf') || lower.includes('fund')) {
+    return 'etfs';
+  }
+  if (lower.includes('dollar') || lower.includes('euro') || lower.includes('yen') || lower.includes('currency')) {
+    return 'fx';
+  }
+  return 'equities';
 }
 
 export async function deleteArticleById(id) {

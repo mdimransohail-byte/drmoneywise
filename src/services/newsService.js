@@ -2,6 +2,7 @@ import { ASSET_OPTIONS, REGION_OPTIONS, canAccess, getPlanConfig } from '../conf
 import { fallbackNews } from '../data/marketNews.js';
 import { marketSnapshotCards } from '../data/marketSnapshot.js';
 import { average, matchesAsset, matchesQuery, matchesRegion, sortByNewsPriority, uniqueBy } from '../utils/filters.js';
+import { getTrendingHeadlinesForInterest, getTrendingTopics } from './trendingService.js';
 
 const REGION_COUNTRY_MAP = {
   global: [],
@@ -112,7 +113,12 @@ export async function getLiveHeadlines() {
           mode: 'live',
           provider: provider.name,
           updatedAt: new Date().toISOString(),
-          items,
+          // Trending is the default ranking for Top Story: whatever multiple
+          // separate headlines are currently covering floats to the top,
+          // rather than showing purely in the provider's own order. Items
+          // that aren't part of a trending topic are kept (not dropped),
+          // just ranked lower — this stays "broad", it's just trend-sorted.
+          items: await rankByTrending(items),
         };
         liveHeadlinesCache = { payload, fetchedAt: now };
         return { ...payload, cached: false };
@@ -138,6 +144,70 @@ export async function getLiveHeadlines() {
       publishedAt: item.publishedAt,
     })),
   };
+}
+
+async function rankByTrending(items) {
+  try {
+    const topics = await getTrendingTopics();
+    if (!topics.length) {
+      return items;
+    }
+    return [...items].sort(
+      (a, b) => trendingScoreFor(b, topics) - trendingScoreFor(a, topics)
+        || new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
+  } catch (error) {
+    console.error('[newsService] Trending rank failed, falling back to provider order:', error.message);
+    return items;
+  }
+}
+
+function trendingScoreFor(item, topics) {
+  const lowerTitle = (item.title || '').toLowerCase();
+  const match = topics.find((topic) => lowerTitle.includes(topic.label.toLowerCase()));
+  return match ? match.score : 0;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   EXPLORE BY INTEREST — homepage cards, 5 raw headlines per interest
+   ───────────────────────────────────────────────────────────────────────
+   Same shape as the Live Wire ticker above (raw title/source/url, no AI
+   rewrite, links straight to the original source) but scoped to one
+   interest at a time and ranked by trending score (see trendingService.js)
+   rather than plain recency — trending is the default search here too, so
+   whatever's actually being covered heavily right now for that interest
+   surfaces first. Cached per-interest for 24 hours (or until a fresher
+   trending batch produces new results), matching how often Imran wants
+   this section to turn over.
+   ════════════════════════════════════════════════════════════════════════ */
+const INTEREST_HEADLINES_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const INTEREST_HEADLINES_LIMIT = 5;
+const interestHeadlinesCache = new Map(); // interestId -> { items, fetchedAt }
+
+export async function getInterestHeadlines(interestId) {
+  const now = Date.now();
+  const cached = interestHeadlinesCache.get(interestId);
+
+  if (cached && now - cached.fetchedAt < INTEREST_HEADLINES_CACHE_TTL_MS) {
+    return { interest: interestId, items: cached.items, cached: true };
+  }
+
+  try {
+    const items = await getTrendingHeadlinesForInterest(interestId, { limit: INTEREST_HEADLINES_LIMIT });
+    if (items.length) {
+      interestHeadlinesCache.set(interestId, { items, fetchedAt: now });
+      return { interest: interestId, items, cached: false };
+    }
+    console.warn(`[newsService] No trending headlines found for interest "${interestId}" this refresh.`);
+  } catch (error) {
+    console.error(`[newsService] Explore by Interest lookup failed for "${interestId}":`, error.message);
+  }
+
+  if (cached) {
+    return { interest: interestId, items: cached.items, cached: true, stale: true };
+  }
+
+  return { interest: interestId, items: [], cached: false };
 }
 
 /**
