@@ -8,6 +8,17 @@ import { generateGammaInfographic, searchPexelsImage } from './visualsService.js
 import { pickTrendingLearningTopic } from './trendingService.js';
 import { matchesRegion, sortByNewsPriority } from '../utils/filters.js';
 
+/* ════════════════════════════════════════════════════════════════════════
+   LEARNING POINTS — homepage rotation (5×2 grid, 2-day cycle)
+   ───────────────────────────────────────────────────────────────────────
+   See getActiveLearningPoints() / rotateLearningPointsNow() further below
+   for the actual rotation logic. Kept as named constants here since both
+   the homepage query and the admin "more than 10 scheduled" warning need
+   to agree on the same number.
+   ════════════════════════════════════════════════════════════════════════ */
+const LEARNING_ROTATION_SLOT_COUNT = 10;
+const LEARNING_ROTATION_INTERVAL_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+
 export async function publishDueArticles() {
   await updateStore((store) => {
     const now = Date.now();
@@ -48,10 +59,7 @@ export async function getHomeExperience({ regions = ['global'], interests = [], 
     };
   });
 
-  const learningPoints = publishedArticles
-    .filter((article) => article.contentType === 'learning')
-    .slice(0, 6)
-    .map((article) => toPublicArticle(article, planConfig));
+  const learningPoints = (await getActiveLearningPoints()).map((article) => toPublicArticle(article, planConfig));
 
   const featured = publishedArticles[0] ? toPublicArticle(publishedArticles[0], planConfig) : null;
 
@@ -72,6 +80,117 @@ function getRegionsLabel(regions) {
   }
 
   return regions.map((regionId) => getRegionLabel(regionId)).join(' & ');
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   LEARNING POINTS — homepage rotation
+   ───────────────────────────────────────────────────────────────────────
+   Keeps exactly LEARNING_ROTATION_SLOT_COUNT (10) Learning Points "active"
+   on the homepage at a time, swapping the whole set out for a fresh one
+   every LEARNING_ROTATION_INTERVAL_MS (2 days) — no admin interference
+   required. Two sources compete for the 10 slots:
+
+   - Admin-picked topics (anything with contentType 'learning' whose
+     `source` isn't 'trending-auto') ALWAYS fill first, oldest-scheduled
+     first — "my article takes priority over AI chosen ones."
+   - Whatever slots are left are filled by trending auto-picks (see
+     autoGenerateTrendingLearningPoint() below), newest first. If there
+     aren't enough already sitting in the pool, topUpTrendingLearningPool()
+     generates more on the spot before the rotation runs, so the homepage
+     is never short a card just because nobody clicked a button.
+
+   Articles rotated OUT are set to status 'archived' — not deleted — so
+   they show up in Admin → Inventory and can be rescheduled at any time
+   (the existing "Schedule" button already works on any non-scheduled
+   status, archived included).
+
+   Rotation state lives at store.meta.learningRotation = { lastRotatedAt,
+   activeIds }. Rotation is checked (and only actually run) whenever
+   getHomeExperience() is called — a lazy/on-request pattern, same as
+   publishDueArticles() above, since this plain-Node server has no cron.
+   ════════════════════════════════════════════════════════════════════════ */
+export async function getActiveLearningPoints() {
+  await publishDueArticles();
+
+  const store = await readStore();
+  const rotation = store.meta.learningRotation || { lastRotatedAt: null, activeIds: [] };
+  const rotationDue = !rotation.lastRotatedAt || Date.now() - new Date(rotation.lastRotatedAt).getTime() >= LEARNING_ROTATION_INTERVAL_MS;
+
+  if (rotationDue) {
+    await topUpTrendingLearningPool(store);
+    await rotateLearningPointsNow();
+  }
+
+  const finalStore = await readStore();
+  const activeIds = finalStore.meta.learningRotation?.activeIds || [];
+  return activeIds.map((id) => finalStore.articles.find((article) => article.id === id)).filter(Boolean);
+}
+
+// Generates fresh trending Learning Points (see autoGenerateTrendingLearningPoint
+// below) until the combined admin + auto pool can fill all 10 homepage
+// slots, or until pickTrendingLearningTopic() has nothing left to offer
+// (e.g. no news API keys configured, or every provider failed this cycle).
+async function topUpTrendingLearningPool(store) {
+  const isEligible = (article) =>
+    article.contentType === 'learning' && (article.status === 'scheduled' || article.status === 'published');
+
+  const currentCount = store.articles.filter(isEligible).length;
+  const gap = LEARNING_ROTATION_SLOT_COUNT - currentCount;
+
+  for (let i = 0; i < gap; i += 1) {
+    const generated = await autoGenerateTrendingLearningPoint({ accessTier: 'free', region: 'global' });
+    if (!generated) {
+      console.warn('[articleService] Ran out of trending topics while topping up Learning Points — homepage may show fewer than 10 until more news comes in.');
+      break;
+    }
+  }
+}
+
+async function rotateLearningPointsNow() {
+  await updateStore((store) => {
+    const rotation = store.meta.learningRotation || { lastRotatedAt: null, activeIds: [] };
+    const now = new Date().toISOString();
+
+    // Archive whatever was active before this rotation — moved to
+    // Inventory, never deleted, so any of them (admin-picked or trending)
+    // can be rescheduled later.
+    for (const id of rotation.activeIds || []) {
+      const article = store.articles.find((entry) => entry.id === id);
+      if (article && (article.status === 'published' || article.status === 'scheduled')) {
+        article.status = 'archived';
+        article.updatedAt = now;
+      }
+    }
+
+    const eligible = store.articles.filter(
+      (article) => article.contentType === 'learning' && (article.status === 'scheduled' || article.status === 'published'),
+    );
+
+    const adminPicks = eligible
+      .filter((article) => article.source !== 'trending-auto')
+      .sort((a, b) => new Date(a.publishAt).getTime() - new Date(b.publishAt).getTime());
+    const autoPicks = eligible
+      .filter((article) => article.source === 'trending-auto')
+      .sort((a, b) => new Date(b.publishAt).getTime() - new Date(a.publishAt).getTime());
+
+    const nextActive = [...adminPicks, ...autoPicks].slice(0, LEARNING_ROTATION_SLOT_COUNT);
+
+    // Selected articles must actually be live for readers, not merely
+    // eligible — a 'scheduled' pick that just got chosen publishes now.
+    for (const article of nextActive) {
+      if (article.status === 'scheduled') {
+        article.status = 'published';
+        article.updatedAt = now;
+      }
+    }
+
+    store.meta.learningRotation = {
+      lastRotatedAt: now,
+      activeIds: nextActive.map((article) => article.id),
+    };
+
+    return store;
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════════════
