@@ -63,7 +63,14 @@ export async function getHomeExperience({ regions = ['global'], interests = [], 
     };
   });
 
-  const learningPoints = (await getActiveLearningPoints()).map((article) => toPublicArticle(article, planConfig));
+  let learningPoints = [];
+  try {
+    learningPoints = (await getActiveLearningPoints()).map((article) => toPublicArticle(article, planConfig));
+  } catch (error) {
+    // A failure here must not take down /api/site/home — that endpoint also
+    // feeds other homepage sections, so a 500 blanks more than just this one.
+    console.error('[articleService] Could not build Learning Points for the homepage:', error.message);
+  }
 
   const featured = publishedArticles[0] ? toPublicArticle(publishedArticles[0], planConfig) : null;
 
@@ -117,7 +124,13 @@ export async function getActiveLearningPoints() {
   await publishDueArticles();
 
   const store = await readStore();
-  const rotation = store.meta.learningRotation || { lastRotatedAt: null, activeIds: [] };
+  // Older stores (and any hand-edited platform-store.json) may not have a
+  // meta object at all — reading meta.learningRotation off undefined threw
+  // a TypeError that propagated up through getHomeExperience() and made
+  // /api/site/home return a 500, which blanked BOTH the Learning Points
+  // and the Explore by Interest sections while Top Story (a separate
+  // endpoint) kept working fine.
+  const rotation = store.meta?.learningRotation || { lastRotatedAt: null, activeIds: [] };
   const rotationDue = !rotation.lastRotatedAt || Date.now() - new Date(rotation.lastRotatedAt).getTime() >= LEARNING_ROTATION_INTERVAL_MS;
 
   if (rotationDue) {
@@ -131,7 +144,11 @@ export async function getActiveLearningPoints() {
     // were never saved and no new Learning Points ever appeared. The
     // top-up is now fire-and-forget: it keeps running server-side after
     // the page has already been served.
-    await rotateLearningPointsNow();
+    try {
+      await rotateLearningPointsNow();
+    } catch (error) {
+      console.error('[articleService] Learning Points rotation failed:', error.message);
+    }
 
     void topUpTrendingLearningPool().catch((error) => {
       console.error('[articleService] Background Learning Points top-up failed:', error.message);
@@ -139,8 +156,21 @@ export async function getActiveLearningPoints() {
   }
 
   const finalStore = await readStore();
-  const activeIds = finalStore.meta.learningRotation?.activeIds || [];
-  return activeIds.map((id) => finalStore.articles.find((article) => article.id === id)).filter(Boolean);
+  const activeIds = finalStore.meta?.learningRotation?.activeIds || [];
+  const active = activeIds.map((id) => finalStore.articles.find((article) => article.id === id)).filter(Boolean);
+
+  if (active.length) {
+    return active;
+  }
+
+  // Fallback: if rotation hasn't produced a set yet (fresh store, failed
+  // rotation, or nothing generated so far), show published Learning Points
+  // directly rather than an empty section.
+  console.warn('[articleService] No rotated Learning Points available — falling back to published Learning Points.');
+  return finalStore.articles
+    .filter((article) => article.contentType === 'learning' && article.status === 'published')
+    .sort((a, b) => new Date(b.publishAt).getTime() - new Date(a.publishAt).getTime())
+    .slice(0, LEARNING_ROTATION_SLOT_COUNT);
 }
 
 // Generates fresh trending Learning Points (see autoGenerateTrendingLearningPoint
@@ -188,6 +218,9 @@ async function topUpTrendingLearningPool() {
 
 async function rotateLearningPointsNow() {
   await updateStore((store) => {
+    if (!store.meta) {
+      store.meta = { createdAt: new Date().toISOString() };
+    }
     const rotation = store.meta.learningRotation || { lastRotatedAt: null, activeIds: [] };
     const now = new Date().toISOString();
 
