@@ -25,8 +25,19 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 const TRENDING_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours — refreshes more often than the 24h per-interest cache in newsService.js
-const TRENDING_BATCH_LIMIT = 60; // raw headlines pulled per refresh, across providers combined
+const TRENDING_BATCH_LIMIT = 50;
 
+// Marketaux's free plan rejects (or silently truncates) large `limit`
+// values — 3 is what the free tier actually returns per request, so asking
+// for more just produces an error response instead of headlines.
+const MARKETAUX_FREE_PLAN_LIMIT = 3;
+
+// NOTE: 'retirement' and 'income' are real, user-selectable interests in
+// config.INTEREST_OPTIONS (and 'income' is one of the defaults), but they
+// were missing from this map — and from ASSET_KEYWORDS in newsService.js,
+// which this was modelled on. Any interest missing here fell back to the
+// generic 'all' keywords, which almost never matched, so those cards came
+// up permanently empty. Both are now covered.
 const INTEREST_KEYWORD_MAP = {
   all: ['markets', 'economy', 'stocks', 'business'],
   equities: ['stocks', 'earnings', 'equities', 'shares'],
@@ -35,6 +46,8 @@ const INTEREST_KEYWORD_MAP = {
   commodities: ['oil', 'gold', 'commodities', 'metals', 'energy'],
   fx: ['forex', 'currency', 'dollar', 'euro', 'yen'],
   crypto: ['crypto', 'bitcoin', 'ethereum', 'digital assets'],
+  retirement: ['retirement', 'pension', 'savings', '401k', 'long-term investing'],
+  income: ['dividend', 'income', 'yield', 'payout', 'cashflow'],
 };
 
 const STOPWORDS = new Set([
@@ -73,13 +86,41 @@ export async function getTrendingTopics({ forceRefresh = false } = {}) {
  */
 export async function getTrendingHeadlinesForInterest(interestId, { limit = 5 } = {}) {
   const topics = await getTrendingTopics();
-  const items = trendingCache?.rawItems || [];
   const keywords = INTEREST_KEYWORD_MAP[interestId] || INTEREST_KEYWORD_MAP.all;
 
+  // STEP 1 — ask the news APIs directly for this interest.
+  //
+  // This previously just filtered the shared trending batch by keyword.
+  // That batch is only ~10-20 headlines on the free plans (NewsData caps
+  // free responses at 10, Marketaux at 3), so a narrower interest like
+  // Crypto or Currencies routinely matched ZERO of them and its card came
+  // up empty — the "some cards do not give any news" problem. Querying per
+  // interest gets headlines that actually exist for that interest.
+  let items = [];
+  try {
+    items = await fetchInterestBatch(keywords);
+  } catch (error) {
+    console.error(`[trendingService] Per-interest fetch failed for "${interestId}":`, error.message);
+  }
+
+  // STEP 2 — fall back to keyword-filtering the shared trending batch.
+  if (!items.length) {
+    console.warn(`[trendingService] No direct results for "${interestId}" — falling back to the shared trending batch.`);
+    items = (trendingCache?.rawItems || []).filter((item) => matchesKeywords(item.title, keywords));
+  }
+
+  // STEP 3 — last resort: show the freshest general business headlines
+  // rather than an empty card. Better a slightly-off story than a blank.
+  if (!items.length) {
+    console.warn(`[trendingService] Still nothing for "${interestId}" — showing general headlines instead of an empty card.`);
+    items = trendingCache?.rawItems || [];
+  }
+
   const scored = items
-    .filter((item) => matchesKeywords(item.title, keywords))
     .map((item) => ({ ...item, score: scoreHeadlineAgainstTopics(item, topics) }))
-    .sort((a, b) => b.score - a.score || new Date(b.publishedAt) - new Date(a.publishedAt));
+    .sort(
+      (a, b) => b.score - a.score || new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
 
   return dedupeByTitle(scored)
     .slice(0, limit)
@@ -89,6 +130,29 @@ export async function getTrendingHeadlinesForInterest(interestId, { limit = 5 } 
       url: item.url,
       publishedAt: item.publishedAt,
     }));
+}
+
+// Dedicated per-interest query. Tries NewsData first, then Marketaux —
+// and unlike the shared batch, RETURNS A COMBINED RESULT rather than
+// stopping at the first provider that answers, since free-plan responses
+// are small and one provider alone often can't fill 5 cards.
+async function fetchInterestBatch(keywords) {
+  const query = keywords.join(' OR ');
+  const collected = [];
+
+  try {
+    collected.push(...(await fetchNewsDataBatch({ query })));
+  } catch (error) {
+    console.error('[trendingService] NewsData per-interest fetch failed:', error.message);
+  }
+
+  try {
+    collected.push(...(await fetchMarketauxBatch({ query })));
+  } catch (error) {
+    console.error('[trendingService] Marketaux per-interest fetch failed:', error.message);
+  }
+
+  return dedupeByTitle(collected);
 }
 
 /**
@@ -111,23 +175,34 @@ async function fetchTrendingBatch() {
     { name: 'Marketaux', fetcher: fetchMarketauxBatch },
   ];
 
+  // Combine every provider rather than stopping at the first that
+  // answers. On the free plans a single provider returns only a handful of
+  // headlines, which is too thin a sample for "appears in 2+ separate
+  // headlines" to ever detect a trend.
+  const collected = [];
   for (const provider of providers) {
     try {
       const items = await provider.fetcher();
       if (items.length) {
-        return items;
+        collected.push(...items);
+      } else {
+        console.warn(`[trendingService] ${provider.name} returned 0 items for the trending batch.`);
       }
-      console.warn(`[trendingService] ${provider.name} returned 0 items for the trending batch.`);
     } catch (error) {
       console.error(`[trendingService] ${provider.name} batch fetch failed:`, error.message);
     }
   }
 
-  console.warn('[trendingService] All providers failed or returned nothing — trending list will be empty until the next refresh.');
-  return [];
+  if (!collected.length) {
+    console.warn('[trendingService] All providers failed or returned nothing — trending list will be empty until the next refresh.');
+  } else {
+    console.log(`[trendingService] Trending batch collected ${collected.length} headlines across providers.`);
+  }
+
+  return dedupeByTitle(collected).slice(0, TRENDING_BATCH_LIMIT);
 }
 
-async function fetchNewsDataBatch() {
+async function fetchNewsDataBatch({ query = '' } = {}) {
   if (!process.env.NEWSDATA_API_KEY) {
     console.warn('[trendingService] Skipping NewsData.io — no API key configured.');
     return [];
@@ -137,7 +212,7 @@ async function fetchNewsDataBatch() {
   url.searchParams.set('apikey', process.env.NEWSDATA_API_KEY);
   url.searchParams.set(
     'q',
-    'stocks OR business OR crypto OR commodities OR oil OR gold OR USD OR Nasdaq OR economy OR earnings OR rates',
+    query || 'stocks OR business OR crypto OR commodities OR oil OR gold OR USD OR Nasdaq OR economy OR earnings OR rates',
   );
   url.searchParams.set('category', 'business,technology,politics,top');
   url.searchParams.set('language', 'en');
@@ -162,7 +237,7 @@ async function fetchNewsDataBatch() {
     }));
 }
 
-async function fetchMarketauxBatch() {
+async function fetchMarketauxBatch({ query = '' } = {}) {
   if (!process.env.MARKETAUX_API_KEY) {
     console.warn('[trendingService] Skipping Marketaux — no API key configured.');
     return [];
@@ -171,8 +246,10 @@ async function fetchMarketauxBatch() {
   const url = new URL('https://api.marketaux.com/v1/news/all');
   url.searchParams.set('api_token', process.env.MARKETAUX_API_KEY);
   url.searchParams.set('language', 'en');
-  url.searchParams.set('limit', String(TRENDING_BATCH_LIMIT));
-  url.searchParams.set('search', 'markets OR economy OR stocks OR business OR earnings OR rates');
+  // Was TRENDING_BATCH_LIMIT (50) — above what the free plan accepts, so
+  // the request errored out and Marketaux contributed nothing at all.
+  url.searchParams.set('limit', String(MARKETAUX_FREE_PLAN_LIMIT));
+  url.searchParams.set('search', query || 'markets OR economy OR stocks OR business OR earnings OR rates');
 
   const response = await fetch(url);
   if (!response.ok) {

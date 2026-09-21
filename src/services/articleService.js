@@ -19,6 +19,10 @@ import { matchesRegion, sortByNewsPriority } from '../utils/filters.js';
 const LEARNING_ROTATION_SLOT_COUNT = 10;
 const LEARNING_ROTATION_INTERVAL_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
 
+// Ceiling on how many articles one background top-up will write. Keeps a
+// single cycle from firing a long burst of paid AI calls unattended.
+const MAX_AUTO_GENERATIONS_PER_CYCLE = 4;
+
 export async function publishDueArticles() {
   await updateStore((store) => {
     const now = Date.now();
@@ -117,8 +121,21 @@ export async function getActiveLearningPoints() {
   const rotationDue = !rotation.lastRotatedAt || Date.now() - new Date(rotation.lastRotatedAt).getTime() >= LEARNING_ROTATION_INTERVAL_MS;
 
   if (rotationDue) {
-    await topUpTrendingLearningPool(store);
+    // Rotate FIRST, using whatever is already in the pool, then top up in
+    // the background for the next cycle.
+    //
+    // This used to await topUpTrendingLearningPool() before rotating —
+    // which meant a homepage request could sit through up to 10 sequential
+    // AI writing calls (minutes) before responding. Railway cuts the
+    // request off long before that finishes, so the generated articles
+    // were never saved and no new Learning Points ever appeared. The
+    // top-up is now fire-and-forget: it keeps running server-side after
+    // the page has already been served.
     await rotateLearningPointsNow();
+
+    void topUpTrendingLearningPool().catch((error) => {
+      console.error('[articleService] Background Learning Points top-up failed:', error.message);
+    });
   }
 
   const finalStore = await readStore();
@@ -130,19 +147,42 @@ export async function getActiveLearningPoints() {
 // below) until the combined admin + auto pool can fill all 10 homepage
 // slots, or until pickTrendingLearningTopic() has nothing left to offer
 // (e.g. no news API keys configured, or every provider failed this cycle).
-async function topUpTrendingLearningPool(store) {
-  const isEligible = (article) =>
-    article.contentType === 'learning' && (article.status === 'scheduled' || article.status === 'published');
+let topUpInFlight = false;
 
-  const currentCount = store.articles.filter(isEligible).length;
-  const gap = LEARNING_ROTATION_SLOT_COUNT - currentCount;
+async function topUpTrendingLearningPool() {
+  // Guard against two overlapping homepage requests both kicking off a
+  // top-up and double-writing the store.
+  if (topUpInFlight) {
+    console.log('[articleService] Learning Points top-up already running — skipping this trigger.');
+    return;
+  }
+  topUpInFlight = true;
 
-  for (let i = 0; i < gap; i += 1) {
-    const generated = await autoGenerateTrendingLearningPoint({ accessTier: 'free', region: 'global' });
-    if (!generated) {
-      console.warn('[articleService] Ran out of trending topics while topping up Learning Points — homepage may show fewer than 10 until more news comes in.');
-      break;
+  try {
+    const store = await readStore();
+    const isEligible = (article) =>
+      article.contentType === 'learning' && (article.status === 'scheduled' || article.status === 'published');
+
+    const currentCount = store.articles.filter(isEligible).length;
+    const gap = Math.min(LEARNING_ROTATION_SLOT_COUNT - currentCount, MAX_AUTO_GENERATIONS_PER_CYCLE);
+
+    if (gap <= 0) {
+      console.log(`[articleService] Learning Points pool is full (${currentCount} eligible) — nothing to generate.`);
+      return;
     }
+
+    console.log(`[articleService] Generating ${gap} trending Learning Point(s) in the background…`);
+
+    for (let i = 0; i < gap; i += 1) {
+      const generated = await autoGenerateTrendingLearningPoint({ accessTier: 'free', region: 'global' });
+      if (!generated) {
+        console.warn('[articleService] Ran out of trending topics while topping up Learning Points — homepage may show fewer than 10 until more news comes in.');
+        break;
+      }
+      console.log(`[articleService] Generated trending Learning Point: "${generated.headline}"`);
+    }
+  } finally {
+    topUpInFlight = false;
   }
 }
 
