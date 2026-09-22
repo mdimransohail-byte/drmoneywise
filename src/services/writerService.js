@@ -400,7 +400,12 @@ async function callClaude(model, prompt) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: model || 'claude-3-5-sonnet-latest',
+      // 'claude-3-5-sonnet-latest' was retired October 28, 2025 — Anthropic
+      // now returns a 404 not_found_error for it, which was silently
+      // falling back to the canned local-draft template on every call that
+      // didn't have WRITER_A_MODEL/WRITER_B_MODEL set in .env. Current
+      // default: claude-sonnet-5.
+      model: model || 'claude-sonnet-5',
       max_tokens: 1200,
       messages: [{ role: 'user', content: prompt }],
     }),
