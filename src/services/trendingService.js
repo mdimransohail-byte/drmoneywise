@@ -51,22 +51,36 @@ const INTEREST_KEYWORD_MAP = {
   income: ['dividend', 'income', 'yield', 'payout', 'cashflow'],
 };
 
-// Every interest's keywords, deduped, combined into one shared search query
-// (used for both providers below). This used to be a short generic list
-// ('markets OR economy OR stocks'), which meant narrower interests like
-// Crypto or Currencies were barely represented in the one shared batch —
-// widened to cover every interest. Capped at 15 terms: combining all ~35
-// keywords across every interest produced a very long OR-chain that (going
-// by the empty-result symptom) is likely tripping a query-length or
-// complexity limit on one or both providers' free tiers — a shorter list
-// is safer even though it's less exhaustive.
+// Every interest's keywords, deduped — used only for LOCAL filtering of
+// whatever headlines come back (see getTrendingHeadlinesForInterest below),
+// NOT sent as the actual search query anymore. NewsData.io's free plan
+// hard-caps the `q` parameter at 100 characters (confirmed via its own
+// error: "Query length cannot be greater than 100" / UnsupportedQueryLength)
+// — combining all these keywords into one query blew well past that and
+// the request was being rejected outright. See NEWSDATA_SAFE_QUERY below,
+// which reuses the exact ~97-character query your already-working Top
+// Story fetcher (fetchNewsDataHeadlines in newsService.js) uses — proven
+// to fit the limit for this account.
 const MASTER_SEARCH_TERMS = [
   ...new Set(
     Object.entries(INTEREST_KEYWORD_MAP)
       .filter(([interestId]) => interestId !== 'all')
       .flatMap(([, keywords]) => keywords),
   ),
-].slice(0, 15);
+];
+
+// Exact same query your working fetchNewsDataHeadlines() (Top Story) uses
+// — proven to sit under NewsData's 100-char cap for this account. Reusing
+// it verbatim rather than building a new one, since "built a new query
+// without checking its length against the actual limit" is exactly what
+// broke this the last two times.
+const NEWSDATA_SAFE_QUERY = 'stocks OR business OR crypto OR commodities OR oil OR gold OR USD OR Nasdaq OR S&P OR China OR AI';
+
+// Marketaux didn't error on the longer combined query (only NewsData did),
+// so this stays reasonably broad — but capped at a modest term count as a
+// hedge, since an undocumented limit there wouldn't necessarily surface as
+// a clean error the way NewsData's did.
+const MARKETAUX_SEARCH_TERMS = MASTER_SEARCH_TERMS.slice(0, 10);
 
 const STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'of', 'to', 'in', 'on', 'for', 'with', 'as', 'at', 'by',
@@ -175,7 +189,7 @@ export async function pickTrendingLearningTopic({ excludeTopics = [] } = {}) {
 /* ── internals ──────────────────────────────────────────────────────── */
 
 async function fetchTrendingBatch() {
-  console.log(`[trendingService] Fetching shared trending batch with ${MASTER_SEARCH_TERMS.length} search terms: ${MASTER_SEARCH_TERMS.join(' OR ')}`);
+  console.log(`[trendingService] Fetching shared trending batch — NewsData q: "${NEWSDATA_SAFE_QUERY}" (${NEWSDATA_SAFE_QUERY.length} chars), Marketaux search: "${MARKETAUX_SEARCH_TERMS.join(' OR ')}"`);
 
   const providers = [
     { name: 'NewsData.io', fetcher: fetchNewsDataBatch },
@@ -217,7 +231,7 @@ async function fetchNewsDataBatch() {
 
   const url = new URL('https://newsdata.io/api/1/latest');
   url.searchParams.set('apikey', process.env.NEWSDATA_API_KEY);
-  url.searchParams.set('q', MASTER_SEARCH_TERMS.join(' OR '));
+  url.searchParams.set('q', NEWSDATA_SAFE_QUERY);
   url.searchParams.set('category', 'business,technology,politics,top');
   url.searchParams.set('language', 'en');
   url.searchParams.set('image', '0');
@@ -251,7 +265,7 @@ async function fetchMarketauxBatch() {
   url.searchParams.set('api_token', process.env.MARKETAUX_API_KEY);
   url.searchParams.set('language', 'en');
   url.searchParams.set('limit', String(MARKETAUX_QUERY_LIMIT));
-  url.searchParams.set('search', MASTER_SEARCH_TERMS.join(' OR '));
+  url.searchParams.set('search', MARKETAUX_SEARCH_TERMS.join(' OR '));
 
   const response = await fetch(url);
   if (!response.ok) {
