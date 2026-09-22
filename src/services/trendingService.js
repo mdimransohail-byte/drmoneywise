@@ -55,14 +55,18 @@ const INTEREST_KEYWORD_MAP = {
 // (used for both providers below). This used to be a short generic list
 // ('markets OR economy OR stocks'), which meant narrower interests like
 // Crypto or Currencies were barely represented in the one shared batch —
-// this widens it so the single shared fetch actually covers every interest.
+// widened to cover every interest. Capped at 15 terms: combining all ~35
+// keywords across every interest produced a very long OR-chain that (going
+// by the empty-result symptom) is likely tripping a query-length or
+// complexity limit on one or both providers' free tiers — a shorter list
+// is safer even though it's less exhaustive.
 const MASTER_SEARCH_TERMS = [
   ...new Set(
     Object.entries(INTEREST_KEYWORD_MAP)
       .filter(([interestId]) => interestId !== 'all')
       .flatMap(([, keywords]) => keywords),
   ),
-];
+].slice(0, 15);
 
 const STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'of', 'to', 'in', 'on', 'for', 'with', 'as', 'at', 'by',
@@ -171,6 +175,8 @@ export async function pickTrendingLearningTopic({ excludeTopics = [] } = {}) {
 /* ── internals ──────────────────────────────────────────────────────── */
 
 async function fetchTrendingBatch() {
+  console.log(`[trendingService] Fetching shared trending batch with ${MASTER_SEARCH_TERMS.length} search terms: ${MASTER_SEARCH_TERMS.join(' OR ')}`);
+
   const providers = [
     { name: 'NewsData.io', fetcher: fetchNewsDataBatch },
     { name: 'Marketaux', fetcher: fetchMarketauxBatch },
