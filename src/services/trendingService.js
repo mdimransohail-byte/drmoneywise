@@ -27,10 +27,11 @@
 const TRENDING_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours — refreshes more often than the 24h per-interest cache in newsService.js
 const TRENDING_BATCH_LIMIT = 50;
 
-// Marketaux's free plan rejects (or silently truncates) large `limit`
-// values — 3 is what the free tier actually returns per request, so asking
-// for more just produces an error response instead of headlines.
-const MARKETAUX_FREE_PLAN_LIMIT = 3;
+// Matches the limit your existing, working fetchMarketauxHeadlines() (Live
+// Wire / Top Story) already uses successfully — an earlier version of this
+// file guessed at a lower "free plan" limit with no evidence for it, which
+// was needlessly starving every interest query of results. Removed.
+const MARKETAUX_QUERY_LIMIT = 20;
 
 // NOTE: 'retirement' and 'income' are real, user-selectable interests in
 // config.INTEREST_OPTIONS (and 'income' is one of the defaults), but they
@@ -246,9 +247,9 @@ async function fetchMarketauxBatch({ query = '' } = {}) {
   const url = new URL('https://api.marketaux.com/v1/news/all');
   url.searchParams.set('api_token', process.env.MARKETAUX_API_KEY);
   url.searchParams.set('language', 'en');
-  // Was TRENDING_BATCH_LIMIT (50) — above what the free plan accepts, so
-  // the request errored out and Marketaux contributed nothing at all.
-  url.searchParams.set('limit', String(MARKETAUX_FREE_PLAN_LIMIT));
+  // Was capped at an unverified "free plan limit" of 3 — your own working
+  // fetchMarketauxHeadlines() already proves 20 works fine for this account.
+  url.searchParams.set('limit', String(MARKETAUX_QUERY_LIMIT));
   url.searchParams.set('search', query || 'markets OR economy OR stocks OR business OR earnings OR rates');
 
   const response = await fetch(url);
