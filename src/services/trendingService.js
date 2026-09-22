@@ -51,6 +51,19 @@ const INTEREST_KEYWORD_MAP = {
   income: ['dividend', 'income', 'yield', 'payout', 'cashflow'],
 };
 
+// Every interest's keywords, deduped, combined into one shared search query
+// (used for both providers below). This used to be a short generic list
+// ('markets OR economy OR stocks'), which meant narrower interests like
+// Crypto or Currencies were barely represented in the one shared batch —
+// this widens it so the single shared fetch actually covers every interest.
+const MASTER_SEARCH_TERMS = [
+  ...new Set(
+    Object.entries(INTEREST_KEYWORD_MAP)
+      .filter(([interestId]) => interestId !== 'all')
+      .flatMap(([, keywords]) => keywords),
+  ),
+];
+
 const STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'of', 'to', 'in', 'on', 'for', 'with', 'as', 'at', 'by',
   'is', 'are', 'was', 'were', 'be', 'been', 'has', 'have', 'had', 'it', 'its', 'this', 'that',
@@ -62,6 +75,7 @@ const STOPWORDS = new Set([
 ]);
 
 let trendingCache = null; // { topics, rawItems, fetchedAt }
+let refreshInFlight = null; // Promise, so concurrent callers share one fetch
 
 /**
  * Returns the current ranked list of trending topics:
@@ -75,45 +89,54 @@ export async function getTrendingTopics({ forceRefresh = false } = {}) {
     return trendingCache.topics;
   }
 
-  const rawItems = await fetchTrendingBatch();
-  const topics = scoreTopics(rawItems);
-  trendingCache = { topics, rawItems, fetchedAt: now };
-  return topics;
+  // If a refresh is already running (e.g. several interest cards all asked
+  // at once right as the cache expired), share that one fetch instead of
+  // each caller starting its own — this is exactly the kind of concurrent
+  // burst that was hitting NewsData/Marketaux's rate limits before.
+  if (refreshInFlight) {
+    const cache = await refreshInFlight;
+    return cache.topics;
+  }
+
+  refreshInFlight = (async () => {
+    const rawItems = await fetchTrendingBatch();
+    const topics = scoreTopics(rawItems);
+    const cache = { topics, rawItems, fetchedAt: Date.now() };
+    trendingCache = cache;
+    return cache;
+  })();
+
+  try {
+    const cache = await refreshInFlight;
+    return cache.topics;
+  } finally {
+    refreshInFlight = null;
+  }
 }
 
 /**
  * Raw headlines (title/source/url/publishedAt only) for one interest,
  * ranked by trending score then recency. Powers Explore by Interest.
+ *
+ * Filters the ONE shared trending batch (see fetchTrendingBatch below)
+ * rather than making its own live API call — an earlier version queried
+ * NewsData/Marketaux separately for every interest, and since the
+ * frontend requests all selected interests at once, that meant several
+ * simultaneous calls to the same free-tier APIs, which got rate-limited
+ * and silently came back empty. One shared, broader-worded batch (see
+ * MASTER_SEARCH_TERMS above) avoids that entirely.
  */
 export async function getTrendingHeadlinesForInterest(interestId, { limit = 5 } = {}) {
   const topics = await getTrendingTopics();
   const keywords = INTEREST_KEYWORD_MAP[interestId] || INTEREST_KEYWORD_MAP.all;
 
-  // STEP 1 — ask the news APIs directly for this interest.
-  //
-  // This previously just filtered the shared trending batch by keyword.
-  // That batch is only ~10-20 headlines on the free plans (NewsData caps
-  // free responses at 10, Marketaux at 3), so a narrower interest like
-  // Crypto or Currencies routinely matched ZERO of them and its card came
-  // up empty — the "some cards do not give any news" problem. Querying per
-  // interest gets headlines that actually exist for that interest.
-  let items = [];
-  try {
-    items = await fetchInterestBatch(keywords);
-  } catch (error) {
-    console.error(`[trendingService] Per-interest fetch failed for "${interestId}":`, error.message);
-  }
+  let items = (trendingCache?.rawItems || []).filter((item) => matchesKeywords(item.title, keywords));
 
-  // STEP 2 — fall back to keyword-filtering the shared trending batch.
+  // Last resort: show the freshest general headlines rather than an empty
+  // card. Should be rare now that the shared batch's query explicitly
+  // covers every interest's keywords.
   if (!items.length) {
-    console.warn(`[trendingService] No direct results for "${interestId}" — falling back to the shared trending batch.`);
-    items = (trendingCache?.rawItems || []).filter((item) => matchesKeywords(item.title, keywords));
-  }
-
-  // STEP 3 — last resort: show the freshest general business headlines
-  // rather than an empty card. Better a slightly-off story than a blank.
-  if (!items.length) {
-    console.warn(`[trendingService] Still nothing for "${interestId}" — showing general headlines instead of an empty card.`);
+    console.warn(`[trendingService] No headlines matched "${interestId}" in the shared batch — showing general headlines instead of an empty card.`);
     items = trendingCache?.rawItems || [];
   }
 
@@ -131,29 +154,6 @@ export async function getTrendingHeadlinesForInterest(interestId, { limit = 5 } 
       url: item.url,
       publishedAt: item.publishedAt,
     }));
-}
-
-// Dedicated per-interest query. Tries NewsData first, then Marketaux —
-// and unlike the shared batch, RETURNS A COMBINED RESULT rather than
-// stopping at the first provider that answers, since free-plan responses
-// are small and one provider alone often can't fill 5 cards.
-async function fetchInterestBatch(keywords) {
-  const query = keywords.join(' OR ');
-  const collected = [];
-
-  try {
-    collected.push(...(await fetchNewsDataBatch({ query })));
-  } catch (error) {
-    console.error('[trendingService] NewsData per-interest fetch failed:', error.message);
-  }
-
-  try {
-    collected.push(...(await fetchMarketauxBatch({ query })));
-  } catch (error) {
-    console.error('[trendingService] Marketaux per-interest fetch failed:', error.message);
-  }
-
-  return dedupeByTitle(collected);
 }
 
 /**
@@ -203,7 +203,7 @@ async function fetchTrendingBatch() {
   return dedupeByTitle(collected).slice(0, TRENDING_BATCH_LIMIT);
 }
 
-async function fetchNewsDataBatch({ query = '' } = {}) {
+async function fetchNewsDataBatch() {
   if (!process.env.NEWSDATA_API_KEY) {
     console.warn('[trendingService] Skipping NewsData.io — no API key configured.');
     return [];
@@ -211,10 +211,7 @@ async function fetchNewsDataBatch({ query = '' } = {}) {
 
   const url = new URL('https://newsdata.io/api/1/latest');
   url.searchParams.set('apikey', process.env.NEWSDATA_API_KEY);
-  url.searchParams.set(
-    'q',
-    query || 'stocks OR business OR crypto OR commodities OR oil OR gold OR USD OR Nasdaq OR economy OR earnings OR rates',
-  );
+  url.searchParams.set('q', MASTER_SEARCH_TERMS.join(' OR '));
   url.searchParams.set('category', 'business,technology,politics,top');
   url.searchParams.set('language', 'en');
   url.searchParams.set('image', '0');
@@ -238,7 +235,7 @@ async function fetchNewsDataBatch({ query = '' } = {}) {
     }));
 }
 
-async function fetchMarketauxBatch({ query = '' } = {}) {
+async function fetchMarketauxBatch() {
   if (!process.env.MARKETAUX_API_KEY) {
     console.warn('[trendingService] Skipping Marketaux — no API key configured.');
     return [];
@@ -247,10 +244,8 @@ async function fetchMarketauxBatch({ query = '' } = {}) {
   const url = new URL('https://api.marketaux.com/v1/news/all');
   url.searchParams.set('api_token', process.env.MARKETAUX_API_KEY);
   url.searchParams.set('language', 'en');
-  // Was capped at an unverified "free plan limit" of 3 — your own working
-  // fetchMarketauxHeadlines() already proves 20 works fine for this account.
   url.searchParams.set('limit', String(MARKETAUX_QUERY_LIMIT));
-  url.searchParams.set('search', query || 'markets OR economy OR stocks OR business OR earnings OR rates');
+  url.searchParams.set('search', MASTER_SEARCH_TERMS.join(' OR '));
 
   const response = await fetch(url);
   if (!response.ok) {
