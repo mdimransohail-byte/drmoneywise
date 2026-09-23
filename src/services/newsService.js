@@ -182,32 +182,33 @@ function trendingScoreFor(item, topics) {
    ════════════════════════════════════════════════════════════════════════ */
 const INTEREST_HEADLINES_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const INTEREST_HEADLINES_LIMIT = 5;
-const interestHeadlinesCache = new Map(); // interestId -> { items, fetchedAt }
+const interestHeadlinesCache = new Map(); // "interestId:region1,region2" -> { items, fetchedAt }
 
-export async function getInterestHeadlines(interestId) {
+export async function getInterestHeadlines(interestId, regions = []) {
+  const cacheKey = `${interestId}:${[...regions].sort().join(',') || 'global'}`;
   const now = Date.now();
-  const cached = interestHeadlinesCache.get(interestId);
+  const cached = interestHeadlinesCache.get(cacheKey);
 
   if (cached && now - cached.fetchedAt < INTEREST_HEADLINES_CACHE_TTL_MS) {
-    return { interest: interestId, items: cached.items, cached: true };
+    return { interest: interestId, regions, items: cached.items, cached: true };
   }
 
   try {
-    const items = await getTrendingHeadlinesForInterest(interestId, { limit: INTEREST_HEADLINES_LIMIT });
+    const items = await getTrendingHeadlinesForInterest(interestId, { limit: INTEREST_HEADLINES_LIMIT, regions });
     if (items.length) {
-      interestHeadlinesCache.set(interestId, { items, fetchedAt: now });
-      return { interest: interestId, items, cached: false };
+      interestHeadlinesCache.set(cacheKey, { items, fetchedAt: now });
+      return { interest: interestId, regions, items, cached: false };
     }
-    console.warn(`[newsService] No trending headlines found for interest "${interestId}" this refresh.`);
+    console.warn(`[newsService] No trending headlines found for interest "${interestId}" (regions: ${regions.join(',') || 'global'}) this refresh.`);
   } catch (error) {
     console.error(`[newsService] Explore by Interest lookup failed for "${interestId}":`, error.message);
   }
 
   if (cached) {
-    return { interest: interestId, items: cached.items, cached: true, stale: true };
+    return { interest: interestId, regions, items: cached.items, cached: true, stale: true };
   }
 
-  return { interest: interestId, items: [], cached: false };
+  return { interest: interestId, regions, items: [], cached: false };
 }
 
 /**

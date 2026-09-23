@@ -82,6 +82,23 @@ const NEWSDATA_SAFE_QUERY = 'stocks OR business OR crypto OR commodities OR oil 
 // a clean error the way NewsData's did.
 const MARKETAUX_SEARCH_TERMS = MASTER_SEARCH_TERMS.slice(0, 10);
 
+// Region matching for Explore by Interest — deterministic keyword lists,
+// same approach as INTEREST_KEYWORD_MAP above and deliberately NOT an AI
+// classification call: a model name is one more thing that can quietly
+// break later (see writerService's retired-model bug this session). This
+// is plain string matching against country/region names and financial
+// hubs that plausibly show up in a headline about that region. It won't
+// be perfect — a headline can mention a region without being IN scope for
+// it, or vice versa — but it's free, instant, and has no moving parts to
+// go stale.
+const REGION_KEYWORDS = {
+  'north-america': ['U.S.', 'US ', 'United States', 'America', 'Canada', 'Wall Street', 'Federal Reserve', 'Fed ', 'Nasdaq', 'Dow Jones', 'Washington', 'New York'],
+  europe: ['Europe', 'EU ', 'Eurozone', 'ECB', 'Germany', 'France', 'UK', 'Britain', 'London', 'Brexit', 'Bank of England'],
+  mena: ['Middle East', 'Gulf', 'UAE', 'Dubai', 'Abu Dhabi', 'Saudi', 'Qatar', 'Egypt', 'Iran', 'Oman', 'Kuwait', 'Bahrain'],
+  apac: ['Asia', 'China', 'Japan', 'Korea', 'Hong Kong', 'Singapore', 'Australia', 'Taiwan', 'Beijing', 'Tokyo'],
+  india: ['India', 'Sensex', 'Nifty', 'Mumbai', 'RBI', 'Rupee', 'Delhi'],
+};
+
 const STOPWORDS = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'of', 'to', 'in', 'on', 'for', 'with', 'as', 'at', 'by',
   'is', 'are', 'was', 'were', 'be', 'been', 'has', 'have', 'had', 'it', 'its', 'this', 'that',
@@ -143,19 +160,42 @@ export async function getTrendingTopics({ forceRefresh = false } = {}) {
  * simultaneous calls to the same free-tier APIs, which got rate-limited
  * and silently came back empty. One shared, broader-worded batch (see
  * MASTER_SEARCH_TERMS above) avoids that entirely.
+ *
+ * `regions`: an array of REGION_OPTIONS ids (e.g. ['mena']). Filtering is
+ * matched with REGION_KEYWORDS above. 'global', an empty array, or more
+ * than one region selected all skip region filtering (region-tagging a
+ * headline is inherently fuzzy with this heuristic, and "global" or
+ * "several regions" both mean "don't narrow it").
  */
-export async function getTrendingHeadlinesForInterest(interestId, { limit = 5 } = {}) {
+export async function getTrendingHeadlinesForInterest(interestId, { limit = 5, regions = [] } = {}) {
   const topics = await getTrendingTopics();
   const keywords = INTEREST_KEYWORD_MAP[interestId] || INTEREST_KEYWORD_MAP.all;
+  const pool = trendingCache?.rawItems || [];
 
-  let items = (trendingCache?.rawItems || []).filter((item) => matchesKeywords(item.title, keywords));
+  const singleRegion = regions.length === 1 && regions[0] !== 'global' ? regions[0] : null;
+  const regionKeywords = singleRegion ? REGION_KEYWORDS[singleRegion] : null;
 
-  // Last resort: show the freshest general headlines rather than an empty
-  // card. Should be rare now that the shared batch's query explicitly
-  // covers every interest's keywords.
+  // STEP 1 — interest keywords AND region keywords both matched, if a
+  // specific single region was requested.
+  let items = regionKeywords
+    ? pool.filter((item) => matchesKeywords(item.title, keywords) && matchesKeywords(item.title, regionKeywords))
+    : pool.filter((item) => matchesKeywords(item.title, keywords));
+
+  // STEP 2 — a region-specific match is a hard ask for a single headline
+  // ("mentions both Crypto AND Dubai") — drop the region requirement
+  // rather than show an empty card, since the interest match is the more
+  // important of the two.
+  if (!items.length && regionKeywords) {
+    console.warn(`[trendingService] No "${interestId}" headlines matched region "${singleRegion}" — showing unfiltered "${interestId}" headlines instead of an empty card.`);
+    items = pool.filter((item) => matchesKeywords(item.title, keywords));
+  }
+
+  // STEP 3 — last resort: show the freshest general headlines rather than
+  // an empty card. Should be rare now that the shared batch's query
+  // explicitly covers every interest's keywords.
   if (!items.length) {
     console.warn(`[trendingService] No headlines matched "${interestId}" in the shared batch — showing general headlines instead of an empty card.`);
-    items = trendingCache?.rawItems || [];
+    items = pool;
   }
 
   const scored = items
