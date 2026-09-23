@@ -16,6 +16,7 @@ const state = {
   watchlistQuotes: null,
   portfolioQuotes: null,
   liveHeadlines: null,
+  interestHeadlines: {},
 };
 
 const elements = {};
@@ -35,12 +36,14 @@ async function init() {
   await loadBootstrap();
   await refreshHome();
   await refreshLiveHeadlines();
+  await refreshInterestHeadlines();
   await refreshPortfolioReview();
   renderAll();
   await refreshMarketDataQuotes();
   await trackView('/', 'page_view');
   window.setInterval(() => refreshHome({ quiet: true }), 300000);
   window.setInterval(() => refreshLiveHeadlines(), 6 * 60 * 60 * 1000);
+  window.setInterval(() => refreshInterestHeadlines(), 24 * 60 * 60 * 1000);
 }
 
 function cacheElements() {
@@ -116,6 +119,7 @@ function bindEvents() {
   });
   elements.refreshHomeButton.addEventListener('click', async () => {
     await refreshHome();
+    await refreshInterestHeadlines();
     await refreshPortfolioReview();
   });
   elements.watchlistForm.addEventListener('submit', handleAddWatchlist);
@@ -403,32 +407,76 @@ function renderBriefBoard() {
     .join('');
 }
 
-function renderAreas() {
-  const areas = state.home?.areas || [];
-  if (!areas.length) {
-    elements.feedAreas.innerHTML = createEmptyCard('No area panels are available for this selection.');
-    return;
+/* ════════════════════════════════════════════════════════════════════════
+   EXPLORE BY INTEREST — 5 raw trending headlines per selected interest
+   ───────────────────────────────────────────────────────────────────────
+   Sourced from /api/site/interest-headlines?interest=X (server-side
+   trending ranking + 24h cache, see newsService.getInterestHeadlines()).
+   Same "raw headline, links straight to source" shape as the Top Story
+   board above, just scoped to one interest at a time — trending is the
+   default search here too, so whatever's actually being covered heavily
+   for that interest surfaces first.
+   ════════════════════════════════════════════════════════════════════════ */
+async function refreshInterestHeadlines() {
+  const interests = state.selectedInterests.length
+    ? state.selectedInterests
+    : (state.bootstrap?.interests || []).slice(0, 3).map((interest) => interest.id);
+
+  const regionsParam = encodeURIComponent(state.selectedRegions.join(','));
+
+  try {
+    const results = await Promise.all(
+      interests.map((interestId) =>
+        apiGet(`/api/site/interest-headlines?interest=${encodeURIComponent(interestId)}&regions=${regionsParam}`, { allowGuest: true }).catch((error) => {
+          console.error(error);
+          return { interest: interestId, items: [] };
+        }),
+      ),
+    );
+
+    state.interestHeadlines = Object.fromEntries(results.map((result) => [result.interest, result]));
+  } catch (error) {
+    console.error(error);
   }
 
-  elements.feedAreas.innerHTML = areas
-    .map(
-      (area) => `
-        <section class="area-panel">
-          <h3>${escapeHtml(area.label)}</h3>
-          <p>${escapeHtml(area.summary)}</p>
+  renderAreas();
+}
+
+function renderAreas() {
+  const interests = state.selectedInterests.length
+    ? state.selectedInterests
+    : (state.bootstrap?.interests || []).slice(0, 3).map((interest) => interest.id);
+
+  elements.feedAreas.innerHTML = interests
+    .map((interestId) => {
+      const label = getLookupLabel(state.bootstrap.interests, interestId);
+      const items = state.interestHeadlines[interestId]?.items || [];
+
+      const body = items.length
+        ? `
           <div class="stack-list">
-            ${(area.articles || [])
-              .map((article) =>
-                renderStoryCard(article, {
-                  description: article.preview || article.summary,
-                  actionLabel: article.accessible ? 'Read' : 'Preview',
-                }),
+            ${items
+              .map(
+                (item) => `
+                  <a class="news-list-item" href="${escapeAttribute(item.url || '#')}" target="_blank" rel="noopener">
+                    <p class="news-list-headline">${escapeHtml(item.title)}</p>
+                    <p class="news-list-meta">${escapeHtml(item.source || 'Market feed')} &middot; ${formatDate(item.publishedAt)}</p>
+                  </a>
+                `,
               )
               .join('')}
           </div>
+        `
+        : createEmptyCard('No trending headlines for this interest yet — check back soon.');
+
+      return `
+        <section class="area-panel">
+          <h3>${escapeHtml(label)}</h3>
+          <p>Trending in ${escapeHtml(label)} right now.</p>
+          ${body}
         </section>
-      `,
-    )
+      `;
+    })
     .join('');
 }
 
@@ -775,6 +823,7 @@ async function handleSignOut() {
   setAuthMessage('You are signed out.');
   await loadBootstrap();
   await refreshHome();
+  await refreshInterestHeadlines();
   await refreshPortfolioReview();
   renderAll();
   await refreshMarketDataQuotes();
@@ -796,6 +845,7 @@ async function finishAuth(session, message) {
   renderRegionChoices();
   renderInterestChoices();
   await refreshHome();
+  await refreshInterestHeadlines();
   await refreshPortfolioReview();
   renderAll();
   await refreshMarketDataQuotes();
@@ -822,6 +872,7 @@ async function handleRegionToggle(event) {
   persistLocalState();
   await savePreferencesIfSignedIn();
   await refreshHome();
+  await refreshInterestHeadlines();
 }
 
 async function handleInterestToggle(event) {
@@ -845,6 +896,7 @@ async function handleInterestToggle(event) {
   persistLocalState();
   await savePreferencesIfSignedIn();
   await refreshHome();
+  await refreshInterestHeadlines();
 }
 
 async function handleAddWatchlist(event) {
