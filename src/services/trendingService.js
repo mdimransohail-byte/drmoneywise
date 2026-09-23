@@ -306,6 +306,15 @@ async function fetchMarketauxBatch() {
   url.searchParams.set('language', 'en');
   url.searchParams.set('limit', String(MARKETAUX_QUERY_LIMIT));
   url.searchParams.set('search', MARKETAUX_SEARCH_TERMS.join(' OR '));
+  // Confirmed via Marketaux's own API spec: using `search` switches their
+  // DEFAULT sort from published_at (recency) to relevance_score — so an
+  // old article that matches the search terms well can rank above today's
+  // news entirely. That's what let 2023 press-release-wire articles
+  // (globenewswire.com) show up ahead of current headlines. Forcing both
+  // an explicit sort and a recency cutoff closes that regardless of which
+  // one Marketaux actually honors for this plan.
+  url.searchParams.set('sort', 'published_on');
+  url.searchParams.set('published_after', recentCutoffTimestamp());
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -424,4 +433,13 @@ function dedupeByTitle(items) {
     seen.add(item.title);
     return true;
   });
+}
+
+// Marketaux's own docs note dates are UTC; publishedBefore/publishedAfter
+// rejects malformed values ("The published_before parameter(s) are
+// incorrectly formatted"), so this sticks to a plain
+// YYYY-MM-DDTHH:MM:SS format (no milliseconds, no trailing Z) — the
+// commonly accepted shape for this kind of param.
+function recentCutoffTimestamp(hoursBack = 48) {
+  return new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString().slice(0, 19);
 }
