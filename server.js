@@ -76,7 +76,8 @@ export const server = http.createServer(async (request, response) => {
 
     if (requestUrl.pathname === '/api/site/interest-headlines' && request.method === 'GET') {
       const interestId = requestUrl.searchParams.get('interest') || 'equities';
-      return sendJson(response, 200, await getInterestHeadlines(interestId));
+      const regions = parseCsv(requestUrl.searchParams.get('regions'));
+      return sendJson(response, 200, await getInterestHeadlines(interestId, regions));
     }
 
     if (requestUrl.pathname === '/api/site/home' && request.method === 'GET') {
