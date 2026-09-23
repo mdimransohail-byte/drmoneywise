@@ -25,7 +25,11 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 const TRENDING_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours — refreshes more often than the 24h per-interest cache in newsService.js
-const TRENDING_BATCH_LIMIT = 50;
+// Raised from 50 — now pulling from 2 NewsData queries + 2 Marketaux
+// queries per refresh cycle instead of 1 each, so the combined pool before
+// de-dupe can run larger; this caps the final de-duped pool, not any
+// single request.
+const TRENDING_BATCH_LIMIT = 80;
 
 // Matches the limit your existing, working fetchMarketauxHeadlines() (Live
 // Wire / Top Story) already uses successfully — an earlier version of this
@@ -76,11 +80,22 @@ const MASTER_SEARCH_TERMS = [
 // broke this the last two times.
 const NEWSDATA_SAFE_QUERY = 'stocks OR business OR crypto OR commodities OR oil OR gold OR USD OR Nasdaq OR S&P OR China OR AI';
 
-// Marketaux didn't error on the longer combined query (only NewsData did),
-// so this stays reasonably broad — but capped at a modest term count as a
-// hedge, since an undocumented limit there wouldn't necessarily surface as
-// a clean error the way NewsData's did.
-const MARKETAUX_SEARCH_TERMS = MASTER_SEARCH_TERMS.slice(0, 10);
+// Second NewsData pass, covering the keyword clusters the first query
+// under-represents (bonds/yields, currencies, crypto specifics,
+// retirement/income) — a shared batch built from ONE query was too thin
+// for narrower interests to ever find a real match, so most of them fell
+// back to the same generic pool and looked identical to each other. Also
+// measured at 97 chars — under the same 100-char NewsData cap.
+const NEWSDATA_SAFE_QUERY_2 = 'bonds OR treasury OR yields OR dividend OR forex OR euro OR yen OR bitcoin OR ethereum OR pension';
+
+// Marketaux didn't error on a 15-term combined query (only NewsData did),
+// so these stay reasonably broad — split into two passes covering
+// different halves of MASTER_SEARCH_TERMS, both run once per 3h refresh
+// (not per request), so this doesn't reintroduce the earlier rate-limit
+// problem — it's the same "one shared fetch" pattern, just two calls to
+// Marketaux instead of one.
+const MARKETAUX_SEARCH_TERMS = MASTER_SEARCH_TERMS.slice(0, 12);
+const MARKETAUX_SEARCH_TERMS_2 = MASTER_SEARCH_TERMS.slice(12, 24);
 
 // Region matching for Explore by Interest — deterministic keyword lists,
 // same approach as INTEREST_KEYWORD_MAP above and deliberately NOT an AI
@@ -229,23 +244,34 @@ export async function pickTrendingLearningTopic({ excludeTopics = [] } = {}) {
 /* ── internals ──────────────────────────────────────────────────────── */
 
 async function fetchTrendingBatch() {
-  console.log(`[trendingService] Fetching shared trending batch — NewsData q: "${NEWSDATA_SAFE_QUERY}" (${NEWSDATA_SAFE_QUERY.length} chars), Marketaux search: "${MARKETAUX_SEARCH_TERMS.join(' OR ')}"`);
+  console.log(`[trendingService] Fetching widened trending batch — 2 NewsData queries + 2 Marketaux queries.`);
 
+  // Two queries per provider instead of one — covers more of the interest
+  // keyword space (crypto/fx/bonds/income were thin with just the general
+  // query, which is why unrelated interest cards kept showing the same
+  // fallback headlines). Still just ONE fetch cycle every 3 hours, run
+  // sequentially here (not concurrently) — this does NOT reintroduce the
+  // earlier per-interest-request rate-limit problem, since it's driven by
+  // the shared cache refresh, not by how many interests a page requests.
   const providers = [
-    { name: 'NewsData.io', fetcher: fetchNewsDataBatch },
-    { name: 'Marketaux', fetcher: fetchMarketauxBatch },
+    { name: 'NewsData.io (query 1)', fetcher: () => fetchNewsDataBatch(NEWSDATA_SAFE_QUERY) },
+    { name: 'NewsData.io (query 2)', fetcher: () => fetchNewsDataBatch(NEWSDATA_SAFE_QUERY_2) },
+    { name: 'Marketaux (query 1)', fetcher: () => fetchMarketauxBatch(MARKETAUX_SEARCH_TERMS) },
+    { name: 'Marketaux (query 2)', fetcher: () => fetchMarketauxBatch(MARKETAUX_SEARCH_TERMS_2) },
   ];
 
-  // Combine every provider rather than stopping at the first that
-  // answers. On the free plans a single provider returns only a handful of
+  // Combine every provider/query rather than stopping at the first that
+  // answers. On the free plans a single call returns only a handful of
   // headlines, which is too thin a sample for "appears in 2+ separate
-  // headlines" to ever detect a trend.
+  // headlines" to ever detect a trend, and too thin for narrower interests
+  // to find a real keyword match.
   const collected = [];
   for (const provider of providers) {
     try {
       const items = await provider.fetcher();
       if (items.length) {
         collected.push(...items);
+        console.log(`[trendingService] ${provider.name} returned ${items.length} headlines.`);
       } else {
         console.warn(`[trendingService] ${provider.name} returned 0 items for the trending batch.`);
       }
@@ -257,13 +283,13 @@ async function fetchTrendingBatch() {
   if (!collected.length) {
     console.warn('[trendingService] All providers failed or returned nothing — trending list will be empty until the next refresh.');
   } else {
-    console.log(`[trendingService] Trending batch collected ${collected.length} headlines across providers.`);
+    console.log(`[trendingService] Trending batch collected ${collected.length} headlines across providers (before de-dupe).`);
   }
 
   return dedupeByTitle(collected).slice(0, TRENDING_BATCH_LIMIT);
 }
 
-async function fetchNewsDataBatch() {
+async function fetchNewsDataBatch(query) {
   if (!process.env.NEWSDATA_API_KEY) {
     console.warn('[trendingService] Skipping NewsData.io — no API key configured.');
     return [];
@@ -271,7 +297,7 @@ async function fetchNewsDataBatch() {
 
   const url = new URL('https://newsdata.io/api/1/latest');
   url.searchParams.set('apikey', process.env.NEWSDATA_API_KEY);
-  url.searchParams.set('q', NEWSDATA_SAFE_QUERY);
+  url.searchParams.set('q', query);
   url.searchParams.set('category', 'business,technology,politics,top');
   url.searchParams.set('language', 'en');
   url.searchParams.set('image', '0');
@@ -295,7 +321,7 @@ async function fetchNewsDataBatch() {
     }));
 }
 
-async function fetchMarketauxBatch() {
+async function fetchMarketauxBatch(searchTerms) {
   if (!process.env.MARKETAUX_API_KEY) {
     console.warn('[trendingService] Skipping Marketaux — no API key configured.');
     return [];
@@ -305,7 +331,7 @@ async function fetchMarketauxBatch() {
   url.searchParams.set('api_token', process.env.MARKETAUX_API_KEY);
   url.searchParams.set('language', 'en');
   url.searchParams.set('limit', String(MARKETAUX_QUERY_LIMIT));
-  url.searchParams.set('search', MARKETAUX_SEARCH_TERMS.join(' OR '));
+  url.searchParams.set('search', searchTerms.join(' OR '));
   // Confirmed via Marketaux's own API spec: using `search` switches their
   // DEFAULT sort from published_at (recency) to relevance_score — so an
   // old article that matches the search terms well can rank above today's
