@@ -135,6 +135,7 @@ const API = {
   createCoupon:        (b)  => API.post('/api/admin/coupons', b),
   toggleCoupon:        (id) => API.post('/api/admin/coupons/toggle', { id }),
   saveSettings:        (b)  => API.post('/api/admin/settings', b),
+  backup:              ()   => API.get('/api/admin/backup'),
   getBusinessSettings: ()   => API.get('/api/admin/business-settings'),
   saveBusinessSettings:(b)  => API.post('/api/admin/business-settings', b),
 };
@@ -1069,6 +1070,14 @@ const apiRows = [
       <!-- RIGHT COL -->
       <div style="display:flex;flex-direction:column;gap:14px">
 
+        <!-- BACKUP -->
+        <div class="card">
+          <div class="card-title">Backup</div>
+          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Downloads one file with all site data, settings and saved API keys. Keep it somewhere private.</p>
+          <button class="btn btn-gold btn-sm" id="downloadBackupBtn">Download full backup</button>
+          <div id="backupMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
+        </div>
+
         <!-- SITE SETTINGS -->
         <div class="card">
           <div class="card-title">Site settings</div>
@@ -1139,6 +1148,26 @@ async function load_settings() {
 }
 
 function bind_settings() {
+  // Download full backup
+  qs('#downloadBackupBtn')?.addEventListener('click', async () => {
+    const msg = qs('#backupMsg');
+    try {
+      if (msg) msg.textContent = 'Preparing backup…';
+      const backup = await API.backup();
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      link.href = URL.createObjectURL(blob);
+      link.download = `drmoneywise-backup-${stamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+      if (msg) msg.textContent = '✓ Backup downloaded';
+      showToast('Backup downloaded');
+    } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
+  });
+
   // Save API keys
   qs('#saveApiKeysBtn')?.addEventListener('click', async () => {
     const msg = qs('#apiKeysMsg');

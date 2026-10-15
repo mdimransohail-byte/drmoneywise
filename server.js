@@ -302,6 +302,38 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { article });
     }
 
+    // ── Full backup download (admin only) ─────────────────────────────────
+    // Bundles everything on the Railway volume (data/) into one JSON file:
+    // site data, business settings and saved API keys.
+    if (requestUrl.pathname === '/api/admin/backup' && request.method === 'GET') {
+      await requireAdminUser(token);
+      const dataDir = path.join(process.cwd(), 'data');
+      const readOrNull = async (fileName) => {
+        try {
+          return await readFile(path.join(dataDir, fileName), 'utf8');
+        } catch {
+          return null;
+        }
+      };
+      const storeRaw = await readOrNull('platform-store.json');
+      const settingsRaw = await readOrNull('business-settings.json');
+      const envRaw = await readOrNull('.env');
+      let platformStore = null;
+      let businessSettings = null;
+      try { platformStore = storeRaw ? JSON.parse(storeRaw) : null; } catch { platformStore = storeRaw; }
+      try { businessSettings = settingsRaw ? JSON.parse(settingsRaw) : null; } catch { businessSettings = settingsRaw; }
+      console.log('[backup] Admin downloaded a full backup of data/');
+      return sendJson(response, 200, {
+        createdAt: new Date().toISOString(),
+        site: APP_NAME,
+        files: {
+          'platform-store.json': platformStore,
+          'business-settings.json': businessSettings,
+          '.env': envRaw,
+        },
+      });
+    }
+
     if (requestUrl.pathname.startsWith('/api/')) {
       return sendJson(response, 404, {
         error: 'API route not found. Restart the website after uploading the latest server files.',
