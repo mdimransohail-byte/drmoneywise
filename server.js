@@ -32,6 +32,16 @@ import { saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggle
 import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
+import {
+  buildRobotsTxt,
+  buildSitemapXml,
+  getSiteOrigin,
+  renderArticlePage,
+  renderHomePage,
+  renderLearnIndex,
+  renderNotFound,
+  robotsHeaderFor,
+} from './src/services/seoService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +65,20 @@ await ensureAdminUser();
 export const server = http.createServer(async (request, response) => {
   try {
     const requestUrl = new URL(request.url || '/', `http://${request.headers.host}`);
+
+    // Search-engine header ("noindex" until launch, always on admin/API)
+    // is added to every response this request sends.
+    const robotsHeaders = robotsHeaderFor(requestUrl.pathname);
+    const originalWriteHead = response.writeHead.bind(response);
+    response.writeHead = (statusCode, headers = {}) => originalWriteHead(statusCode, { ...headers, ...robotsHeaders });
+
+    // ── Public pages built on the server (readable by Google) ──────────
+    if (request.method === 'GET' && !requestUrl.pathname.startsWith('/api/')) {
+      const handled = await handlePublicPage(requestUrl, request, response);
+      if (handled) {
+        return;
+      }
+    }
     const token = getSessionToken(request);
     const sessionUser = await getSessionUser(token);
 
@@ -362,6 +386,62 @@ server.listen(PORT, () => {
   console.log(`${APP_NAME} is running at http://localhost:${PORT}`);
 });
 
+/**
+ * Clean page addresses + SEO files. Returns true when it sent a response.
+ *   /                 homepage with head tags and latest explainers in the HTML
+ *   /learn            all explainers
+ *   /learn/<slug>     one explainer
+ *   /article.html?slug=x  → permanent redirect to /learn/x
+ *   /robots.txt, /sitemap.xml
+ */
+async function handlePublicPage(requestUrl, request, response) {
+  const pathname = requestUrl.pathname.replace(/\/+$/u, '') || '/';
+  const origin = getSiteOrigin(request);
+
+  if (pathname === '/robots.txt') {
+    response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+    response.end(buildRobotsTxt(origin));
+    return true;
+  }
+
+  if (pathname === '/sitemap.xml') {
+    response.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+    response.end(await buildSitemapXml(origin));
+    return true;
+  }
+
+  if ((pathname === '/article' || pathname === '/article.html') && requestUrl.searchParams.get('slug')) {
+    response.writeHead(301, { Location: `/learn/${encodeURIComponent(requestUrl.searchParams.get('slug'))}` });
+    response.end();
+    return true;
+  }
+
+  if (pathname === '/' || pathname === '/index' || pathname === '/index.html') {
+    const template = await readFile(path.join(publicDir, 'index.html'), 'utf8');
+    return sendHtml(response, 200, await renderHomePage(template, origin));
+  }
+
+  if (pathname === '/learn') {
+    return sendHtml(response, 200, await renderLearnIndex(origin));
+  }
+
+  const learnMatch = pathname.match(/^\/learn\/([^/]+)$/u);
+  if (learnMatch) {
+    const slug = decodeURIComponent(learnMatch[1]);
+    const template = await readFile(path.join(publicDir, 'article.html'), 'utf8');
+    const html = await renderArticlePage(template, slug, origin);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
+  }
+
+  return false;
+}
+
+function sendHtml(response, statusCode, html) {
+  response.writeHead(statusCode, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+  response.end(html);
+  return true;
+}
+
 async function serveStatic(requestPath, response) {
   const mappedPath = normalizeStaticPath(requestPath);
   const filePath = path.join(publicDir, mappedPath);
@@ -380,9 +460,7 @@ async function serveStatic(requestPath, response) {
     });
     response.end(contents);
   } catch {
-    return sendJson(response, 404, {
-      error: 'File not found',
-    });
+    return sendHtml(response, 404, renderNotFound());
   }
 }
 
