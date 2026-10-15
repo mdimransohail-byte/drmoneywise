@@ -68,7 +68,7 @@ async function loadArticle() {
 function renderMemberBadge() {
   const label = state.user
     ? `${getPlanLabel(state.user.plan)} member`
-    : 'Guest reader';
+    : '';
 
   elements.articleMemberBadge.textContent = label;
   elements.articleSignOutButton.classList.toggle('hidden', !state.user);

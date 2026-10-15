@@ -3,37 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dr MoneyWise Article</title>
+    <title>Dr MoneyWise — Explained simply</title>
+    <meta name="description" content="A plain-English explainer from Dr MoneyWise." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="site-body article-body">
-    <div class="page-shell narrow-shell">
-      <header class="topbar article-topbar">
-        <a class="brand" href="/">
-          <span class="brand-mark">DM</span>
-          <span>
-            <strong>Dr MoneyWise</strong>
-            <small>Back to the newsroom</small>
-          </span>
-        </a>
-        <div class="topbar-actions">
-          <span id="articleMemberBadge" class="subtle-chip">Loading</span>
-          <a class="button secondary" href="/">Home</a>
-          <button id="articleSignOutButton" class="button secondary hidden" type="button">Sign out</button>
-          <a class="button primary" href="/admin.html">Admin</a>
+  <body>
+    <header class="site-header">
+      <div class="wrap bar">
+        <a class="brand" href="/">Dr MoneyWise</a>
+        <nav class="main-nav" aria-label="Main">
+          <a href="/#today">Today</a>
+          <a href="/#learning" aria-current="page">Learn</a>
+          <a href="/#top10">Top 10s</a>
+          <a href="/#lookup">Stocks</a>
+          <a href="/#tools">Tools</a>
+          <a href="/#membership">Membership</a>
+        </nav>
+        <div class="header-actions">
+          <span id="articleMemberBadge" class="member-badge"></span>
+          <button id="articleSignOutButton" class="pill-ghost hidden" type="button">Sign out</button>
+          <a class="pill-gold" href="/">Home</a>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <main>
-        <article id="articleContainer" class="article-layout glass-card">
+    <main class="article-page">
+      <div class="wrap narrow">
+        <article id="articleContainer" class="article-layout">
           <div class="loading-block">
             <div class="skeleton line"></div>
             <div class="skeleton line"></div>
             <div class="skeleton card"></div>
           </div>
         </article>
-      </main>
-    </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="foot-grid">
+          <a class="brand" href="/">Dr MoneyWise</a>
+          <div class="foot-links">
+            <a href="mailto:hello@drmoneywise.com">Contact</a>
+            <a href="/#membership">Membership</a>
+          </div>
+        </div>
+        <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
+      </div>
+    </footer>
 
     <script type="module" src="/article.js"></script>
   </body>

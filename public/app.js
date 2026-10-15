@@ -91,9 +91,17 @@ function cacheElements() {
   elements.applyCouponButton = document.querySelector('#applyCouponButton');
   elements.couponMessage = document.querySelector('#couponMessage');
   elements.pricingCards = document.querySelector('#pricingCards');
+  elements.headerSignInButton = document.querySelector('#headerSignInButton');
+  elements.menuToggle = document.querySelector('#menuToggle');
+  elements.mobileNav = document.querySelector('#mobileNav');
+  elements.headerSearchInput = document.querySelector('#headerSearchInput');
+  elements.lookupForm = document.querySelector('#lookupForm');
+  elements.lookupInput = document.querySelector('#lookupInput');
+  elements.lookupMessage = document.querySelector('#lookupMessage');
 }
 
 function bindEvents() {
+  bindHeaderEvents();
   elements.signupForm.addEventListener('submit', handleSignUp);
   elements.signinForm.addEventListener('submit', handleSignIn);
   elements.toggleAuthModeButton.addEventListener('click', () => setAuthMode('signin'));
@@ -200,6 +208,37 @@ async function refreshPortfolioReview() {
   }
 }
 
+/* Header: phone menu, Sign in shortcut, search box, company look-up. */
+function bindHeaderEvents() {
+  elements.menuToggle?.addEventListener('click', () => {
+    const open = elements.mobileNav.classList.toggle('open');
+    elements.menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    elements.menuToggle.textContent = open ? 'Close' : 'Menu';
+  });
+  elements.mobileNav?.addEventListener('click', (event) => {
+    if (event.target.closest('a')) {
+      elements.mobileNav.classList.remove('open');
+      elements.menuToggle.setAttribute('aria-expanded', 'false');
+      elements.menuToggle.textContent = 'Menu';
+    }
+  });
+  elements.headerSignInButton?.addEventListener('click', () => setAuthMode('signin'));
+  elements.headerSearchInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (elements.lookupInput) elements.lookupInput.value = elements.headerSearchInput.value.trim();
+    elements.lookupForm?.requestSubmit();
+    document.querySelector('#lookup')?.scrollIntoView({ block: 'start' });
+  });
+  elements.lookupForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const query = elements.lookupInput.value.trim();
+    elements.lookupMessage.textContent = query
+      ? `Company pages are being added now. "${query}" will be searchable soon.`
+      : 'Type a company name or ticker, e.g. Apple or AAPL.';
+  });
+}
+
 function renderAll() {
   renderAccountState();
   renderBriefBoard();
@@ -212,9 +251,10 @@ function renderAll() {
 
 function renderAccountState() {
   const planName = getPlanLabel(state.user?.plan || 'free');
-  elements.memberBadge.textContent = state.user ? `${planName} member` : 'Guest reader';
+  elements.memberBadge.textContent = state.user ? `${planName} member` : '';
   elements.accountState.textContent = state.user ? state.user.name : 'Guest';
   elements.signOutButton.classList.toggle('hidden', !state.user);
+  elements.headerSignInButton?.classList.toggle('hidden', Boolean(state.user));
 
   if (state.user) {
     elements.signupForm.classList.add('hidden');
@@ -376,7 +416,7 @@ function renderBriefBoard() {
   const items = state.liveHeadlines?.items || [];
 
   if (!items.length) {
-    elements.briefFeatured.innerHTML = createEmptyCard('Live headlines are loading — check back shortly.');
+    elements.briefFeatured.innerHTML = '<h3>Top stories are loading</h3><span class="src">Check back in a moment.</span>';
     elements.briefFeatured.removeAttribute('href');
     elements.briefBoard.innerHTML = '';
     return;
@@ -386,21 +426,17 @@ function renderBriefBoard() {
 
   elements.briefFeatured.href = featured.url || '#';
   elements.briefFeatured.innerHTML = `
-    <div class="news-feature-media">📈</div>
-    <div class="news-feature-body">
-      <span class="tag gold">${escapeHtml(featured.source || 'Market feed')}</span>
-      <p class="news-feature-headline">${escapeHtml(featured.title)}</p>
-      <p class="news-feature-meta">${escapeHtml(featured.source || 'Market feed')} &middot; ${formatDate(featured.publishedAt)}</p>
-    </div>
+    <h3>${escapeHtml(featured.title)}</h3>
+    <span class="src">${escapeHtml(featured.source || 'Market news')} · ${formatDate(featured.publishedAt)}</span>
   `;
 
   elements.briefBoard.innerHTML = rest
     .slice(0, 5)
     .map(
       (item) => `
-        <a class="news-list-item" href="${escapeAttribute(item.url || '#')}" target="_blank" rel="noopener">
-          <p class="news-list-headline">${escapeHtml(item.title)}</p>
-          <p class="news-list-meta">${escapeHtml(item.source || 'Market feed')} &middot; ${formatDate(item.publishedAt)}</p>
+        <a href="${escapeAttribute(item.url || '#')}" target="_blank" rel="noopener">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span>${escapeHtml(item.source || 'Market news')} · ${formatDate(item.publishedAt)}</span>
         </a>
       `,
     )
@@ -480,20 +516,41 @@ function renderAreas() {
     .join('');
 }
 
+const TOPIC_BADGES = {
+  equities: 'Stocks',
+  etfs: 'ETFs',
+  'fixed-income': 'Bonds',
+  commodities: 'Gold & oil',
+  fx: 'Money',
+  crypto: 'Crypto',
+  retirement: 'Retire',
+  income: 'Income',
+};
+
 function renderLearningPoints() {
   const learningPoints = state.home?.learningPoints || [];
   if (!learningPoints.length) {
-    elements.learningPoints.innerHTML = createEmptyCard('Learning points are being prepared for this selection.');
+    elements.learningPoints.innerHTML = createEmptyCard('New explainers are on their way. Check back soon.');
     return;
   }
 
+  const currentPlan = state.user?.plan || 'free';
   elements.learningPoints.innerHTML = learningPoints
-    .map((article) =>
-      renderStoryCard(article, {
-        description: article.preview || article.summary,
-        actionLabel: article.accessible ? 'Open learning point' : 'Preview learning point',
-      }),
-    )
+    .map((article) => {
+      const badge = article.heroImage?.url
+        ? `<img src="${escapeAttribute(article.heroImage.url)}" alt="" loading="lazy" />`
+        : escapeHtml(TOPIC_BADGES[article.interest] || 'Money');
+      const description = article.preview || article.summary || '';
+      return `
+        <a class="explain-item" href="/article.html?slug=${encodeURIComponent(article.slug)}&plan=${encodeURIComponent(currentPlan)}">
+          <span class="topic">${badge}</span>
+          <div>
+            <h3>${escapeHtml(article.headline)}</h3>
+            ${article.accessible ? `<p>${escapeHtml(description)}</p>` : '<p class="lock-label">Members</p>'}
+          </div>
+        </a>
+      `;
+    })
     .join('');
 }
 
@@ -718,11 +775,11 @@ function renderPricingCards() {
 }
 
 function renderLoadingBoards() {
-  const loadingCard = '<div class="story-card"><div class="skeleton line"></div><div class="skeleton card"></div></div>';
-  elements.briefFeatured.innerHTML = loadingCard;
-  elements.briefBoard.innerHTML = loadingCard;
-  elements.feedAreas.innerHTML = loadingCard.repeat(3);
-  elements.learningPoints.innerHTML = loadingCard.repeat(2);
+  const loading = '<div style="width:100%"><div class="skeleton line"></div><div class="skeleton line"></div></div>';
+  elements.briefFeatured.innerHTML = '<h3>Loading top stories…</h3>';
+  elements.briefBoard.innerHTML = loading;
+  elements.feedAreas.innerHTML = `<div class="area-panel">${loading}</div>`.repeat(3);
+  elements.learningPoints.innerHTML = loading;
 }
 
 function renderStoryCard(article, options = {}) {
@@ -1221,11 +1278,7 @@ async function trackView(path, type, value = 1, articleSlug = '') {
 }
 
 function createEmptyCard(message) {
-  return `
-    <div class="list-row">
-      <div class="helper-note">${escapeHtml(message)}</div>
-    </div>
-  `;
+  return `<p class="empty-note">${escapeHtml(message)}</p>`;
 }
 
 function readJsonStorage(key) {

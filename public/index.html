@@ -3,260 +3,216 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dr MoneyWise — Understand Money. Invest Wise.</title>
+    <title>Dr MoneyWise — Money and investing, explained simply</title>
     <meta
       name="description"
-      content="Dr MoneyWise makes market news easier to follow with plain-English stories, learning points, watchlists, and portfolio reviews."
+      content="Dr MoneyWise explains market news, stocks, ETFs and money ideas in plain English for everyday investors."
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="site-body">
-    <div class="page-shell">
-      <header class="topbar" data-reveal>
-        <a class="brand" href="/">
-          <span class="brand-mark">DM</span>
-          <span>
-            <strong>Dr MoneyWise</strong>
-            <small>Markets made easier to understand</small>
-          </span>
-        </a>
-
-        <nav class="topnav">
-          <a href="#newsroom">Newsroom</a>
-          <a href="#learning">Learning Points</a>
+  <body>
+    <!-- ═══ HEADER ═════════════════════════════════════════════════════ -->
+    <header class="site-header">
+      <div class="wrap bar">
+        <a class="brand" href="/">Dr MoneyWise</a>
+        <nav class="main-nav" aria-label="Main">
+          <a href="#today" aria-current="page">Today</a>
+          <a href="#learning">Learn</a>
+          <a href="#top10">Top 10s</a>
+          <a href="#lookup">Stocks</a>
+          <a href="#tools">Tools</a>
           <a href="#membership">Membership</a>
-          <a href="/admin.html">Admin</a>
         </nav>
-
-        <div class="topbar-actions">
-          <span id="memberBadge" class="subtle-chip">Loading</span>
-          <button id="signOutButton" class="button secondary hidden" type="button">Sign out</button>
+        <label class="header-search">
+          <span class="sr-only">Search</span>
+          <input id="headerSearchInput" type="search" placeholder="Search a company or topic" />
+        </label>
+        <div class="header-actions">
+          <span id="memberBadge" class="member-badge">Loading</span>
+          <a id="headerSignInButton" class="pill-gold" href="#join">Sign in</a>
+          <button id="signOutButton" class="pill-ghost hidden" type="button">Sign out</button>
+          <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobileNav">Menu</button>
         </div>
-      </header>
+      </div>
+      <nav id="mobileNav" class="mobile-nav" aria-label="Main">
+        <a href="#today">Today</a>
+        <a href="#learning">Learn</a>
+        <a href="#top10">Top 10s</a>
+        <a href="#lookup">Stocks</a>
+        <a href="#tools">Tools</a>
+        <a href="#membership">Membership</a>
+      </nav>
+    </header>
 
-      <main>
-        <!-- ══════════════════════════════════════════════════════════════
-             HERO — slim. Account creation lives further down the page now.
-             ══════════════════════════════════════════════════════════════ -->
-        <section class="hero" data-reveal>
-          <div class="hero-copy hero-copy-dark hero-copy-slim">
-            <span class="eyebrow">DrMoneyWise.com</span>
-            <h1>Understand <span class="gold-word">Money</span>.<br />Invest <span class="gold-word">Wise</span>.</h1>
-            <p>
-              Global market news, explained in plain language — free or paid, your choice.
-            </p>
-            <div class="hero-actions">
-              <a class="button primary" href="#newsroom">See Today's Feed</a>
-              <a class="button tertiary" href="#join">Join Free</a>
-            </div>
+    <main>
+      <!-- ═══ HERO: TODAY IN 60 SECONDS ═════════════════════════════════
+           The headline + reading aid are filled by app.js from the daily
+           market summary once the data engine is running (Day 6/9). Until
+           then the default copy below shows. -->
+      <section id="today" class="hero">
+        <div class="wrap hero-grid">
+          <div>
+            <p id="heroDateline" class="dateline">Today in 60 seconds</p>
+            <h1 id="heroHeadline">Money news and investing, explained in plain English.</h1>
+            <p id="heroLede" class="lede">Every day we turn the noise of the markets into a short, clear read: what happened, why it matters, and what, if anything, it means for you.</p>
+            <dl class="reading-aid">
+              <div><dt>What happened</dt><dd id="aidWhat">The day's biggest money stories, in a few lines.</dd></div>
+              <div><dt>Why it matters</dt><dd id="aidWhy">How it touches prices, jobs, savings and loans.</dd></div>
+              <div><dt>What you can do</dt><dd id="aidDo">Usually nothing urgent. We say so when it isn't.</dd></div>
+            </dl>
+          </div>
+          <div id="marketPulse" class="pulse" aria-label="Markets today">
+            <div class="pulse-row"><span class="pulse-name">Market prices</span><span class="pulse-move flat">Soon</span><span class="pulse-plain">Daily prices for shares, gold, oil and Bitcoin will show here, each with a one-line meaning.</span></div>
+            <div class="pulse-foot"><a href="#news">Read today's top stories</a></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="wrap">
+        <!-- ═══ TOP 10s ═══════════════════════════════════════════════ -->
+        <section id="top10" class="block">
+          <div class="block-head">
+            <div><h2>Top 10 lists</h2><p>Each list shows how it's ranked, so you know exactly what you're looking at.</p></div>
+          </div>
+          <div id="topTenPanels" class="tens">
+            <article class="ten">
+              <h3>Dividend stocks</h3>
+              <p class="rule">Companies that raised their payout 10+ years in a row, ranked by yield.</p>
+              <p class="meaning">First list coming soon.</p>
+            </article>
+            <article class="ten">
+              <h3>ETFs for beginners</h3>
+              <p class="rule">Simple, broad funds, ranked by lowest yearly fee.</p>
+              <p class="meaning">First list coming soon.</p>
+            </article>
+            <article class="ten crypto">
+              <h3>Crypto by size</h3>
+              <p class="rule">The 10 largest coins by total value.</p>
+              <span class="risk-note">High risk: prices can halve in months</span>
+              <p class="meaning">First list coming soon.</p>
+            </article>
           </div>
         </section>
 
-        <!-- ══════════════════════════════════════════════════════════════
-             TOP STORY — magazine layout: featured headline + secondary list.
-             Raw headlines from Marketaux (cached 6h) — links go to the
-             original source, not an internal article.
-             ══════════════════════════════════════════════════════════════ -->
-        <section id="newsroom" class="glass-card" data-reveal>
-          <div class="section-head compact">
-            <div>
-              <span class="eyebrow">Top Story</span>
-              <h2>What's moving markets right now</h2>
-            </div>
-            <span id="feedState" class="status-pill">Loading</span>
+        <!-- ═══ EXPLAINED SIMPLY (Learning Points) ════════════════════ -->
+        <section id="learning" class="block">
+          <div class="block-head">
+            <div><h2>Explained simply</h2><p>Money ideas in everyday words, with real-life examples.</p></div>
           </div>
-          <div class="news-hero-grid">
-            <a id="briefFeatured" class="news-feature-card" href="#" target="_blank" rel="noopener"></a>
-            <div id="briefBoard" class="news-secondary-list"></div>
+          <div id="learningPoints" class="explain"></div>
+        </section>
+
+        <!-- ═══ TOP STORIES ═══════════════════════════════════════════ -->
+        <section id="news" class="block">
+          <div class="block-head">
+            <div><h2>Top stories</h2><p>The biggest money news, linked to the original source.</p></div>
+            <span id="feedState" class="subtle-chip">Loading</span>
+          </div>
+          <div class="news">
+            <a id="briefFeatured" class="lead-story" href="#" target="_blank" rel="noopener"></a>
+            <div id="briefBoard" class="story-list"></div>
           </div>
         </section>
 
-        <!-- ══════════════════════════════════════════════════════════════
-             EXPLORE BY INTEREST — compact dropdown picker sits directly
-             above its own results, instead of being a separate section
-             far above "By Interest" like before.
-             ══════════════════════════════════════════════════════════════ -->
-        <section class="glass-card" data-reveal>
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Explore by Interest</span>
-              <h2>Pick your regions and interests</h2>
-            </div>
-            <button id="refreshHomeButton" class="button secondary" type="button">Refresh</button>
-          </div>
-          <p class="helper-note" style="margin-bottom: 14px;">
-            The latest trending headlines for each interest you follow — refreshed daily, linking straight to the original source.
-          </p>
-
-          <div class="picker-row">
-            <div class="picker-dropdown">
-              <button type="button" class="picker-trigger" id="regionPickerTrigger">
-                <span id="regionPickerLabel">Region: Global</span>
-                <span class="picker-chevron">▾</span>
-              </button>
-              <div id="regionFilterChips" class="chip-grid picker-panel hidden"></div>
-            </div>
-            <div class="picker-dropdown">
-              <button type="button" class="picker-trigger" id="interestPickerTrigger">
-                <span id="interestPickerLabel">Interests</span>
-                <span class="picker-chevron">▾</span>
-              </button>
-              <div id="interestFilterChips" class="chip-grid picker-panel hidden"></div>
+        <!-- ═══ NEWS BY TOPIC (Explore by Interest) ═══════════════════ -->
+        <section id="topics" class="block">
+          <div class="block-head">
+            <div><h2>News by topic</h2><p>Pick the topics and regions you care about.</p></div>
+            <div class="topic-controls">
+              <div class="picker-dropdown">
+                <button type="button" class="picker-trigger" id="regionPickerTrigger"><span id="regionPickerLabel">Region: Global</span></button>
+                <div id="regionFilterChips" class="chip-grid picker-panel hidden"></div>
+              </div>
+              <div class="picker-dropdown">
+                <button type="button" class="picker-trigger" id="interestPickerTrigger"><span id="interestPickerLabel">Topics</span></button>
+                <div id="interestFilterChips" class="chip-grid picker-panel hidden"></div>
+              </div>
+              <button id="refreshHomeButton" class="picker-trigger" type="button">Refresh</button>
             </div>
           </div>
-
           <div id="feedAreas" class="area-grid"></div>
         </section>
 
-        <!-- ══════════════════════════════════════════════════════════════
-             LEARNING POINTS
-             ══════════════════════════════════════════════════════════════ -->
-        <section id="learning" class="glass-card" data-reveal>
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Dr MoneyWise Explains</span>
-              <h2>Simple explainers and examples</h2>
+        <!-- ═══ LOOK UP A COMPANY + CALCULATORS ═══════════════════════ -->
+        <section id="lookup" class="block">
+          <div class="split">
+            <div class="finder">
+              <h2>Look up a company</h2>
+              <p>See what it does, whether it's growing, its debt and its dividend, explained simply.</p>
+              <form id="lookupForm">
+                <label class="sr-only" for="lookupInput">Company name or ticker</label>
+                <input id="lookupInput" type="search" placeholder="Company name or ticker, e.g. Apple" />
+                <button type="submit">Look up</button>
+              </form>
+              <p id="lookupMessage" class="soon">Company pages are being added now.</p>
+            </div>
+            <div class="surface">
+              <h2 class="sr-only">Money calculators</h2>
+              <h3>Money calculators</h3>
+              <ul class="calc-list">
+                <li><strong>Grow my savings</strong><span>What $100 a month becomes</span></li>
+                <li><strong>Retirement check</strong><span>Am I on track?</span></li>
+                <li><strong>Dividend income</strong><span>Yearly payout from my shares</span></li>
+                <li><strong>Monthly investing</strong><span>Investing a little every month</span></li>
+              </ul>
+              <p class="helper-note">Calculators open soon.</p>
             </div>
           </div>
-          <div id="learningPoints" class="card-grid"></div>
         </section>
 
-        <!-- ══════════════════════════════════════════════════════════════
-             WATCHLIST & PORTFOLIO
-             ══════════════════════════════════════════════════════════════ -->
-        <section class="section-grid tools-grid" data-reveal>
-          <div class="glass-card">
-            <div class="section-head">
-              <div>
-                <span class="eyebrow">Watchlist</span>
-                <h2>Save ideas you want to monitor</h2>
-              </div>
-            </div>
-            <form id="watchlistForm" class="stack-form compact-form">
-              <div class="inline-form">
-                <input id="watchlistTickerInput" type="text" placeholder="Add ticker like NVDA" />
+        <!-- ═══ MY TOOLS: WATCHLIST, PORTFOLIO, REVIEW ════════════════ -->
+        <section id="tools" class="block">
+          <div class="block-head">
+            <div><h2>My watchlist and portfolio</h2><p>Keep an eye on companies and see your holdings in one place.</p></div>
+          </div>
+          <div class="tools-grid">
+            <div class="surface">
+              <h3>Watchlist</h3>
+              <p class="helper-note">Add companies you want to follow.</p>
+              <form id="watchlistForm" class="inline-form">
+                <label class="sr-only" for="watchlistTickerInput">Ticker</label>
+                <input id="watchlistTickerInput" class="input" type="text" placeholder="Ticker, e.g. NVDA" />
                 <button class="button primary" type="submit">Add</button>
-              </div>
-            </form>
-            <div id="watchlistList" class="chip-row"></div>
-            <div id="watchlistQuotaNotice" class="helper-note hidden"></div>
+              </form>
+              <div id="watchlistList" class="chip-row" style="margin-top:14px"></div>
+              <div id="watchlistQuotaNotice" class="helper-note hidden"></div>
+            </div>
+
+            <div class="surface">
+              <h3>Portfolio</h3>
+              <p class="helper-note">Add what you own to see it together.</p>
+              <form id="portfolioForm" class="stack-form">
+                <div class="inline-form">
+                  <input id="portfolioTickerInput" class="input" type="text" placeholder="Ticker" aria-label="Ticker" />
+                  <input id="portfolioNameInput" class="input" type="text" placeholder="Name" aria-label="Name" />
+                </div>
+                <div class="inline-form">
+                  <input id="portfolioWeightInput" class="input" type="text" placeholder="Share of portfolio, e.g. 25%" aria-label="Share of portfolio" />
+                  <input id="portfolioCostInput" class="input" type="text" placeholder="Price paid" aria-label="Price paid" />
+                </div>
+                <div><button class="button primary" type="submit">Add holding</button></div>
+              </form>
+              <div id="portfolioList" class="stack-list"></div>
+              <div id="portfolioQuotaNotice" class="helper-note hidden"></div>
+            </div>
           </div>
 
-          <div class="glass-card">
-            <div class="section-head">
-              <div>
-                <span class="eyebrow">Portfolio</span>
-                <h2>Add your holdings</h2>
-              </div>
-            </div>
-            <form id="portfolioForm" class="stack-form compact-form">
-              <div class="form-grid">
-                <input id="portfolioTickerInput" type="text" placeholder="Ticker" />
-                <input id="portfolioNameInput" type="text" placeholder="Name" />
-              </div>
-              <div class="form-grid">
-                <input id="portfolioWeightInput" type="text" placeholder="Weight e.g. 25%" />
-                <input id="portfolioCostInput" type="text" placeholder="Cost basis" />
-              </div>
-              <button class="button primary" type="submit">Add Holding</button>
-            </form>
-            <div id="portfolioList" class="stack-list"></div>
-            <div id="portfolioQuotaNotice" class="helper-note hidden"></div>
-          </div>
-        </section>
-
-        <!-- ══════════════════════════════════════════════════════════════
-             PORTFOLIO REVIEW
-             ══════════════════════════════════════════════════════════════ -->
-        <section class="glass-card" data-reveal>
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Portfolio Review</span>
-              <h2>Member-only review of your holdings</h2>
-            </div>
-            <button id="refreshReviewButton" class="button secondary" type="button">Refresh Review</button>
+          <div class="block-head" style="margin-top:28px;margin-bottom:0">
+            <div><h3 style="font-size:22px;margin:0">Portfolio review</h3><p>A members' check-up of your holdings: strengths, risks and next steps.</p></div>
+            <button id="refreshReviewButton" class="button secondary" type="button">Refresh review</button>
           </div>
           <div id="portfolioReview" class="review-board"></div>
         </section>
 
-        <!-- ══════════════════════════════════════════════════════════════
-             JOIN — relocated here from the hero, so news comes first
-             ══════════════════════════════════════════════════════════════ -->
-        <section id="join" class="glass-card join-card" data-reveal>
-          <div class="section-head compact">
-            <div>
-              <span class="eyebrow">Join Free</span>
-              <h2>Create your account</h2>
-            </div>
-            <span id="accountState" class="subtle-chip">Guest</span>
-          </div>
-
-          <form id="signupForm" class="stack-form">
-            <div class="form-grid">
-              <label>
-                Full name
-                <input id="nameInput" type="text" placeholder="Your name" />
-              </label>
-              <label>
-                Email
-                <input id="emailInput" type="email" placeholder="you@example.com" />
-              </label>
-            </div>
-
-            <label>
-              Password
-              <input id="passwordInput" type="password" placeholder="Create a password" />
-            </label>
-
-            <div>
-              <label class="field-label">Pick your region(s)</label>
-              <div id="regionPicker" class="chip-grid"></div>
-            </div>
-
-            <div>
-              <label class="field-label">Pick your interests</label>
-              <div id="interestPicker" class="chip-grid"></div>
-            </div>
-
-            <div class="button-row">
-              <button class="button primary" type="submit">Create Free Account</button>
-              <button id="toggleAuthModeButton" class="button secondary" type="button">Already a member</button>
-            </div>
-          </form>
-
-          <form id="signinForm" class="stack-form hidden">
-            <label>
-              Email
-              <input id="loginEmailInput" type="email" placeholder="you@example.com" />
-            </label>
-            <label>
-              Password
-              <input id="loginPasswordInput" type="password" placeholder="Your password" />
-            </label>
-            <div class="button-row">
-              <button class="button primary" type="submit">Sign In</button>
-              <button id="toggleSignupModeButton" class="button secondary" type="button">New here</button>
-            </div>
-          </form>
-
-          <div id="authMessage" class="helper-note"></div>
-          <div class="helper-note">
-            Looking for Regular or Premium?
-            <a href="#membership">See plans below</a> ·
-            <a href="mailto:hello@drmoneywise.com">hello@drmoneywise.com</a>
-          </div>
-        </section>
-
-        <!-- ══════════════════════════════════════════════════════════════
-             MEMBERSHIP
-             ══════════════════════════════════════════════════════════════ -->
-        <section id="membership" class="glass-card" data-reveal>
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Membership</span>
-              <h2>Free, Regular, and Premium</h2>
-            </div>
-            <div class="coupon-box">
+        <!-- ═══ MEMBERSHIP ════════════════════════════════════════════ -->
+        <section id="membership" class="block">
+          <div class="block-head">
+            <div><h2>Membership</h2><p>Start free. Upgrade for full company report cards, every explainer and portfolio reviews.</p></div>
+            <div class="coupon-row">
+              <label class="sr-only" for="couponInput">Coupon code</label>
               <input id="couponInput" type="text" placeholder="Coupon code" />
               <button id="applyCouponButton" class="button secondary" type="button">Apply</button>
             </div>
@@ -265,29 +221,58 @@
           <div id="pricingCards" class="pricing-grid"></div>
         </section>
 
-        <!-- ══════════════════════════════════════════════════════════════
-             NEWSLETTER
-             ══════════════════════════════════════════════════════════════ -->
-        <section class="glass-card newsletter-strip" data-reveal>
-          <div>
-            <span class="eyebrow">Newsletter</span>
-            <h2>Get clear market notes by email</h2>
-            <p>Weekly notes for Regular and Premium members. Use <strong>hello@drmoneywise.com</strong> for the public inbox and member replies.</p>
-          </div>
-          <a class="button primary" href="mailto:hello@drmoneywise.com">Email Us</a>
-        </section>
-      </main>
+        <!-- ═══ JOIN / SIGN IN ════════════════════════════════════════ -->
+        <section id="join" class="block">
+          <div class="join-box">
+            <div>
+              <h2>Join free</h2>
+              <p>Save your topics, region, watchlist and portfolio, and read more explainers.</p>
+              <p>Signed in as: <span id="accountState" class="account-name">Guest</span></p>
+              <div id="authMessage" class="helper-note"></div>
+            </div>
 
-      <footer class="footer">
-        <div>
-          <strong>Dr MoneyWise</strong>
-          <p>drmoneywise.com</p>
+            <div>
+              <form id="signupForm" class="stack-form">
+                <div class="inline-form">
+                  <label style="flex:1 1 200px"><span>Name</span><input id="nameInput" type="text" placeholder="Your name" autocomplete="name" /></label>
+                  <label style="flex:1 1 200px"><span>Email</span><input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email" /></label>
+                </div>
+                <label><span>Password</span><input id="passwordInput" type="password" placeholder="Create a password" autocomplete="new-password" /></label>
+                <div><span class="field-label">Your region(s)</span><div id="regionPicker" class="chip-grid"></div></div>
+                <div><span class="field-label">Your topics</span><div id="interestPicker" class="chip-grid"></div></div>
+                <div class="button-row">
+                  <button class="button primary" type="submit">Create free account</button>
+                  <button id="toggleAuthModeButton" class="button secondary" type="button">I already have an account</button>
+                </div>
+              </form>
+
+              <form id="signinForm" class="stack-form hidden">
+                <label><span>Email</span><input id="loginEmailInput" type="email" placeholder="you@example.com" autocomplete="email" /></label>
+                <label><span>Password</span><input id="loginPasswordInput" type="password" placeholder="Your password" autocomplete="current-password" /></label>
+                <div class="button-row">
+                  <button class="button primary" type="submit">Sign in</button>
+                  <button id="toggleSignupModeButton" class="button secondary" type="button">Create an account instead</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ═══ FOOTER ════════════════════════════════════════════════════ -->
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="foot-grid">
+          <a class="brand" href="/">Dr MoneyWise</a>
+          <div class="foot-links">
+            <a href="mailto:hello@drmoneywise.com">Contact</a>
+            <a href="#membership">Membership</a>
+          </div>
         </div>
-        <div>
-          <a href="mailto:hello@drmoneywise.com">hello@drmoneywise.com</a>
-        </div>
-      </footer>
-    </div>
+        <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
+      </div>
+    </footer>
 
     <script type="module" src="/app.js"></script>
   </body>
