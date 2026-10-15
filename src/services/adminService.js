@@ -60,6 +60,7 @@ export async function getAdminDashboard() {
       marketauxConfigured: Boolean(envSettings.MARKETAUX_API_KEY),
       newsdataConfigured: Boolean(envSettings.NEWSDATA_API_KEY),
       marketstackConfigured: Boolean(envSettings.MARKETSTACK_API_KEY),
+      searchVisible: String(envSettings.SEARCH_VISIBLE || '').toLowerCase() === 'yes',
       stripeRegularMonthlyConfigured: Boolean(envSettings.STRIPE_REGULAR_MONTHLY_URL),
       stripeRegularAnnualConfigured: Boolean(envSettings.STRIPE_REGULAR_ANNUAL_URL),
       stripePremiumMonthlyConfigured: Boolean(envSettings.STRIPE_PREMIUM_MONTHLY_URL),
@@ -219,6 +220,9 @@ export async function saveAdminSettings(payload) {
   }
   if (payload.newsdataKey !== undefined) {
     envChanges.NEWSDATA_API_KEY = payload.newsdataKey;
+  }
+  if (payload.searchVisible !== undefined) {
+    envChanges.SEARCH_VISIBLE = payload.searchVisible ? 'yes' : 'no';
   }
   if (payload.marketstackKey !== undefined) {
     envChanges.MARKETSTACK_API_KEY = payload.marketstackKey;

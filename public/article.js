@@ -21,7 +21,8 @@ async function init() {
   cacheElements();
   bindEvents();
 
-  state.slug = new URLSearchParams(window.location.search).get('slug') || '';
+  const pathMatch = window.location.pathname.match(/^\/learn\/([^/]+)/u);
+  state.slug = (pathMatch ? decodeURIComponent(pathMatch[1]) : '') || new URLSearchParams(window.location.search).get('slug') || '';
   if (!state.slug) {
     renderMessage('No article was selected.');
     return;
@@ -324,7 +325,7 @@ function renderShareRow(article) {
 }
 
 function buildArticleShareUrl(article) {
-  return `${window.location.origin}/article?slug=${encodeURIComponent(article.slug)}`;
+  return `${window.location.origin}/learn/${encodeURIComponent(article.slug)}`;
 }
 
 function setupShareRow(article) {

@@ -1078,6 +1078,16 @@ const apiRows = [
           <div id="backupMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
         </div>
 
+        <!-- SEARCH ENGINES -->
+        <div class="card">
+          <div class="card-title">Search engines (Google, Bing)</div>
+          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">${s.searchVisible
+            ? 'Visible: Google and Bing may list the site. Set your real domain in Site settings first.'
+            : 'Hidden: the site is kept off Google and Bing until launch day.'}</p>
+          <button class="btn btn-gold btn-sm" id="toggleSearchBtn">${s.searchVisible ? 'Hide from search engines' : 'Show to search engines (launch day)'}</button>
+          <div id="searchMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
+        </div>
+
         <!-- SITE SETTINGS -->
         <div class="card">
           <div class="card-title">Site settings</div>
@@ -1148,6 +1158,18 @@ async function load_settings() {
 }
 
 function bind_settings() {
+  // Search engines on/off
+  qs('#toggleSearchBtn')?.addEventListener('click', async () => {
+    const msg = qs('#searchMsg');
+    const next = !STATE.dashboard?.settings?.searchVisible;
+    if (next && !confirm('Let Google and Bing list the site now? Only do this on launch day.')) return;
+    try {
+      await API.saveSettings({ searchVisible: next });
+      showToast(next ? 'Search engines can now see the site' : 'Site hidden from search engines');
+      await load_settings();
+    } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
+  });
+
   // Download full backup
   qs('#downloadBackupBtn')?.addEventListener('click', async () => {
     const msg = qs('#backupMsg');

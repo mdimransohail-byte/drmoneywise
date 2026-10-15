@@ -542,7 +542,7 @@ function renderLearningPoints() {
         : escapeHtml(TOPIC_BADGES[article.interest] || 'Money');
       const description = article.preview || article.summary || '';
       return `
-        <a class="explain-item" href="/article.html?slug=${encodeURIComponent(article.slug)}&plan=${encodeURIComponent(currentPlan)}">
+        <a class="explain-item" href="/learn/${encodeURIComponent(article.slug)}">
           <span class="topic">${badge}</span>
           <div>
             <h3>${escapeHtml(article.headline)}</h3>

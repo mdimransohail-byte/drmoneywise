@@ -1,0 +1,340 @@
+/* ════════════════════════════════════════════════════════════════════════
+   SEO — pages Google can read, clean addresses, sitemap and robots.txt
+   ───────────────────────────────────────────────────────────────────────
+   - /learn            list of every published explainer (built on the server)
+   - /learn/<slug>     one explainer, with its text already in the page
+   - /sitemap.xml      every public page, for Google and Bing
+   - /robots.txt       says whether search engines may visit
+   - Old /article.html?slug=x links redirect to /learn/x
+
+   SEARCH ENGINES ARE HIDDEN UNTIL LAUNCH. Admin → APIs & More has a
+   "Search engines" switch that saves SEARCH_VISIBLE=yes|no to data/.env.
+   While hidden, robots.txt blocks everything and every page carries a
+   "noindex" header, so nothing half-built ends up on Google.
+   ════════════════════════════════════════════════════════════════════════ */
+
+import { readStore } from './storeService.js';
+import { getArticleBySlug, publishDueArticles } from './articleService.js';
+
+const TOPIC_LABELS = {
+  equities: 'Stocks',
+  etfs: 'ETFs',
+  'fixed-income': 'Bonds',
+  commodities: 'Gold & oil',
+  fx: 'Money',
+  crypto: 'Crypto',
+  retirement: 'Retire',
+  income: 'Income',
+};
+
+const FONT_LINKS = `
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />`;
+
+export function isSearchVisible() {
+  return String(process.env.SEARCH_VISIBLE || '').toLowerCase() === 'yes';
+}
+
+/** The public web address, e.g. https://drmoneywise.com. Falls back to the
+ *  address the visitor used (e.g. the Railway link) when no domain is set. */
+export function getSiteOrigin(request) {
+  const domain = String(process.env.SITE_DOMAIN || '').trim().replace(/^https?:\/\//u, '').replace(/\/+$/u, '');
+  if (domain && isSearchVisible()) {
+    return `https://${domain}`;
+  }
+  const host = request.headers['x-forwarded-host'] || request.headers.host || 'localhost';
+  const proto = request.headers['x-forwarded-proto'] || (String(host).startsWith('localhost') ? 'http' : 'https');
+  return `${String(proto).split(',')[0]}://${String(host).split(',')[0]}`;
+}
+
+/** Headers added to every response: "noindex" while hidden, always for admin/API. */
+export function robotsHeaderFor(pathname) {
+  if (!isSearchVisible() || pathname.startsWith('/admin') || pathname.startsWith('/api/')) {
+    return { 'X-Robots-Tag': 'noindex, nofollow' };
+  }
+  return {};
+}
+
+export function buildRobotsTxt(origin) {
+  if (!isSearchVisible()) {
+    return 'User-agent: *\nDisallow: /\n';
+  }
+  return [
+    'User-agent: *',
+    'Allow: /',
+    'Disallow: /admin',
+    'Disallow: /admin.html',
+    'Disallow: /api/',
+    '',
+    `Sitemap: ${origin}/sitemap.xml`,
+    '',
+  ].join('\n');
+}
+
+/** Published explainers, newest first. */
+export async function getPublishedLearningArticles() {
+  await publishDueArticles();
+  const store = await readStore();
+  const now = Date.now();
+  return (store.articles || [])
+    .filter((article) => article.status === 'published' && article.slug && new Date(article.publishAt || 0).getTime() <= now)
+    .filter((article) => (article.contentType || 'learning') === 'learning')
+    .sort((a, b) => new Date(b.publishAt).getTime() - new Date(a.publishAt).getTime());
+}
+
+export async function buildSitemapXml(origin) {
+  const articles = await getPublishedLearningArticles();
+  const today = new Date().toISOString().slice(0, 10);
+  const urls = [
+    { loc: `${origin}/`, lastmod: today, priority: '1.0' },
+    { loc: `${origin}/learn`, lastmod: today, priority: '0.8' },
+    ...articles.map((article) => ({
+      loc: `${origin}/learn/${encodeURIComponent(article.slug)}`,
+      lastmod: String(article.updatedAt || article.publishAt || today).slice(0, 10),
+      priority: '0.6',
+    })),
+  ];
+  const body = urls
+    .map((url) => `  <url><loc>${escapeXml(url.loc)}</loc><lastmod>${url.lastmod}</lastmod><priority>${url.priority}</priority></url>`)
+    .join('\n');
+  console.log(`[seo] sitemap built with ${urls.length} pages (search engines ${isSearchVisible() ? 'allowed' : 'hidden'})`);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
+}
+
+/* ── Page head: title, description, canonical, social preview ───────── */
+function buildHeadTags({ title, description, canonical, image, jsonLd, type = 'website' }) {
+  const tags = [
+    `<title>${escapeHtml(title)}</title>`,
+    `<meta name="description" content="${escapeAttr(description)}" />`,
+    `<link rel="canonical" href="${escapeAttr(canonical)}" />`,
+    `<meta property="og:type" content="${type}" />`,
+    `<meta property="og:site_name" content="Dr MoneyWise" />`,
+    `<meta property="og:title" content="${escapeAttr(title)}" />`,
+    `<meta property="og:description" content="${escapeAttr(description)}" />`,
+    `<meta property="og:url" content="${escapeAttr(canonical)}" />`,
+    `<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}" />`,
+  ];
+  if (image) {
+    tags.push(`<meta property="og:image" content="${escapeAttr(image)}" />`);
+  }
+  if (!isSearchVisible()) {
+    tags.push('<meta name="robots" content="noindex, nofollow" />');
+  }
+  if (jsonLd) {
+    tags.push(`<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</gu, '\\u003c')}</script>`);
+  }
+  return tags.join('\n    ');
+}
+
+/** Replaces a static page's <title> and description with full head tags. */
+function injectHead(html, headTags) {
+  return html
+    .replace(/<title>[\s\S]*?<\/title>/u, '')
+    .replace(/<meta\s+name="description"[\s\S]*?\/>/u, '')
+    .replace('</head>', `    ${headTags}\n  </head>`);
+}
+
+/* ── Homepage: head tags + latest explainers already in the page ────── */
+export async function renderHomePage(template, origin) {
+  const articles = (await getPublishedLearningArticles()).slice(0, 10);
+  const head = buildHeadTags({
+    title: 'Dr MoneyWise — Money and investing, explained simply',
+    description: 'Market news, stocks, ETFs and money ideas explained in plain English for everyday investors.',
+    canonical: `${origin}/`,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Dr MoneyWise',
+      url: `${origin}/`,
+    },
+  });
+  let html = injectHead(template, head);
+  if (articles.length) {
+    html = html.replace(
+      '<div id="learningPoints" class="explain"></div>',
+      `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>`,
+    );
+  }
+  return html;
+}
+
+function renderExplainItem(article) {
+  const free = (article.accessTier || 'free') === 'free';
+  const badge = article.heroImage?.url
+    ? `<img src="${escapeAttr(article.heroImage.url)}" alt="" loading="lazy" />`
+    : escapeHtml(TOPIC_LABELS[article.interest] || 'Money');
+  return `
+        <a class="explain-item" href="/learn/${encodeURIComponent(article.slug)}">
+          <span class="topic">${badge}</span>
+          <div>
+            <h3>${escapeHtml(article.headline)}</h3>
+            ${free ? `<p>${escapeHtml(article.summary || '')}</p>` : '<p class="lock-label">Members</p>'}
+          </div>
+        </a>`;
+}
+
+/* ── /learn: every explainer, grouped newest first ──────────────────── */
+export async function renderLearnIndex(origin) {
+  const articles = await getPublishedLearningArticles();
+  const head = buildHeadTags({
+    title: 'Learn — money ideas explained simply | Dr MoneyWise',
+    description: 'Plain-English explainers on saving, investing, stocks, ETFs, crypto and the economy, with everyday examples.',
+    canonical: `${origin}/learn`,
+  });
+  const list = articles.length
+    ? `<div class="explain">${articles.map(renderExplainItem).join('')}</div>`
+    : '<p class="empty-note">New explainers are on their way. Check back soon.</p>';
+  const body = `
+      <section class="block">
+        <div class="block-head">
+          <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with real-life examples. ${articles.length} explainer${articles.length === 1 ? '' : 's'} so far.</p></div>
+        </div>
+        ${list}
+      </section>`;
+  return pageShell({ head, body, active: 'learn' });
+}
+
+/* ── /learn/<slug>: one explainer with its text in the page ─────────── */
+export async function renderArticlePage(template, slug, origin) {
+  const stored = (await getPublishedLearningArticles()).find((article) => article.slug === slug);
+  if (!stored) {
+    return null;
+  }
+  const article = await getArticleBySlug({ slug, plan: 'free' });
+  const canonical = `${origin}/learn/${encodeURIComponent(slug)}`;
+  const description = (article.summary || article.headline || '').slice(0, 160);
+  const head = buildHeadTags({
+    title: `${article.headline} | Dr MoneyWise`,
+    description,
+    canonical,
+    image: article.heroImage?.url || '',
+    type: 'article',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: article.headline,
+      description,
+      datePublished: article.publishAt,
+      dateModified: article.updatedAt || article.publishAt,
+      author: { '@type': 'Organization', name: 'Dr MoneyWise Team' },
+      publisher: { '@type': 'Organization', name: 'Dr MoneyWise' },
+      mainEntityOfPage: canonical,
+      ...(article.heroImage?.url ? { image: [article.heroImage.url] } : {}),
+      isAccessibleForFree: article.accessible,
+    },
+  });
+
+  const sections = (article.visibleSections || [])
+    .map((section) =>
+      section.heading === 'Everyday example'
+        ? `<p>${escapeHtml(section.body || '')}</p>`
+        : `<h2 style="font-size:24px;margin:28px 0 8px">${escapeHtml(section.heading || '')}</h2><p>${escapeHtml(section.body || '')}</p>`,
+    )
+    .join('');
+  const prerendered = `
+          <header class="article-header">
+            <h1 class="article-title">${escapeHtml(article.headline)}</h1>
+            <div class="article-meta"><span>Dr MoneyWise Team</span><span>${formatDate(article.publishAt)}</span></div>
+            <p>${escapeHtml(article.summary || '')}</p>
+          </header>
+          <div class="article-body-stack"><div class="article-body">${sections}</div></div>`;
+
+  const html = injectHead(template, head).replace(
+    /<article id="articleContainer" class="article-layout">[\s\S]*?<\/article>/u,
+    `<article id="articleContainer" class="article-layout" data-slug="${escapeAttr(slug)}">${prerendered}\n        </article>`,
+  );
+  return html;
+}
+
+/* ── 404 page ────────────────────────────────────────────────────────── */
+export function renderNotFound() {
+  const head = '<title>Page not found | Dr MoneyWise</title>\n    <meta name="robots" content="noindex" />';
+  const body = `
+      <section class="block">
+        <h1 style="font-size:36px;margin:0 0 8px">We couldn't find that page</h1>
+        <p class="helper-note">It may have moved. Try the <a href="/">homepage</a> or browse <a href="/learn">all explainers</a>.</p>
+      </section>`;
+  return pageShell({ head, body, active: '' });
+}
+
+/* ── Shared header + footer for server-built pages ──────────────────── */
+function pageShell({ head, body, active }) {
+  const nav = [
+    ['today', '/#today', 'Today'],
+    ['learn', '/learn', 'Learn'],
+    ['top10', '/#top10', 'Top 10s'],
+    ['stocks', '/#lookup', 'Stocks'],
+    ['tools', '/#tools', 'Tools'],
+    ['membership', '/#membership', 'Membership'],
+  ];
+  const links = nav
+    .map(([id, href, label]) => `<a href="${href}"${id === active ? ' aria-current="page"' : ''}>${label}</a>`)
+    .join('\n          ');
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    ${head}${FONT_LINKS}
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap bar">
+        <a class="brand" href="/">Dr MoneyWise</a>
+        <nav class="main-nav" aria-label="Main">
+          ${links}
+        </nav>
+        <div class="header-actions">
+          <a class="pill-gold" href="/#join">Sign in</a>
+          <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobileNav" onclick="var n=document.getElementById('mobileNav');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);this.textContent=o?'Close':'Menu';">Menu</button>
+        </div>
+      </div>
+      <nav id="mobileNav" class="mobile-nav" aria-label="Main">
+        ${links}
+      </nav>
+    </header>
+    <main>
+      <div class="wrap">${body}
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="foot-grid">
+          <a class="brand" href="/">Dr MoneyWise</a>
+          <div class="foot-links">
+            <a href="mailto:hello@drmoneywise.com">Contact</a>
+            <a href="/#membership">Membership</a>
+          </div>
+        </div>
+        <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
+      </div>
+    </footer>
+  </body>
+</html>
+`;
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────────── */
+function formatDate(value) {
+  const date = new Date(value || Date.now());
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/gu, '&amp;')
+    .replace(/</gu, '&lt;')
+    .replace(/>/gu, '&gt;')
+    .replace(/"/gu, '&quot;')
+    .replace(/'/gu, '&#39;');
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+function escapeXml(value) {
+  return escapeHtml(value);
+}
