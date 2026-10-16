@@ -1027,7 +1027,7 @@ const apiRows = [
     <div class="pg-head">
       <div class="eyebrow" style="--ac:#f26a6a">Configuration</div>
       <h1>APIs &amp; More</h1>
-      <p>API keys, Stripe links, coupons, and site settings. Changes save to your Railway environment.</p>
+      <p>API keys, payments, coupons, and site settings. Changes save to your Railway environment.</p>
     </div>
 
     <div class="settings-grid">
@@ -1050,18 +1050,25 @@ const apiRows = [
           <div id="apiKeysMsg" style="font-size:.72rem;color:#2bc48a;margin-top:7px;min-height:16px"></div>
         </div>
 
-        <!-- STRIPE -->
+        <!-- PAYMENTS (STRIPE) -->
         <div class="card">
-          <div class="card-title">Stripe payment links</div>
-          ${stripeRows.map(r => `
-            <div class="api-row">
-              <div class="api-dot" style="background:#2bc48a"></div>
-              <div class="api-label">${h(r.l)}</div>
-              <div class="api-val">
-                <input type="url" placeholder="https://buy.stripe.com/…" id="key_${r.k}" value="${h(s[r.k]||'')}"/>
-              </div>
-            </div>`).join('')}
-          <button class="btn btn-green btn-sm" id="saveStripeBtn" style="margin-top:10px">Save Stripe links</button>
+          <div class="card-title">Payments (Stripe)</div>
+          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">
+            Status: <strong style="color:${s.stripeKeyMode === 'live' ? '#2bc48a' : s.stripeKeyMode === 'test' ? '#e8a33d' : '#f26a6a'}">${
+              s.stripeKeyMode === 'live' ? 'LIVE — real payments' : s.stripeKeyMode === 'test' ? 'Test mode — no real money' : s.stripeKeyMode === 'unknown' ? 'Key saved but not recognised' : 'Not set up'
+            }</strong> · Webhook: <strong style="color:${s.stripeWebhookConfigured ? '#2bc48a' : '#f26a6a'}">${s.stripeWebhookConfigured ? 'connected' : 'not set'}</strong>
+          </p>
+          <div class="api-row">
+            <div class="api-dot" style="background:#2bc48a"></div>
+            <div class="api-label">Secret key<div class="api-hint">Stripe → Developers → API keys. Starts with sk_test_ (testing) or sk_live_ (launch).</div></div>
+            <div class="api-val"><input type="password" placeholder="${s.stripeKeyMode !== 'off' ? 'Saved — paste a new one to replace' : 'sk_test_…'}" id="stripeSecretKey"/></div>
+          </div>
+          <div class="api-row">
+            <div class="api-dot" style="background:#2bc48a"></div>
+            <div class="api-label">Webhook signing secret<div class="api-hint">Starts with whsec_. Webhook address to give Stripe:<br/><strong id="webhookUrl">${h(location.origin)}/api/stripe/webhook</strong></div></div>
+            <div class="api-val"><input type="password" placeholder="${s.stripeWebhookConfigured ? 'Saved — paste a new one to replace' : 'whsec_…'}" id="stripeWebhookSecret"/></div>
+          </div>
+          <button class="btn btn-green btn-sm" id="saveStripeBtn" style="margin-top:10px">Save payment keys</button>
           <div id="stripeMsg" style="font-size:.72rem;color:#2bc48a;margin-top:7px;min-height:16px"></div>
         </div>
 
@@ -1202,15 +1209,18 @@ function bind_settings() {
     } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
   });
 
-  // Save Stripe links
+  // Save Stripe keys (blank fields are left unchanged)
   qs('#saveStripeBtn')?.addEventListener('click', async () => {
     const msg = qs('#stripeMsg');
+    const stripeSecretKey = qs('#stripeSecretKey')?.value?.trim() || '';
+    const stripeWebhookSecret = qs('#stripeWebhookSecret')?.value?.trim() || '';
+    if (!stripeSecretKey && !stripeWebhookSecret) { if (msg) msg.textContent = 'Paste a key first.'; return; }
+    if (stripeSecretKey && !/^sk_(test|live)_/.test(stripeSecretKey)) { if (msg) msg.textContent = 'The secret key should start with sk_test_ or sk_live_.'; return; }
+    if (stripeWebhookSecret && !stripeWebhookSecret.startsWith('whsec_')) { if (msg) msg.textContent = 'The webhook secret should start with whsec_.'; return; }
     try {
-      const keys = ['stripeRegularMonthly','stripeRegularAnnual','stripePremiumMonthly','stripePremiumAnnual'];
-      const body = Object.fromEntries(keys.map(k => [k, qs(`#key_${k}`)?.value?.trim() || '']));
-      await API.saveSettings(body);
-      if (msg) msg.textContent = '✓ Stripe links saved';
-      showToast('Stripe links saved');
+      await API.saveSettings({ stripeSecretKey, stripeWebhookSecret });
+      showToast('Payment keys saved');
+      await load_settings();
     } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
   });
 

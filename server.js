@@ -33,6 +33,12 @@ import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
 import {
+  confirmCheckoutSession,
+  createCheckoutSession,
+  createPortalSession,
+  handleWebhook,
+} from './src/services/billingService.js';
+import {
   buildRobotsTxt,
   buildSitemapXml,
   getSiteOrigin,
@@ -79,8 +85,40 @@ export const server = http.createServer(async (request, response) => {
         return;
       }
     }
+    // ── Stripe webhook: needs the untouched request body ───────────────
+    if (requestUrl.pathname === '/api/stripe/webhook' && request.method === 'POST') {
+      const rawBody = await readRawBody(request);
+      const result = await handleWebhook(rawBody, request.headers['stripe-signature']);
+      return sendJson(response, result.status, { received: result.ok });
+    }
+
     const token = getSessionToken(request);
     const sessionUser = await getSessionUser(token);
+
+    // ── Payments ────────────────────────────────────────────────────────
+    if (requestUrl.pathname === '/api/billing/checkout' && request.method === 'POST') {
+      if (!sessionUser) {
+        return sendJson(response, 401, { error: 'Please create a free account or sign in first.' });
+      }
+      const body = await parseJsonBody(request);
+      return sendJson(response, 200, await createCheckoutSession({
+        user: sessionUser,
+        planId: String(body.planId || ''),
+        cycle: body.billingCycle,
+        couponCode: body.couponCode,
+        origin: getSiteOrigin(request),
+      }));
+    }
+
+    if (requestUrl.pathname === '/api/billing/confirm' && request.method === 'POST') {
+      const body = await parseJsonBody(request);
+      const result = await confirmCheckoutSession({ user: sessionUser, sessionId: body.sessionId });
+      return sendJson(response, 200, { ...result, user: await getSessionUser(token) });
+    }
+
+    if (requestUrl.pathname === '/api/billing/portal' && request.method === 'POST') {
+      return sendJson(response, 200, await createPortalSession({ user: sessionUser, origin: getSiteOrigin(request) }));
+    }
 
     if (requestUrl.pathname === '/api/site/bootstrap' && request.method === 'GET') {
       return sendJson(response, 200, {
@@ -509,6 +547,14 @@ function normalizeStaticPath(requestPath) {
   }
 
   return normalizedPath.replace(/^\/+/u, '');
+}
+
+async function readRawBody(request) {
+  const chunks = [];
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 async function parseJsonBody(request) {

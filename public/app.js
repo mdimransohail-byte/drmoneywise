@@ -34,6 +34,7 @@ async function init() {
   bindEvents();
   setupRevealObserver();
   await loadBootstrap();
+  await handleCheckoutReturn();
   await refreshHome();
   await refreshLiveHeadlines();
   await refreshInterestHeadlines();
@@ -750,8 +751,11 @@ function renderPricingCards() {
           <div class="helper-note">${escapeHtml(plan.billingLabel)}</div>
           ${pricingNote}
           <ul class="plain-list">${(plan.features || []).map((feature) => `<li>${escapeHtml(feature)}</li>`).join('')}</ul>
+          ${currentPlan && plan.id !== 'free' ? renderPlanStatusNote() : ''}
           <div class="pricing-options">
-            ${(plan.billingOptions || [])
+            ${currentPlan && plan.id !== 'free' && state.user?.hasBillingAccount
+              ? '<button class="button primary" type="button" data-manage-plan="1">Manage my plan</button>'
+              : (plan.billingOptions || [])
               .map((option) => {
                 const buttonLabel = currentPlan && plan.id !== 'free' ? `${option.label} selected` : option.label;
                 return `
@@ -1047,6 +1051,12 @@ async function handleRemovePortfolioHolding(event) {
 }
 
 async function handlePricingClick(event) {
+  const manageButton = event.target.closest('[data-manage-plan]');
+  if (manageButton) {
+    await openBillingPortal();
+    return;
+  }
+
   const button = event.target.closest('[data-plan-id]');
   if (!button) {
     return;
@@ -1054,7 +1064,6 @@ async function handlePricingClick(event) {
 
   const planId = button.dataset.planId;
   const billingCycle = button.dataset.billingCycle || 'monthly';
-  const checkoutUrl = button.dataset.checkoutUrl || '';
 
   if (planId === 'free') {
     document.querySelector('#join')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1063,13 +1072,85 @@ async function handlePricingClick(event) {
     return;
   }
 
-  if (checkoutUrl) {
-    window.open(checkoutUrl, '_blank', 'noopener');
-    elements.couponMessage.textContent = `Checkout opened for ${getPlanLabel(planId)} (${billingCycle}).`;
+  if (!state.user) {
+    document.querySelector('#join')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setAuthMode('signup');
+    setAuthMessage(`Create a free account (or sign in) first, then choose ${getPlanLabel(planId)}.`);
     return;
   }
 
-  elements.couponMessage.textContent = `Add your Stripe checkout link for ${getPlanLabel(planId)} in the admin page before going live.`;
+  if (state.user.role === 'admin') {
+    elements.couponMessage.textContent = 'You are signed in as admin. Sign in with a member account to test payments.';
+    return;
+  }
+
+  button.disabled = true;
+  elements.couponMessage.textContent = 'Opening secure checkout…';
+  try {
+    const result = await apiPost('/api/billing/checkout', {
+      planId,
+      billingCycle,
+      couponCode: state.couponCode || '',
+    });
+    window.location.href = result.url;
+  } catch (error) {
+    elements.couponMessage.textContent = error.message || 'Checkout could not start. Please try again.';
+    button.disabled = false;
+  }
+}
+
+async function openBillingPortal() {
+  elements.couponMessage.textContent = 'Opening your billing page…';
+  try {
+    const result = await apiPost('/api/billing/portal', {});
+    window.location.href = result.url;
+  } catch (error) {
+    elements.couponMessage.textContent = error.message || 'Your billing page could not open. Please try again.';
+  }
+}
+
+/* After Stripe sends the member back: confirm the payment and refresh their plan. */
+async function handleCheckoutReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const outcome = params.get('checkout');
+  if (!outcome) {
+    return;
+  }
+  window.history.replaceState({}, '', `${window.location.pathname}#membership`);
+
+  if (outcome === 'cancelled') {
+    elements.couponMessage.textContent = 'Checkout was cancelled. You have not been charged.';
+    return;
+  }
+
+  const sessionId = params.get('session_id');
+  if (outcome === 'success' && sessionId && state.user) {
+    elements.couponMessage.textContent = 'Confirming your payment…';
+    try {
+      const result = await apiPost('/api/billing/confirm', { sessionId });
+      if (result.user) {
+        state.user = result.user;
+      }
+      elements.couponMessage.textContent = result.upgraded
+        ? `Thank you! You're now on ${getPlanLabel(result.planId)}. Everything it includes is unlocked.`
+        : result.message || 'Your payment is processing. Your plan will update shortly.';
+    } catch (error) {
+      elements.couponMessage.textContent = `${error.message || 'We could not confirm the payment yet.'} If you were charged, your plan will update within a few minutes.`;
+    }
+    window.setTimeout(() => document.querySelector('#membership')?.scrollIntoView({ block: 'start' }), 800);
+  }
+}
+
+function renderPlanStatusNote() {
+  const status = state.user?.planStatus;
+  if (status === 'past_due') {
+    return '<div class="pricing-note" style="color:var(--down)">Your last payment did not go through. Please update your card in "Manage my plan".</div>';
+  }
+  if (status === 'cancelling') {
+    const ends = state.user?.planRenewsAt ? ` on ${formatDate(state.user.planRenewsAt)}` : ' at the end of this billing period';
+    return `<div class="pricing-note">Your plan is cancelled and ends${escapeHtml(ends)}.</div>`;
+  }
+  return '';
 }
 
 async function handleSaveArticleClick(event) {

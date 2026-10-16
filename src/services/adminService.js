@@ -61,6 +61,10 @@ export async function getAdminDashboard() {
       newsdataConfigured: Boolean(envSettings.NEWSDATA_API_KEY),
       marketstackConfigured: Boolean(envSettings.MARKETSTACK_API_KEY),
       searchVisible: String(envSettings.SEARCH_VISIBLE || '').toLowerCase() === 'yes',
+      stripeKeyMode: String(envSettings.STRIPE_SECRET_KEY || '').startsWith('sk_live_')
+        ? 'live'
+        : String(envSettings.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? 'test' : envSettings.STRIPE_SECRET_KEY ? 'unknown' : 'off',
+      stripeWebhookConfigured: Boolean(envSettings.STRIPE_WEBHOOK_SECRET),
       stripeRegularMonthlyConfigured: Boolean(envSettings.STRIPE_REGULAR_MONTHLY_URL),
       stripeRegularAnnualConfigured: Boolean(envSettings.STRIPE_REGULAR_ANNUAL_URL),
       stripePremiumMonthlyConfigured: Boolean(envSettings.STRIPE_PREMIUM_MONTHLY_URL),
@@ -220,6 +224,12 @@ export async function saveAdminSettings(payload) {
   }
   if (payload.newsdataKey !== undefined) {
     envChanges.NEWSDATA_API_KEY = payload.newsdataKey;
+  }
+  if (payload.stripeSecretKey) {
+    envChanges.STRIPE_SECRET_KEY = String(payload.stripeSecretKey).trim();
+  }
+  if (payload.stripeWebhookSecret) {
+    envChanges.STRIPE_WEBHOOK_SECRET = String(payload.stripeWebhookSecret).trim();
   }
   if (payload.searchVisible !== undefined) {
     envChanges.SEARCH_VISIBLE = payload.searchVisible ? 'yes' : 'no';

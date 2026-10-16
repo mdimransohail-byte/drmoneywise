@@ -1,7 +1,57 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 
-// ── In-memory sessions — simple and reliable ──────────────────────────────
-const sessions = new Map();
+/* ════════════════════════════════════════════════════════════════════════
+   SIGN-IN SESSIONS — saved on the Railway volume (data/sessions.json)
+   ───────────────────────────────────────────────────────────────────────
+   Previously sessions lived only in memory, so every redeploy signed
+   everybody out. Now each session is written to data/sessions.json and
+   reloaded when the server starts.
+
+   A session stores only the member's id (not a copy of their profile), and
+   the member is looked up fresh on every request. That way a plan change
+   (e.g. a Stripe payment upgrading them to Regular) shows up immediately,
+   without the member having to sign out and in again.
+   ════════════════════════════════════════════════════════════════════════ */
+
+const SESSION_DAYS = 30;
+const sessionsPath = path.join(process.cwd(), 'data', 'sessions.json');
+const sessions = loadSessions();
+
+function loadSessions() {
+  const map = new Map();
+  try {
+    const raw = JSON.parse(fs.readFileSync(sessionsPath, 'utf8'));
+    const now = Date.now();
+    for (const [token, session] of Object.entries(raw || {})) {
+      if (session && new Date(session.expiresAt).getTime() > now) {
+        map.set(token, session);
+      }
+    }
+    console.log(`[auth] Restored ${map.size} saved sign-in session(s) from data/sessions.json`);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.log('[auth] No saved sessions yet (data/sessions.json will be created on first sign-in)');
+    } else {
+      console.error('[auth] Could not read data/sessions.json, starting with no sessions:', error.message);
+    }
+  }
+  return map;
+}
+
+// Written straight away (the file is small) so a redeploy moments after
+// someone signs in still keeps their session.
+function saveSessionsSoon() {
+  try {
+    fs.mkdirSync(path.dirname(sessionsPath), { recursive: true });
+    const tmp = `${sessionsPath}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(Object.fromEntries(sessions)), 'utf8');
+    fs.renameSync(tmp, sessionsPath);
+  } catch (error) {
+    console.error('[auth] Could not save data/sessions.json:', error.message);
+  }
+}
 
 // ── Admin credentials come directly from Railway environment variables ─────
 function getAdminEmail() {
@@ -9,6 +59,25 @@ function getAdminEmail() {
 }
 function getAdminPassword() {
   return (process.env.ADMIN_PASSWORD || 'ChangeMe123!').trim();
+}
+
+function buildAdminUser() {
+  return {
+    id: 'admin',
+    email: getAdminEmail(),
+    name: 'Dr MoneyWise Admin',
+    role: 'admin',
+    plan: 'premium',
+    billingCycle: 'annual',
+    regions: ['global'],
+    region: 'global',
+    interests: ['equities', 'etfs', 'fixed-income'],
+    watchlist: ['SPY', 'QQQ', 'GLD'],
+    portfolio: [],
+    savedArticleSlugs: [],
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+  };
 }
 
 // ── Sign in ───────────────────────────────────────────────────────────────
@@ -22,22 +91,7 @@ export async function signInMember(payload) {
 
   // Admin login — checks env vars directly, no database involved
   if (email === getAdminEmail() && password === getAdminPassword()) {
-    const adminUser = {
-      id: 'admin',
-      email: getAdminEmail(),
-      name: 'Dr MoneyWise Admin',
-      role: 'admin',
-      plan: 'premium',
-      billingCycle: 'annual',
-      regions: ['global'],
-      interests: ['equities', 'etfs', 'fixed-income'],
-      watchlist: ['SPY', 'QQQ', 'GLD'],
-      portfolio: [],
-      savedArticleSlugs: [],
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-    };
-    return createSession(adminUser);
+    return createSession('admin', buildAdminUser());
   }
 
   // Member login — uses store
@@ -56,7 +110,7 @@ export async function signInMember(payload) {
       return draft;
     });
 
-    return createSession(sanitizeUser(user));
+    return createSession(user.id, sanitizeUser(user));
   } catch (err) {
     if (err.message === 'Invalid email or password.') throw err;
     throw new Error('Invalid email or password.');
@@ -71,6 +125,9 @@ export async function signUpMember(payload) {
 
   if (!email || !password || !name) {
     throw new Error('Name, email, and password are required.');
+  }
+  if (password.length < 8) {
+    throw new Error('Please use a password of at least 8 characters.');
   }
 
   const { updateStore } = await import('./storeService.js');
@@ -115,20 +172,23 @@ export async function signUpMember(payload) {
   });
 
   const user = created.users.find((u) => u.email === email);
-  return createSession(sanitizeUser(user));
+  return createSession(user.id, sanitizeUser(user));
 }
 
 // ── Session management ────────────────────────────────────────────────────
-function createSession(user) {
+function createSession(userId, user) {
   const token = crypto.randomBytes(24).toString('hex');
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  sessions.set(token, { user, expiresAt });
-  // Clean up old sessions periodically
-  if (sessions.size > 1000) {
-    for (const [key, val] of sessions) {
-      if (new Date(val.expiresAt).getTime() < Date.now()) sessions.delete(key);
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  sessions.set(token, { userId, expiresAt, createdAt: new Date().toISOString() });
+
+  // Tidy up expired sessions now and then
+  if (sessions.size % 50 === 0) {
+    const now = Date.now();
+    for (const [key, value] of sessions) {
+      if (new Date(value.expiresAt).getTime() < now) sessions.delete(key);
     }
   }
+  saveSessionsSoon();
   return { token, expiresAt, user };
 }
 
@@ -138,9 +198,24 @@ export async function getSessionUser(token) {
   if (!session) return null;
   if (new Date(session.expiresAt).getTime() < Date.now()) {
     sessions.delete(token);
+    saveSessionsSoon();
     return null;
   }
-  return session.user;
+
+  if (session.userId === 'admin') {
+    return buildAdminUser();
+  }
+
+  const { readStore } = await import('./storeService.js');
+  const store = await readStore();
+  const user = store.users.find((u) => u.id === session.userId);
+  if (!user) {
+    // Member was deleted — end the session.
+    sessions.delete(token);
+    saveSessionsSoon();
+    return null;
+  }
+  return sanitizeUser(user);
 }
 
 export async function requireSessionUser(token) {
@@ -156,12 +231,14 @@ export async function requireAdminUser(token) {
 }
 
 export async function signOutSession(token) {
-  if (token) sessions.delete(token);
+  if (token && sessions.delete(token)) {
+    saveSessionsSoon();
+  }
 }
 
 // ── These are kept for compatibility but do nothing now ───────────────────
 export async function ensureAdminUser() { return; }
-export async function createSession2(userId) { return; }
+export async function createSession2() { return; }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 export function sanitizeUser(user) {
@@ -173,6 +250,9 @@ export function sanitizeUser(user) {
     role: user.role,
     plan: user.plan,
     billingCycle: user.billingCycle || 'monthly',
+    planStatus: user.planStatus || (user.plan && user.plan !== 'free' ? 'active' : 'free'),
+    planRenewsAt: user.planRenewsAt || null,
+    hasBillingAccount: Boolean(user.stripeCustomerId),
     regions: user.regions && user.regions.length ? user.regions : user.region ? [user.region] : ['global'],
     region: user.region || (user.regions && user.regions[0]) || 'global',
     interests: user.interests || ['equities', 'etfs', 'fixed-income'],
