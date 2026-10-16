@@ -15,6 +15,7 @@
 
 import { readStore } from './storeService.js';
 import { getArticleBySlug, publishDueArticles } from './articleService.js';
+import { INFO_PAGES, LEGAL_UPDATED } from '../data/legalPages.js';
 
 const TOPIC_LABELS = {
   equities: 'Stocks',
@@ -89,6 +90,7 @@ export async function buildSitemapXml(origin) {
   const urls = [
     { loc: `${origin}/`, lastmod: today, priority: '1.0' },
     { loc: `${origin}/learn`, lastmod: today, priority: '0.8' },
+    ...Object.keys(INFO_PAGES).map((slug) => ({ loc: `${origin}/${slug}`, lastmod: today, priority: '0.3' })),
     ...articles.map((article) => ({
       loc: `${origin}/learn/${encodeURIComponent(article.slug)}`,
       lastmod: String(article.updatedAt || article.publishAt || today).slice(0, 10),
@@ -247,6 +249,41 @@ export async function renderArticlePage(template, slug, origin) {
   return html;
 }
 
+/* ── About, Contact, Disclaimer, Privacy, Terms ─────────────────────── */
+export function isInfoPage(slug) {
+  return Object.prototype.hasOwnProperty.call(INFO_PAGES, slug);
+}
+
+export function renderInfoPage(slug, origin) {
+  const page = INFO_PAGES[slug];
+  const head = buildHeadTags({
+    title: `${page.title} | Dr MoneyWise`,
+    description: page.description,
+    canonical: `${origin}/${slug}`,
+  });
+  const showDate = ['disclaimer', 'privacy', 'terms'].includes(slug);
+  const sections = page.sections
+    .map((section) => `
+          <h2 style="font-size:24px;margin:30px 0 8px">${escapeHtml(section.heading)}</h2>
+          ${section.paragraphs.map((text) => `<p>${linkEmails(escapeHtml(text))}</p>`).join('\n          ')}`)
+    .join('');
+  const body = `
+      <section class="block">
+        <div class="article-layout" style="max-width:820px;margin:0 auto">
+          <h1 class="article-title">${escapeHtml(page.title)}</h1>
+          ${showDate ? `<p class="helper-note">Last updated ${escapeHtml(LEGAL_UPDATED)}</p>` : ''}
+          <p style="font-size:19px;color:var(--ink-2)">${linkEmails(escapeHtml(page.intro))}</p>
+          <div class="article-body">${sections}
+          </div>
+        </div>
+      </section>`;
+  return pageShell({ head, body, active: '' });
+}
+
+function linkEmails(html) {
+  return html.replace(/([a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,})/giu, '<a href="mailto:$1">$1</a>');
+}
+
 /* ── 404 page ────────────────────────────────────────────────────────── */
 export function renderNotFound() {
   const head = '<title>Page not found | Dr MoneyWise</title>\n    <meta name="robots" content="noindex" />';
@@ -304,8 +341,11 @@ function pageShell({ head, body, active }) {
         <div class="foot-grid">
           <a class="brand" href="/">Dr MoneyWise</a>
           <div class="foot-links">
-            <a href="mailto:hello@drmoneywise.com">Contact</a>
-            <a href="/#membership">Membership</a>
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
+            <a href="/disclaimer">Disclaimer</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
           </div>
         </div>
         <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>

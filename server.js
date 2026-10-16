@@ -45,6 +45,8 @@ import {
   renderArticlePage,
   renderHomePage,
   renderLearnIndex,
+  renderInfoPage,
+  isInfoPage,
   renderNotFound,
   robotsHeaderFor,
 } from './src/services/seoService.js';
@@ -457,6 +459,10 @@ async function handlePublicPage(requestUrl, request, response) {
   if (pathname === '/' || pathname === '/index' || pathname === '/index.html') {
     const template = await readFile(path.join(publicDir, 'index.html'), 'utf8');
     return sendHtml(response, 200, await renderHomePage(template, origin));
+  }
+
+  if (isInfoPage(pathname.slice(1))) {
+    return sendHtml(response, 200, renderInfoPage(pathname.slice(1), origin));
   }
 
   if (pathname === '/learn') {
