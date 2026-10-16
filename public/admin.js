@@ -136,6 +136,8 @@ const API = {
   toggleCoupon:        (id) => API.post('/api/admin/coupons/toggle', { id }),
   saveSettings:        (b)  => API.post('/api/admin/settings', b),
   backup:              ()   => API.get('/api/admin/backup'),
+  dataStatus:          ()   => API.get('/api/admin/data-status'),
+  dataRun:             (job) => API.post('/api/admin/data-run', { job }),
   getBusinessSettings: ()   => API.get('/api/admin/business-settings'),
   saveBusinessSettings:(b)  => API.post('/api/admin/business-settings', b),
 };
@@ -1085,6 +1087,13 @@ const apiRows = [
           <div id="backupMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
         </div>
 
+        <!-- DATA ENGINE -->
+        <div class="card" id="dataEngineCard">
+          <div class="card-title">Data engine</div>
+          ${renderDataEngineRows(STATE.dataStatus)}
+          <div id="dataMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
+        </div>
+
         <!-- SEARCH ENGINES -->
         <div class="card">
           <div class="card-title">Search engines (Google, Bing)</div>
@@ -1151,10 +1160,28 @@ const apiRows = [
   `;
 }
 
+function renderDataEngineRows(status) {
+  if (!status) return '<p style="font-size:.78rem;color:#9eb3cc">Status unavailable.</p>';
+  const c = status.counts || {};
+  const when = (iso) => (iso ? new Date(iso).toLocaleString() : 'never');
+  const colour = (r) => (r === 'ok' ? '#2bc48a' : r === 'skipped' ? '#e8a33d' : r === 'failed' ? '#f26a6a' : '#9eb3cc');
+  return `
+    <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Saved so far: ${c.companies || 0} of ${c.universe || 0} companies · ${c.economyFigures || 0} economy figures · ${c.prices || 0} prices. Runs automatically; use Run now to test.</p>
+    ${(status.jobs || []).map((job) => `
+      <div class="api-row" style="align-items:flex-start">
+        <div class="api-dot" style="background:${colour(job.lastResult)};margin-top:5px"></div>
+        <div class="api-label">${h(job.label)}
+          <div class="api-hint">${job.running ? 'Running now…' : `Last run: ${h(when(job.lastRunAt))} — ${h(job.lastResult || 'not yet')}`}${job.lastMessage ? `<br/>${h(job.lastMessage)}` : ''}</div>
+        </div>
+        <div class="api-val" style="flex:0 0 auto"><button class="btn btn-ghost btn-sm" data-run-job="${h(job.name)}" ${job.running ? 'disabled' : ''}>Run now</button></div>
+      </div>`).join('')}`;
+}
+
 async function load_settings() {
   setMain('<div class="loading">Loading settings…</div>');
   try {
-    const [dashRes, coupRes] = await Promise.all([ API.dashboard(), API.listCoupons() ]);
+    const [dashRes, coupRes, dataRes] = await Promise.all([ API.dashboard(), API.listCoupons(), API.dataStatus().catch(() => null) ]);
+    STATE.dataStatus = dataRes;
     STATE.dashboard = dashRes;
     STATE.coupons   = coupRes.coupons || coupRes || [];
     setMain(render_settings());
@@ -1165,6 +1192,25 @@ async function load_settings() {
 }
 
 function bind_settings() {
+  // Data engine: Run now
+  qs('#dataEngineCard')?.addEventListener('click', async (event) => {
+    const btn = event.target.closest('[data-run-job]');
+    if (!btn) return;
+    const msg = qs('#dataMsg');
+    btn.disabled = true;
+    try {
+      await API.dataRun(btn.dataset.runJob);
+      if (msg) msg.textContent = 'Started. Company financials take 2–3 minutes; this box refreshes by itself.';
+      const refresh = async (tries) => {
+        STATE.dataStatus = await API.dataStatus().catch(() => STATE.dataStatus);
+        const card = qs('#dataEngineCard');
+        if (card) card.innerHTML = '<div class="card-title">Data engine</div>' + renderDataEngineRows(STATE.dataStatus) + '<div id="dataMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>';
+        if (tries > 0 && (STATE.dataStatus?.jobs || []).some((j) => j.running)) setTimeout(() => refresh(tries - 1), 5000);
+      };
+      setTimeout(() => refresh(60), 2000);
+    } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; btn.disabled = false; }
+  });
+
   // Search engines on/off
   qs('#toggleSearchBtn')?.addEventListener('click', async () => {
     const msg = qs('#searchMsg');

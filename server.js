@@ -32,6 +32,7 @@ import { saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggle
 import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
+import { getDataStatus, runJob, startDataEngine } from './src/services/dataEngine.js';
 import {
   confirmCheckoutSession,
   createCheckoutSession,
@@ -398,6 +399,20 @@ export const server = http.createServer(async (request, response) => {
       });
     }
 
+    // ── Data engine (Admin → APIs & More → Data engine) ────────────────
+    if (requestUrl.pathname === '/api/admin/data-status' && request.method === 'GET') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, await getDataStatus());
+    }
+
+    if (requestUrl.pathname === '/api/admin/data-run' && request.method === 'POST') {
+      await requireAdminUser(token);
+      const body = await parseJsonBody(request);
+      // Runs in the background — the company job takes a couple of minutes.
+      runJob(String(body.job || ''), { manual: true }).catch((error) => console.error('[data] Run now failed:', error.message));
+      return sendJson(response, 200, { started: true });
+    }
+
     if (requestUrl.pathname.startsWith('/api/')) {
       return sendJson(response, 404, {
         error: 'API route not found. Restart the website after uploading the latest server files.',
@@ -424,6 +439,7 @@ export const server = http.createServer(async (request, response) => {
 
 server.listen(PORT, () => {
   console.log(`${APP_NAME} is running at http://localhost:${PORT}`);
+  startDataEngine();
 });
 
 /**
