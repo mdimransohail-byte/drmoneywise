@@ -12,11 +12,11 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 export const ECONOMY_SERIES = [
-  { id: 'CPIAUCSL', key: 'inflation', label: 'Inflation (prices vs a year ago)', kind: 'yoy', unit: '%' },
-  { id: 'FEDFUNDS', key: 'interestRate', label: 'US central bank interest rate', kind: 'level', unit: '%' },
-  { id: 'DGS10', key: 'tenYearYield', label: '10-year US government bond yield', kind: 'level', unit: '%' },
-  { id: 'MORTGAGE30US', key: 'mortgageRate', label: '30-year US mortgage rate', kind: 'level', unit: '%' },
-  { id: 'UNRATE', key: 'unemployment', label: 'US unemployment rate', kind: 'level', unit: '%' },
+  { id: 'CPIAUCSL', key: 'inflation', label: 'Inflation (vs a year ago)', kind: 'yoy', unit: '%' },
+  { id: 'FEDFUNDS', key: 'interestRate', label: 'US interest rate (Fed)', kind: 'level', unit: '%' },
+  { id: 'DGS10', key: 'tenYearYield', label: '10-year US bond yield', kind: 'level', unit: '%' },
+  { id: 'MORTGAGE30US', key: 'mortgageRate', label: '30-year mortgage rate', kind: 'level', unit: '%' },
+  { id: 'UNRATE', key: 'unemployment', label: 'US unemployment', kind: 'level', unit: '%' },
 ];
 
 function parseFredCsv(text) {

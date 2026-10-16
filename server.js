@@ -33,6 +33,7 @@ import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
 import { getDataStatus, runJob, startDataEngine } from './src/services/dataEngine.js';
+import { renderInfographicPreview } from './src/services/previewService.js';
 import {
   confirmCheckoutSession,
   createCheckoutSession,
@@ -479,6 +480,10 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (isInfoPage(pathname.slice(1))) {
     return sendHtml(response, 200, renderInfoPage(pathname.slice(1), origin));
+  }
+
+  if (pathname === '/preview/infographics') {
+    return sendHtml(response, 200, await renderInfographicPreview(requestUrl.searchParams.get('ticker')));
   }
 
   if (pathname === '/learn') {

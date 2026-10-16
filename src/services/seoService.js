@@ -296,7 +296,7 @@ export function renderNotFound() {
 }
 
 /* ── Shared header + footer for server-built pages ──────────────────── */
-function pageShell({ head, body, active }) {
+export function pageShell({ head, body, active }) {
   const nav = [
     ['today', '/#today', 'Today'],
     ['learn', '/learn', 'Learn'],
