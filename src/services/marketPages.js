@@ -14,11 +14,12 @@ import { readEconomy } from './dataEngine.js';
 import { economyTilesHtml } from './infographicService.js';
 import { getLiveHeadlines } from './newsService.js';
 import { buildHeadTags, pageShell } from './seoService.js';
+import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 
 /* ── TradingView widgets ─────────────────────────────────────────────── */
-function iframeWidget(script, config, height) {
+export function iframeWidget(script, config, height) {
   return `<div class="tv-box" style="height:${height}px">
           <div class="tradingview-widget-container" style="height:100%;width:100%">
             <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
@@ -151,8 +152,10 @@ export async function renderToday(origin) {
     ? `<ul class="plain-list">${figures.map((fig) => `<li><strong>${esc(fig.label)}:</strong> ${esc(ECONOMY_MEANING[fig.key]?.(fig.value) || '')}</li>`).join('')}</ul>`
     : '';
 
+  const photo = await getPhoto('page:today', PAGE_PHOTO_QUERIES.today);
   const body = `
       <section class="block">
+        ${photoFigure(photo, 'Stock market screen', 'page-photo wide')}
         <p class="dateline-dark">${esc(today)}</p>
         <h1 style="font-size:38px;margin:0 0 10px">Markets today</h1>
         <p class="lede-dark">The day’s prices, the economy and the biggest money stories, in plain English.</p>
@@ -190,7 +193,7 @@ export async function renderToday(origin) {
 }
 
 /* ── /top-10/crypto ──────────────────────────────────────────────────── */
-export function renderCryptoTop10(origin) {
+export async function renderCryptoTop10(origin) {
   const month = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const head = buildHeadTags({
     title: `Top 10 Crypto by Size — ${month}, explained simply | Dr MoneyWise`,
@@ -207,8 +210,10 @@ export function renderCryptoTop10(origin) {
             <p class="pick-safety"><span class="risk-meter ${coin.type === 'stablecoin' ? 'mid' : 'high'}">Risk: ${esc(coin.risk)}</span></p>
           </li>`).join('');
 
+  const photo = await getPhoto('page:top10-crypto', PAGE_PHOTO_QUERIES['top10-crypto']);
   const body = `
       <section class="block">
+        ${photoFigure(photo, 'A Bitcoin coin', 'page-photo wide')}
         <p class="dateline-dark">Top 10 · ${esc(month)}</p>
         <h1 style="font-size:38px;margin:0 0 10px">Top 10 crypto by size</h1>
         <p class="lede-dark">The biggest cryptocurrencies, ranked live by their total value (price × number of coins).</p>

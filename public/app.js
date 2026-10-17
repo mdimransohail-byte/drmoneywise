@@ -227,16 +227,8 @@ function bindHeaderEvents() {
   elements.headerSearchInput?.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    if (elements.lookupInput) elements.lookupInput.value = elements.headerSearchInput.value.trim();
-    elements.lookupForm?.requestSubmit();
-    document.querySelector('#lookup')?.scrollIntoView({ block: 'start' });
-  });
-  elements.lookupForm?.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const query = elements.lookupInput.value.trim();
-    elements.lookupMessage.textContent = query
-      ? `Company pages are being added now. "${query}" will be searchable soon.`
-      : 'Type a company name or ticker, e.g. Apple or AAPL.';
+    const query = elements.headerSearchInput.value.trim();
+    window.location.href = query ? `/stocks?q=${encodeURIComponent(query)}` : '/stocks';
   });
 }
 

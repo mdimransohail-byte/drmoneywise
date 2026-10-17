@@ -36,6 +36,7 @@ import { getDataStatus, runJob, startDataEngine } from './src/services/dataEngin
 import { renderInfographicPreview } from './src/services/previewService.js';
 import { renderDividendTop10, renderEtfTop10, renderTop10Hub } from './src/services/top10Pages.js';
 import { renderCryptoTop10, renderToday } from './src/services/marketPages.js';
+import { findCompanyPath, renderStockPage, renderStocksIndex } from './src/services/stockPages.js';
 import {
   confirmCheckoutSession,
   createCheckoutSession,
@@ -484,12 +485,29 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, renderInfoPage(pathname.slice(1), origin));
   }
 
+  if (pathname === '/stocks') {
+    const q = requestUrl.searchParams.get('q') || '';
+    const direct = q ? await findCompanyPath(q) : null;
+    if (direct) {
+      response.writeHead(302, { Location: direct });
+      response.end();
+      return true;
+    }
+    return sendHtml(response, 200, await renderStocksIndex(origin, q));
+  }
+
+  const stockMatch = pathname.match(/^\/stock\/([A-Za-z0-9.\-]{1,10})$/u);
+  if (stockMatch) {
+    const html = await renderStockPage(origin, decodeURIComponent(stockMatch[1]));
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
+  }
+
   if (pathname === '/today') {
     return sendHtml(response, 200, await renderToday(origin));
   }
 
   if (pathname === '/top-10/crypto') {
-    return sendHtml(response, 200, renderCryptoTop10(origin));
+    return sendHtml(response, 200, await renderCryptoTop10(origin));
   }
 
   if (pathname === '/top-10') {

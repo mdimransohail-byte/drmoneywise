@@ -96,6 +96,7 @@ export async function buildSitemapXml(origin) {
     { loc: `${origin}/top-10/etfs`, lastmod: today, priority: '0.8' },
     { loc: `${origin}/top-10/crypto`, lastmod: today, priority: '0.8' },
     { loc: `${origin}/today`, lastmod: today, priority: '0.9' },
+    { loc: `${origin}/stocks`, lastmod: today, priority: '0.7' },
     ...Object.keys(INFO_PAGES).map((slug) => ({ loc: `${origin}/${slug}`, lastmod: today, priority: '0.3' })),
     ...articles.map((article) => ({
       loc: `${origin}/learn/${encodeURIComponent(article.slug)}`,
@@ -103,6 +104,12 @@ export async function buildSitemapXml(origin) {
       priority: '0.6',
     })),
   ];
+  try {
+    const { stockSitemapEntries } = await import('./stockPages.js');
+    urls.push(...(await stockSitemapEntries(origin)));
+  } catch (error) {
+    console.error('[seo] Company pages left out of sitemap:', error.message);
+  }
   const body = urls
     .map((url) => `  <url><loc>${escapeXml(url.loc)}</loc><lastmod>${url.lastmod}</lastmod><priority>${url.priority}</priority></url>`)
     .join('\n');
@@ -140,7 +147,7 @@ function injectHead(html, headTags) {
   return html
     .replace(/<title>[\s\S]*?<\/title>/u, '')
     .replace(/<meta\s+name="description"[\s\S]*?\/>/u, '')
-    .replace('</head>', `    ${headTags}\n  </head>`);
+    .replace('</head>', () => `    ${headTags}\n  </head>`);
 }
 
 /* ── Homepage: head tags + latest explainers already in the page ────── */
@@ -161,10 +168,8 @@ export async function renderHomePage(template, origin) {
   html = await injectTopTenPanels(html);
   html = await injectPulse(html);
   if (articles.length) {
-    html = html.replace(
-      '<div id="learningPoints" class="explain"></div>',
-      `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>`,
-    );
+    const listHtml = `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>`;
+    html = html.replace('<div id="learningPoints" class="explain"></div>', () => listHtml);
   }
   return html;
 }
@@ -195,8 +200,11 @@ export async function renderLearnIndex(origin) {
   const list = articles.length
     ? `<div class="explain">${articles.map(renderExplainItem).join('')}</div>`
     : '<p class="empty-note">New explainers are on their way. Check back soon.</p>';
+  const { getPhoto, photoFigure, PAGE_PHOTO_QUERIES } = await import('./imageService.js');
+  const photo = await getPhoto('page:learn', PAGE_PHOTO_QUERIES.learn);
   const body = `
       <section class="block">
+        ${photoFigure(photo, 'Reading and learning about money', 'page-photo wide')}
         <div class="block-head">
           <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with real-life examples. ${articles.length} explainer${articles.length === 1 ? '' : 's'} so far.</p></div>
         </div>
@@ -250,10 +258,13 @@ export async function renderArticlePage(template, slug, origin) {
           </header>
           <div class="article-body-stack"><div class="article-body">${sections}</div></div>`;
 
+  const articleHtml = `<article id="articleContainer" class="article-layout" data-slug="${escapeAttr(slug)}">${prerendered}
+        </article>`;
   const html = injectHead(template, head).replace(
     /<article id="articleContainer" class="article-layout">[\s\S]*?<\/article>/u,
-    `<article id="articleContainer" class="article-layout" data-slug="${escapeAttr(slug)}">${prerendered}\n        </article>`,
+    () => articleHtml,
   );
+
   return html;
 }
 
@@ -300,7 +311,7 @@ async function injectPulse(html) {
     if (!pulse) return html;
     return html.replace(
       /(<div id="marketPulse" class="pulse" aria-label="Markets today">)[\s\S]*?(<\/div>\s*<\/div>\s*<\/section>)/u,
-      `$1\n            ${pulse}\n          $2`,
+      (match, open, close) => `${open}\n            ${pulse}\n          ${close}`,
     );
   } catch (error) {
     console.error('[home] Markets box could not be filled:', error.message);
@@ -345,8 +356,7 @@ async function injectTopTenPanels(html) {
             </article>`;
     return html.replace(
       /(<div id="topTenPanels" class="tens">)[\s\S]*?(<article class="ten crypto">)/u,
-      `$1${dividendPanel}${etfPanel}
-            $2`,
+      (match, open, close) => `${open}${dividendPanel}${etfPanel}\n            ${close}`,
     );
   } catch (error) {
     console.error('[top10] Homepage panels could not be filled:', error.message);
@@ -371,7 +381,7 @@ export function pageShell({ head, body, active }) {
     ['today', '/today', 'Today'],
     ['learn', '/learn', 'Learn'],
     ['top10', '/top-10', 'Top 10s'],
-    ['stocks', '/#lookup', 'Stocks'],
+    ['stocks', '/stocks', 'Stocks'],
     ['tools', '/#tools', 'Tools'],
     ['membership', '/#membership', 'Membership'],
   ];

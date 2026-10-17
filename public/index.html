@@ -22,7 +22,7 @@
           <a href="/today">Today</a>
           <a href="/learn">Learn</a>
           <a href="/top-10">Top 10s</a>
-          <a href="#lookup">Stocks</a>
+          <a href="/stocks">Stocks</a>
           <a href="#tools">Tools</a>
           <a href="#membership">Membership</a>
         </nav>
@@ -41,7 +41,7 @@
         <a href="/today">Today</a>
         <a href="/learn">Learn</a>
         <a href="/top-10">Top 10s</a>
-        <a href="#lookup">Stocks</a>
+        <a href="/stocks">Stocks</a>
         <a href="#tools">Tools</a>
         <a href="#membership">Membership</a>
       </nav>
@@ -143,12 +143,12 @@
             <div class="finder">
               <h2>Look up a company</h2>
               <p>See what it does, whether it's growing, its debt and its dividend, explained simply.</p>
-              <form id="lookupForm">
+              <form id="lookupForm" method="get" action="/stocks" role="search">
                 <label class="sr-only" for="lookupInput">Company name or ticker</label>
-                <input id="lookupInput" type="search" placeholder="Company name or ticker, e.g. Apple" />
+                <input id="lookupInput" name="q" type="search" placeholder="Company name or ticker, e.g. Apple" />
                 <button type="submit">Look up</button>
               </form>
-              <p id="lookupMessage" class="soon">Company pages are being added now.</p>
+              <p id="lookupMessage" class="soon">Popular: <a href="/stock/AAPL" style="color:#fff">Apple</a> · <a href="/stock/KO" style="color:#fff">Coca-Cola</a> · <a href="/stock/MSFT" style="color:#fff">Microsoft</a> · <a href="/stocks" style="color:#fff">All companies</a></p>
             </div>
             <div class="surface">
               <h2 class="sr-only">Money calculators</h2>

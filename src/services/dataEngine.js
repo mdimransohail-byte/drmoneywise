@@ -40,6 +40,7 @@ const JOBS = {
   companies: { label: 'Company financials (SEC)', every: 7 * 24 * HOUR },
   prices: { label: 'End-of-day prices (Marketstack)', every: 20 * HOUR },
   top10: { label: 'Top 10 lists (rebuilt monthly)', every: 20 * HOUR },
+  photos: { label: 'Photos for explainers (Pexels)', every: 20 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 const FIRST_CHECK_AFTER_MS = 60 * 1000;
@@ -184,7 +185,12 @@ async function runTop10({ manual = false } = {}) {
   return rebuildTop10({ force: manual });
 }
 
-const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10 };
+async function runPhotos() {
+  const { attachMissingArticlePhotos } = await import('./imageService.js');
+  return attachMissingArticlePhotos();
+}
+
+const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {
