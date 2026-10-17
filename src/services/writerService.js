@@ -40,11 +40,10 @@ export async function summarizeNewsItem(item) {
     sourceNotes,
   });
 
-  const generated = await requestStructuredWriting(writer, prompt).catch(() => null);
-  const sanitized = sanitizeGeneratedContent(generated);
+  const { sanitized, used } = await writeWithFallback(writer, prompt, false);
   return {
-    writerSlot: sanitized ? writer.slot : 'local-fallback',
-    provider: sanitized ? writer.provider : 'local-fallback',
+    writerSlot: sanitized ? used.slot : 'local-fallback',
+    provider: sanitized ? used.provider : 'local-fallback',
     ...(sanitized || createLocalNewsDraft(item)),
   };
 }
@@ -63,11 +62,10 @@ export async function createLearningArticleFromTopic(topic, accessTier = 'free',
     sourceNotes,
   });
 
-  const generated = await requestStructuredWriting(writer, prompt).catch(() => null);
-  const sanitized = sanitizeGeneratedContent(generated);
+  const { sanitized, used } = await writeWithFallback(writer, prompt, Boolean(forceProvider));
   return {
-    writerSlot: sanitized ? writer.slot : 'local-fallback',
-    provider: sanitized ? writer.provider : 'local-fallback',
+    writerSlot: sanitized ? used.slot : 'local-fallback',
+    provider: sanitized ? used.provider : 'local-fallback',
     ...(sanitized || createLocalLearningDraft(topic, accessTier, region, interest)),
   };
 }
@@ -265,6 +263,29 @@ async function getNextWriter(forceProvider = '') {
     provider,
     model: process.env[MODEL_ENV_KEYS[provider]] || '',
   };
+}
+
+/* If the writer whose turn it is has no key or fails, try every other
+   writer that has a key saved (Claude, OpenAI, Gemini, Perplexity) before
+   giving up. Before this, a site with only one key failed every other
+   turn of the OpenAI → Claude rotation. A manual pick (forced) is not
+   swapped for another writer. */
+const KEY_ENV = { openai: 'OPENAI_API_KEY', claude: 'CLAUDE_API_KEY', perplexity: 'PERPLEXITY_API_KEY', gemini: 'GEMINI_API_KEY' };
+
+async function writeWithFallback(writer, prompt, forced = false) {
+  const order = [writer, ...(forced ? [] : ['claude', 'openai', 'gemini', 'perplexity']
+    .filter((p) => p !== writer.provider && process.env[KEY_ENV[p]])
+    .map((p) => ({ slot: p, provider: p, model: process.env[MODEL_ENV_KEYS[p]] || '' })))];
+  for (const attempt of order) {
+    const generated = await requestStructuredWriting(attempt, prompt).catch(() => null);
+    const sanitized = sanitizeGeneratedContent(generated);
+    if (sanitized) {
+      if (attempt !== writer) console.log(`[writerService] Written by ${attempt.provider} instead (${writer.provider} unavailable).`);
+      return { sanitized, used: attempt };
+    }
+  }
+  console.error(`[writerService] No writing service answered (tried: ${order.map((o) => o.provider).join(', ')}). Check the keys in Admin → APIs & More.`);
+  return { sanitized: null, used: writer };
 }
 
 async function requestStructuredWriting(writer, prompt) {

@@ -185,9 +185,10 @@ async function topUpTrendingLearningPool() {
   // top-up and double-writing the store.
   if (topUpInFlight) {
     console.log('[articleService] Learning Points top-up already running — skipping this trigger.');
-    return;
+    return { written: 0, busy: true };
   }
   topUpInFlight = true;
+  let written = 0;
 
   try {
     const store = await readStore();
@@ -202,7 +203,7 @@ async function topUpTrendingLearningPool() {
 
     if (gap <= 0) {
       console.log(`[articleService] Learning Points pool is full (${currentCount} eligible) — nothing to generate.`);
-      return;
+      return { written: 0, full: true };
     }
 
     console.log(`[articleService] Generating ${gap} trending Learning Point(s) in the background…`);
@@ -210,11 +211,13 @@ async function topUpTrendingLearningPool() {
     for (let i = 0; i < gap; i += 1) {
       const generated = await autoGenerateTrendingLearningPoint({ accessTier: 'free', region: 'global' });
       if (!generated) {
-        console.warn('[articleService] Ran out of trending topics while topping up Learning Points — homepage may show fewer than 10 until more news comes in.');
+        console.warn('[articleService] Stopped topping up: no topic, or the writing service did not answer (see the line above).');
         break;
       }
+      written += 1;
       console.log(`[articleService] Generated trending Learning Point: "${generated.headline}"`);
     }
+    return { written, wanted: gap };
   } finally {
     topUpInFlight = false;
   }
@@ -745,8 +748,9 @@ export function getPlanCatalog() {
 export async function runLearningAutopilot() {
   const active = await getActiveLearningPoints();
   // Between changes, keep writing (max 4 per run) until 10 are waiting.
+  let topUp = { written: 0 };
   try {
-    await topUpTrendingLearningPool();
+    topUp = (await topUpTrendingLearningPool()) || topUp;
   } catch (error) {
     console.error('[articleService] Autopilot top-up failed:', error.message);
   }
@@ -757,8 +761,9 @@ export async function runLearningAutopilot() {
   const nextRotation = store.meta?.learningRotation?.lastRotatedAt
     ? new Date(new Date(store.meta.learningRotation.lastRotatedAt).getTime() + LEARNING_ROTATION_INTERVAL_MS).toISOString()
     : null;
+  const writeFailed = topUp.wanted > 0 && topUp.written === 0;
   return {
-    ok: active.length > 0,
-    message: `${active.length} explainers on the homepage, ${waiting} waiting for the next change${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
+    ok: active.length > 0 && !writeFailed,
+    message: `${writeFailed ? 'Could not write new explainers — check the writing-service keys (Railway log lines starting [writerService] say why). ' : topUp.written ? `Wrote ${topUp.written} new. ` : ''}${active.length} explainers on the homepage, ${waiting} waiting for the next change${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
   };
 }
