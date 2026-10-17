@@ -534,16 +534,19 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
   const interest = guessInterestFromTopic(topic.label);
 
   // Give the writer the real headline for context, not just the bare phrase.
-  const brief = topic.sampleHeadline && topic.sampleHeadline !== topic.label
-    ? `${topic.label} — explain for everyday savers what this means for their money. Context: ${topic.sampleHeadline}`
-    : topic.label;
+  // The topic is the headline idea; the latest figure goes in as context
+  // (passing both as the headline made writers copy the instructions into it).
+  const context = topic.sampleHeadline && topic.sampleHeadline !== topic.label ? topic.sampleHeadline : '';
   const generated = await createLearningArticleFromTopic(
-    brief,
+    topic.label,
     'free', // forces the simple-language prompt — see note above
     region,
     interest,
     '',
+    context,
   );
+  // Belt and braces: drop any instruction text a writer copied into the headline.
+  generated.headline = String(generated.headline || topic.label).replace(/\s+[—-]\s+explain for everyday savers.*$/iu, '').trim();
 
   // If no writing service answered, the writer returns a basic placeholder.
   // Never save those — try again next run.

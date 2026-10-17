@@ -48,11 +48,12 @@ export async function summarizeNewsItem(item) {
   };
 }
 
-export async function createLearningArticleFromTopic(topic, accessTier = 'free', region = 'global', interest = 'equities', forceProvider = '') {
+export async function createLearningArticleFromTopic(topic, accessTier = 'free', region = 'global', interest = 'equities', forceProvider = '', context = '') {
   const writer = await getNextWriter(forceProvider);
   const sourceNotes = [
     `Region: ${region}`,
     `Interest: ${interest}`,
+    ...(context ? [`Latest official figure to explain: ${context}`, 'Explain what this means for everyday savers and borrowers. Keep the headline short (under 90 characters).'] : []),
     'This is an original explainer topic with no external news source — write it as a standalone piece on this topic.',
   ].join(' ');
 
@@ -427,7 +428,9 @@ async function callClaude(model, prompt) {
       // didn't have WRITER_A_MODEL/WRITER_B_MODEL set in .env. Current
       // default: claude-sonnet-5.
       model: model || 'claude-sonnet-5',
-      max_tokens: 1200,
+      // 1200 was too small: long explainers were cut off mid-JSON
+      // ("Provider did not return valid JSON" in the logs).
+      max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -460,16 +463,36 @@ function parseResponseText(payload) {
   return parseJson(text);
 }
 
+/* Reads the JSON object out of a writer's reply. Copes with ```json fences,
+   text before/after the object, and stops at the object's real closing
+   brace (the old "first { to last }" grab broke when the reply had extra
+   text with braces after it). */
 function parseJson(rawText) {
+  const text = String(rawText || '').replace(/```(?:json)?/giu, '').trim();
   try {
-    return JSON.parse(rawText);
-  } catch {
-    const match = rawText.match(/\{[\s\S]*\}/u);
-    if (!match) {
-      throw new Error('Provider did not return valid JSON.');
+    return JSON.parse(text);
+  } catch { /* fall through */ }
+  const start = text.indexOf('{');
+  if (start < 0) throw new Error('Provider did not return valid JSON (no object found).');
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
     }
-    return JSON.parse(match[0]);
+    if (ch === '"') inString = true;
+    else if (ch === '{') depth += 1;
+    else if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) return JSON.parse(text.slice(start, i + 1));
+    }
   }
+  throw new Error(`Provider did not return valid JSON (reply cut off after ${text.length} characters).`);
 }
 
 function createLocalNewsDraft(item) {
