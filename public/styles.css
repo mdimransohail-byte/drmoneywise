@@ -429,3 +429,78 @@ a.ten.hub:hover { border-color: var(--navy); }
   html { scroll-behavior: auto; }
   .skeleton { animation: none; }
 }
+
+/* ── Money calculators (/tools) ────────────────────────────────────── */
+.calc-list a { display: block; color: inherit; text-decoration: none; }
+.calc-list a:hover strong { text-decoration: underline; }
+.crumbs { font-size: 14px; color: var(--ink-2); margin: 0 0 10px; }
+.crumbs a { color: var(--ink-2); }
+.calc-top { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; align-items: center; margin-bottom: 20px; }
+.calc-photo img { height: 180px; }
+.calc-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 20px; align-items: start; margin-bottom: 20px; }
+.calc-form { display: grid; gap: 14px; }
+.calc-field label { display: block; font-weight: 600; color: var(--navy); margin-bottom: 4px; font-size: 16px; }
+.calc-field select, .calc-input { width: 100%; height: 48px; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; font: inherit; box-sizing: border-box; }
+.calc-field select { padding: 0 12px; }
+.calc-input { display: flex; align-items: center; padding: 0 12px; gap: 6px; }
+.calc-input:focus-within { outline: 2px solid var(--gold); outline-offset: 1px; }
+.calc-input input { border: 0; outline: 0; font: inherit; flex: 1; min-width: 0; height: 100%; background: transparent; }
+.calc-unit { color: var(--ink-2); font-size: 15px; white-space: nowrap; }
+.calc-hint { font-size: 14px; color: var(--ink-2); margin: 4px 0 0; }
+.calc-tax { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px 14px; display: grid; gap: 12px; margin: 0; }
+.calc-tax legend { font-weight: 700; color: var(--navy); padding: 0 6px; }
+.calc-check { display: flex; gap: 8px; align-items: center; font-size: 16px; cursor: pointer; }
+.calc-check input { width: 20px; height: 20px; accent-color: var(--navy); }
+.calc-out { position: sticky; top: 90px; }
+.calc-results { margin: 0; display: grid; gap: 0; }
+.calc-results > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.calc-results dt { color: var(--ink-2); }
+.calc-results dd { margin: 0; font-weight: 600; text-align: right; white-space: nowrap; }
+.calc-results .main dt { color: var(--navy); font-weight: 600; }
+.calc-results .main dd { font: 700 24px/1.2 var(--serif); color: var(--navy); }
+.calc-sentence { background: var(--tint); border-radius: var(--radius-md); padding: 12px 14px; margin: 14px 0 0; font-size: 16px; }
+.calc-chart { display: flex; align-items: flex-end; gap: 6px; height: 200px; margin-top: 18px; padding-bottom: 22px; position: relative; }
+.calc-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+.calc-bar { width: 100%; max-width: 44px; display: flex; flex-direction: column; border-radius: 4px 4px 0 0; overflow: hidden; min-height: 2px; }
+.calc-growth { background: var(--gold); display: block; min-height: 0; }
+.calc-paid { background: var(--navy); display: block; min-height: 0; }
+.calc-year { position: absolute; bottom: -22px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.calc-legend { font-size: 14px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; margin: 8px 0 0; }
+.calc-legend .key { display: inline-block; width: 14px; height: 14px; border-radius: 3px; }
+.calc-legend .key.growth { background: var(--gold); }
+.calc-legend .key.paid { background: var(--navy); margin-left: 10px; }
+.calc-notes { margin-bottom: 20px; }
+.calc-notes ul { padding-left: 20px; margin: 0 0 10px; }
+.calc-notes li { margin-bottom: 6px; }
+.calc-others { list-style: none; padding: 0; margin: 0; }
+.calc-others li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.calc-others li:last-child { border-bottom: 0; }
+.calc-others a { font-weight: 600; color: var(--navy); }
+.calc-others span { color: var(--ink-2); font-size: 15px; margin-left: 6px; }
+@media (max-width: 860px) {
+  .calc-top, .calc-grid { grid-template-columns: 1fr; }
+  .calc-photo { display: none; }
+  .calc-out { position: static; }
+  .calc-results .main dd { font-size: 20px; }
+}
+
+/* ── Glossary (/glossary) ──────────────────────────────────────────── */
+.gloss-search input { width: 100%; max-width: 480px; height: 48px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 0 14px; font: inherit; box-sizing: border-box; }
+.gloss-jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 8px; }
+.gloss-jump a { display: inline-flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); color: var(--navy); font-weight: 700; text-decoration: none; }
+.gloss-jump a:hover { background: var(--navy); color: #fff; }
+.gloss-letter { scroll-margin-top: 90px; }
+.gloss-letter h2 { font-size: 28px; border-bottom: 2px solid var(--gold); padding-bottom: 4px; margin: 26px 0 6px; }
+.gloss-letter dl { margin: 0; }
+.gloss-letter dl > div { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.gloss-letter dt a { font-weight: 700; color: var(--navy); font-size: 18px; }
+.gloss-letter dd { margin: 2px 0 0; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gloss-term { max-width: 760px; }
+.gloss-plain { font: 400 22px/1.5 var(--serif); color: var(--ink); margin: 0 0 18px; }
+.gloss-example h2, .gloss-related h2 { font-size: 20px; margin: 0 0 6px; }
+.gloss-example p { margin: 0; }
+.gloss-related { margin-top: 20px; }
+.gloss-related ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.gloss-related a { display: inline-block; padding: 6px 12px; border-radius: 999px; background: var(--paper); border: 1px solid var(--line); color: var(--navy); text-decoration: none; font-weight: 600; }
+.gloss-pager { display: flex; justify-content: space-between; gap: 10px; margin-top: 24px; font-weight: 600; }
+.gloss-pager a { color: var(--navy); }

@@ -37,6 +37,7 @@ import { renderInfographicPreview } from './src/services/previewService.js';
 import { renderDividendTop10, renderEtfTop10, renderTop10Hub } from './src/services/top10Pages.js';
 import { renderCryptoTop10, renderToday } from './src/services/marketPages.js';
 import { findCompanyPath, renderStockPage, renderStocksIndex } from './src/services/stockPages.js';
+import { renderCalculator, renderGlossaryIndex, renderGlossaryTerm, renderToolsHub } from './src/services/toolsPages.js';
 import {
   confirmCheckoutSession,
   createCheckoutSession,
@@ -520,6 +521,26 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (pathname === '/top-10/etfs') {
     return sendHtml(response, 200, await renderEtfTop10(origin));
+  }
+
+  if (pathname === '/tools') {
+    return sendHtml(response, 200, await renderToolsHub(origin));
+  }
+
+  const toolMatch = pathname.match(/^\/tools\/([a-z-]{1,40})$/u);
+  if (toolMatch) {
+    const html = await renderCalculator(origin, toolMatch[1]);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
+  }
+
+  if (pathname === '/glossary') {
+    return sendHtml(response, 200, await renderGlossaryIndex(origin));
+  }
+
+  const glossMatch = pathname.match(/^\/glossary\/([a-z0-9-]{1,60})$/u);
+  if (glossMatch) {
+    const html = await renderGlossaryTerm(origin, glossMatch[1]);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
   }
 
   if (pathname === '/preview/infographics') {

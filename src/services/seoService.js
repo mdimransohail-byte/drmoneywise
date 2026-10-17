@@ -105,6 +105,12 @@ export async function buildSitemapXml(origin) {
     })),
   ];
   try {
+    const { toolsSitemapEntries } = await import('./toolsPages.js');
+    urls.push(...toolsSitemapEntries(origin));
+  } catch (error) {
+    console.error('[seo] Calculators and glossary left out of sitemap:', error.message);
+  }
+  try {
     const { stockSitemapEntries } = await import('./stockPages.js');
     urls.push(...(await stockSitemapEntries(origin)));
   } catch (error) {
@@ -383,7 +389,7 @@ export function pageShell({ head, body, active }) {
     ['learn', '/learn', 'Learn'],
     ['top10', '/top-10', 'Top 10s'],
     ['stocks', '/stocks', 'Stocks'],
-    ['tools', '/#tools', 'Tools'],
+    ['tools', '/tools', 'Tools'],
     ['membership', '/#membership', 'Membership'],
   ];
   const links = nav
