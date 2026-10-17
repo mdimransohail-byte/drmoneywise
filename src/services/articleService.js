@@ -519,7 +519,7 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
   const store = await readStore();
   const recentTopics = store.articles
     .filter((article) => article.contentType === 'learning' && article.source === 'trending-auto' && article.trendingTopic)
-    .slice(-15)
+    .slice(-200) // topics list cycles through everything before repeating
     .map((article) => article.trendingTopic);
 
   const topic = await pickTrendingLearningTopic({ excludeTopics: recentTopics });
@@ -532,7 +532,7 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
 
   // Give the writer the real headline for context, not just the bare phrase.
   const brief = topic.sampleHeadline && topic.sampleHeadline !== topic.label
-    ? `${topic.label} — explain for everyday savers what this means for their money. Today's headline: "${topic.sampleHeadline}"`
+    ? `${topic.label} — explain for everyday savers what this means for their money. Context: ${topic.sampleHeadline}`
     : topic.label;
   const generated = await createLearningArticleFromTopic(
     brief,

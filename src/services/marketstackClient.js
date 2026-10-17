@@ -117,6 +117,12 @@ export async function getLatestPrices(tickers) {
     return { prices: {}, quota: getQuotaStatus(), source: 'none' };
   }
 
+  // Free plan = "Non-Commercial Use" (marketstack.com/pricing, checked
+  // 17 Oct 2026). Never call it from the live site until the paid plan is on.
+  if (getMonthlyLimit() < 1000) {
+    return { prices: {}, quota: getQuotaStatus(), source: 'free-plan-off' };
+  }
+
   const now = Date.now();
   const prices = {};
   const staleTickers = [];

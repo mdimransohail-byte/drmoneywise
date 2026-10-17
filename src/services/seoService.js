@@ -157,6 +157,20 @@ function injectHead(html, headTags) {
 }
 
 /* ── Homepage: head tags + latest explainers already in the page ────── */
+/* Without a paid news plan, the homepage shows TradingView's licensed news
+   widget instead of API headlines, and the "News by topic" block is hidden. */
+async function injectNewsWidget(html) {
+  const { newsFeedMode } = await import('./newsService.js');
+  if (newsFeedMode() !== 'widget') return html;
+  const { newsWidget } = await import('./marketPages.js');
+  let out = html.replace(/<div class="news">[\s\S]*?<div id="briefBoard" class="story-list"><\/div>\s*<\/div>/u, () => `<div class="news-widget">${newsWidget(520)}</div>
+          <div hidden><a id="briefFeatured" href="#"></a><div id="briefBoard"></div></div>`);
+  out = out.replace('<span id="feedState" class="subtle-chip">Loading</span>', () => '<span id="feedState" class="subtle-chip" hidden>Live</span>');
+  out = out.replace('<section id="topics" class="block">', () => '<section id="topics" class="block" hidden>');
+  out = out.replace('<p>The biggest money news, linked to the original source.</p>', () => '<p>The biggest money news right now, from TradingView’s news feed.</p>');
+  return out;
+}
+
 export async function renderHomePage(template, origin) {
   const articles = (await getPublishedLearningArticles()).slice(0, 10);
   const head = buildHeadTags({
@@ -173,6 +187,7 @@ export async function renderHomePage(template, origin) {
   let html = injectHead(template, head);
   html = await injectTopTenPanels(html);
   html = await injectPulse(html);
+  html = await injectNewsWidget(html);
   if (articles.length) {
     const listHtml = `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>`;
     html = html.replace('<div id="learningPoints" class="explain"></div>', () => listHtml);
@@ -436,6 +451,7 @@ export function pageShell({ head, body, active }) {
           </div>
         </div>
         <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
+        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury and Freddie Mac. Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
       </div>
     </footer>
   </body>

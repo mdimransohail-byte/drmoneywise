@@ -5,13 +5,15 @@
    free TradingView widgets (they load in the visitor's browser, so they use
    none of our data allowance). TradingView's own credit link must stay
    visible under each widget — that is the condition of free use.
-   Economy figures (FRED) and headlines (our news feed) are built on the
-   server so Google can read them.
+   Economy figures (official sources, see economyService.js) are built on
+   the server so Google can read them. News comes from TradingView's free
+   news widget unless a paid news plan is switched on (NEWS_API_PLAN=paid).
    ════════════════════════════════════════════════════════════════════════ */
 
 import { CRYPTO_BASICS, CRYPTO_GUIDE, CRYPTO_REVIEWED_ON } from '../data/cryptoGuide.js';
 import { readEconomy } from './dataEngine.js';
 import { economyTilesHtml } from './infographicService.js';
+import { ECONOMY_CREDITS } from './economyService.js';
 import { getLiveHeadlines } from './newsService.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
@@ -29,6 +31,14 @@ export function iframeWidget(script, config, height) {
             </script>
           </div>
         </div>`;
+}
+
+/** TradingView's free news feed (licensed for websites with its credit link). */
+export function newsWidget(height = 520) {
+  return iframeWidget('embed-widget-timeline.js', {
+    feedMode: 'all_symbols', colorTheme: 'light', isTransparent: false,
+    displayMode: 'regular', width: '100%', height: '100%', locale: 'en',
+  }, height);
 }
 
 function tickerTape() {
@@ -145,9 +155,10 @@ export async function renderToday(origin) {
     ? economyTilesHtml({
       title: 'The economy at a glance',
       figures: figures.map((fig) => ({ ...fig })),
-      source: `Source: FRED, Federal Reserve Bank of St. Louis${updatedAt ? `, checked ${updatedAt.slice(0, 10)}` : ''}`,
+      source: `Sources: US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac${updatedAt ? `; retrieved ${updatedAt.slice(0, 10)}` : ''}. Credits below.`,
     })
     : '';
+  const credits = `<details class="credits"><summary>Data sources and credits</summary><ul>${ECONOMY_CREDITS.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></details>`;
   const meanings = figures.length
     ? `<ul class="plain-list">${figures.map((fig) => `<li><strong>${esc(fig.label)}:</strong> ${esc(ECONOMY_MEANING[fig.key]?.(fig.value) || '')}</li>`).join('')}</ul>`
     : '';
@@ -169,12 +180,13 @@ export async function renderToday(origin) {
 
       <section class="block">
         <div class="block-head"><div><h2>Top stories</h2><p>The biggest money news right now, linked to the original source.</p></div></div>
-        ${stories}
+        ${news.mode === 'widget' ? newsWidget(560) : stories}
       </section>
 
       <section class="block">
         ${economy}
         ${meanings}
+        <div id="credits">${figures.length ? credits : ''}</div>
       </section>
 
       <section class="block">
@@ -257,5 +269,5 @@ export async function renderHomePulse() {
     return `<div class="pulse-row"><span class="pulse-name">${esc(fig.label)}</span><span class="pulse-move flat">${arrow} ${esc(value)}</span><span class="pulse-plain">${esc(ECONOMY_MEANING[fig.key]?.(fig.value) || '')}</span></div>`;
   }).join('');
   return `${rows}
-            <div class="pulse-foot">Source: FRED${updatedAt ? `, ${esc(updatedAt.slice(0, 10))}` : ''}. <a href="/today">See today's markets</a></div>`;
+            <div class="pulse-foot">Sources: BLS, New York Fed, Freddie Mac${updatedAt ? `, retrieved ${esc(updatedAt.slice(0, 10))}` : ''}. <a href="/today#credits">Credits</a> · <a href="/today">See today's markets</a></div>`;
 }

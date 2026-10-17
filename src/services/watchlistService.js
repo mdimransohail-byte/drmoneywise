@@ -37,10 +37,11 @@ export async function getWatchlistSnapshot({ tickers = [] } = {}) {
     // No live/cached price available for this ticker (no API key yet, quota
     // exhausted, or the symbol wasn't found) — demo-style placeholder so the
     // UI still has something sensible to render.
+    // (No made-up notes or alerts — just say the price isn't available.)
     return {
       ticker,
-      note: index % 2 === 0 ? 'Momentum is improving.' : 'Wait for confirmation from the next headline.',
-      alert: index % 3 === 0 ? 'high' : 'medium',
+      note: source === 'free-plan-off' ? 'Daily prices switch on soon. Open the company page to see its chart.' : 'Price not available right now.',
+      alert: null,
     };
   });
 

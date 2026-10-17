@@ -2,17 +2,16 @@
    DATA ENGINE — fetches market data on a schedule, saves it to the volume
    ───────────────────────────────────────────────────────────────────────
    Jobs (all automatic once the server is running):
-     economy    daily    FRED: inflation, interest rates, jobs, mortgages
+     economy    daily    BLS, NY Fed, Treasury, Freddie Mac: inflation, rates, jobs, mortgages
      companies  weekly   SEC: yearly financials for every company in
                          src/data/stockUniverse.js
+     funds      weekly   SEC 13F: what ~20 big funds hold (members' section)
      learning   6 hours  rotates homepage explainers every 2 days and
                          writes new ones (checked first, see qualityService)
      health     daily    site health check, emailed if a Resend key is saved
-     prices     daily    Marketstack end-of-day prices. On the FREE plan
-                         (100 calls/month) this only runs when you press
-                         "Run now" in Admin, for the dividend shortlist —
-                         it switches to daily automatically once
-                         MARKETSTACK_MONTHLY_LIMIT is 10000 (paid Basic).
+     prices     daily    Marketstack end-of-day prices — ONLY on the paid
+                         Basic plan (free plan is non-commercial). Turns on
+                         by itself once MARKETSTACK_MONTHLY_LIMIT is 10000.
 
    Saved files (Railway volume, survive redeploys):
      data/market/economy.json, companies.json, prices.json, jobs.json
@@ -39,11 +38,12 @@ const FILES = {
 
 const HOUR = 60 * 60 * 1000;
 const JOBS = {
-  economy: { label: 'Economy numbers (FRED)', every: 20 * HOUR },
+  economy: { label: 'Economy numbers (BLS, NY Fed, Treasury, Freddie Mac)', every: 20 * HOUR },
   companies: { label: 'Company financials (SEC)', every: 7 * 24 * HOUR },
   prices: { label: 'End-of-day prices (Marketstack)', every: 20 * HOUR },
   top10: { label: 'Top 10 lists (rebuilt monthly)', every: 20 * HOUR },
   photos: { label: 'Photos for explainers (Pexels)', every: 20 * HOUR },
+  funds: { label: 'Big-fund holdings (SEC 13F)', every: 7 * 24 * HOUR },
   learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
 };
@@ -70,7 +70,13 @@ async function writeJson(file, data) {
 
 export const readEconomy = () => readJson(FILES.economy, { updatedAt: null, figures: {} });
 export const readCompanies = () => readJson(FILES.companies, { updatedAt: null, companies: {} });
-export const readPrices = () => readJson(FILES.prices, { updatedAt: null, prices: {} });
+// Marketstack's FREE plan is "Non-Commercial Use" (checked 17 Oct 2026), so
+// prices are only shown once the paid Basic plan is on
+// (MARKETSTACK_MONTHLY_LIMIT >= 1000). Until then pages rank by sales /
+// years of dividend raises and show TradingView's price widgets instead.
+export const readPrices = async () => (isPaidPriceTier()
+  ? readJson(FILES.prices, { updatedAt: null, prices: {} })
+  : { updatedAt: null, prices: {} });
 
 async function readJobs() {
   return readJson(FILES.jobs, {});
@@ -138,8 +144,8 @@ async function runPrices({ manual = false } = {}) {
   if (!process.env.MARKETSTACK_API_KEY) {
     return { ok: false, skipped: true, message: 'Skipped — no Marketstack key saved in Admin' };
   }
-  if (!manual && !isPaidPriceTier()) {
-    return { ok: false, skipped: true, message: 'Skipped — free Marketstack plan; press "Run now" to fetch the dividend shortlist (about 40 calls)' };
+  if (!isPaidPriceTier()) {
+    return { ok: false, skipped: true, message: 'Off — Marketstack\'s free plan is for non-commercial use only. Prices switch on with the Basic plan ($9.99/mo) + MARKETSTACK_MONTHLY_LIMIT=10000' };
   }
   const tickers = await priceTickers();
   if (!tickers.length) {
@@ -195,6 +201,11 @@ async function runPhotos() {
   return attachMissingArticlePhotos();
 }
 
+async function runFunds() {
+  const { refreshFunds } = await import('./fundsService.js');
+  return refreshFunds();
+}
+
 async function runLearning() {
   const { runLearningAutopilot } = await import('./articleService.js');
   return runLearningAutopilot();
@@ -210,7 +221,7 @@ async function runHealth() {
   return { ok: !sent.skipped ? sent.ok : true, message: `${report.summary.ok} OK, ${report.summary.warn} to check, ${report.summary.fail} problems. ${sent.message}` };
 }
 
-const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, learning: runLearning, health: runHealth };
+const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

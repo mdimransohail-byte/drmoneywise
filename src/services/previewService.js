@@ -66,7 +66,7 @@ export async function renderInfographicPreview(requestedTicker) {
 
   const figs = Object.values(economy.figures || {});
   const econ = figs.length
-    ? economyTiles({ title: 'The economy at a glance', figures: figs, source: `Source: FRED, Federal Reserve Bank of St. Louis${economy.updatedAt ? `, checked ${economy.updatedAt.slice(0, 10)}` : ''}` })
+    ? economyTiles({ title: 'The economy at a glance', figures: figs, source: `Sources: BLS, New York Fed, US Treasury, Freddie Mac${economy.updatedAt ? `, checked ${economy.updatedAt.slice(0, 10)}` : ''}` })
     : '<p class="empty-note">No economy data yet.</p>';
 
   const head = '<title>Infographic preview | Dr MoneyWise</title>\n    <meta name="robots" content="noindex, nofollow" />';

@@ -22,10 +22,24 @@ const ASSET_KEYWORDS = {
   crypto: ['crypto', 'bitcoin', 'ethereum', 'digital assets'],
 };
 
+/* ════════════════════════════════════════════════════════════════════════
+   NEWS LICENCE SWITCH (checked 17 Oct 2026)
+   Free plans of NewsData.io and Marketaux are not clearly licensed for a
+   commercial site (Marketaux's terms say "personal, non-commercial use";
+   NewsData points commercial users to its paid plan). So by default the
+   site shows news through TradingView's free news widget (allowed with
+   TradingView's credit) and does NOT call the news APIs.
+   When you buy a paid news plan, set NEWS_API_PLAN=paid (Admin → Health
+   shows the switch) and the API-based headlines come back on.
+   ════════════════════════════════════════════════════════════════════════ */
+export function newsFeedMode() {
+  return String(process.env.NEWS_API_PLAN || '').toLowerCase() === 'paid' ? 'api' : 'widget';
+}
+
 export async function getNews({ tier = 'free', regions = ['global'], asset = 'all', query = '' } = {}) {
   const plan = getPlanConfig(tier);
   const limit = plan.articleLimit || plan.newsLimit || 12;
-  const liveResult = await fetchLiveNews({ regions, asset, limit });
+  const liveResult = newsFeedMode() === 'api' ? await fetchLiveNews({ regions, asset, limit }) : { provider: null, items: [] };
   // No made-up sample stories: if every news feed fails, show nothing
   // (the pages say "stories are loading") rather than invented headlines.
   const sourceItems = liveResult.items;
@@ -95,6 +109,9 @@ const LIVE_HEADLINES_LIMIT = 20;
 let liveHeadlinesCache = null; // { payload, fetchedAt }
 
 export async function getLiveHeadlines() {
+  if (newsFeedMode() === 'widget') {
+    return { mode: 'widget', provider: 'TradingView widget', updatedAt: new Date().toISOString(), items: [] };
+  }
   const now = Date.now();
 
   if (liveHeadlinesCache && now - liveHeadlinesCache.fetchedAt < LIVE_HEADLINES_CACHE_TTL_MS) {
@@ -182,6 +199,9 @@ const INTEREST_HEADLINES_LIMIT = 5;
 const interestHeadlinesCache = new Map(); // "interestId:region1,region2" -> { items, fetchedAt }
 
 export async function getInterestHeadlines(interestId, regions = []) {
+  if (newsFeedMode() === 'widget') {
+    return { interest: interestId, regions, items: [], mode: 'widget' };
+  }
   const cacheKey = `${interestId}:${[...regions].sort().join(',') || 'global'}`;
   const now = Date.now();
   const cached = interestHeadlinesCache.get(cacheKey);

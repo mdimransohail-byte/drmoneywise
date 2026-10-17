@@ -575,3 +575,11 @@ a.ten.hub:hover { border-color: var(--navy); }
   .sector-table .rank { width: 20px; }
 }
 @media (max-width: 640px) { .sector-table .co strong { white-space: normal; max-width: 150px; line-height: 1.25; } }
+.credits { margin-top: 14px; font-size: 13px; color: var(--ink-2); }
+.credits summary { cursor: pointer; font-weight: 600; }
+.credits ul { padding-left: 18px; margin: 6px 0 0; }
+.foot-credits { font-size: 13px; opacity: .8; margin-top: 8px; }
+.foot-credits a { color: inherit; }
+.members-box h4 { font-size: 17px; margin: 16px 0 6px; }
+.members-box h4 small, .members-table th small { font-weight: 400; color: var(--ink-2); font-size: 13px; }
+.members-table tbody th { white-space: normal; min-width: 150px; }

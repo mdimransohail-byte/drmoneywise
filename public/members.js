@@ -80,6 +80,46 @@
       <table class="fact-table members-balance">${rows.map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join('')}</table>`;
   }
 
+  const pct = (v) => (v === null || v === undefined ? '—' : `${v < 0 ? '−' : ''}${Math.abs(v * 100).toFixed(1)}%`);
+
+  function fundsTable(f) {
+    if (!f || !f.fundsTracked) {
+      return '<h3>What the big funds are doing</h3><p class="helper-note">Fund reports are being collected. Check back soon.</p>';
+    }
+    const rows = (f.rows || []);
+    if (!rows.length) {
+      return `<h3>What the big funds are doing</h3><p>None of the ${f.fundsTracked} big funds we follow reported owning this company in their latest quarterly report.</p>`;
+    }
+    const word = { new: 'Bought (new)', added: 'Bought more', reduced: 'Sold some', sold: 'Sold all', same: 'No change', unknown: '—' };
+    const icon = { new: '▲', added: '▲', reduced: '▼', sold: '▼', same: '●', unknown: '' };
+    const period = rows[0]?.period;
+    const buyers = rows.filter((r) => r.change === 'new' || r.change === 'added').length;
+    const sellers = rows.filter((r) => r.change === 'reduced' || r.change === 'sold').length;
+    return `
+      <h3>What the big funds are doing</h3>
+      <p>${rows.filter((r) => r.change !== 'sold').length} of the ${f.fundsTracked} big funds we follow owned it at the end of the quarter${period ? ` to ${when(period)}` : ''}: <strong>${buyers} bought</strong>, <strong>${sellers} sold</strong>.</p>
+      <div class="table-scroll"><table class="members-table">
+        <thead><tr><th>Fund</th><th class="num">Value held</th><th class="num">Shares</th><th>Last quarter</th><th class="num">Share of the fund</th></tr></thead>
+        <tbody>${rows.map((r) => `<tr><th scope="row">${esc(r.fund)}<br><small>${esc(r.manager)}</small></th><td class="num">${money(r.value)}</td><td class="num">${count(r.shares)}</td><td>${icon[r.change]} ${word[r.change]}</td><td class="num">${r.change === 'sold' ? '—' : pct(r.shareOfFund)}</td></tr>`).join('')}</tbody>
+      </table></div>
+      <p class="helper-note">From each fund's official 13F report to the SEC, filed up to 45 days after the quarter ends, so it shows what they held then, not today. Not a reason to buy or sell on its own.</p>`;
+  }
+
+  function scenariosBlock(list) {
+    const usable = (list || []).filter((x) => x.available);
+    if (!usable.length) return '<h3>"What if" growth scenarios</h3><p class="helper-note">Not enough steady history in the filings to work these out.</p>';
+    const fmt = (x, v) => (x.kind === 'perShare' ? perShare(v) : money(v));
+    return `
+      <h3>"What if" growth scenarios</h3>
+      <p class="note-box warn" style="margin-top:0">These are simple sums, not forecasts. They show where the numbers would be <em>if</em> the company kept growing at its past pace, at half that pace, or not at all. Real results can be very different.</p>
+      ${usable.map((x) => `
+      <h4>${esc(x.label)} <small>(${x.baseYear}: ${fmt(x, x.base)}; past growth ${pct(x.pastRate)} a year over ${x.overYears} years${x.usedRate !== x.pastRate ? `, capped at ${pct(x.usedRate)}` : ''})</small></h4>
+      <div class="table-scroll"><table class="members-table">
+        <thead><tr><th>If it…</th><th class="num">In 1 year</th><th class="num">In 3 years</th><th class="num">In 5 years</th></tr></thead>
+        <tbody>${x.cases.map((c) => `<tr><th scope="row">${esc(c.name)} (${pct(c.rate)} a year)</th>${c.points.map((p) => `<td class="num">${fmt(x, p.value)}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>`).join('')}`;
+  }
+
   fetch(`/api/stock/details?ticker=${encodeURIComponent(box.dataset.ticker)}`, { headers: { 'x-session-token': token } })
     .then(async (res) => {
       const data = await res.json().catch(() => ({}));
@@ -90,7 +130,7 @@
       }
       if (!res.ok) return; // signed out or error: keep the teaser
       content.classList.remove('members-teaser');
-      content.innerHTML = `${yearTable(data)}${quarterTable(data.quarters || {})}${balanceTable(data.balance || {})}
+      content.innerHTML = `${fundsTable(data.funds)}${scenariosBlock(data.scenarios)}<h3 style="margin-top:28px">Full financial results</h3>${yearTable(data)}${quarterTable(data.quarters || {})}${balanceTable(data.balance || {})}
         <p class="helper-note">Source: ${esc(data.source)}. Negative numbers (losses, cash going out) show with a minus sign.</p>`;
     })
     .catch(() => { /* network problem: keep the teaser */ });

@@ -1,0 +1,4 @@
+node_modules
+# Only the live-data folder at the top level (Railway volume) — NOT src/data,
+# which holds site content that must be uploaded.
+/data/

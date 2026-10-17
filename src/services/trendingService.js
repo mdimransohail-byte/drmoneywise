@@ -134,6 +134,8 @@ let refreshInFlight = null; // Promise, so concurrent callers share one fetch
  * current batch. Recomputes at most once every 3 hours.
  */
 export async function getTrendingTopics({ forceRefresh = false } = {}) {
+  // News APIs are off unless a paid (commercial) plan is switched on.
+  if (String(process.env.NEWS_API_PLAN || '').toLowerCase() !== 'paid') return [];
   const now = Date.now();
   if (!forceRefresh && trendingCache && now - trendingCache.fetchedAt < TRENDING_CACHE_TTL_MS) {
     return trendingCache.topics;
@@ -255,6 +257,12 @@ function isUsableTopic(topic) {
 }
 
 export async function pickTrendingLearningTopic({ excludeTopics = [] } = {}) {
+  // Without a paid news plan, explainers come from our own topic list
+  // (src/data/explainerTopics.js), led by this week's economy figures.
+  if (String(process.env.NEWS_API_PLAN || '').toLowerCase() !== 'paid') {
+    const { pickEvergreenTopic } = await import('../data/explainerTopics.js');
+    return pickEvergreenTopic({ excludeTopics });
+  }
   const topics = await getTrendingTopics();
   const excludeSet = new Set(excludeTopics.map((topic) => topic.toLowerCase()));
   const usable = topics.filter(isUsableTopic);

@@ -24,6 +24,7 @@ import { buildHeadTags, pageShell } from './seoService.js';
 import { getDividendTop10 } from './top10Service.js';
 import { SECTORS, SECTORS_REVIEWED, sectorOf } from '../data/sectorLeaders.js';
 import { getCompany, normaliseTicker, readExtraCompanies, searchAllCompanies } from './companyLookup.js';
+import { fundsForTicker } from './fundsService.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 // Company name for display: tidy capitals and drop SEC state tags like "/De/".
@@ -347,10 +348,12 @@ export async function renderStockPage(origin, rawTicker) {
       </section>
 
       <section class="block members-box" id="membersFinancials" data-ticker="${esc(ticker)}">
-        <div class="block-head"><div><h2>Full financial results <span class="members-badge">Members</span></h2>
-          <p>Ten years of results, the latest quarters and the full balance sheet, from ${esc(name)}'s official filings.</p></div></div>
+        <div class="block-head"><div><h2>Deeper look <span class="members-badge">Members</span></h2>
+          <p>What the big funds are doing, "what if" growth scenarios, and ten years of results from ${esc(name)}'s official filings.</p></div></div>
         <div id="membersContent" class="members-teaser">
           <ul class="plain-list">
+            <li><strong>What the big funds are doing:</strong> which of about 20 famous investors (Buffett's Berkshire Hathaway, Bridgewater, Pershing Square and others) own it, and whether they bought or sold last quarter, from their official SEC reports</li>
+            <li><strong>"What if" growth scenarios:</strong> where sales, profit and dividends would be in 1, 3 and 5 years if the company keeps its past pace, slows to half, or stops growing</li>
             <li>Sales, gross profit, operating profit and net profit for up to 10 years</li>
             <li>Earnings per share, cash from operations, investment spending and spare cash each year</li>
             <li>The last few quarters, so you see the newest results first</li>
@@ -382,6 +385,43 @@ export async function renderStockPage(origin, rawTicker) {
   return { status: 200, html: pageShell({ head, body, active: 'stocks' }) };
 }
 
+/* ── "What if" growth scenarios (members) ─────────────────────────────
+   Pure arithmetic on the company's own past figures — NOT a forecast.
+   Growth rate = average yearly growth over up to 5 years (compound),
+   kept between −20% and +30% a year so one odd year can't run away. */
+function cagr(series, maxYears = 5) {
+  const rows = (series || []).filter((r) => Number.isFinite(r.value));
+  if (rows.length < 3) return null;
+  const last = rows.at(-1);
+  const first = rows[Math.max(0, rows.length - 1 - maxYears)];
+  const years = last.year - first.year;
+  if (years < 2 || first.value <= 0 || last.value <= 0) return null;
+  return { rate: Math.pow(last.value / first.value, 1 / years) - 1, years, base: last.value, baseYear: last.year };
+}
+
+export function whatIfScenarios(company) {
+  const make = (label, series, kind) => {
+    const g = cagr(series);
+    if (!g) return { label, kind, available: false };
+    const rate = Math.min(Math.max(g.rate, -0.2), 0.3);
+    const project = (r) => [1, 3, 5].map((n) => ({ years: n, value: g.base * Math.pow(1 + r, n) }));
+    return {
+      label, kind, available: true, pastRate: g.rate, usedRate: rate, overYears: g.years, base: g.base, baseYear: g.baseYear,
+      cases: [
+        { name: 'Keeps its past pace', rate, points: project(rate) },
+        { name: 'Grows at half the pace', rate: rate / 2, points: project(rate / 2) },
+        { name: 'Stops growing', rate: 0, points: project(0) },
+      ],
+    };
+  };
+  return [
+    make('Sales', company.revenue, 'money'),
+    make('Profit', company.netIncome, 'money'),
+    make('Earnings per share', company.eps, 'perShare'),
+    make('Dividend per share', company.dividendsPerShare, 'perShare'),
+  ];
+}
+
 /* ── Members-only numbers (served by /api/stock/details) ─────────────── */
 export async function stockDetailsFor(rawTicker) {
   const company = await getCompany(rawTicker);
@@ -410,6 +450,8 @@ export async function stockDetailsFor(rawTicker) {
   return {
     ticker: company.ticker,
     name: nameOf(company),
+    funds: await fundsForTicker(company.ticker),
+    scenarios: whatIfScenarios(company),
     years: rows,
     quarters: company.quarters || { revenue: [], netIncome: [], eps: [] },
     balance: {

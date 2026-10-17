@@ -30,6 +30,7 @@ const JOB_LIMITS = {
   top10: { warn: 30 * HOUR, fail: 72 * HOUR },
   photos: { warn: 30 * HOUR, fail: 7 * 24 * HOUR },
   learning: { warn: 12 * HOUR, fail: 48 * HOUR },
+  funds: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
   health: { warn: 30 * HOUR, fail: 72 * HOUR },
 };
 
@@ -53,7 +54,7 @@ export async function getHealthReport() {
     const limits = JOB_LIMITS[job.name] || { warn: 30 * HOUR, fail: 72 * HOUR };
     const age = job.lastSuccessAt ? Date.now() - new Date(job.lastSuccessAt).getTime() : Infinity;
     let status = age <= limits.warn ? 'ok' : age <= limits.fail ? 'warn' : 'fail';
-    if (job.name === 'prices' && freePrices) status = job.lastSuccessAt ? 'ok' : 'warn'; // manual-only on free plan
+    if (job.name === 'prices' && freePrices) status = 'ok'; // deliberately off on the free (non-commercial) plan
     if (job.running) status = 'ok';
     add('Data', job.label, status, `${job.running ? 'Running now. ' : ''}Last success ${ago(job.lastSuccessAt)}${job.lastResult && job.lastResult !== 'ok' ? `; last try ${job.lastResult}: ${job.lastMessage || ''}` : ''}`);
   }
@@ -75,7 +76,7 @@ export async function getHealthReport() {
   const active = activeIds.map((id) => store.articles.find((a) => a.id === id)).filter(Boolean);
   add('Content', 'Explainers on the homepage', active.length >= 10 ? 'ok' : active.length >= 5 ? 'warn' : 'fail', `${active.length} of 10`);
   const pool = learning.filter((a) => a.status === 'scheduled').length;
-  add('Content', 'Explainers waiting for the next change', pool >= 3 ? 'ok' : 'warn', `${pool} ready${pool < 3 ? ' — new ones are written automatically when news topics are available' : ''}`);
+  add('Content', 'Explainers waiting for the next change', pool >= 3 ? 'ok' : 'warn', `${pool} ready${pool < 3 ? ' — new ones are written automatically every 6 hours' : ''}`);
   const held = learning.filter((a) => a.status === 'draft' && (a.qualityIssues || []).length);
   add('Content', 'Held for review (failed checks)', held.length ? 'warn' : 'ok', held.length ? `${held.length}: ${held.slice(0, 3).map((a) => `"${a.headline}" — ${a.qualityIssues[0]}`).join('; ')}` : 'None');
   const liveProblems = store.articles
@@ -92,7 +93,14 @@ export async function getHealthReport() {
   const key = (name) => Boolean(process.env[name]);
   const writer = ['CLAUDE_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'PERPLEXITY_API_KEY'].filter(key);
   add('Keys', 'Writing service', writer.length ? 'ok' : 'fail', writer.length ? `${writer.length} key(s) saved` : 'No key saved: explainers cannot be written');
-  add('Keys', 'News feeds', key('NEWSDATA_API_KEY') || key('MARKETAUX_API_KEY') ? 'ok' : 'fail', [key('NEWSDATA_API_KEY') && 'NewsData', key('MARKETAUX_API_KEY') && 'Marketaux'].filter(Boolean).join(' + ') || 'No news key saved');
+  const paidNews = String(process.env.NEWS_API_PLAN || '').toLowerCase() === 'paid';
+  add('Licences', 'News', 'ok', paidNews
+    ? `Paid news plan switched on (${[key('NEWSDATA_API_KEY') && 'NewsData', key('MARKETAUX_API_KEY') && 'Marketaux'].filter(Boolean).join(' + ') || 'no key saved!'})`
+    : 'TradingView news widget (free, allowed with credit). News feeds stay off until a paid plan: set NEWS_API_PLAN=paid');
+  add('Licences', 'Share prices', 'ok', freePrices
+    ? 'Off: Marketstack free plan is non-commercial. Switches on with Basic ($9.99/mo) + MARKETSTACK_MONTHLY_LIMIT=10000'
+    : 'Marketstack paid plan (commercial use allowed)');
+  add('Licences', 'Economy figures', 'ok', 'Official sources with credits shown: BLS, New York Fed, US Treasury, Freddie Mac (not FRED, whose terms bar commercial use)');
   add('Keys', 'Photos (Pexels)', key('PEXELS_API_KEY') ? 'ok' : 'warn', key('PEXELS_API_KEY') ? 'Saved' : 'Not saved: pages show no photos');
   add('Keys', 'Company logos (Logo.dev)', key('LOGO_DEV_KEY') ? 'ok' : 'warn', key('LOGO_DEV_KEY') ? 'Saved' : 'Not saved: initials shown instead');
   add('Keys', 'Prices (Marketstack)', key('MARKETSTACK_API_KEY') ? 'ok' : 'warn', key('MARKETSTACK_API_KEY') ? 'Saved' : 'Not saved');
