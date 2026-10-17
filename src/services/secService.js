@@ -205,7 +205,7 @@ export function summariseCompanyFacts(ticker, factsJson) {
 }
 
 /** "COCA COLA CO" → "Coca Cola Co"; leaves mixed-case names alone. */
-function cleanName(name) {
+export function cleanName(name) {
   const text = String(name || '').trim();
   if (text !== text.toUpperCase()) return text;
   return text

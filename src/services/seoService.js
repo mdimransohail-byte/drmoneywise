@@ -256,6 +256,7 @@ export async function renderArticlePage(template, slug, origin) {
             <div class="article-meta"><span>Dr MoneyWise Team</span><span>${formatDate(article.publishAt)}</span></div>
             <p>${escapeHtml(article.summary || '')}</p>
           </header>
+          ${article.heroImage?.url ? `<figure class="article-hero-image"><img src="${escapeAttr(article.heroImage.url)}" alt="${escapeAttr(article.headline)}" />${article.heroImage.photographer ? `<figcaption>Photo by ${escapeHtml(article.heroImage.photographer)} on Pexels</figcaption>` : ''}</figure>` : ''}
           <div class="article-body-stack"><div class="article-body">${sections}</div></div>`;
 
   const articleHtml = `<article id="articleContainer" class="article-layout" data-slug="${escapeAttr(slug)}">${prerendered}

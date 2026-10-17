@@ -10,12 +10,14 @@
 import { readCompanies, readPrices } from './dataEngine.js';
 import { buildReportCard, formatMoney, formatPercent, RATING_RULES } from './reportCardService.js';
 import { reportCardHtml, yearBarsHtml } from './infographicService.js';
-import { getPhoto, industryQuery, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
+import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
+import { cleanName } from './secService.js';
 import { iframeWidget } from './marketPages.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 import { getDividendTop10 } from './top10Service.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
+const nameOf = (c) => c.displayName || cleanName(c.name || c.ticker);
 const short = (v) => formatMoney(v).replace(' billion', 'bn').replace(' trillion', 'tn').replace(' million', 'm');
 
 function tvSymbol(company) {
@@ -35,7 +37,7 @@ function monthYear(isoDate) {
 /** The "In plain English" paragraph — built only from the numbers. */
 export function plainEnglishSummary(company) {
   const d = company.derived || {};
-  const name = company.displayName || company.name;
+  const name = nameOf(company);
   const sales = company.revenue.at(-1)?.value;
   const profit = company.netIncome.at(-1)?.value;
   const parts = [];
@@ -64,13 +66,49 @@ export function plainEnglishSummary(company) {
   return parts.join(' ');
 }
 
+function initialsOf(name, ticker) {
+  return esc(String(name || ticker).replace(/[^A-Za-z0-9 ]/gu, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || ticker.slice(0, 2));
+}
+
+/** Logo image address at the given pixel size (Logo.dev, by ticker). */
+export function logoUrl(company, size = 128) {
+  const key = String(process.env.LOGO_DEV_KEY || '').trim();
+  if (!key) return '';
+  return `https://img.logo.dev/ticker/${encodeURIComponent(company.ticker.replace('-', '.'))}?token=${encodeURIComponent(key)}&size=${size}&format=png&retina=true`;
+}
+
+/** Big logo card shown at the top right of a company page. */
+function logoCard(company, name) {
+  const initials = initialsOf(name, company.ticker);
+  const src = logoUrl(company, 400);
+  const mark = src
+    ? `<img src="${src}" alt="${esc(name)} logo" width="200" height="200" onerror="this.parentNode.classList.add('initials');this.parentNode.textContent='${initials}'" />`
+    : initials;
+  return `<div class="logo-card">
+          <div class="logo-card-mark${src ? '' : ' initials'}">${mark}</div>
+          <p class="logo-card-name">${esc(name)}</p>
+          <p class="logo-card-meta">${esc(company.exchange || 'US')}: ${esc(company.ticker)}${company.industry ? ` · ${esc(company.industry)}` : ''}</p>
+        </div>`;
+}
+
+/** Company logo from Logo.dev (free, needs LOGO_DEV_KEY), with the
+ *  company's initials as a fallback if no key or no logo is found. */
+export function companyLogo(company, name, size = 'lg') {
+  const initials = esc((name || company.ticker).replace(/[^A-Za-z0-9 ]/gu, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || company.ticker.slice(0, 2));
+  const key = String(process.env.LOGO_DEV_KEY || '').trim();
+  const fallback = `<span class="co-logo ${size} initials" aria-hidden="true">${initials}</span>`;
+  if (!key) return fallback;
+  const src = `https://img.logo.dev/ticker/${encodeURIComponent(company.ticker.replace('-', '.'))}?token=${encodeURIComponent(key)}&size=128&format=png&retina=true`;
+  return `<span class="co-logo ${size}"><img src="${src}" alt="${esc(name)} logo" loading="lazy" width="64" height="64" onerror="this.parentNode.classList.add('initials');this.parentNode.textContent='${initials}'" /></span>`;
+}
+
 /* ── /stocks ─────────────────────────────────────────────────────────── */
 export async function renderStocksIndex(origin, query = '') {
   const { companies } = await readCompanies();
-  const all = Object.values(companies || {}).sort((a, b) => (a.displayName || a.name).localeCompare(b.displayName || b.name));
+  const all = Object.values(companies || {}).sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
   const q = String(query || '').trim().toLowerCase();
   const list = q
-    ? all.filter((c) => c.ticker.toLowerCase().includes(q) || (c.displayName || c.name).toLowerCase().includes(q) || (c.industry || '').toLowerCase().includes(q))
+    ? all.filter((c) => c.ticker.toLowerCase().includes(q) || (nameOf(c)).toLowerCase().includes(q) || (c.industry || '').toLowerCase().includes(q))
     : all;
   const photo = await getPhoto('page:stocks', PAGE_PHOTO_QUERIES.stocks);
   const head = buildHeadTags({
@@ -80,8 +118,8 @@ export async function renderStocksIndex(origin, query = '') {
   });
   const rows = list.map((c) => `
           <a class="stock-row" href="/stock/${encodeURIComponent(c.ticker)}">
-            <span class="pick-ticker">${esc(c.ticker)}</span>
-            <span class="stock-row-name">${esc(c.displayName || c.name)}</span>
+            ${companyLogo(c, nameOf(c), 'sm')}
+            <span class="stock-row-name">${esc(nameOf(c))} <span class="pick-ticker">${esc(c.ticker)}</span></span>
             <span class="stock-row-kind">${esc(c.industry || '')}</span>
           </a>`).join('');
   const body = `
@@ -112,9 +150,9 @@ export async function findCompanyPath(query) {
   const { companies } = await readCompanies();
   const list = Object.values(companies || {});
   const exact = list.find((c) => c.ticker.toLowerCase() === q || c.ticker.replace('-', '.').toLowerCase() === q)
-    || list.find((c) => (c.displayName || c.name).toLowerCase() === q);
+    || list.find((c) => (nameOf(c)).toLowerCase() === q);
   if (exact) return `/stock/${encodeURIComponent(exact.ticker)}`;
-  const starts = list.filter((c) => (c.displayName || c.name).toLowerCase().startsWith(q));
+  const starts = list.filter((c) => (nameOf(c)).toLowerCase().startsWith(q));
   return starts.length === 1 ? `/stock/${encodeURIComponent(starts[0].ticker)}` : null;
 }
 
@@ -125,10 +163,9 @@ export async function renderStockPage(origin, rawTicker) {
   const company = companies?.[ticker];
   if (!company) return null;
 
-  const name = company.displayName || company.name;
+  const name = nameOf(company);
   const ratings = buildReportCard(company);
   const source = `Source: ${name} annual reports filed with the US SEC${updatedAt ? `, checked ${updatedAt.slice(0, 10)}` : ''}`;
-  const photo = await getPhoto(`industry:${industryQuery(company.industry)}`, industryQuery(company.industry));
   const price = prices?.[ticker];
   const d = company.derived || {};
   const dividendRank = dividendList.rows.findIndex((row) => row.ticker === ticker);
@@ -137,7 +174,7 @@ export async function renderStockPage(origin, rawTicker) {
     title: `${name} (${ticker}) explained simply: report card, sales and dividends | Dr MoneyWise`,
     description: `${plainEnglishSummary(company).slice(0, 155)}`,
     canonical: `${origin}/stock/${encodeURIComponent(ticker)}`,
-    image: photo?.url || '',
+    image: logoUrl(company, 400) || '',
   });
 
   const facts = [
@@ -168,7 +205,7 @@ export async function renderStockPage(origin, rawTicker) {
             </div>
             ${dividendRank >= 0 ? `<p class="note-box" style="margin-top:12px">Number ${dividendRank + 1} on this month's <a href="/top-10/dividend-stocks">Top 10 dividend stocks</a>.</p>` : ''}
           </div>
-          ${photoFigure(photo, `${company.industry || 'Business'} photo`)}
+          ${logoCard(company, name)}
         </div>
       </section>
 
@@ -209,7 +246,8 @@ export async function renderStockPage(origin, rawTicker) {
           <ul class="plain-list">${RATING_RULES.map((rule) => `<li>${esc(rule)}</li>`).join('')}</ul>
         </div>
         ${related.length ? `<h2 style="font-size:22px;margin:24px 0 10px">Other ${esc(company.industry.toLowerCase())} companies</h2>
-        <div class="stock-list">${related.map((c) => `<a class="stock-row" href="/stock/${encodeURIComponent(c.ticker)}"><span class="pick-ticker">${esc(c.ticker)}</span><span class="stock-row-name">${esc(c.displayName || c.name)}</span></a>`).join('')}</div>` : ''}
+        <div class="stock-list">${related.map((c) => `<a class="stock-row" href="/stock/${encodeURIComponent(c.ticker)}"><span class="pick-ticker">${esc(c.ticker)}</span><span class="stock-row-name">${esc(nameOf(c))}</span></a>`).join('')}</div>` : ''}
+        ${process.env.LOGO_DEV_KEY ? '<p class="helper-note">Company logos provided by <a href="https://logo.dev" target="_blank" rel="noopener">Logo.dev</a>. Logos belong to their companies and are shown only to identify them.</p>' : ''}
         <p class="note-box">This report card describes the business using its official figures. It is not a recommendation to buy or sell. Read our <a href="/disclaimer">disclaimer</a>.</p>
       </section>`;
   return pageShell({ head, body, active: 'stocks' });
