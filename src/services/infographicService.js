@@ -246,7 +246,7 @@ export function economyTilesHtml({ title, figures = [], source = '' }) {
   const fmt = (fig, v) => `${Number(v).toFixed(fig.kind === 'yoy' ? 1 : 2)}${fig.unit}`;
   const tiles = figures.map((fig) => {
     const diff = fig.previous === null || fig.previous === undefined ? null : fig.value - fig.previous;
-    const move = diff === null || Math.abs(diff) < 0.005 ? '● No change' : diff > 0 ? `▲ Up from ${fmt(fig, fig.previous)}` : `▼ Down from ${fmt(fig, fig.previous)}`;
+    const move = diff === null || fmt(fig, fig.value) === fmt(fig, fig.previous) ? '● No change' : diff > 0 ? `▲ Up from ${fmt(fig, fig.previous)}` : `▼ Down from ${fmt(fig, fig.previous)}`;
     return `<div class="ig-tile"><span>${esc(fig.label)}</span><strong>${esc(fmt(fig, fig.value))}</strong><small>${esc(move)}</small></div>`;
   }).join('');
   return figureWrap(`<div class="ig-tiles">${tiles}</div>`, { title, subtitle: '', source });

@@ -48,7 +48,7 @@ export async function renderTop10Hub(origin) {
         <div class="tens">
           ${card('/top-10/dividend-stocks', 'Dividend stocks', 'Companies that raised their payout 10+ years in a row.', top ? `This month's number 1: ${esc(top.name)} (${esc(top.ticker)}).` : '')}
           ${card('/top-10/etfs', 'ETFs for beginners', 'Simple, broad funds, ranked by lowest yearly fee.', `Cheapest: ${esc(etf.rows[0].ticker)} at $${etf.rows[0].feePer1000.toFixed(2)} a year per $1,000.`)}
-          <article class="ten crypto"><h2>Crypto by size</h2><p class="rule">The 10 largest coins by total value.</p><span class="risk-note">High risk: prices can halve in months</span><p class="meaning">Coming soon.</p></article>
+          <a class="ten hub crypto" href="/top-10/crypto"><h2>Crypto by size</h2><p class="rule">The 10 largest coins by total value, live.</p><span class="risk-note">High risk: prices can halve in months</span><p class="meaning">What each coin is, in plain English, with a risk note.</p><span class="go">See the list</span></a>
         </div>
       </section>`;
   return pageShell({ head, body, active: 'top10' });

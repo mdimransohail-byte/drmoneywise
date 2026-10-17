@@ -35,6 +35,7 @@ import { getPortfolioSnapshot } from './src/services/portfolioService.js';
 import { getDataStatus, runJob, startDataEngine } from './src/services/dataEngine.js';
 import { renderInfographicPreview } from './src/services/previewService.js';
 import { renderDividendTop10, renderEtfTop10, renderTop10Hub } from './src/services/top10Pages.js';
+import { renderCryptoTop10, renderToday } from './src/services/marketPages.js';
 import {
   confirmCheckoutSession,
   createCheckoutSession,
@@ -481,6 +482,14 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (isInfoPage(pathname.slice(1))) {
     return sendHtml(response, 200, renderInfoPage(pathname.slice(1), origin));
+  }
+
+  if (pathname === '/today') {
+    return sendHtml(response, 200, await renderToday(origin));
+  }
+
+  if (pathname === '/top-10/crypto') {
+    return sendHtml(response, 200, renderCryptoTop10(origin));
   }
 
   if (pathname === '/top-10') {

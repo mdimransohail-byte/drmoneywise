@@ -94,6 +94,8 @@ export async function buildSitemapXml(origin) {
     { loc: `${origin}/top-10`, lastmod: today, priority: '0.8' },
     { loc: `${origin}/top-10/dividend-stocks`, lastmod: today, priority: '0.8' },
     { loc: `${origin}/top-10/etfs`, lastmod: today, priority: '0.8' },
+    { loc: `${origin}/top-10/crypto`, lastmod: today, priority: '0.8' },
+    { loc: `${origin}/today`, lastmod: today, priority: '0.9' },
     ...Object.keys(INFO_PAGES).map((slug) => ({ loc: `${origin}/${slug}`, lastmod: today, priority: '0.3' })),
     ...articles.map((article) => ({
       loc: `${origin}/learn/${encodeURIComponent(article.slug)}`,
@@ -157,6 +159,7 @@ export async function renderHomePage(template, origin) {
   });
   let html = injectHead(template, head);
   html = await injectTopTenPanels(html);
+  html = await injectPulse(html);
   if (articles.length) {
     html = html.replace(
       '<div id="learningPoints" class="explain"></div>',
@@ -289,6 +292,22 @@ function linkEmails(html) {
   return html.replace(/([a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,})/giu, '<a href="mailto:$1">$1</a>');
 }
 
+/* ── Homepage "Markets today" box: real economy figures ─────────────── */
+async function injectPulse(html) {
+  try {
+    const { renderHomePulse } = await import('./marketPages.js');
+    const pulse = await renderHomePulse();
+    if (!pulse) return html;
+    return html.replace(
+      /(<div id="marketPulse" class="pulse" aria-label="Markets today">)[\s\S]*?(<\/div>\s*<\/div>\s*<\/section>)/u,
+      `$1\n            ${pulse}\n          $2`,
+    );
+  } catch (error) {
+    console.error('[home] Markets box could not be filled:', error.message);
+    return html;
+  }
+}
+
 /* ── Homepage Top 10 panels, filled from the saved lists ─────────────── */
 async function injectTopTenPanels(html) {
   try {
@@ -349,7 +368,7 @@ export function renderNotFound() {
 /* ── Shared header + footer for server-built pages ──────────────────── */
 export function pageShell({ head, body, active }) {
   const nav = [
-    ['today', '/#today', 'Today'],
+    ['today', '/today', 'Today'],
     ['learn', '/learn', 'Learn'],
     ['top10', '/top-10', 'Top 10s'],
     ['stocks', '/#lookup', 'Stocks'],
