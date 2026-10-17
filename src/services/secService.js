@@ -15,6 +15,7 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 const TICKERS_URL = 'https://www.sec.gov/files/company_tickers.json';
+const SUBMISSIONS_URL = (cik) => `https://data.sec.gov/submissions/CIK${String(cik).padStart(10, '0')}.json`;
 const FACTS_URL = (cik) => `https://data.sec.gov/api/xbrl/companyfacts/CIK${String(cik).padStart(10, '0')}.json`;
 const ANNUAL_FORMS = new Set(['10-K', '10-K/A', '20-F', '20-F/A', '40-F', '40-F/A']);
 const PAUSE_MS = 250;
@@ -173,6 +174,10 @@ export function summariseCompanyFacts(ticker, factsJson) {
       payoutRatio,
       dividendCoveredByCash: latest(dividendsPaid) && fcf !== null ? fcf >= latest(dividendsPaid) : null,
       yearsOfDividendRaises: yearsOfRaises(dividendsPerShare.series),
+      // True when the run of raises goes back as far as the SEC data does,
+      // so the real record is probably longer ("at least N years").
+      dividendRaisesFullHistory: dividendsPerShare.series.length > 1
+        && yearsOfRaises(dividendsPerShare.series) === dividendsPerShare.series.length - 1,
       debtToEquity: longTermDebt.value !== null && equity.value > 0 ? longTermDebt.value / equity.value : null,
       latestDividendPerShare: latest(dividendsPerShare),
     },
@@ -182,6 +187,17 @@ export function summariseCompanyFacts(ticker, factsJson) {
       dividendsPerShare: dividendsPerShare.concept,
     },
   };
+}
+
+/** "COCA COLA CO" → "Coca Cola Co"; leaves mixed-case names alone. */
+function cleanName(name) {
+  const text = String(name || '').trim();
+  if (text !== text.toUpperCase()) return text;
+  return text
+    .toLowerCase()
+    .replace(/\b([a-z])/gu, (letter) => letter.toUpperCase())
+    .replace(/\b(Inc|Co|Corp|Ltd|Plc|Llc)\b\.?/gu, (word) => `${word}`)
+    .replace(/\bIbm\b/gu, 'IBM');
 }
 
 /**
@@ -205,6 +221,16 @@ export async function fetchCompanies(tickers) {
       const facts = await secFetchJson(FACTS_URL(match.cik));
       const summary = summariseCompanyFacts(ticker, facts);
       summary.name = match.name || summary.name;
+      try {
+        await sleep(PAUSE_MS);
+        const submissions = await secFetchJson(SUBMISSIONS_URL(match.cik));
+        summary.industry = submissions?.sicDescription || '';
+        summary.exchange = submissions?.exchanges?.[0] || '';
+        summary.displayName = cleanName(submissions?.name || match.name || ticker);
+      } catch (error) {
+        console.log(`[sec] ${ticker}: company details not available (${error.message}) — financials still saved`);
+        summary.displayName = cleanName(match.name || ticker);
+      }
       companies[ticker] = summary;
       if (!summary.revenue.length) {
         console.log(`[sec] ${ticker}: fetched, but no yearly revenue found in its filings`);

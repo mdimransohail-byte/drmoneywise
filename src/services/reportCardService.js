@@ -102,7 +102,7 @@ export function buildReportCard(company) {
       key: 'dividend',
       label: 'Does it pay you a dividend?',
       grade: years >= 10 && covered ? 'good' : covered ? 'okay' : 'weak',
-      plain: `Yes, $${dps.toFixed(2)} a share last year${years >= 2 ? `, raised ${years} years in a row` : ''}.${covered ? '' : ' But it paid out more than its spare cash.'}`,
+      plain: `Yes, $${dps.toFixed(2)} a share last year${years >= 2 ? `, raised ${d.dividendRaisesFullHistory ? 'for at least ' : ''}${years} years in a row` : ''}.${covered ? '' : ' But it paid out more than its spare cash last year.'}`,
     });
   } else {
     ratings.push({ key: 'dividend', label: 'Does it pay you a dividend?', grade: 'none', plain: 'No. It keeps its profits in the business instead.' });

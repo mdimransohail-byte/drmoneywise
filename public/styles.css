@@ -266,6 +266,31 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.2; }
 .visual-item strong { display: block; }
 .loading-block { padding: 10px 0; }
 
+/* ── Top 10 pages ──────────────────────────────────────────────────── */
+.dateline-dark { color: var(--flat); font-weight: 600; font-size: 15px; margin: 0 0 6px; }
+.lede-dark { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0 0 18px; }
+.reading-aid.light { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 4px 22px 18px; margin-bottom: 24px; }
+.reading-aid.light dt { color: var(--flat); }
+.reading-aid.light dd { color: var(--ink); }
+.picks { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.pick { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px 22px; }
+.pick p { margin: 8px 0 0; }
+.pick-head { display: flex; gap: 14px; align-items: flex-start; }
+.pick-head h3 { font-size: 21px; margin: 2px 0 0; }
+.pick-rank { flex: 0 0 40px; height: 40px; border-radius: 50%; background: var(--navy); color: var(--gold); display: grid; place-items: center; font: 700 18px var(--serif); }
+.pick-ticker { font: 600 14px var(--sans); color: var(--ink-2); background: var(--tint); border-radius: 6px; padding: 2px 8px; vertical-align: middle; }
+.pick-kind { margin: 2px 0 0 !important; color: var(--ink-2); font-size: 15px; }
+.pick-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0 0; }
+.pick-facts div { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px; }
+.pick-facts dt { font-size: 13px; color: var(--ink-2); }
+.pick-facts dd { margin: 2px 0 0; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.pick-safety { font-size: 15px; color: var(--ink-2); }
+.pick-safety .ig-grade { font-size: 13px; padding: 3px 10px; margin-right: 6px; }
+.note-box { margin-top: 20px; background: var(--tint); border-radius: var(--radius-md); padding: 12px 16px; font-size: 15px; }
+a.ten.hub { text-decoration: none; color: inherit; }
+a.ten.hub h2, .ten.crypto h2 { font-size: 24px; margin: 0 0 4px; }
+a.ten.hub:hover { border-color: var(--navy); }
+
 /* ── Infographics (HTML versions, see infographicService.js) ─────── */
 .ig { margin: 0 0 24px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px 24px 14px; }
 .ig figcaption h3 { font-size: 22px; margin: 0; }

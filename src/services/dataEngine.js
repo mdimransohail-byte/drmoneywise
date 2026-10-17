@@ -39,6 +39,7 @@ const JOBS = {
   economy: { label: 'Economy numbers (FRED)', every: 20 * HOUR },
   companies: { label: 'Company financials (SEC)', every: 7 * 24 * HOUR },
   prices: { label: 'End-of-day prices (Marketstack)', every: 20 * HOUR },
+  top10: { label: 'Top 10 lists (rebuilt monthly)', every: 20 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 const FIRST_CHECK_AFTER_MS = 60 * 1000;
@@ -164,11 +165,26 @@ async function runPrices({ manual = false } = {}) {
     return { ok: false, message: `No prices fetched${lastError ? ` — ${lastError}` : ''}` };
   }
   await writeJson(FILES.prices, { updatedAt: new Date().toISOString(), prices });
+  // If this month's dividend list had to be ranked without prices, rebuild it now.
+  try {
+    const saved = await readJson(path.join(marketDir, 'top10.json'), {});
+    if (saved.dividends?.rankedBy === 'years') {
+      const { rebuildTop10 } = await import('./top10Service.js');
+      await rebuildTop10({ force: true });
+    }
+  } catch (error) {
+    console.error('[data] Could not refresh the Top 10 list after prices:', error.message);
+  }
   const quota = getQuotaStatus();
   return { ok: true, message: `${fetched} of ${tickers.length} prices updated (Marketstack ${quota.used}/${quota.limit} used this month)` };
 }
 
-const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices };
+async function runTop10({ manual = false } = {}) {
+  const { rebuildTop10 } = await import('./top10Service.js');
+  return rebuildTop10({ force: manual });
+}
+
+const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10 };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

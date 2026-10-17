@@ -34,6 +34,7 @@ import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
 import { getDataStatus, runJob, startDataEngine } from './src/services/dataEngine.js';
 import { renderInfographicPreview } from './src/services/previewService.js';
+import { renderDividendTop10, renderEtfTop10, renderTop10Hub } from './src/services/top10Pages.js';
 import {
   confirmCheckoutSession,
   createCheckoutSession,
@@ -480,6 +481,18 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (isInfoPage(pathname.slice(1))) {
     return sendHtml(response, 200, renderInfoPage(pathname.slice(1), origin));
+  }
+
+  if (pathname === '/top-10') {
+    return sendHtml(response, 200, await renderTop10Hub(origin));
+  }
+
+  if (pathname === '/top-10/dividend-stocks') {
+    return sendHtml(response, 200, await renderDividendTop10(origin));
+  }
+
+  if (pathname === '/top-10/etfs') {
+    return sendHtml(response, 200, await renderEtfTop10(origin));
   }
 
   if (pathname === '/preview/infographics') {

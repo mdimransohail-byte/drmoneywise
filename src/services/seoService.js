@@ -16,6 +16,7 @@
 import { readStore } from './storeService.js';
 import { getArticleBySlug, publishDueArticles } from './articleService.js';
 import { INFO_PAGES, LEGAL_UPDATED } from '../data/legalPages.js';
+import { getDividendTop10, getEtfTop10 } from './top10Service.js';
 
 const TOPIC_LABELS = {
   equities: 'Stocks',
@@ -90,6 +91,9 @@ export async function buildSitemapXml(origin) {
   const urls = [
     { loc: `${origin}/`, lastmod: today, priority: '1.0' },
     { loc: `${origin}/learn`, lastmod: today, priority: '0.8' },
+    { loc: `${origin}/top-10`, lastmod: today, priority: '0.8' },
+    { loc: `${origin}/top-10/dividend-stocks`, lastmod: today, priority: '0.8' },
+    { loc: `${origin}/top-10/etfs`, lastmod: today, priority: '0.8' },
     ...Object.keys(INFO_PAGES).map((slug) => ({ loc: `${origin}/${slug}`, lastmod: today, priority: '0.3' })),
     ...articles.map((article) => ({
       loc: `${origin}/learn/${encodeURIComponent(article.slug)}`,
@@ -105,7 +109,7 @@ export async function buildSitemapXml(origin) {
 }
 
 /* ── Page head: title, description, canonical, social preview ───────── */
-function buildHeadTags({ title, description, canonical, image, jsonLd, type = 'website' }) {
+export function buildHeadTags({ title, description, canonical, image, jsonLd, type = 'website' }) {
   const tags = [
     `<title>${escapeHtml(title)}</title>`,
     `<meta name="description" content="${escapeAttr(description)}" />`,
@@ -152,6 +156,7 @@ export async function renderHomePage(template, origin) {
     },
   });
   let html = injectHead(template, head);
+  html = await injectTopTenPanels(html);
   if (articles.length) {
     html = html.replace(
       '<div id="learningPoints" class="explain"></div>',
@@ -284,6 +289,52 @@ function linkEmails(html) {
   return html.replace(/([a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,})/giu, '<a href="mailto:$1">$1</a>');
 }
 
+/* ── Homepage Top 10 panels, filled from the saved lists ─────────────── */
+async function injectTopTenPanels(html) {
+  try {
+    const [div, etf] = await Promise.all([getDividendTop10(), getEtfTop10()]);
+    const bars = (rows, valueOf, displayOf, labelOf) => {
+      const max = Math.max(...rows.map(valueOf), 0) || 1;
+      return `<ul class="bars">${rows.map((row) => `<li><span class="t">${escapeHtml(labelOf(row))}</span><span class="track"><span class="fill" style="width:${((valueOf(row) / max) * 100).toFixed(0)}%"></span></span><span class="v">${escapeHtml(displayOf(row))}</span></li>`).join('')}</ul>`;
+    };
+    const top4 = div.rows.slice(0, 4);
+    const dividendPanel = top4.length ? `
+            <article class="ten">
+              <h3>Dividend stocks</h3>
+              <p class="rule">Raised their payout ${div.rows[0] ? '10+' : ''} years in a row, ranked by ${div.rankedBy === 'yield' ? 'yield' : 'years of raises'}.</p>
+              ${div.rankedBy === 'yield'
+                ? bars(top4, (r) => r.yield, (r) => `${(r.yield * 100).toFixed(1)}%`, (r) => r.ticker)
+                : bars(top4, (r) => r.years, (r) => `${r.years} yrs`, (r) => r.ticker)}
+              <p class="meaning">${div.rankedBy === 'yield' && top4[0]
+                ? `${(top4[0].yield * 100).toFixed(1)}% means about <strong>$${top4[0].incomePer1000} a year</strong> for every $1,000 invested.`
+                : 'Companies that have kept raising what they pay shareholders, year after year.'}</p>
+              <a class="go" href="/top-10/dividend-stocks">See all 10</a>
+            </article>` : `
+            <article class="ten">
+              <h3>Dividend stocks</h3>
+              <p class="rule">Companies that raised their payout 10+ years in a row, ranked by yield.</p>
+              <p class="meaning">First list coming soon.</p>
+            </article>`;
+    const etfTop = etf.rows.slice(0, 4);
+    const etfPanel = `
+            <article class="ten">
+              <h3>ETFs for beginners</h3>
+              <p class="rule">Simple, broad funds, ranked by lowest yearly fee.</p>
+              ${bars(etfTop, (r) => r.feePer1000, (r) => `$${r.feePer1000.toFixed(2)}`, (r) => r.ticker)}
+              <p class="meaning">Fee per year for every $1,000 invested. Lower keeps more in your pocket.</p>
+              <a class="go" href="/top-10/etfs">See all 10</a>
+            </article>`;
+    return html.replace(
+      /(<div id="topTenPanels" class="tens">)[\s\S]*?(<article class="ten crypto">)/u,
+      `$1${dividendPanel}${etfPanel}
+            $2`,
+    );
+  } catch (error) {
+    console.error('[top10] Homepage panels could not be filled:', error.message);
+    return html;
+  }
+}
+
 /* ── 404 page ────────────────────────────────────────────────────────── */
 export function renderNotFound() {
   const head = '<title>Page not found | Dr MoneyWise</title>\n    <meta name="robots" content="noindex" />';
@@ -300,7 +351,7 @@ export function pageShell({ head, body, active }) {
   const nav = [
     ['today', '/#today', 'Today'],
     ['learn', '/learn', 'Learn'],
-    ['top10', '/#top10', 'Top 10s'],
+    ['top10', '/top-10', 'Top 10s'],
     ['stocks', '/#lookup', 'Stocks'],
     ['tools', '/#tools', 'Tools'],
     ['membership', '/#membership', 'Membership'],
