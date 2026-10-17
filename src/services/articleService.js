@@ -530,13 +530,24 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
 
   const interest = guessInterestFromTopic(topic.label);
 
+  // Give the writer the real headline for context, not just the bare phrase.
+  const brief = topic.sampleHeadline && topic.sampleHeadline !== topic.label
+    ? `${topic.label} — explain for everyday savers what this means for their money. Today's headline: "${topic.sampleHeadline}"`
+    : topic.label;
   const generated = await createLearningArticleFromTopic(
-    topic.label,
+    brief,
     'free', // forces the simple-language prompt — see note above
     region,
     interest,
     '',
   );
+
+  // If no writing service answered, the writer returns a basic placeholder.
+  // Never save those — try again next run.
+  if (generated.provider === 'local-fallback') {
+    console.warn(`[articleService] Writing service did not answer for "${topic.label}" — nothing saved, will retry next run.`);
+    return null;
+  }
 
   // Quality checks (src/services/qualityService.js): anything that fails is
   // kept as a draft for a human read instead of going live.

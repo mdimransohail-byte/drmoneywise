@@ -10,6 +10,7 @@ import {
   REGION_OPTIONS,
   SITE_DOMAIN,
   SUPPORT_EMAIL,
+  canAccess,
   getPlanCatalog,
 } from './src/config.js';
 import {
@@ -36,7 +37,7 @@ import { getDataStatus, runJob, startDataEngine } from './src/services/dataEngin
 import { renderInfographicPreview } from './src/services/previewService.js';
 import { renderDividendTop10, renderEtfTop10, renderTop10Hub } from './src/services/top10Pages.js';
 import { renderCryptoTop10, renderToday } from './src/services/marketPages.js';
-import { findCompanyPath, renderStockPage, renderStocksIndex } from './src/services/stockPages.js';
+import { findCompanyPath, renderStockPage, renderStocksIndex, stockDetailsFor } from './src/services/stockPages.js';
 import { getHealthReport, sendHealthEmail } from './src/services/healthService.js';
 import { renderCalculator, renderGlossaryIndex, renderGlossaryTerm, renderToolsHub } from './src/services/toolsPages.js';
 import {
@@ -419,6 +420,18 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { started: true });
     }
 
+    // ── Members-only company numbers (company pages → public/members.js) ─
+    if (requestUrl.pathname === '/api/stock/details' && request.method === 'GET') {
+      const user = sessionUser;
+      if (!user) return sendJson(response, 401, { error: 'Sign in to see full results.' });
+      if (user.role !== 'admin' && !canAccess(user.plan || 'free', 'regular')) {
+        return sendJson(response, 403, { error: 'Full results are for members.', plan: user.plan || 'free' });
+      }
+      const details = await stockDetailsFor(requestUrl.searchParams.get('ticker'));
+      if (!details) return sendJson(response, 404, { error: 'Company not found.' });
+      return sendJson(response, 200, details);
+    }
+
     // ── Site health (Admin → Health) ───────────────────────────────────
     if (requestUrl.pathname === '/api/admin/health' && request.method === 'GET') {
       await requireAdminUser(token);
@@ -515,8 +528,8 @@ async function handlePublicPage(requestUrl, request, response) {
 
   const stockMatch = pathname.match(/^\/stock\/([A-Za-z0-9.\-]{1,10})$/u);
   if (stockMatch) {
-    const html = await renderStockPage(origin, decodeURIComponent(stockMatch[1]));
-    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
+    const page = await renderStockPage(origin, decodeURIComponent(stockMatch[1]));
+    return sendHtml(response, page.status, page.html);
   }
 
   if (pathname === '/today') {

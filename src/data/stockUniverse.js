@@ -8,6 +8,8 @@
    next weekly run, or straight away with Admin → "Run now".
    ════════════════════════════════════════════════════════════════════════ */
 
+import { sectorTickers } from './sectorLeaders.js';
+
 export const STOCK_UNIVERSE = [
   // Largest US companies
   'AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'BRK-B', 'AVGO', 'LLY',
@@ -26,9 +28,10 @@ export const STOCK_UNIVERSE = [
   'FAST', 'GD', 'GWW', 'PNR', 'ROP', 'O', 'LIN', 'KVUE', 'MDT', 'D',
 ];
 
-/** Unique, upper-case list (protects against accidental duplicates above). */
+/** Unique, upper-case list: the companies above plus every sector leader
+ *  in src/data/sectorLeaders.js (protects against accidental duplicates). */
 export function getUniverse() {
-  return Array.from(new Set(STOCK_UNIVERSE.map((ticker) => ticker.trim().toUpperCase()).filter(Boolean)));
+  return Array.from(new Set([...STOCK_UNIVERSE, ...sectorTickers()].map((ticker) => ticker.trim().toUpperCase()).filter(Boolean)));
 }
 
 /** Marketstack writes share classes with a dot (BRK.B); the SEC uses a dash (BRK-B). */

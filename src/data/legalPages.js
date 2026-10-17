@@ -6,13 +6,11 @@
    upload this one file. Each page is a list of sections; each section has
    a heading and paragraphs (plain text — no HTML needed).
 
-   Owner to confirm before launch (marked CONFIRM below):
-   - Governing law / country
-   - Refund wording
+   Governing law: UAE (Dubai), confirmed by the owner 17 October 2026.
    These are sensible starting points, not legal advice.
    ════════════════════════════════════════════════════════════════════════ */
 
-export const LEGAL_UPDATED = '16 October 2026';
+export const LEGAL_UPDATED = '17 October 2026';
 export const CONTACT_EMAIL = 'hello@drmoneywise.com';
 
 export const INFO_PAGES = {
@@ -180,7 +178,6 @@ export const INFO_PAGES = {
         heading: 'Memberships and payments',
         paragraphs: [
           'Paid plans renew automatically each month or year until you cancel. You can cancel at any time with "Manage my plan"; you keep access until the end of the period you have paid for.',
-          // CONFIRM: refund wording
           'Payments are not refundable for partial periods, except where the law requires otherwise. If something has gone wrong with a charge, email us within 14 days and we will look into it.',
           'We may change prices in future. Any change will apply from your next renewal, and we will tell you before it does.',
         ],
@@ -206,8 +203,8 @@ export const INFO_PAGES = {
       {
         heading: 'Governing law',
         paragraphs: [
-          // CONFIRM: country
           'These terms are governed by the laws of the United Arab Emirates, as applied in the Emirate of Dubai.',
+          'Any dispute that cannot be settled by talking to us first will be dealt with by the courts of Dubai, United Arab Emirates.',
         ],
       },
       {

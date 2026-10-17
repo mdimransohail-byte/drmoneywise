@@ -235,10 +235,34 @@ export async function getTrendingHeadlinesForInterest(interestId, { limit = 5, r
  * Points subject. Returns null if nothing is trending right now (e.g. no
  * news API keys configured, or every provider failed).
  */
+// A topic is only used for an explainer if its headline is clearly about
+// money, and the topic itself isn't a filler word ("Latest", "Breaking")
+// or a lone name. Before this, explainers got written about "Martin",
+// "Latest" and "Cape Girardeau City Council".
+const MONEY_WORDS = /\b(stocks?|shares?|markets?|wall street|nasdaq|s&p|dow|bank(s|ing)?|rates?|interest|inflation|fed|federal reserve|central bank|earnings|profits?|revenue|sales|prices?|oil|gold|silver|bitcoin|crypto|ethereum|dollar|euro|yen|rupee|pound|currenc(y|ies)|bonds?|yields?|treasur(y|ies)|tax(es)?|tariffs?|trade|economy|economic|gdp|recession|jobs|unemployment|wages?|invest(ors?|ing|ment)?|funds?|etfs?|dividends?|ipo|debt|loans?|mortgages?|housing|savings|pensions?|retirement|commodit(y|ies)|budget|spending|deficit)\b/iu;
+const FILLER_TOPICS = new Set(['latest', 'breaking', 'update', 'updates', 'live', 'today', 'watch', 'exclusive', 'analysis', 'opinion', 'report', 'news', 'video', 'explainer', 'week', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']);
+
+function isUsableTopic(topic) {
+  const label = String(topic.label || '').trim();
+  const lower = label.toLowerCase();
+  if (FILLER_TOPICS.has(lower) || label.length < 3) return false;
+  if (!MONEY_WORDS.test(topic.sampleHeadline || '')) return false;
+  // A single capitalised word that isn't itself a money word is usually a person or place.
+  // (Company names pass when the headline is about its shares or results.)
+  if (!label.includes(' ') && /^[A-Z][a-z]+$/u.test(label) && !MONEY_WORDS.test(label)
+    && !/\b(earnings|shares|stock|profits?|revenue|sales|results|ipo|merger|takeover|acquisition)\b/iu.test(topic.sampleHeadline || '')) return false;
+  return true;
+}
+
 export async function pickTrendingLearningTopic({ excludeTopics = [] } = {}) {
   const topics = await getTrendingTopics();
   const excludeSet = new Set(excludeTopics.map((topic) => topic.toLowerCase()));
-  return topics.find((topic) => !excludeSet.has(topic.label.toLowerCase())) || topics[0] || null;
+  const usable = topics.filter(isUsableTopic);
+  const pick = usable.find((topic) => !excludeSet.has(topic.label.toLowerCase())) || null;
+  if (!pick) {
+    console.warn(`[trending] No usable money topic right now (${topics.length} topics seen, ${usable.length} about money, all recently covered or none).`);
+  }
+  return pick;
 }
 
 /* ── internals ──────────────────────────────────────────────────────── */

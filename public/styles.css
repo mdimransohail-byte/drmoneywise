@@ -528,3 +528,50 @@ a.ten.hub:hover { border-color: var(--navy); }
   .finder input, .finder button { flex: 0 0 auto; width: 100%; height: 52px; box-sizing: border-box; }
   .calc-legend { flex-wrap: wrap; }
 }
+
+/* ── /stocks sector lists ──────────────────────────────────────────── */
+.sector-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 6px; }
+.sector-jump a { padding: 6px 12px; border-radius: 999px; background: var(--paper); border: 1px solid var(--line); color: var(--navy); font-weight: 600; font-size: 15px; text-decoration: none; }
+.sector-jump a:hover { background: var(--navy); color: #fff; }
+.sector { margin-top: 30px; scroll-margin-top: 90px; }
+.sector-head h2 { font-size: 26px; margin: 0 0 2px; }
+.sector-head p { margin: 0 0 10px; color: var(--ink-2); }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.sector-table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.sector-table th { text-align: left; font-size: 14px; font-weight: 600; color: var(--ink-2); padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--tint); }
+.sector-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.sector-table tr:last-child td { border-bottom: 0; }
+.sector-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sector-table td.num small { display: block; font-size: 12px; color: var(--ink-2); font-weight: 400; }
+.sector-table .rank { width: 32px; color: var(--ink-2); font-weight: 700; }
+.sector-table .co a { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); min-width: 0; }
+.sector-table .co a > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.sector-table .co strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.sector-table .co a:hover strong { text-decoration: underline; }
+.sector-table tbody tr:hover { background: #fff; }
+@media (max-width: 640px) {
+  .hide-sm { display: none; }
+  .sector-table .co strong { max-width: 170px; }
+  .sector-table td, .sector-table th { padding: 8px; }
+}
+
+/* ── Members-only section on company pages ─────────────────────────── */
+.members-box { border-top: 3px solid var(--gold); padding-top: 8px; }
+.members-badge { display: inline-block; vertical-align: middle; font: 700 12px/1 var(--sans); letter-spacing: .04em; text-transform: uppercase; background: var(--gold); color: var(--navy); padding: 5px 8px; border-radius: 6px; margin-left: 6px; }
+.members-teaser { background: var(--paper); border: 1px dashed var(--gold); border-radius: var(--radius-md); padding: 18px 22px; }
+.members-cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 12px 0 0; }
+.members-box h3 { font-size: 20px; margin: 18px 0 8px; }
+.members-table { width: 100%; border-collapse: collapse; background: var(--paper); border: 1px solid var(--line); font-size: 15px; }
+.members-table th, .members-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.members-table thead th { background: var(--tint); font-weight: 600; }
+.members-table tbody th { text-align: left; font-weight: 500; color: var(--ink-2); position: sticky; left: 0; background: var(--paper); }
+.members-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.members-balance { max-width: 560px; }
+.sector-table .co .pick-ticker { align-self: flex-start; }
+@media (max-width: 640px) {
+  .sector-table .co strong { max-width: 128px; font-size: 15px; }
+  .sector-table .co .co-logo.sm { width: 34px; height: 34px; }
+  .sector-table .co a { gap: 8px; }
+  .sector-table .rank { width: 20px; }
+}
+@media (max-width: 640px) { .sector-table .co strong { white-space: normal; max-width: 150px; line-height: 1.25; } }

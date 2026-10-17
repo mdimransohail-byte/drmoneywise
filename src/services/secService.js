@@ -1,3 +1,6 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
 /* ════════════════════════════════════════════════════════════════════════
    SEC EDGAR — official company financials (free, no key needed)
    ───────────────────────────────────────────────────────────────────────
@@ -102,6 +105,43 @@ function latestInstant(facts, concepts, units = ['USD'], taxonomy = 'us-gaap') {
   return { concept: null, value: null, asOf: null };
 }
 
+/** Three-month values from quarterly reports (10-Q), newest last. */
+function quarterlySeries(facts, concepts, units, keep = 5) {
+  for (const concept of concepts) {
+    const unitMap = facts?.['us-gaap']?.[concept]?.units || {};
+    for (const unit of units) {
+      const rows = (unitMap[unit] || []).filter(
+        (row) => (row.form === '10-Q' || row.form === '10-Q/A') && row.start && row.end
+          && daysBetween(row.start, row.end) > 80 && daysBetween(row.start, row.end) < 100
+          && Number.isFinite(Number(row.val)),
+      );
+      if (!rows.length) continue;
+      const byEnd = new Map();
+      for (const row of rows) {
+        const existing = byEnd.get(row.end);
+        if (!existing || row.filed > existing.filed) byEnd.set(row.end, row);
+      }
+      const series = [...byEnd.values()]
+        .sort((a, b) => a.end.localeCompare(b.end))
+        .map((row) => ({ end: row.end, label: `${row.fp || ''} ${row.fy || ''}`.trim(), value: Number(row.val) }));
+      if (Number(series.at(-1)?.end?.slice(0, 4) || 0) >= new Date().getFullYear() - 1) {
+        return series.slice(-keep);
+      }
+    }
+  }
+  return [];
+}
+
+/** Total shares across share classes (A, B…) on the latest cover-page date. */
+function sharesOutstandingTotal(facts) {
+  const rows = (facts?.dei?.EntityCommonStockSharesOutstanding?.units?.shares || []).filter((row) => row.end && Number.isFinite(Number(row.val)));
+  if (!rows.length) return { value: null, asOf: null };
+  const latestEnd = rows.map((row) => row.end).sort().at(-1);
+  const latestFiled = rows.filter((row) => row.end === latestEnd).map((row) => row.filed).sort().at(-1);
+  const total = rows.filter((row) => row.end === latestEnd && row.filed === latestFiled).reduce((sum, row) => sum + Number(row.val), 0);
+  return { value: total || null, asOf: latestEnd };
+}
+
 /** How many years in a row the yearly dividend per share went up (most recent run). */
 function yearsOfRaises(dividendSeries) {
   let count = 0;
@@ -112,7 +152,7 @@ function yearsOfRaises(dividendSeries) {
   return count;
 }
 
-function lastN(series, n = 6) {
+function lastN(series, n = 10) {
   return series.slice(-n);
 }
 
@@ -136,11 +176,20 @@ export function summariseCompanyFacts(ticker, factsJson) {
   const dividendsPaid = annualSeries(facts, ['PaymentsOfDividendsCommonStock', 'PaymentsOfDividends'], ['USD']);
   const operatingCashFlow = annualSeries(facts, ['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'], ['USD']);
   const capex = annualSeries(facts, ['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets', 'PaymentsForCapitalImprovements'], ['USD']);
+  const grossProfit = annualSeries(facts, ['GrossProfit'], ['USD']);
+  const operatingIncome = annualSeries(facts, ['OperatingIncomeLoss'], ['USD']);
+  const totalAssets = latestInstant(facts, ['Assets']);
+  const totalLiabilities = latestInstant(facts, ['Liabilities']);
+  const quarters = {
+    revenue: quarterlySeries(facts, ['Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'RevenueFromContractWithCustomerIncludingAssessedTax', 'SalesRevenueNet', 'RevenuesNetOfInterestExpense'], ['USD']),
+    netIncome: quarterlySeries(facts, ['NetIncomeLoss', 'ProfitLoss'], ['USD']),
+    eps: quarterlySeries(facts, ['EarningsPerShareDiluted', 'EarningsPerShareBasic'], ['USD/shares']),
+  };
 
   const cash = latestInstant(facts, ['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents']);
   const longTermDebt = latestInstant(facts, ['LongTermDebt', 'LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations', 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', 'DebtInstrumentCarryingAmount', 'SeniorLongTermNotes', 'DebtLongtermAndShorttermCombinedAmount', 'LongTermNotesPayable']);
   const equity = latestInstant(facts, ['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest']);
-  const shares = latestInstant(facts, ['EntityCommonStockSharesOutstanding'], ['shares'], 'dei');
+  const shares = sharesOutstandingTotal(facts);
 
   const latest = (s) => s.series.at(-1)?.value ?? null;
   const growth = (s) => {
@@ -165,6 +214,11 @@ export function summariseCompanyFacts(ticker, factsJson) {
     dividendsPaid: lastN(dividendsPaid.series),
     operatingCashFlow: lastN(operatingCashFlow.series),
     capex: lastN(capex.series),
+    grossProfit: lastN(grossProfit.series),
+    operatingIncome: lastN(operatingIncome.series),
+    quarters,
+    totalAssets: totalAssets.value,
+    totalLiabilities: totalLiabilities.value,
     cash: cash.value,
     longTermDebt: longTermDebt.value,
     equity: equity.value,
@@ -215,12 +269,52 @@ export function cleanName(name) {
     .replace(/\bIbm\b/gu, 'IBM');
 }
 
+/* ── One company on request (any US-listed ticker) ──────────────────── */
+const TICKER_CACHE = path.join(process.cwd(), 'data', 'market', 'sec-tickers.json');
+let tickerMapMemo = null;
+
+/** SEC ticker list, saved to the volume and refreshed weekly. */
+export async function getTickerMapCached() {
+  if (tickerMapMemo && Date.now() - tickerMapMemo.at < 24 * 60 * 60 * 1000) return tickerMapMemo.map;
+  try {
+    const saved = JSON.parse(await fs.readFile(TICKER_CACHE, 'utf8'));
+    if (Date.now() - new Date(saved.updatedAt).getTime() < 7 * 24 * 60 * 60 * 1000) {
+      tickerMapMemo = { map: saved.map, at: Date.now() };
+      return saved.map;
+    }
+  } catch { /* no saved list yet */ }
+  const map = await fetchTickerMap();
+  await fs.mkdir(path.dirname(TICKER_CACHE), { recursive: true });
+  await fs.writeFile(TICKER_CACHE, JSON.stringify({ updatedAt: new Date().toISOString(), map }));
+  tickerMapMemo = { map, at: Date.now() };
+  console.log(`[sec] Ticker list saved (${Object.keys(map).length} companies)`);
+  return map;
+}
+
+/** Financials + company details for one ticker. Throws if the SEC has nothing. */
+export async function fetchOneCompany(ticker, match) {
+  const facts = await secFetchJson(FACTS_URL(match.cik));
+  const summary = summariseCompanyFacts(ticker, facts);
+  summary.name = match.name || summary.name;
+  try {
+    await sleep(PAUSE_MS);
+    const submissions = await secFetchJson(SUBMISSIONS_URL(match.cik));
+    summary.industry = submissions?.sicDescription || '';
+    summary.exchange = submissions?.exchanges?.[0] || '';
+    summary.displayName = cleanName(submissions?.name || match.name || ticker);
+  } catch (error) {
+    console.log(`[sec] ${ticker}: company details not available (${error.message}) — financials still saved`);
+    summary.displayName = cleanName(match.name || ticker);
+  }
+  return summary;
+}
+
 /**
  * Downloads and summarises every ticker. Returns { companies, failures }.
  * Logs clearly per company so problems show up in Railway logs.
  */
 export async function fetchCompanies(tickers) {
-  const tickerMap = await fetchTickerMap();
+  const tickerMap = await getTickerMapCached();
   console.log(`[sec] Ticker list loaded (${Object.keys(tickerMap).length} companies). Fetching ${tickers.length}…`);
 
   const companies = {};
@@ -233,19 +327,7 @@ export async function fetchCompanies(tickers) {
       continue;
     }
     try {
-      const facts = await secFetchJson(FACTS_URL(match.cik));
-      const summary = summariseCompanyFacts(ticker, facts);
-      summary.name = match.name || summary.name;
-      try {
-        await sleep(PAUSE_MS);
-        const submissions = await secFetchJson(SUBMISSIONS_URL(match.cik));
-        summary.industry = submissions?.sicDescription || '';
-        summary.exchange = submissions?.exchanges?.[0] || '';
-        summary.displayName = cleanName(submissions?.name || match.name || ticker);
-      } catch (error) {
-        console.log(`[sec] ${ticker}: company details not available (${error.message}) — financials still saved`);
-        summary.displayName = cleanName(match.name || ticker);
-      }
+      const summary = await fetchOneCompany(ticker, match);
       companies[ticker] = summary;
       if (summary.missing.length) {
         console.log(`[sec] ${ticker}: saved, but its filings don't report ${summary.missing.join(', ')} in a standard way`);
