@@ -1015,6 +1015,7 @@ const apiRows = [
     { l: 'OpenAI (GPT-4)',        k: 'openAiKey',    c: '#2bc48a', hint: 'platform.openai.com'   },
     { l: 'Marketaux',             k: 'marketauxKey', c: '#3cb5c4', hint: 'marketaux.com — free 100 req/day' },
     { l: 'NewsData.io',           k: 'newsdataKey',  c: '#e8a33d', hint: 'newsdata.io — free 200 credits/day, commercial use allowed' },
+    { l: 'Logo.dev',              k: 'logoDevKey',     c: '#7c5cff', hint: 'logo.dev — free company logos (publishable key, starts pk_). Credit link is shown on company pages' },
     { l: 'Marketstack',           k: 'marketstackKey', c: '#d4af37', hint: 'marketstack.com — free 100 req/month for testing, upgrade to Basic ($9.99/mo) before launch' },
   ];
 
@@ -1247,7 +1248,7 @@ function bind_settings() {
   qs('#saveApiKeysBtn')?.addEventListener('click', async () => {
     const msg = qs('#apiKeysMsg');
     try {
-      const keys = ['perplexityKey','geminiKey','pexelsKey','gammaKey','claudeKey','openAiKey','marketauxKey','newsdataKey','marketstackKey'];
+      const keys = ['perplexityKey','geminiKey','pexelsKey','gammaKey','claudeKey','openAiKey','marketauxKey','newsdataKey','marketstackKey','logoDevKey'];
       const body = Object.fromEntries(keys.map(k => [k, qs(`#key_${k}`)?.value?.trim() || '']));
       await API.saveSettings(body);
       if (msg) msg.textContent = '✓ API keys saved';

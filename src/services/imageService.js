@@ -115,6 +115,55 @@ export async function getPhoto(key, query) {
   }
 }
 
+/**
+ * One of up to 15 photos for a search, chosen by `seed` (e.g. the ticker),
+ * so companies in the same industry don't all show the same picture.
+ */
+export async function getPhotoVariant(listKey, query, seed) {
+  try {
+    const cache = await readCache();
+    let entry = cache[listKey];
+    const fresh = entry && Date.now() - new Date(entry.fetchedAt).getTime() < KEEP_DAYS * 86400000;
+    if (!fresh && process.env.PEXELS_API_KEY && Date.now() - (recentFailures.get(listKey) || 0) > 3600000) {
+      try {
+        const url = new URL('https://api.pexels.com/v1/search');
+        url.searchParams.set('query', query);
+        url.searchParams.set('per_page', '15');
+        url.searchParams.set('orientation', 'landscape');
+        const response = await Promise.race([
+          fetch(url, { headers: { Authorization: process.env.PEXELS_API_KEY } }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timed out')), 4000)),
+        ]);
+        if (!response.ok) throw new Error(`Pexels HTTP ${response.status}`);
+        const data = await response.json();
+        const photos = (data.photos || []).map((photo) => ({
+          url: photo.src?.large,
+          photographer: photo.photographer,
+          photographerUrl: photo.photographer_url,
+          pexelsPageUrl: photo.url,
+          alt: photo.alt || '',
+        })).filter((photo) => photo.url);
+        if (photos.length) {
+          const latest = await readCache();
+          latest[listKey] = { photos, query, fetchedAt: new Date().toISOString() };
+          await writeCache(latest);
+          entry = latest[listKey];
+        }
+      } catch (error) {
+        recentFailures.set(listKey, Date.now());
+        console.error(`[images] Photo list for "${listKey}" not available: ${error.message}`);
+      }
+    }
+    const photos = entry?.photos || [];
+    if (!photos.length) return null;
+    let hash = 0;
+    for (const char of String(seed)) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    return photos[hash % photos.length];
+  } catch {
+    return null;
+  }
+}
+
 export function photoFigure(photo, alt, className = 'page-photo') {
   if (!photo?.url) return '';
   const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');

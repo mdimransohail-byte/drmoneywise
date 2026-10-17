@@ -108,7 +108,21 @@ export function buildReportCard(company) {
     ratings.push({ key: 'dividend', label: 'Does it pay you a dividend?', grade: 'none', plain: 'No. It keeps its profits in the business instead.' });
   }
 
-  return ratings;
+  // Always show all five checks; say plainly when the filings don't give us the number.
+  const labels = {
+    growth: 'Is it growing?',
+    profit: 'Does it make a profit?',
+    debt: 'Is its debt under control?',
+    cash: 'Does it make spare cash?',
+    dividend: 'Does it pay you a dividend?',
+  };
+  const order = ['growth', 'profit', 'debt', 'cash', 'dividend'];
+  return order.map((key) => ratings.find((rating) => rating.key === key) || {
+    key,
+    label: labels[key],
+    grade: 'none',
+    plain: 'Not rated: this company\u2019s official filings don\u2019t report this figure in a standard way we can read.',
+  });
 }
 
 export const GRADE_TEXT = { good: 'Good', okay: 'Okay', weak: 'Weak', none: 'Not rated' };

@@ -47,6 +47,7 @@ export async function getAdminDashboard() {
       marketauxKey: envSettings.MARKETAUX_API_KEY || '',
       newsdataKey: envSettings.NEWSDATA_API_KEY || '',
       marketstackKey: envSettings.MARKETSTACK_API_KEY || '',
+      logoDevKey: envSettings.LOGO_DEV_KEY || '',
       stripeRegularMonthly: envSettings.STRIPE_REGULAR_MONTHLY_URL || '',
       stripeRegularAnnual: envSettings.STRIPE_REGULAR_ANNUAL_URL || '',
       stripePremiumMonthly: envSettings.STRIPE_PREMIUM_MONTHLY_URL || '',
@@ -233,6 +234,9 @@ export async function saveAdminSettings(payload) {
   }
   if (payload.searchVisible !== undefined) {
     envChanges.SEARCH_VISIBLE = payload.searchVisible ? 'yes' : 'no';
+  }
+  if (payload.logoDevKey !== undefined) {
+    envChanges.LOGO_DEV_KEY = payload.logoDevKey;
   }
   if (payload.marketstackKey !== undefined) {
     envChanges.MARKETSTACK_API_KEY = payload.marketstackKey;

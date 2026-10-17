@@ -124,17 +124,21 @@ export function summariseCompanyFacts(ticker, factsJson) {
     'RevenueFromContractWithCustomerExcludingAssessedTax',
     'RevenueFromContractWithCustomerIncludingAssessedTax',
     'SalesRevenueNet',
+    'SalesRevenueGoodsNet',
     'RevenuesNetOfInterestExpense',
+    'RevenueFromContractWithCustomerProductAndServiceExcludingAssessedTax',
+    'OperatingLeasesIncomeStatementLeaseRevenue',
+    'InterestAndDividendIncomeOperating',
   ], ['USD']);
-  const netIncome = annualSeries(facts, ['NetIncomeLoss', 'ProfitLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic'], ['USD']);
+  const netIncome = annualSeries(facts, ['NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLoss'], ['USD']);
   const eps = annualSeries(facts, ['EarningsPerShareDiluted', 'EarningsPerShareBasic'], ['USD/shares']);
   const dividendsPerShare = annualSeries(facts, ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid'], ['USD/shares']);
   const dividendsPaid = annualSeries(facts, ['PaymentsOfDividendsCommonStock', 'PaymentsOfDividends'], ['USD']);
-  const operatingCashFlow = annualSeries(facts, ['NetCashProvidedByUsedInOperatingActivities'], ['USD']);
-  const capex = annualSeries(facts, ['PaymentsToAcquirePropertyPlantAndEquipment'], ['USD']);
+  const operatingCashFlow = annualSeries(facts, ['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'], ['USD']);
+  const capex = annualSeries(facts, ['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets', 'PaymentsForCapitalImprovements'], ['USD']);
 
   const cash = latestInstant(facts, ['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents']);
-  const longTermDebt = latestInstant(facts, ['LongTermDebt', 'LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations']);
+  const longTermDebt = latestInstant(facts, ['LongTermDebt', 'LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations', 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', 'DebtInstrumentCarryingAmount', 'SeniorLongTermNotes', 'DebtLongtermAndShorttermCombinedAmount', 'LongTermNotesPayable']);
   const equity = latestInstant(facts, ['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest']);
   const shares = latestInstant(facts, ['EntityCommonStockSharesOutstanding'], ['shares'], 'dei');
 
@@ -185,7 +189,18 @@ export function summariseCompanyFacts(ticker, factsJson) {
       revenue: revenue.concept,
       netIncome: netIncome.concept,
       dividendsPerShare: dividendsPerShare.concept,
+      operatingCashFlow: operatingCashFlow.concept,
+      capex: capex.concept,
+      longTermDebt: longTermDebt.concept,
     },
+    // Which numbers this company's filings did not give us in a standard form
+    missing: [
+      !revenue.series.length && 'sales',
+      !netIncome.series.length && 'profit',
+      !operatingCashFlow.series.length && 'cash from operations',
+      !capex.series.length && 'investment spending',
+      longTermDebt.value === null && 'long-term debt',
+    ].filter(Boolean),
   };
 }
 
@@ -232,8 +247,8 @@ export async function fetchCompanies(tickers) {
         summary.displayName = cleanName(match.name || ticker);
       }
       companies[ticker] = summary;
-      if (!summary.revenue.length) {
-        console.log(`[sec] ${ticker}: fetched, but no yearly revenue found in its filings`);
+      if (summary.missing.length) {
+        console.log(`[sec] ${ticker}: saved, but its filings don't report ${summary.missing.join(', ')} in a standard way`);
       }
     } catch (error) {
       failures.push({ ticker, reason: error.message });
