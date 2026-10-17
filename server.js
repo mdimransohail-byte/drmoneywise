@@ -37,6 +37,7 @@ import { renderInfographicPreview } from './src/services/previewService.js';
 import { renderDividendTop10, renderEtfTop10, renderTop10Hub } from './src/services/top10Pages.js';
 import { renderCryptoTop10, renderToday } from './src/services/marketPages.js';
 import { findCompanyPath, renderStockPage, renderStocksIndex } from './src/services/stockPages.js';
+import { getHealthReport, sendHealthEmail } from './src/services/healthService.js';
 import { renderCalculator, renderGlossaryIndex, renderGlossaryTerm, renderToolsHub } from './src/services/toolsPages.js';
 import {
   confirmCheckoutSession,
@@ -416,6 +417,21 @@ export const server = http.createServer(async (request, response) => {
       // Runs in the background — the company job takes a couple of minutes.
       runJob(String(body.job || ''), { manual: true }).catch((error) => console.error('[data] Run now failed:', error.message));
       return sendJson(response, 200, { started: true });
+    }
+
+    // ── Site health (Admin → Health) ───────────────────────────────────
+    if (requestUrl.pathname === '/api/admin/health' && request.method === 'GET') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, {
+        ...(await getHealthReport()),
+        email: { configured: Boolean(process.env.RESEND_API_KEY && process.env.HEALTH_EMAIL_TO), to: process.env.HEALTH_EMAIL_TO || '' },
+      });
+    }
+
+    if (requestUrl.pathname === '/api/admin/health/email' && request.method === 'POST') {
+      await requireAdminUser(token);
+      const result = await sendHealthEmail();
+      return sendJson(response, result.ok ? 200 : 400, result.ok ? result : { error: result.message });
     }
 
     if (requestUrl.pathname.startsWith('/api/')) {

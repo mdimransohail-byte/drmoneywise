@@ -235,6 +235,15 @@ export async function saveAdminSettings(payload) {
   if (payload.searchVisible !== undefined) {
     envChanges.SEARCH_VISIBLE = payload.searchVisible ? 'yes' : 'no';
   }
+  if (payload.resendKey) {
+    envChanges.RESEND_API_KEY = String(payload.resendKey).trim();
+  }
+  if (payload.healthEmailTo !== undefined) {
+    envChanges.HEALTH_EMAIL_TO = String(payload.healthEmailTo).trim();
+  }
+  if (payload.healthEmailFrom !== undefined) {
+    envChanges.HEALTH_EMAIL_FROM = String(payload.healthEmailFrom).trim();
+  }
   if (payload.logoDevKey !== undefined) {
     envChanges.LOGO_DEV_KEY = payload.logoDevKey;
   }

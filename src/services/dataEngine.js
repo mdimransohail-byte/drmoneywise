@@ -5,6 +5,9 @@
      economy    daily    FRED: inflation, interest rates, jobs, mortgages
      companies  weekly   SEC: yearly financials for every company in
                          src/data/stockUniverse.js
+     learning   6 hours  rotates homepage explainers every 2 days and
+                         writes new ones (checked first, see qualityService)
+     health     daily    site health check, emailed if a Resend key is saved
      prices     daily    Marketstack end-of-day prices. On the FREE plan
                          (100 calls/month) this only runs when you press
                          "Run now" in Admin, for the dividend shortlist —
@@ -41,6 +44,8 @@ const JOBS = {
   prices: { label: 'End-of-day prices (Marketstack)', every: 20 * HOUR },
   top10: { label: 'Top 10 lists (rebuilt monthly)', every: 20 * HOUR },
   photos: { label: 'Photos for explainers (Pexels)', every: 20 * HOUR },
+  learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
+  health: { label: 'Daily health check + email', every: 24 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 const FIRST_CHECK_AFTER_MS = 60 * 1000;
@@ -190,7 +195,22 @@ async function runPhotos() {
   return attachMissingArticlePhotos();
 }
 
-const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos };
+async function runLearning() {
+  const { runLearningAutopilot } = await import('./articleService.js');
+  return runLearningAutopilot();
+}
+
+async function runHealth() {
+  const { getHealthReport, sendHealthEmail } = await import('./healthService.js');
+  const report = await getHealthReport();
+  const problems = report.checks.filter((c) => c.status === 'fail').map((c) => c.label);
+  if (problems.length) console.warn(`[health] Problems: ${problems.join(', ')}`);
+  const sent = await sendHealthEmail({ report });
+  // The check itself counts as done even when no email key is saved.
+  return { ok: !sent.skipped ? sent.ok : true, message: `${report.summary.ok} OK, ${report.summary.warn} to check, ${report.summary.fail} problems. ${sent.message}` };
+}
+
+const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

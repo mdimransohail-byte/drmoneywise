@@ -7,6 +7,7 @@ import { createLearningArticleFromTopic, summarizeNewsItem } from './writerServi
 import { generateGammaInfographic, searchPexelsImage } from './visualsService.js';
 import { pickTrendingLearningTopic } from './trendingService.js';
 import { matchesRegion, sortByNewsPriority } from '../utils/filters.js';
+import { checkArticle } from './qualityService.js';
 
 /* ════════════════════════════════════════════════════════════════════════
    LEARNING POINTS — homepage rotation (5×2 grid, 2-day cycle)
@@ -244,6 +245,11 @@ async function rotateLearningPointsNow() {
       .sort((a, b) => new Date(a.publishAt).getTime() - new Date(b.publishAt).getTime());
     const autoPicks = eligible
       .filter((article) => article.source === 'trending-auto')
+      .filter((article) => {
+        const quality = checkArticle(article);
+        if (!quality.ok) console.warn(`[articleService] Skipped in rotation (failed checks) — "${article.headline}": ${quality.issues.join('; ')}`);
+        return quality.ok;
+      })
       .sort((a, b) => new Date(b.publishAt).getTime() - new Date(a.publishAt).getTime());
 
     const nextActive = [...adminPicks, ...autoPicks].slice(0, LEARNING_ROTATION_SLOT_COUNT);
@@ -514,13 +520,20 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
     '',
   );
 
+  // Quality checks (src/services/qualityService.js): anything that fails is
+  // kept as a draft for a human read instead of going live.
+  const quality = checkArticle(generated);
+  if (!quality.ok) {
+    console.warn(`[articleService] Held for review — "${generated.headline}": ${quality.issues.join('; ')}`);
+  }
+
   const saved = await saveAdminArticle({
     headline: generated.headline,
     contentType: 'learning',
     accessTier,
     region,
     interest,
-    status: 'scheduled',
+    status: quality.ok ? 'scheduled' : 'draft',
     publishAt: new Date().toISOString(),
     source: 'trending-auto',
     summary: generated.summary,
@@ -548,6 +561,8 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
     const target = storeToPatch.articles.find((article) => article.id === saved.id);
     if (target) {
       target.trendingTopic = topic.label;
+      target.qualityIssues = quality.issues;
+      target.qualityCheckedAt = new Date().toISOString();
     }
     return storeToPatch;
   });
@@ -695,4 +710,20 @@ export function slugify(input) {
 
 export function getPlanCatalog() {
   return getConfiguredPlanCatalog();
+}
+
+/* ── Called by the data engine every few hours (no visitors needed) ── */
+export async function runLearningAutopilot() {
+  const active = await getActiveLearningPoints();
+  const store = await readStore();
+  const learning = store.articles.filter((a) => a.contentType === 'learning');
+  const pool = learning.filter((a) => a.status === 'scheduled' || a.status === 'published').length;
+  const held = learning.filter((a) => a.status === 'draft' && a.source === 'trending-auto' && (a.qualityIssues || []).length).length;
+  const nextRotation = store.meta?.learningRotation?.lastRotatedAt
+    ? new Date(new Date(store.meta.learningRotation.lastRotatedAt).getTime() + LEARNING_ROTATION_INTERVAL_MS).toISOString()
+    : null;
+  return {
+    ok: active.length > 0,
+    message: `${active.length} explainers on the homepage, ${pool} ready in the pool${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
+  };
 }

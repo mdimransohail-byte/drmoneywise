@@ -126,8 +126,14 @@ export async function renderToolsHub(origin) {
         <div class="block-head"><div><h1 style="font-size:36px;margin:0">Money calculators</h1>
           <p>Free, simple and private: nothing you type leaves your device. Pick your country to use its currency and tax rules.</p></div></div>
         <div class="tens">${cards}
+          <a class="ten hub gloss-hub" href="/glossary">
+            <h2>Glossary</h2>
+            <p class="rule">New to a word? See our money words.</p>
+            <p class="meaning">${GLOSSARY.length} money words, each explained simply with an everyday example.</p>
+            <span class="go">Open the glossary</span>
+          </a>
         </div>
-        <p class="note-box">New to a word? Look it up in our <a href="/glossary">money words glossary</a>. Want to track your own holdings? Use <a href="/#tools">My watchlist and portfolio</a>.</p>
+        <p class="note-box">Want to track your own holdings? Use <a href="/#tools">My watchlist and portfolio</a>.</p>
       </section>`;
   return pageShell({ head, body, active: 'tools' });
 }

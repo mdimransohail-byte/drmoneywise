@@ -20,6 +20,7 @@
 //  PAGE C: AI WRITER   — topic, generate, approve/schedule
 //  PAGE D: INVENTORY   — article list, YouTube, scheduler
 //  PAGE E: SETTINGS    — API keys, coupons, site settings
+//  PAGE F: HEALTH      — autopilot checks + daily email
 //  6. ROUTER           — switches pages, calls render+bind
 //  7. AUTH             — login, logout, session
 //  8. INIT             — entry point
@@ -138,6 +139,8 @@ const API = {
   backup:              ()   => API.get('/api/admin/backup'),
   dataStatus:          ()   => API.get('/api/admin/data-status'),
   dataRun:             (job) => API.post('/api/admin/data-run', { job }),
+  health:              ()   => API.get('/api/admin/health'),
+  healthEmail:         ()   => API.post('/api/admin/health/email', {}),
   getBusinessSettings: ()   => API.get('/api/admin/business-settings'),
   saveBusinessSettings:(b)  => API.post('/api/admin/business-settings', b),
 };
@@ -1326,6 +1329,105 @@ function bind_settings() {
 }
 
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE F: HEALTH
+// ─────────────────
+// To change this page ONLY: edit render_health() and bind_health()
+// One list of checks (data, content, keys, site). Same list is emailed daily.
+// ════════════════════════════════════════════════════════════════════════════
+
+function render_health() {
+  const r = STATE.health;
+  if (!r) return '<div class="loading">Health report unavailable.</div>';
+  const word = { ok: 'OK', warn: 'Check', fail: 'Problem' };
+  const icon = { ok: '✓', warn: '!', fail: '✕' };
+  const colour = { ok: '#2bc48a', warn: '#e8a33d', fail: '#f26a6a' };
+  const areas = [...new Set(r.checks.map((c) => c.area))];
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:${colour[r.overall]}">Autopilot</div>
+      <h1>Site health: <span style="color:${colour[r.overall]}">${icon[r.overall]} ${word[r.overall]}</span></h1>
+      <p>${r.summary.ok} OK · ${r.summary.warn} to check · ${r.summary.fail} problems · checked ${h(new Date(r.checkedAt).toLocaleString())}. This page and the daily email show the same checks.</p>
+    </div>
+    <div class="settings-grid">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        ${areas.map((area) => `
+        <div class="card">
+          <div class="card-title">${h(area)}</div>
+          ${r.checks.filter((c) => c.area === area).map((c) => `
+            <div class="api-row" style="align-items:flex-start">
+              <div style="flex:0 0 74px;font-weight:700;color:${colour[c.status]};font-size:.8rem">${icon[c.status]} ${word[c.status]}</div>
+              <div class="api-label">${h(c.label)}<div class="api-hint">${h(c.detail)}</div></div>
+            </div>`).join('')}
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <div class="card-title">Daily health email</div>
+          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Status: <strong style="color:${r.email.configured ? '#2bc48a' : '#e8a33d'}">${r.email.configured ? 'On — sent to ' + h(r.email.to) : 'Off'}</strong><br/>
+            Uses Resend (resend.com, free). Sign up with the email you want the report at, create an API key (starts re_), paste it here.</p>
+          <div class="form-gap">
+            <div><label class="field" for="resendKey">Resend API key</label>
+              <input class="input" type="password" id="resendKey" placeholder="${r.email.configured ? 'Saved — paste a new one to replace' : 're_…'}"/></div>
+            <div><label class="field" for="healthEmailTo">Send the report to</label>
+              <input class="input" type="email" id="healthEmailTo" value="${h(r.email.to)}" placeholder="you@example.com"/></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-gold btn-sm" id="saveHealthEmailBtn">Save</button>
+              <button class="btn btn-ghost btn-sm" id="testHealthEmailBtn">Send a test email now</button>
+            </div>
+            <div id="healthMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">What runs by itself</div>
+          <p style="font-size:.78rem;color:#9eb3cc;margin:0">
+            • Every 6 hours: homepage explainers are checked; every 2 days they change, and new ones are written from the day's news.<br/>
+            • Every new explainer is checked for banned words (for example "AI", tool names, promises of returns) and missing parts. Anything that fails is kept as a draft in Inventory for you to read.<br/>
+            • Daily: economy numbers, Top 10 lists, photos, and this health check (emailed).<br/>
+            • Weekly: company financials.<br/>
+            Run any job by hand in APIs &amp; More → Data engine.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="refreshHealthBtn">Refresh checks</button>
+      </div>
+    </div>`;
+}
+
+async function load_health() {
+  setMain('<div class="loading">Running checks…</div>');
+  try {
+    STATE.health = await API.health();
+    setMain(render_health());
+    bind_health();
+  } catch (e) {
+    setMain(`<div class="loading">Could not run checks: ${h(e.message)}</div>`);
+  }
+}
+
+function bind_health() {
+  qs('#refreshHealthBtn')?.addEventListener('click', () => load_health());
+  qs('#saveHealthEmailBtn')?.addEventListener('click', async () => {
+    const msg = qs('#healthMsg');
+    const resendKey = qs('#resendKey')?.value?.trim() || '';
+    const healthEmailTo = qs('#healthEmailTo')?.value?.trim() || '';
+    if (resendKey && !resendKey.startsWith('re_')) { if (msg) msg.textContent = 'The Resend key should start with re_.'; return; }
+    if (healthEmailTo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(healthEmailTo)) { if (msg) msg.textContent = 'Check the email address.'; return; }
+    try {
+      await API.saveSettings({ resendKey, healthEmailTo });
+      showToast('Health email settings saved');
+      await load_health();
+    } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
+  });
+  qs('#testHealthEmailBtn')?.addEventListener('click', async () => {
+    const msg = qs('#healthMsg');
+    try {
+      if (msg) msg.textContent = 'Sending…';
+      const res = await API.healthEmail();
+      if (msg) msg.textContent = '✓ ' + res.message;
+    } catch (e) { if (msg) { msg.style.color = '#f26a6a'; msg.textContent = e.message; } }
+  });
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION 6: ROUTER
 // To add a new page: add an entry to the PAGES map
@@ -1337,6 +1439,7 @@ const PAGES = {
   writer:    { load: null,             render: render_writer,    bind: bind_writer     },
   inventory: { load: load_inventory,   render: render_inventory, bind: bind_inventory  },
   settings:  { load: load_settings,   render: render_settings,  bind: bind_settings   },
+  health:    { load: load_health,     render: render_health,    bind: bind_health     },
 };
 
 const ROUTER = {
