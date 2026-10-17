@@ -17,7 +17,18 @@ import { buildHeadTags, pageShell } from './seoService.js';
 import { getDividendTop10 } from './top10Service.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
-const nameOf = (c) => c.displayName || cleanName(c.name || c.ticker);
+// Company name for display: tidy capitals and drop SEC state tags like "/De/".
+const nameOf = (c) => String(c.displayName || cleanName(c.name || c.ticker)).replace(/\s*\/[A-Za-z]{2,3}\/?\s*$/u, '').trim();
+
+/** One company tile: logo, name and ticker on one line, industry on the next. Same size everywhere. */
+function stockRow(c) {
+  const name = nameOf(c);
+  return `<a class="stock-row" href="/stock/${encodeURIComponent(c.ticker)}" title="${esc(name)}">
+            ${companyLogo(c, name, 'sm')}
+            <span class="stock-row-line"><span class="stock-row-name">${esc(name)}</span><span class="pick-ticker">${esc(c.ticker)}</span></span>
+            <span class="stock-row-kind">${esc(c.industry || '')}</span>
+          </a>`;
+}
 const short = (v) => formatMoney(v).replace(' billion', 'bn').replace(' trillion', 'tn').replace(' million', 'm');
 
 function tvSymbol(company) {
@@ -117,11 +128,7 @@ export async function renderStocksIndex(origin, query = '') {
     canonical: `${origin}/stocks`,
   });
   const rows = list.map((c) => `
-          <a class="stock-row" href="/stock/${encodeURIComponent(c.ticker)}">
-            ${companyLogo(c, nameOf(c), 'sm')}
-            <span class="stock-row-name">${esc(nameOf(c))} <span class="pick-ticker">${esc(c.ticker)}</span></span>
-            <span class="stock-row-kind">${esc(c.industry || '')}</span>
-          </a>`).join('');
+          ${stockRow(c)}`).join('');
   const body = `
       <section class="block">
         <div class="page-intro">
@@ -246,7 +253,7 @@ export async function renderStockPage(origin, rawTicker) {
           <ul class="plain-list">${RATING_RULES.map((rule) => `<li>${esc(rule)}</li>`).join('')}</ul>
         </div>
         ${related.length ? `<h2 style="font-size:22px;margin:24px 0 10px">Other ${esc(company.industry.toLowerCase())} companies</h2>
-        <div class="stock-list">${related.map((c) => `<a class="stock-row" href="/stock/${encodeURIComponent(c.ticker)}"><span class="pick-ticker">${esc(c.ticker)}</span><span class="stock-row-name">${esc(nameOf(c))}</span></a>`).join('')}</div>` : ''}
+        <div class="stock-list">${related.map((c) => stockRow(c)).join('')}</div>` : ''}
         ${process.env.LOGO_DEV_KEY ? '<p class="helper-note">Company logos provided by <a href="https://logo.dev" target="_blank" rel="noopener">Logo.dev</a>. Logos belong to their companies and are shown only to identify them.</p>' : ''}
         <p class="note-box">This report card describes the business using its official figures. It is not a recommendation to buy or sell. Read our <a href="/disclaimer">disclaimer</a>.</p>
       </section>`;
