@@ -1,5 +1,4 @@
 import { ASSET_OPTIONS, REGION_OPTIONS, canAccess, getPlanConfig } from '../config.js';
-import { fallbackNews } from '../data/marketNews.js';
 import { marketSnapshotCards } from '../data/marketSnapshot.js';
 import { average, matchesAsset, matchesQuery, matchesRegion, sortByNewsPriority, uniqueBy } from '../utils/filters.js';
 import { getTrendingHeadlinesForInterest, getTrendingTopics } from './trendingService.js';
@@ -27,7 +26,9 @@ export async function getNews({ tier = 'free', regions = ['global'], asset = 'al
   const plan = getPlanConfig(tier);
   const limit = plan.articleLimit || plan.newsLimit || 12;
   const liveResult = await fetchLiveNews({ regions, asset, limit });
-  const sourceItems = liveResult.items.length ? liveResult.items : fallbackNews;
+  // No made-up sample stories: if every news feed fails, show nothing
+  // (the pages say "stories are loading") rather than invented headlines.
+  const sourceItems = liveResult.items;
 
   const filtered = sortByNewsPriority(
     sourceItems.filter((item) => matchesRegion(item.region, regions) && matchesAsset(item.asset, asset) && matchesQuery(item, query)),
@@ -43,15 +44,15 @@ export async function getNews({ tier = 'free', regions = ['global'], asset = 'al
   });
 
   return {
-    mode: liveResult.items.length ? 'live' : 'demo',
-    provider: liveResult.provider || 'Curated demo feed',
+    mode: liveResult.items.length ? 'live' : 'unavailable',
+    provider: liveResult.provider || 'none',
     updatedAt: new Date().toISOString(),
     totalCount: filtered.length,
     lockedCount: visible.filter((item) => !item.accessible).length,
     items: visible,
     statusNote: liveResult.items.length
       ? `Live feed connected through ${liveResult.provider}.`
-      : 'Demo mode is active. Add API keys in .env for live headlines.',
+      : 'No news feed answered. Check the NewsData / Marketaux keys in Admin.',
   };
 }
 
@@ -87,7 +88,7 @@ export async function getMarketSnapshot({ region = 'global', asset = 'all' } = {
 
    PRIMARY SOURCE: NewsData.io — commercial-use-safe free tier, 200
    credits/day. Falls back to Marketaux if NewsData fails or returns
-   nothing, then to a stale cache, then to demo headlines.
+   nothing, then to a stale cache, then to no headlines (never made-up ones).
    ════════════════════════════════════════════════════════════════════════ */
 const LIVE_HEADLINES_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const LIVE_HEADLINES_LIMIT = 20;
@@ -133,16 +134,12 @@ export async function getLiveHeadlines() {
     return { ...liveHeadlinesCache.payload, cached: true, stale: true };
   }
 
+  console.warn('[newsService] Live Wire: every news feed failed and nothing is cached — showing no headlines.');
   return {
-    mode: 'demo',
-    provider: 'Curated demo feed',
+    mode: 'unavailable',
+    provider: 'none',
     updatedAt: new Date().toISOString(),
-    items: fallbackNews.slice(0, LIVE_HEADLINES_LIMIT).map((item) => ({
-      title: item.title,
-      source: item.source,
-      url: item.url || '',
-      publishedAt: item.publishedAt,
-    })),
+    items: [],
   };
 }
 
@@ -324,7 +321,7 @@ async function fetchLiveNews({ regions, asset, limit }) {
     }
   }
 
-  console.warn('[newsService] All news providers failed or returned nothing — falling back to demo headlines.');
+  console.warn('[newsService] All news providers failed or returned nothing — returning no headlines.');
 
   return {
     provider: null,

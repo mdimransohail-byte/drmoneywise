@@ -78,7 +78,9 @@ export function plainEnglishSummary(company) {
 }
 
 function initialsOf(name, ticker) {
-  return esc(String(name || ticker).replace(/[^A-Za-z0-9 ]/gu, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || ticker.slice(0, 2));
+  const letters = String(name || ticker).replace(/[^A-Za-z0-9 ]/gu, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  // e.g. Aflac Inc would give "AI" — use the ticker instead (site never shows "AI").
+  return esc(!letters || letters === 'AI' ? ticker.slice(0, 4) : letters);
 }
 
 /** Logo image address at the given pixel size (Logo.dev, by ticker). */
@@ -105,7 +107,7 @@ function logoCard(company, name) {
 /** Company logo from Logo.dev (free, needs LOGO_DEV_KEY), with the
  *  company's initials as a fallback if no key or no logo is found. */
 export function companyLogo(company, name, size = 'lg') {
-  const initials = esc((name || company.ticker).replace(/[^A-Za-z0-9 ]/gu, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || company.ticker.slice(0, 2));
+  const initials = initialsOf(name, company.ticker);
   const key = String(process.env.LOGO_DEV_KEY || '').trim();
   const fallback = `<span class="co-logo ${size} initials" aria-hidden="true">${initials}</span>`;
   if (!key) return fallback;

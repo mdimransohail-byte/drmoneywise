@@ -177,7 +177,7 @@ export async function renderCalculator(origin, slug) {
             <div id="results"><p class="calc-hint">Loading the calculator…</p></div>
             <div id="chartWrap">
               <div id="chart" class="calc-chart" role="img" aria-label="Value year by year"></div>
-              <p class="calc-legend"><span class="key growth"></span> Growth <span class="key paid"></span> Money you put in</p>
+              <p class="calc-legend"><span class="key growth"></span> Growth <span class="key paid"></span> Money you put in <span id="chartYears" class="calc-years-note">· numbers under the bars are years</span></p>
             </div>
           </div>
         </div>

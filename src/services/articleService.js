@@ -194,7 +194,10 @@ async function topUpTrendingLearningPool() {
     const isEligible = (article) =>
       article.contentType === 'learning' && (article.status === 'scheduled' || article.status === 'published');
 
-    const currentCount = store.articles.filter(isEligible).length;
+    // Count only explainers WAITING for the next change (scheduled). The ones
+    // on the homepage now are archived at the next change, so counting them
+    // too left the next set short (e.g. 8 of 10 with 0 waiting).
+    const currentCount = store.articles.filter((article) => isEligible(article) && article.status === 'scheduled').length;
     const gap = Math.min(LEARNING_ROTATION_SLOT_COUNT - currentCount, MAX_AUTO_GENERATIONS_PER_CYCLE);
 
     if (gap <= 0) {
@@ -253,6 +256,21 @@ async function rotateLearningPointsNow() {
       .sort((a, b) => new Date(b.publishAt).getTime() - new Date(a.publishAt).getTime());
 
     const nextActive = [...adminPicks, ...autoPicks].slice(0, LEARNING_ROTATION_SLOT_COUNT);
+
+    // Not enough new ones? Keep the most recent of the outgoing set on the
+    // homepage so it never shows fewer than 10 when we have them.
+    if (nextActive.length < LEARNING_ROTATION_SLOT_COUNT) {
+      const keep = (rotation.activeIds || [])
+        .map((id) => store.articles.find((entry) => entry.id === id))
+        .filter((article) => article && article.status === 'archived' && !nextActive.includes(article))
+        .slice(0, LEARNING_ROTATION_SLOT_COUNT - nextActive.length);
+      for (const article of keep) {
+        article.status = 'published';
+        article.updatedAt = now;
+        nextActive.push(article);
+      }
+      if (keep.length) console.log(`[articleService] Only ${nextActive.length - keep.length} new explainers ready — kept ${keep.length} from the last set.`);
+    }
 
     // Selected articles must actually be live for readers, not merely
     // eligible — a 'scheduled' pick that just got chosen publishes now.
@@ -715,15 +733,21 @@ export function getPlanCatalog() {
 /* ── Called by the data engine every few hours (no visitors needed) ── */
 export async function runLearningAutopilot() {
   const active = await getActiveLearningPoints();
+  // Between changes, keep writing (max 4 per run) until 10 are waiting.
+  try {
+    await topUpTrendingLearningPool();
+  } catch (error) {
+    console.error('[articleService] Autopilot top-up failed:', error.message);
+  }
   const store = await readStore();
   const learning = store.articles.filter((a) => a.contentType === 'learning');
-  const pool = learning.filter((a) => a.status === 'scheduled' || a.status === 'published').length;
+  const waiting = learning.filter((a) => a.status === 'scheduled').length;
   const held = learning.filter((a) => a.status === 'draft' && a.source === 'trending-auto' && (a.qualityIssues || []).length).length;
   const nextRotation = store.meta?.learningRotation?.lastRotatedAt
     ? new Date(new Date(store.meta.learningRotation.lastRotatedAt).getTime() + LEARNING_ROTATION_INTERVAL_MS).toISOString()
     : null;
   return {
     ok: active.length > 0,
-    message: `${active.length} explainers on the homepage, ${pool} ready in the pool${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
+    message: `${active.length} explainers on the homepage, ${waiting} waiting for the next change${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
   };
 }

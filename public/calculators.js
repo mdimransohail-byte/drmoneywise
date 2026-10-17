@@ -128,6 +128,8 @@
     const step = Math.max(1, Math.ceil(yearly.length / 10));
     const points = yearly.filter((row, i) => (i + 1) % step === 0 || i === yearly.length - 1);
     const max = Math.max(...points.map((p) => p.value), 1);
+    const caption = document.getElementById('chartYears');
+    if (caption) caption.hidden = points.length <= 6;
     points.forEach((p) => {
       const col = document.createElement('div');
       col.className = 'calc-col';
@@ -144,7 +146,7 @@
       bar.append(growth, paid);
       const label = document.createElement('span');
       label.className = 'calc-year';
-      label.textContent = `Yr ${p.year}`;
+      label.textContent = points.length > 6 ? String(p.year) : `Yr ${p.year}`;
       col.append(bar, label);
       chart.appendChild(col);
     });
