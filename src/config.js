@@ -61,7 +61,20 @@ export function getBusinessSettings() {
 
   try {
     const savedSettings = JSON.parse(fs.readFileSync(overridePath, 'utf8'));
-    return mergeSettings(BUSINESS_SETTINGS, savedSettings);
+    const merged = mergeSettings(BUSINESS_SETTINGS, savedSettings);
+    // Plan wording (features + tagline) comes from src/businessSettings.js
+    // whenever its featuresVersion is newer than the saved copy, so updated
+    // benefit lists reach the live site. Prices and limits stay as saved.
+    if ((savedSettings.featuresVersion || 0) < (BUSINESS_SETTINGS.featuresVersion || 0)) {
+      for (const [id, plan] of Object.entries(BUSINESS_SETTINGS.plans)) {
+        if (merged.plans?.[id]) {
+          merged.plans[id].features = plan.features;
+          merged.plans[id].tagline = plan.tagline;
+        }
+      }
+      merged.featuresVersion = BUSINESS_SETTINGS.featuresVersion;
+    }
+    return merged;
   } catch {
     return BUSINESS_SETTINGS;
   }

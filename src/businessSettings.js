@@ -2,6 +2,9 @@
 // Change this file when you want to update pricing, plan limits, or news priority.
 
 export const BUSINESS_SETTINGS = {
+  // Raise this number when you change any plan's features or tagline below,
+  // so the live site picks up the new wording.
+  featuresVersion: 2,
   plans: {
     free: {
       id: 'free',
@@ -9,7 +12,7 @@ export const BUSINESS_SETTINGS = {
       shortName: 'Free',
       priceLabel: '$0',
       billingLabel: 'forever',
-      tagline: 'For readers building a daily money habit',
+      tagline: 'Everything you need to start understanding money',
       articleLimit: 9,
       learningLimit: 3,
       smartReview: false,
@@ -24,10 +27,11 @@ export const BUSINESS_SETTINGS = {
         },
       ],
       features: [
-        'Free daily market summaries',
-        'Saved interests and region selection',
-        'Simple watchlist',
-        'Free learning points',
+        'Plain-English explainers, new ones every two days',
+        'A report card for any US-listed company',
+        'Top 10 dividend stocks, ETFs and crypto',
+        'Markets today, money calculators and glossary',
+        'A simple watchlist',
       ],
     },
     regular: {
@@ -36,7 +40,7 @@ export const BUSINESS_SETTINGS = {
       shortName: 'Regular',
       priceLabel: '$10',
       billingLabel: '/month or $99/year',
-      tagline: 'For readers who want more depth and paid explainers',
+      tagline: 'The deeper look behind every company',
       articleLimit: 24,
       learningLimit: 12,
       smartReview: true,
@@ -57,10 +61,12 @@ export const BUSINESS_SETTINGS = {
         },
       ],
       features: [
-        'Regular paid articles',
+        'Everything in Free',
+        'What the big funds are doing: which of about 20 famous investors own each company, and whether they bought or sold',
+        '"What if" growth scenarios for sales, profit and dividends',
+        '10 years of full financial results and the latest quarters',
         'Portfolio and watchlist review',
-        'More learning points',
-        'Priority member feed',
+        'More member articles',
       ],
     },
     premium: {
@@ -69,7 +75,7 @@ export const BUSINESS_SETTINGS = {
       shortName: 'Premium',
       priceLabel: '$25',
       billingLabel: '/month or $249/year',
-      tagline: 'For readers who want every article and the fullest review tools',
+      tagline: 'Every article and the fullest review tools',
       articleLimit: 60,
       learningLimit: 60,
       smartReview: true,
@@ -90,10 +96,11 @@ export const BUSINESS_SETTINGS = {
         },
       ],
       features: [
-        'Premium paid articles',
-        'Unlimited learning library',
+        'Everything in Regular',
+        'Every member article, including in-depth premium pieces',
+        'The full explainer library',
         'Full portfolio review',
-        'Early access to scheduled releases',
+        'Early access to new articles',
       ],
     },
   },
@@ -135,10 +142,20 @@ export const BUSINESS_SETTINGS = {
       regular: 25,
       premium: 35,
     },
+    // ── NEWS SOURCES — TESTING CONFIGURATION ────────────────────────────
+    // Marketaux: free tier, safe for production use, keep long-term.
+    // Tiingo: free tier, but its free-tier license is for INDIVIDUAL USE
+    //   ONLY. It is fine to use here during development/testing, but it
+    //   MUST be removed (or upgraded to a commercial Tiingo plan) before
+    //   the site goes live to real members. See PRE-LAUNCH CHECKLIST below.
+    // NewsAPI.org: removed — its free Developer plan forbids production
+    //   use entirely, even internally.
+    // Finnhub: kept — used for live stock price data, its free tier is
+    //   fine for production, and it also supplies some company news.
     sourceWeights: {
       'Dr MoneyWise Desk': 60,
       Marketaux: 35,
-      NewsAPI: 30,
+      Tiingo: 30, // TESTING ONLY — remove this line before launch (see note above)
       Finnhub: 25,
     },
     freshnessHalfLifeHours: 36,
