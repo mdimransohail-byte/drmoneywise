@@ -19,6 +19,9 @@ import { checkArticle } from './qualityService.js';
    ════════════════════════════════════════════════════════════════════════ */
 const LEARNING_ROTATION_SLOT_COUNT = 10;
 const LEARNING_ROTATION_INTERVAL_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+// Each change swaps the 5 oldest for 5 new ones (the 5 newest stay), which
+// halves the writing needed (~75 a month instead of ~150).
+const LEARNING_SWAP_PER_CYCLE = 5;
 
 // Ceiling on how many articles one background top-up will write. Keeps a
 // single cycle from firing a long burst of paid AI calls unattended.
@@ -199,7 +202,7 @@ async function topUpTrendingLearningPool() {
     // on the homepage now are archived at the next change, so counting them
     // too left the next set short (e.g. 8 of 10 with 0 waiting).
     const currentCount = store.articles.filter((article) => isEligible(article) && article.status === 'scheduled').length;
-    const gap = Math.min(LEARNING_ROTATION_SLOT_COUNT - currentCount, MAX_AUTO_GENERATIONS_PER_CYCLE);
+    const gap = Math.min(LEARNING_SWAP_PER_CYCLE - currentCount, MAX_AUTO_GENERATIONS_PER_CYCLE);
 
     if (gap <= 0) {
       console.log(`[articleService] Learning Points pool is full (${currentCount} eligible) — nothing to generate.`);
@@ -231,19 +234,20 @@ async function rotateLearningPointsNow() {
     const rotation = store.meta.learningRotation || { lastRotatedAt: null, activeIds: [] };
     const now = new Date().toISOString();
 
-    // Archive whatever was active before this rotation — moved to
-    // Inventory, never deleted, so any of them (admin-picked or trending)
-    // can be rescheduled later.
-    for (const id of rotation.activeIds || []) {
-      const article = store.articles.find((entry) => entry.id === id);
-      if (article && (article.status === 'published' || article.status === 'scheduled')) {
-        article.status = 'archived';
-        article.updatedAt = now;
-      }
+    // Keep the newest (10 − 5) of the current set; archive the older ones —
+    // moved to Inventory, never deleted, so they can be rescheduled later.
+    const current = (rotation.activeIds || [])
+      .map((id) => store.articles.find((entry) => entry.id === id))
+      .filter((article) => article && (article.status === 'published' || article.status === 'scheduled'))
+      .sort((a, b) => new Date(b.publishAt).getTime() - new Date(a.publishAt).getTime());
+    const keep = current.slice(0, LEARNING_ROTATION_SLOT_COUNT - LEARNING_SWAP_PER_CYCLE);
+    for (const article of current.slice(keep.length)) {
+      article.status = 'archived';
+      article.updatedAt = now;
     }
 
     const eligible = store.articles.filter(
-      (article) => article.contentType === 'learning' && (article.status === 'scheduled' || article.status === 'published'),
+      (article) => article.contentType === 'learning' && (article.status === 'scheduled' || article.status === 'published') && !keep.includes(article),
     );
 
     const adminPicks = eligible
@@ -258,21 +262,21 @@ async function rotateLearningPointsNow() {
       })
       .sort((a, b) => new Date(b.publishAt).getTime() - new Date(a.publishAt).getTime());
 
-    const nextActive = [...adminPicks, ...autoPicks].slice(0, LEARNING_ROTATION_SLOT_COUNT);
+    const nextActive = [...keep, ...adminPicks, ...autoPicks].slice(0, LEARNING_ROTATION_SLOT_COUNT);
 
     // Not enough new ones? Keep the most recent of the outgoing set on the
     // homepage so it never shows fewer than 10 when we have them.
     if (nextActive.length < LEARNING_ROTATION_SLOT_COUNT) {
-      const keep = (rotation.activeIds || [])
+      const refill = (rotation.activeIds || [])
         .map((id) => store.articles.find((entry) => entry.id === id))
         .filter((article) => article && article.status === 'archived' && !nextActive.includes(article))
         .slice(0, LEARNING_ROTATION_SLOT_COUNT - nextActive.length);
-      for (const article of keep) {
+      for (const article of refill) {
         article.status = 'published';
         article.updatedAt = now;
         nextActive.push(article);
       }
-      if (keep.length) console.log(`[articleService] Only ${nextActive.length - keep.length} new explainers ready — kept ${keep.length} from the last set.`);
+      if (refill.length) console.log(`[articleService] Only ${nextActive.length - refill.length} new explainers ready — kept ${refill.length} more from the last set.`);
     }
 
     // Selected articles must actually be live for readers, not merely

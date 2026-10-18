@@ -159,6 +159,10 @@ function buildArticlePrompt({ accessTier, headline, sourceNotes }) {
   return [
     ...instructions,
     ...fieldTargets,
+    // Saying this up front means fewer pieces fail the quality checks
+    // (src/services/qualityService.js) — each failed piece is paid for but unused.
+    'NEVER use these words or ideas: "AI", "artificial intelligence", the name of any writing tool or model; "guaranteed" (about returns, profits or income), "risk-free", "can\'t lose", "get rich", "double your money"; "buy now", "you should buy", "you should sell", "strong buy". This is education, not advice: describe, never promise or recommend.',
+    'Keep the headline under 90 characters.',
     'CRITICAL FORMATTING RULE: every string value must be plain text only.',
     'Do not use HTML tags of any kind (no <strong>, <br>, <p>, <ul>, <li>, etc).',
     'Do not use Markdown formatting either (no **bold**, no # headings, no - bullet dashes inside a string).',
@@ -274,9 +278,11 @@ async function getNextWriter(forceProvider = '') {
 const KEY_ENV = { openai: 'OPENAI_API_KEY', claude: 'CLAUDE_API_KEY', perplexity: 'PERPLEXITY_API_KEY', gemini: 'GEMINI_API_KEY' };
 
 async function writeWithFallback(writer, prompt, forced = false) {
+  // At most 2 tries per piece (the writer whose turn it is + one backup),
+  // so one bad moment can't burn through every service's allowance.
   const order = [writer, ...(forced ? [] : ['claude', 'openai', 'gemini', 'perplexity']
     .filter((p) => p !== writer.provider && process.env[KEY_ENV[p]])
-    .map((p) => ({ slot: p, provider: p, model: process.env[MODEL_ENV_KEYS[p]] || '' })))];
+    .map((p) => ({ slot: p, provider: p, model: process.env[MODEL_ENV_KEYS[p]] || '' })))].slice(0, 2);
   for (const attempt of order) {
     const generated = await requestStructuredWriting(attempt, prompt).catch(() => null);
     const sanitized = sanitizeGeneratedContent(generated);
