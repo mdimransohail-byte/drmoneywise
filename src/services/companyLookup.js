@@ -15,6 +15,7 @@ import path from 'node:path';
 
 import { readCompanies } from './dataEngine.js';
 import { cleanName, fetchOneCompany, getTickerMapCached } from './secService.js';
+import { getUniverse } from '../data/stockUniverse.js';
 
 const EXTRA_FILE = path.join(process.cwd(), 'data', 'market', 'companies-extra.json');
 const FRESH_MS = 7 * 24 * 60 * 60 * 1000;
@@ -155,8 +156,48 @@ export async function searchAllCompanies(query, limit = 20) {
     else if (q.length >= 2 && ticker.startsWith(qTicker)) score = 30;
     if (score) rows.push({ ticker, name: cleanName(entry.name), score });
   }
-  // Prefer the main share class (shorter tickers) when names tie.
-  return rows
+  // One result per company: the SEC list also has a company's preference
+  // shares, bonds, warrants and units (e.g. Ford's F-PB, F-PC, F-PD are
+  // Ford bonds traded like shares). Keep only its main share ticker.
+  const best = new Map();
+  for (const row of rows) {
+    const cik = map[row.ticker].cik;
+    const current = best.get(cik);
+    if (!current || isBetterTicker(row.ticker, current.ticker)) {
+      best.set(cik, { ...row, score: Math.max(row.score, current?.score || 0) });
+    }
+  }
+  return [...best.values()]
     .sort((a, b) => b.score - a.score || a.ticker.length - b.ticker.length || a.name.localeCompare(b.name))
     .slice(0, limit);
+}
+
+/* Which of two tickers for the same company is its main share:
+   one we already cover wins, then one without a dash, then the shorter. */
+let coveredMemo = null;
+function covered() {
+  if (!coveredMemo) coveredMemo = new Set(getUniverse());
+  return coveredMemo;
+}
+function isBetterTicker(a, b) {
+  const set = covered();
+  if (set.has(a) !== set.has(b)) return set.has(a);
+  const dashA = a.includes('-');
+  const dashB = b.includes('-');
+  if (dashA !== dashB) return !dashA;
+  return a.length < b.length;
+}
+
+/** For a secondary listing (bond, preference share, warrant…), the company's main ticker; else null. */
+export async function mainTickerFor(rawTicker) {
+  const ticker = normaliseTicker(rawTicker);
+  let map;
+  try { map = await getTickerMapCached(); } catch { return null; }
+  const entry = map[ticker];
+  if (!entry) return null;
+  let main = ticker;
+  for (const [t, e] of Object.entries(map)) {
+    if (e.cik === entry.cik && isBetterTicker(t, main)) main = t;
+  }
+  return main !== ticker ? main : null;
 }

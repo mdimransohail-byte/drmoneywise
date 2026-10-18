@@ -528,6 +528,14 @@ async function handlePublicPage(requestUrl, request, response) {
 
   const stockMatch = pathname.match(/^\/stock\/([A-Za-z0-9.\-]{1,10})$/u);
   if (stockMatch) {
+    // Bonds / preference shares / warrants (e.g. F-PB) → the company's main page (F)
+    const { mainTickerFor } = await import('./src/services/companyLookup.js');
+    const main = await mainTickerFor(decodeURIComponent(stockMatch[1]));
+    if (main) {
+      response.writeHead(301, { Location: `/stock/${encodeURIComponent(main)}` });
+      response.end();
+      return true;
+    }
     const page = await renderStockPage(origin, decodeURIComponent(stockMatch[1]));
     return sendHtml(response, page.status, page.html);
   }

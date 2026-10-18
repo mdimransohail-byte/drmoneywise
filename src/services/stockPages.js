@@ -198,7 +198,7 @@ export async function renderStocksIndex(origin, query = '') {
         : `<a class="stock-row" href="/stock/${encodeURIComponent(m.ticker)}" title="${esc(m.name)}">
             <span class="co-logo sm initials" aria-hidden="true">${initialsOf(m.name, m.ticker)}</span>
             <span class="stock-row-line"><span class="stock-row-name">${esc(m.name)}</span><span class="pick-ticker">${esc(m.ticker)}</span></span>
-            <span class="stock-row-kind">Report card built when you open it</span>
+            <span class="stock-row-kind">US-listed company</span>
           </a>`;
     }).join('');
     content = `
