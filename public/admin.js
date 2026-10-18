@@ -858,6 +858,7 @@ function render_inventory() {
             <span style="font-size:.65rem;color:#9eb3cc;margin-left:auto">${fmtDate(a.publishAt)}</span>
           </div>
           <h4>${h(a.headline)}</h4>
+          ${(a.qualityIssues || []).length ? `<p style="font-size:.7rem;color:#e8a33d;margin:2px 0 6px">⚠ Held: ${h(a.qualityIssues.join('; '))}</p>` : ''}
 
           <div class="yt-row">
             <span style="font-size:1rem">▶</span>
@@ -875,6 +876,7 @@ function render_inventory() {
                 <span class="tier-pill ${a.accessTier===t?(t==='free'?'f':t==='regular'?'r':'p'):''}" data-itier="${h(a.id)}" data-tv="${t}">${t}</span>
               `).join('')}
             </div>
+            <button class="btn btn-sm btn-ghost" data-iread="${h(a.id)}">Read</button>
             ${a.status !== 'published' ? `<button class="btn btn-sm btn-green"  data-ipub="${h(a.id)}">Publish</button>` : ''}
             ${a.status !== 'scheduled' ? `<button class="btn btn-sm btn-teal"   data-isch="${h(a.id)}">Schedule</button>` : ''}
             <button class="btn btn-sm btn-rose" data-idel="${h(a.id)}">Delete</button>
@@ -897,7 +899,51 @@ async function load_inventory() {
   }
 }
 
+/* Full-text reader for one article (Inventory → Read). Shows exactly what
+   readers would see, with any held-for-review reasons highlighted. */
+function renderReader(a) {
+  const para = (t) => String(t || '').split(/\n{2,}/).filter(Boolean).map((x) => `<p>${h(x)}</p>`).join('');
+  const sections = (a.bodySections || []).length
+    ? a.bodySections.map((sec) => `<h3>${h(sec.heading)}</h3>${para(sec.body)}`).join('')
+    : `${para(a.plainEnglish)}${para(a.whyItMatters)}${para(a.everydayExample)}`;
+  const takeaways = (a.takeaways || []).length ? `<h3>Key takeaways</h3><ul>${a.takeaways.map((t) => `<li>${h(t)}</li>`).join('')}</ul>` : '';
+  const jargon = (a.jargonBuster || []).length ? `<h3>Jargon buster</h3><ul>${a.jargonBuster.map((j) => typeof j === 'string' ? `<li>${h(j)}</li>` : `<li><strong>${h(j.term)}</strong>: ${h(j.meaning || j.definition || '')}</li>`).join('')}</ul>` : '';
+  const issues = (a.qualityIssues || []).length ? `<div class="reader-warn">Held for review: ${h(a.qualityIssues.join('; '))}</div>` : '';
+  return `<div class="reader-overlay" id="readerOverlay" role="dialog" aria-modal="true" aria-label="Read article">
+    <div class="reader-box">
+      <button class="btn btn-sm btn-ghost reader-close" id="readerClose">✕ Close</button>
+      <div class="reader-meta">${h(a.status)} · ${h(a.accessTier)} · ${h(a.interest || '')}${a.engineSlot ? ' · ' + h(a.engineSlot) : ''}</div>
+      ${issues}
+      <h2>${h(a.headline)}</h2>
+      ${a.summary ? `<p class="reader-summary">${h(a.summary)}</p>` : ''}
+      ${sections}${takeaways}${jargon}
+      <div class="reader-actions">
+        ${a.status !== 'published' ? `<button class="btn btn-sm btn-green" data-ipub="${h(a.id)}">Publish</button>` : ''}
+        <button class="btn btn-sm btn-rose" data-idel="${h(a.id)}">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function bind_inventory() {
+  // Read the full article before publishing
+  qsa('[data-iread]').forEach(b => b.addEventListener('click', () => {
+    const a = STATE.articles.find(x => x.id === b.dataset.iread);
+    if (!a) return;
+    qs('#readerOverlay')?.remove();
+    document.body.insertAdjacentHTML('beforeend', renderReader(a));
+    const overlay = qs('#readerOverlay');
+    const close = () => overlay?.remove();
+    qs('#readerClose')?.addEventListener('click', close);
+    overlay?.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    // Publish / Delete inside the reader reuse the card's buttons
+    overlay?.querySelectorAll('[data-ipub],[data-idel]').forEach(btn => btn.addEventListener('click', () => {
+      const sel = btn.dataset.ipub ? `.inv-card [data-ipub="${btn.dataset.ipub}"]` : `.inv-card [data-idel="${btn.dataset.idel}"]`;
+      close();
+      document.querySelector(sel)?.click();
+    }));
+  }));
+
   // Filter tabs
   qsa('[data-invf]').forEach(b => b.addEventListener('click', () => {
     STATE.invFilter = b.dataset.invf;
