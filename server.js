@@ -40,6 +40,9 @@ import { renderCryptoTop10, renderToday } from './src/services/marketPages.js';
 import { findCompanyPath, renderStockPage, renderStocksIndex, stockDetailsFor } from './src/services/stockPages.js';
 import { getHealthReport, sendHealthEmail } from './src/services/healthService.js';
 import { renderMembershipPage } from './src/services/membershipPage.js';
+import { renderPropertyHub, renderPropertyPlace } from './src/services/propertyPages.js';
+import { deleteManualRow, getPropertyStatus, saveManualRow } from './src/services/propertyService.js';
+import { AD_SLOTS, getAdSettings, publicAdSlots, saveAdSettings } from './src/services/adService.js';
 import { renderForumHome, renderForumNew, renderForumRules, renderForumSearch, renderForumSection, renderForumThread } from './src/services/forumPages.js';
 import { addReply, addStarterThreads, adminAction, createThread, editPost, getModerationQueue, reportPost } from './src/services/forumService.js';
 import { renderCalculator, renderGlossaryIndex, renderGlossaryTerm, renderToolsHub } from './src/services/toolsPages.js';
@@ -241,6 +244,35 @@ export const server = http.createServer(async (request, response) => {
 
     if (requestUrl.pathname === '/api/member/about-me' && request.method === 'POST') {
       return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
+    }
+
+    // Ad and partner spaces that are switched on (for the static pages)
+    if (requestUrl.pathname === '/api/site/ads' && request.method === 'GET') {
+      return sendJson(response, 200, publicAdSlots());
+    }
+
+    if (requestUrl.pathname === '/api/admin/ads' && request.method === 'GET') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, { slots: AD_SLOTS, settings: getAdSettings() });
+    }
+
+    if (requestUrl.pathname === '/api/admin/ads' && request.method === 'POST') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, { slots: AD_SLOTS, settings: await saveAdSettings(await parseJsonBody(request)) });
+    }
+
+    // Admin → Property: status of every place + Dubai figures typed by hand
+    if (requestUrl.pathname === '/api/admin/property' && request.method === 'GET') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, await getPropertyStatus());
+    }
+
+    if (requestUrl.pathname === '/api/admin/property/manual' && request.method === 'POST') {
+      await requireAdminUser(token);
+      const body = await parseJsonBody(request);
+      if (body.delete) await deleteManualRow(body.place, body.period);
+      else await saveManualRow(body.place, body.row);
+      return sendJson(response, 200, await getPropertyStatus());
     }
 
     if (requestUrl.pathname === '/api/admin/audience' && request.method === 'GET') {
@@ -610,6 +642,22 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (pathname === '/top-10/etfs') {
     return sendHtml(response, 200, await renderEtfTop10(origin));
+  }
+
+  if (pathname === '/property') {
+    const pick = String(requestUrl.searchParams.get('place') || '').replace(/[^a-z-]/gu, '');
+    if (pick) {
+      response.writeHead(302, { Location: `/property/${pick}` });
+      response.end();
+      return true;
+    }
+    return sendHtml(response, 200, await renderPropertyHub(origin));
+  }
+
+  const propertyMatch = pathname.match(/^\/property\/([a-z-]{2,40})$/u);
+  if (propertyMatch) {
+    const html = await renderPropertyPlace(origin, propertyMatch[1]);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
   }
 
   if (pathname === '/membership') {

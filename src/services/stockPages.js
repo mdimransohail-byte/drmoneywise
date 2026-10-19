@@ -21,6 +21,7 @@ import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
 import { cleanName } from './secService.js';
 import { iframeWidget } from './marketPages.js';
 import { buildHeadTags, isForumEnabled, pageShell } from './seoService.js';
+import { adSlot } from './adService.js';
 import { getDividendTop10 } from './top10Service.js';
 import { SECTORS, SECTORS_REVIEWED, sectorOf } from '../data/sectorLeaders.js';
 import { getCompany, normaliseTicker, readExtraCompanies, searchAllCompanies } from './companyLookup.js';
@@ -363,6 +364,8 @@ export async function renderStockPage(origin, rawTicker) {
         </div>
       </section>
 
+      ${adSlot('in-content')}
+
       ${isForumEnabled() ? `<section class="block">
         <a class="forum-cta" href="/forum/stocks?ticker=${encodeURIComponent(ticker)}">
           <strong>Questions about ${esc(name)}?</strong>
@@ -388,6 +391,7 @@ export async function renderStockPage(origin, rawTicker) {
         ${process.env.LOGO_DEV_KEY ? '<p class="helper-note">Company logos provided by <a href="https://logo.dev" target="_blank" rel="noopener">Logo.dev</a>. Logos belong to their companies and are shown only to identify them.</p>' : ''}
         <p class="note-box">This report card describes the business using its official figures. It is not a recommendation to buy or sell. Read our <a href="/disclaimer">disclaimer</a>.</p>
       </section>
+      ${adSlot('partner-box')}
       <script src="/members.js" defer></script>`;
   return { status: 200, html: pageShell({ head, body, active: 'stocks' }) };
 }

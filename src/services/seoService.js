@@ -14,6 +14,7 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 import { readStore } from './storeService.js';
+import { AD_SCRIPT, adSlot } from './adService.js';
 import { getArticleBySlug, publishDueArticles } from './articleService.js';
 import { INFO_PAGES, LEGAL_UPDATED } from '../data/legalPages.js';
 import { getDividendTop10, getEtfTop10 } from './top10Service.js';
@@ -119,6 +120,12 @@ export async function buildSitemapXml(origin) {
     urls.push({ loc: `${origin}/forum`, lastmod: today, priority: '0.7' }, ...(await import('../data/forumConfig.js')).FORUM_SECTIONS.map((sec) => ({ loc: `${origin}/forum/${sec.id}`, lastmod: today, priority: '0.6' })), ...(await forumSitemapEntries(origin)));
   } catch (error) {
     console.error('[seo] Forum left out of sitemap:', error.message);
+  }
+  try {
+    const { propertySitemapEntries } = await import('./propertyPages.js');
+    urls.push(...propertySitemapEntries(origin));
+  } catch (error) {
+    console.error('[seo] Property pages left out of sitemap:', error.message);
   }
   try {
     const { toolsSitemapEntries } = await import('./toolsPages.js');
@@ -420,6 +427,7 @@ export function pageShell({ head, body, active }) {
     ['learn', '/learn', 'Learn'],
     ['top10', '/top-10', 'Top 10s'],
     ['stocks', '/stocks', 'Stocks'],
+    ['property', '/property', 'Property'],
     ['tools', '/tools', 'Tools'],
     ...(isForumEnabled() ? [['forum', '/forum', 'Forum']] : []),
     ['membership', '/membership', 'Membership'],
@@ -452,7 +460,7 @@ export function pageShell({ head, body, active }) {
       </nav>
     </header>
     <main>
-      <div class="wrap">${body}
+      <div class="wrap">${adSlot('top-banner')}${body}
       </div>
     </main>
     <footer class="site-footer">
@@ -468,9 +476,11 @@ export function pageShell({ head, body, active }) {
           </div>
         </div>
         <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
-        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury and Freddie Mac. Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
+        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the BIS, the OECD and HM Land Registry. Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
       </div>
     </footer>
+    ${adSlot('bottom-strip')}
+    ${AD_SCRIPT}
   </body>
 </html>
 `;

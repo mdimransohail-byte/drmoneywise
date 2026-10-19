@@ -144,6 +144,10 @@ const API = {
   forumQueue:          ()   => API.get('/api/admin/forum/queue'),
   forumAction:         (b)  => API.post('/api/admin/forum/action', b),
   forumStarters:       ()   => API.post('/api/admin/forum/starters', {}),
+  propertyStatus:      ()   => API.get('/api/admin/property'),
+  propertyManual:      (b)  => API.post('/api/admin/property/manual', b),
+  adsGet:              ()   => API.get('/api/admin/ads'),
+  adsSave:             (b)  => API.post('/api/admin/ads', b),
   getBusinessSettings: ()   => API.get('/api/admin/business-settings'),
   saveBusinessSettings:(b)  => API.post('/api/admin/business-settings', b),
 };
@@ -333,28 +337,122 @@ function render_analytics() {
   `;
 }
 
-/* "Your readers": totals from Membership → Your profile, plus a writing-level suggestion */
+/* "Your readers": an infographic of Membership → Your profile answers,
+   plus a writing-level suggestion worked out from knowledge + experience */
 function renderAudience(a) {
   if (!a) return '';
-  const names = { knowledge: 'Knowledge', depth: 'How they want things explained', experience: 'Investing experience', country: 'Country', ageRange: 'Age', profession: 'What they do', investAmount: 'Amount invested', goals: 'Goals', interests: 'Topics', regions: 'Markets' };
-  const block = (field) => {
-    const rows = (a.fields?.[field] || []).slice(0, 6);
-    return `<div class="card"><div class="card-title">${h(names[field])}</div>${rows.map((r) => `
-      <div style="display:grid;grid-template-columns:1fr 90px 40px;gap:8px;align-items:center;margin-bottom:7px">
-        <span style="font-size:.72rem;color:#dbe6f3">${h(r.label)}</span>
-        <div style="height:8px;border-radius:99px;background:rgba(255,255,255,.06)"><div style="height:8px;border-radius:99px;background:#ffcb6b;width:${r.pct}%"></div></div>
-        <span style="font-size:.7rem;color:#9eb3cc;text-align:right">${r.pct}%</span>
-      </div>`).join('') || '<p style="color:#9eb3cc;font-size:.75rem">No answers yet.</p>'}</div>`;
-  };
-  return `
-    <div class="card" style="margin-top:14px">
-      <div class="card-title">Your readers</div>
-      <p style="font-size:.8rem;color:#dbe6f3;margin:0 0 6px">${a.withProfile} of ${a.members} readers have filled in their profile (Membership → Your profile).</p>
-      <p style="font-size:.8rem;color:#ffcb6b;margin:0">Writing level: ${h(a.suggestion)}</p>
-    </div>
-    <div class="card-grid two-col" style="margin-top:14px">
-      ${['knowledge', 'depth', 'experience', 'country', 'goals', 'interests', 'regions', 'profession', 'ageRange', 'investAmount'].map(block).join('')}
+  const GOLD = '#ffcb6b';
+  const MUTED = '#9eb3cc';
+  const INK = '#ecf3ff';
+  const total = a.withProfile || 0;
+  const share = a.members ? Math.round((total / a.members) * 100) : 0;
+  const rows = (f) => a.fields?.[f] || [];
+  const top = (f) => rows(f).find((r) => r.n > 0);
+  const noData = `<p style="color:${MUTED};font-size:.75rem;margin:0">No answers yet.</p>`;
+
+  // Stat tile with a big number
+  const tile = (label, big, sub, accent = GOLD, size = '1.9rem') => `
+    <div class="card" style="padding:16px 18px;border-top:3px solid ${accent}">
+      <div class="card-title" style="margin-bottom:6px">${h(label)}</div>
+      <div style="font-size:${size};font-weight:800;color:${INK};line-height:1.15">${big}</div>
+      <div style="font-size:.72rem;color:${MUTED};margin-top:4px">${sub}</div>
     </div>`;
+
+  // Ring showing what share of readers filled in the profile
+  const ring = (pct) => {
+    const r = 30; const c = 2 * Math.PI * r;
+    return `<svg width="76" height="76" viewBox="0 0 76 76" role="img" aria-label="${pct}% filled in">
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/>
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="${GOLD}" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="${(c * pct) / 100} ${c}" transform="rotate(-90 38 38)"/>
+      <text x="38" y="43" text-anchor="middle" font-size="15" font-weight="800" fill="${INK}">${pct}%</text></svg>`;
+  };
+
+  // Horizontal bars with the count and percentage written beside each bar
+  const bars = (field, title, limit = 8) => {
+    const list = rows(field).slice(0, limit);
+    const max = Math.max(1, ...list.map((r) => r.n));
+    return `<div class="card"><div class="card-title">${h(title)}</div>${list.some((r) => r.n) ? list.map((r) => `
+      <div title="${h(r.label)}: ${r.n} reader${r.n === 1 ? '' : 's'} (${r.pct}%)" style="display:grid;grid-template-columns:minmax(90px,38%) 1fr 62px;gap:10px;align-items:center;margin-bottom:8px">
+        <span style="font-size:.74rem;color:#dbe6f3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(r.label)}</span>
+        <div style="height:10px;border-radius:0 4px 4px 0;background:rgba(255,255,255,.05)"><div style="height:10px;border-radius:0 4px 4px 0;background:${GOLD};width:${r.n ? Math.max(3, (r.n / max) * 100) : 0}%"></div></div>
+        <span style="font-size:.74rem;color:${INK};text-align:right"><strong>${r.n}</strong> <span style="color:${MUTED}">${r.pct}%</span></span>
+      </div>`).join('') : noData}</div>`;
+  };
+
+  // Columns for ordered answers (age, experience), number on top of each
+  const columns = (field, title) => {
+    const list = rows(field);
+    const max = Math.max(1, ...list.map((r) => r.n));
+    return `<div class="card"><div class="card-title">${h(title)}</div>${list.some((r) => r.n) ? `
+      <div style="display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:6px">${list.map((r) => `
+        <div title="${h(r.label)}: ${r.n} (${r.pct}%)" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0">
+          <div style="font-size:.74rem;font-weight:800;color:${INK}">${r.n}</div>
+          <div style="font-size:.62rem;color:${MUTED};margin-bottom:4px">${r.pct}%</div>
+          <div style="width:70%;max-width:38px;height:${r.n ? Math.max(4, Math.round((r.n / max) * 92)) : 2}px;background:${r.n ? GOLD : 'rgba(255,255,255,.12)'};border-radius:4px 4px 0 0"></div>
+        </div>`).join('')}</div>
+      <div style="display:flex;gap:6px;border-top:1px solid rgba(255,255,255,.12);padding-top:6px">${list.map((r) => `<div style="flex:1;min-width:0;text-align:center;font-size:.62rem;color:${MUTED};line-height:1.25">${h(r.label)}</div>`).join('')}</div>` : noData}</div>`;
+  };
+
+  // Knowledge as a 100% strip (ordered, beginner → expert), with numbers below
+  const knowledge = () => {
+    const list = rows('knowledge');
+    const shades = ['#fff0c7', '#ffdc8a', '#ffcb6b', '#e0a63a'];
+    if (!list.some((r) => r.n)) return `<div class="card"><div class="card-title">How much they know</div>${noData}</div>`;
+    return `<div class="card"><div class="card-title">How much they know</div>
+      <div style="display:flex;gap:2px;height:22px;border-radius:4px;overflow:hidden;margin-bottom:12px">${list.filter((r) => r.n).map((r) => `<div title="${h(r.label)}: ${r.n} (${r.pct}%)" style="flex:${r.n};background:${shades[list.indexOf(r)] || GOLD}"></div>`).join('')}</div>
+      <div style="display:grid;grid-template-columns:repeat(${list.length},1fr);gap:8px">${list.map((r, i) => `
+        <div><div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:${shades[i]}"></span><span style="font-size:.7rem;color:#dbe6f3">${h(r.label)}</span></div>
+        <div style="font-size:1.15rem;font-weight:800;color:${INK};margin-top:2px">${r.n} <span style="font-size:.7rem;font-weight:400;color:${MUTED}">${r.pct}%</span></div></div>`).join('')}</div></div>`;
+  };
+
+  // Writing-level meter: Simple … Mixed … Deeper, marker at the reader mix
+  const meter = () => {
+    const newer = a.newerPct;
+    const pos = newer === null || newer === undefined ? null : 100 - newer; // more newer readers → further left
+    const label = { simple: 'Keep it simple', mixed: 'Mix of levels', deeper: 'Can go deeper', wait: 'Waiting for 5+ profiles' }[a.tone || 'wait'];
+    return `<div class="card" style="grid-column:1/-1">
+      <div class="card-title">Suggested writing level · <span style="color:${GOLD}">${h(label)}</span></div>
+      <div style="position:relative;height:14px;border-radius:99px;background:linear-gradient(90deg,#2bc48a 0%,#ffcb6b 50%,#a78bfa 100%);margin:18px 6px 6px">
+        ${pos === null ? '' : `<div title="${newer}% of readers are newer to investing" style="position:absolute;top:-7px;left:calc(${pos}% - 9px);width:18px;height:28px;border-radius:6px;background:${INK};box-shadow:0 0 0 3px #0d1530"></div>`}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.68rem;color:${MUTED};margin:0 6px 10px"><span>Simple words</span><span>Mixed</span><span>More detail</span></div>
+      <p style="font-size:.8rem;color:#dbe6f3;margin:0">${h(a.suggestion)}</p>
+    </div>`;
+  };
+
+  // What readers typed under "other"
+  const typed = () => {
+    const groups = [['country', 'Other countries'], ['profession', 'Other jobs'], ['goals', 'Other goals']]
+      .map(([f, t]) => [t, a.typed?.[f] || []]).filter(([, l]) => l.length);
+    if (!groups.length) return '';
+    return `<div class="card" style="grid-column:1/-1"><div class="card-title">Typed in by readers ("other")</div>${groups.map(([t, l]) => `
+      <div style="margin-bottom:8px"><span style="font-size:.72rem;color:${MUTED};margin-right:8px">${h(t)}:</span>${l.map((x) => `<span style="display:inline-block;margin:2px 4px 2px 0;padding:3px 10px;border-radius:99px;background:rgba(255,203,107,.12);color:${INK};font-size:.72rem">${h(x.text)} <strong>${x.n}</strong></span>`).join('')}</div>`).join('')}</div>`;
+  };
+
+  const topCountry = top('country');
+  return `
+    <h2 style="font-size:1rem;color:${INK};margin:22px 0 10px">Your readers</h2>
+    <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px">
+      ${tile('Readers', a.members, 'free + paid accounts')}
+      <div class="card" style="padding:16px 18px;border-top:3px solid ${GOLD};display:flex;align-items:center;gap:14px">${ring(share)}<div><div class="card-title" style="margin-bottom:4px">Profiles filled in</div><div style="font-size:1.3rem;font-weight:800;color:${INK}">${total} of ${a.members}</div></div></div>
+      ${tile('Newer to investing', a.newerPct === null || a.newerPct === undefined ? '—' : `${a.newerPct}%`, 'beginner / under 3 years', '#2bc48a')}
+      ${tile('Top country', topCountry ? h(topCountry.label) : '—', topCountry ? `${topCountry.n} reader${topCountry.n === 1 ? '' : 's'} · ${topCountry.pct}%` : 'no answers yet', '#3cb5c4', '1.25rem')}
+    </div>
+    <div class="card-grid two-col" style="margin-top:12px">
+      ${meter()}
+      ${knowledge()}
+      ${columns('experience', 'How long they have invested')}
+      ${bars('country', 'Countries (top 8)')}
+      ${columns('ageRange', 'Age')}
+      ${bars('goals', 'Goals')}
+      ${bars('interests', 'Topics they care about')}
+      ${bars('regions', 'Markets they follow')}
+      ${columns('investAmount', 'Amount invested')}
+      ${bars('profession', 'What they do')}
+      ${typed()}
+    </div>
+    <p style="font-size:.7rem;color:${MUTED};margin:8px 2px 0">Numbers show readers; % is of the ${total} who filled in a profile. Multi-choice answers can add up to more than 100%.</p>`;
 }
 
 async function load_analytics() {
@@ -1609,6 +1707,205 @@ function bind_forum() {
   });
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE H: PROPERTY
+// ─────────────────
+// What each property page has, "Refresh now", and the Dubai figures, which
+// are typed in by hand from the Dubai Land Department's announcements.
+// ════════════════════════════════════════════════════════════════════════════
+
+function render_property() {
+  const st = STATE.property || { places: [], dubai: [], failures: [] };
+  const word = (p) => (p ? qWords(p) : '<span style="color:#e8a33d">—</span>');
+  const year = new Date().getFullYear();
+  const years = [year, year - 1, year - 2, year - 3];
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:#2bc48a">Property</div>
+      <h1>Property pages</h1>
+      <p>Home prices and rents for each place, refreshed weekly from official sources. Last refresh: <strong>${st.updatedAt ? h(new Date(st.updatedAt).toLocaleString()) : 'not yet'}</strong>. <a href="/property" target="_blank" style="color:#2bc48a">Open the pages ↗</a></p>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">What each place has (latest period)</div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.76rem">
+        <thead><tr style="color:#9eb3cc;text-align:left"><th style="padding:6px">Place</th><th>House prices</th><th>Rents</th><th>Vs incomes</th><th>Extra</th></tr></thead>
+        <tbody>${st.places.map((p) => `<tr style="border-top:1px solid rgba(255,255,255,.06)"><td style="padding:7px 6px"><a href="/property/${h(p.slug)}" target="_blank" style="color:#ecf3ff">${h(p.name)}</a></td>${p.manualRows !== null
+          ? `<td colspan="4" style="color:#9eb3cc">Typed in by hand: ${p.manualRows} quarter(s) — see below</td>`
+          : `<td>${word(p.prices)}</td><td>${p.rents ? word(p.rents) : '<span style="color:#9eb3cc">no free source</span>'}</td><td>${p.ratios ? word(p.ratios) : '<span style="color:#9eb3cc">—</span>'}</td><td>${p.ukPrice ? `£ prices ${word(p.ukPrice)}` : ''}</td>`}</tr>`).join('')}</tbody>
+      </table></div>
+      ${st.failures.length ? `<p style="font-size:.74rem;color:#e8a33d;margin:10px 0 0">Last refresh problems: ${st.failures.map((f) => `${h(f.source)} — ${h(f.reason)}`).join('; ')}</p>` : ''}
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button class="btn btn-gold btn-sm" id="propRefreshBtn">Refresh now</button><span id="propMsg" style="font-size:.72rem;color:#2bc48a"></span></div>
+    </div>
+    <div class="settings-grid">
+      <div class="card">
+        <div class="card-title">Add Dubai figures for a quarter</div>
+        <p style="font-size:.74rem;color:#9eb3cc;margin:0 0 10px">Copy the totals from the Dubai Land Department's quarterly announcement or report, and paste the link where you found them. Saving the same quarter again replaces it.</p>
+        <form id="dubaiForm" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label><span class="field">Year</span><select name="year">${years.map((y) => `<option>${y}</option>`).join('')}</select></label>
+          <label><span class="field">Quarter</span><select name="q"><option value="Q1">Jan–Mar (Q1)</option><option value="Q2">Apr–Jun (Q2)</option><option value="Q3">Jul–Sep (Q3)</option><option value="Q4">Oct–Dec (Q4)</option></select></label>
+          <label><span class="field">Number of sales</span><input class="input" name="salesCount" inputmode="numeric" placeholder="e.g. 45000"></label>
+          <label><span class="field">Total value (AED billion)</span><input class="input" name="salesValueBn" inputmode="decimal" placeholder="e.g. 142.5"></label>
+          <label><span class="field">Average AED per sq ft (optional)</span><input class="input" name="pricePerSqft" inputmode="numeric"></label>
+          <label><span class="field">Rents vs a year ago, % (optional)</span><input class="input" name="rentChangePct" inputmode="decimal" placeholder="e.g. 8.5"></label>
+          <label style="grid-column:1/-1"><span class="field">Source name</span><input class="input" name="sourceName" placeholder="e.g. Dubai Land Department, Q2 2026 report"></label>
+          <label style="grid-column:1/-1"><span class="field">Source link (https)</span><input class="input" name="sourceUrl" placeholder="https://dubailand.gov.ae/…"></label>
+          <div style="grid-column:1/-1;display:flex;gap:8px;align-items:center"><button class="btn btn-gold btn-sm" type="submit">Save quarter</button><span id="dubaiMsg" style="font-size:.72rem"></span></div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-title">Dubai quarters saved</div>
+        ${st.dubai.length ? st.dubai.slice().reverse().map((r) => `<div class="api-row"><div class="api-label" style="flex:1">${h(qWords(r.period))}<div class="api-hint">${r.salesCount !== null ? `${fmtNum(r.salesCount)} sales` : ''}${r.salesValueBn !== null ? ` · AED ${h(r.salesValueBn)}bn` : ''}${r.pricePerSqft !== null ? ` · AED ${fmtNum(r.pricePerSqft)}/sq ft` : ''} · <a href="${h(r.sourceUrl)}" target="_blank" style="color:#3cb5c4">source</a></div></div><button class="btn btn-sm btn-rose" data-del-period="${h(r.period)}">Delete</button></div>`).join('') : '<p style="color:#9eb3cc;font-size:.78rem">None yet. The Dubai page shows "coming soon" until you add one.</p>'}
+      </div>
+    </div>`;
+}
+
+function qWords(p) {
+  const q = { 1: 'Jan–Mar', 2: 'Apr–Jun', 3: 'Jul–Sep', 4: 'Oct–Dec' };
+  if (/^\d{4}-Q[1-4]$/.test(p)) return `${q[p.slice(-1)]} ${p.slice(0, 4)}`;
+  if (/^\d{4}-\d{2}$/.test(p)) return new Date(`${p}-01T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  return h(p || '');
+}
+
+async function load_property() {
+  try {
+    STATE.property = await API.propertyStatus();
+    setMain(render_property());
+    bind_property();
+  } catch (e) {
+    setMain(`<div class="loading">Could not load property status: ${h(e.message)}</div>`);
+  }
+}
+
+function bind_property() {
+  qs('#propRefreshBtn')?.addEventListener('click', async () => {
+    const msg = qs('#propMsg');
+    try {
+      await API.dataRun('property');
+      if (msg) msg.textContent = 'Started. Figures arrive in about a minute; press Refresh on this page after that.';
+    } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
+  });
+  qs('#dubaiForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const msg = qs('#dubaiMsg');
+    const row = Object.fromEntries(new FormData(f).entries());
+    row.period = `${row.year}-${row.q}`;
+    try {
+      STATE.property = await API.propertyManual({ place: 'dubai', row });
+      showToast('Dubai figures saved');
+      setMain(render_property());
+      bind_property();
+    } catch (err) { if (msg) { msg.textContent = err.message; msg.style.color = '#f26a6a'; } }
+  });
+  qsa('[data-del-period]').forEach((b) => b.addEventListener('click', async () => {
+    if (!confirm('Delete this quarter?')) return;
+    try {
+      STATE.property = await API.propertyManual({ place: 'dubai', period: b.dataset.delPeriod, delete: true });
+      setMain(render_property());
+      bind_property();
+    } catch (err) { showToast('Failed: ' + err.message); }
+  }));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE I: ADS & PARTNERS
+// ─────────────────
+// Spaces for banners, affiliate cards and a scrolling strip. All off until
+// switched on here. Every ad is labelled on the site.
+// ════════════════════════════════════════════════════════════════════════════
+
+function render_ads() {
+  const a = STATE.ads || { slots: [], settings: { slots: {} } };
+  const set = a.settings || { slots: {} };
+  const kindName = { banner: 'Image banner', text: 'Text card (good for partner links)', scroll: 'Scrolling links', code: 'Ad network code (e.g. Google AdSense)' };
+  const slotCard = (slot) => {
+    const s = set.slots?.[slot.id] || {};
+    const kind = s.kind || slot.kinds[0];
+    const items = (s.items || []).concat([{}, {}, {}]).slice(0, Math.max(3, (s.items || []).length + 1));
+    return `
+      <div class="card" data-slot="${h(slot.id)}">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div class="card-title" style="margin:0">${h(slot.label)}</div>
+          <label style="font-size:.74rem;color:${s.enabled ? '#2bc48a' : '#9eb3cc'};display:flex;gap:6px;align-items:center"><input type="checkbox" name="enabled" ${s.enabled ? 'checked' : ''} style="width:auto"> ${s.enabled ? 'ON' : 'Off'}</label>
+        </div>
+        <p style="font-size:.72rem;color:#9eb3cc;margin:6px 0 10px">${h(slot.where)}. ${h(slot.size)}.</p>
+        <label><span class="field">Kind</span><select name="kind">${slot.kinds.map((k) => `<option value="${k}"${k === kind ? ' selected' : ''}>${h(kindName[k])}</option>`).join('')}</select></label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:.74rem;color:#dbe6f3;margin:8px 0"><input type="checkbox" name="affiliate" ${s.affiliate ? 'checked' : ''} style="width:auto"> This is an affiliate / partner link (shows "Partner offer" and a commission note)</label>
+        <div data-for="banner" ${kind === 'banner' ? '' : 'hidden'} style="display:grid;gap:8px">
+          <label><span class="field">Image link (https)</span><input class="input" name="imageUrl" value="${h(s.imageUrl || '')}"></label>
+          <label><span class="field">Click-through link (https)</span><input class="input" name="linkUrl" value="${h(s.linkUrl || '')}"></label>
+          <label><span class="field">Image description (for screen readers)</span><input class="input" name="alt" value="${h(s.alt || '')}"></label>
+        </div>
+        <div data-for="text" ${kind === 'text' ? '' : 'hidden'} style="display:grid;gap:8px">
+          <label><span class="field">Title</span><input class="input" name="title" maxlength="80" value="${h(s.title || '')}"></label>
+          <label><span class="field">One line of text</span><input class="input" name="body" maxlength="200" value="${h(s.body || '')}"></label>
+          <label><span class="field">Button words</span><input class="input" name="button" maxlength="30" value="${h(s.button || '')}" placeholder="Find out more"></label>
+          <label><span class="field">Link (https)</span><input class="input" name="linkUrl" value="${h(s.linkUrl || '')}"></label>
+        </div>
+        <div data-for="scroll" ${kind === 'scroll' ? '' : 'hidden'} style="display:grid;gap:6px">
+          ${items.map((it, i) => `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><input class="input" data-item-text="${i}" placeholder="Link words" value="${h(it.text || '')}"><input class="input" data-item-link="${i}" placeholder="https://…" value="${h(it.linkUrl || '')}"></div>`).join('')}
+          <span class="api-hint">Up to 8 links. Save to get another empty row.</span>
+        </div>
+        <div data-for="code" ${kind === 'code' ? '' : 'hidden'}>
+          <label><span class="field">Paste the code exactly as the ad network gives it</span><textarea name="code" rows="5">${h(s.code || '')}</textarea></label>
+        </div>
+      </div>`;
+  };
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:#e8a33d">Earnings</div>
+      <h1>Ads &amp; partners</h1>
+      <p>Spaces for adverts and affiliate links. Everything is off until you switch it on. Every ad is labelled "Advertisement" or "Partner offer" on the site.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <label style="display:flex;gap:8px;align-items:center;font-size:.8rem;color:#dbe6f3"><input type="checkbox" id="adsHideMembers" ${set.hideForMembers !== false ? 'checked' : ''} style="width:auto"> Hide all ads from paying members (a nice extra for members)</label>
+      <p style="font-size:.72rem;color:#e8a33d;margin:8px 0 0">Before switching on an ad network such as Google AdSense: those networks use cookies, so readers in the UK and Europe must be asked first (a cookie banner), which can be added when you are ready. Your own banners and partner links need no banner.</p>
+    </div>
+    <div class="card-grid two-col">${(a.slots || []).map(slotCard).join('')}</div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center"><button class="btn btn-gold" id="adsSaveBtn">Save ads &amp; partners</button><span id="adsMsg" style="font-size:.74rem"></span></div>`;
+}
+
+async function load_ads() {
+  try {
+    STATE.ads = await API.adsGet();
+    setMain(render_ads());
+    bind_ads();
+  } catch (e) {
+    setMain(`<div class="loading">Could not load ads: ${h(e.message)}</div>`);
+  }
+}
+
+function bind_ads() {
+  qsa('[data-slot] select[name=kind]').forEach((sel) => sel.addEventListener('change', () => {
+    const card = sel.closest('[data-slot]');
+    card.querySelectorAll('[data-for]').forEach((box) => { box.hidden = box.dataset.for !== sel.value; });
+  }));
+  qs('#adsSaveBtn')?.addEventListener('click', async () => {
+    const msg = qs('#adsMsg');
+    const slots = {};
+    qsa('[data-slot]').forEach((card) => {
+      const kind = card.querySelector('select[name=kind]').value;
+      const box = card.querySelector(`[data-for="${kind}"]`);
+      const val = (name) => (box?.querySelector(`[name=${name}]`)?.value || '').trim();
+      slots[card.dataset.slot] = {
+        enabled: card.querySelector('input[name=enabled]').checked,
+        affiliate: card.querySelector('input[name=affiliate]').checked,
+        kind,
+        imageUrl: val('imageUrl'), linkUrl: val('linkUrl'), alt: val('alt'),
+        title: val('title'), body: val('body'), button: val('button'), code: box?.querySelector('[name=code]')?.value || '',
+        items: [...card.querySelectorAll('[data-item-text]')].map((inp) => ({ text: inp.value.trim(), linkUrl: (card.querySelector(`[data-item-link="${inp.dataset.itemText}"]`)?.value || '').trim() })),
+      };
+    });
+    try {
+      STATE.ads = await API.adsSave({ hideForMembers: qs('#adsHideMembers').checked, slots });
+      showToast('Ads & partners saved');
+      setMain(render_ads());
+      bind_ads();
+    } catch (e) { if (msg) { msg.textContent = e.message; msg.style.color = '#f26a6a'; } }
+  });
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION 6: ROUTER
 // To add a new page: add an entry to the PAGES map
@@ -1622,6 +1919,8 @@ const PAGES = {
   settings:  { load: load_settings,   render: render_settings,  bind: bind_settings   },
   health:    { load: load_health,     render: render_health,    bind: bind_health     },
   forum:     { load: load_forum,      render: render_forum,     bind: bind_forum      },
+  property:  { load: load_property,   render: render_property,  bind: bind_property   },
+  ads:       { load: load_ads,        render: render_ads,       bind: bind_ads        },
 };
 
 const ROUTER = {

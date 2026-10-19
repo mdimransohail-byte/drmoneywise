@@ -3,25 +3,33 @@
      Your plan     current plan, status, dates, Manage my plan
      Your profile  optional questions (country, interests, level…) that
                    help us pitch the site's vocabulary and depth
+                   (choosing "other" opens a small typing box)
      Plans         the three plans (short), coupon, a few questions
    Signed-out visitors see Plans only. Filled in by public/membership.js.
    ════════════════════════════════════════════════════════════════════════ */
 
 import { getPlanCatalog, INTEREST_OPTIONS, REGION_OPTIONS } from '../config.js';
-import { PROFILE_OPTIONS } from '../data/profileOptions.js';
+import { PROFILE_OPTIONS, OTHER_TEXT_MAX } from '../data/profileOptions.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 
-function select(name, label, options, hint = '') {
-  return `<label class="mb-field">${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}
-            <select name="${name}"><option value="">Choose…</option>${options.map(([id, text]) => `<option value="${esc(id)}">${esc(text)}</option>`).join('')}</select>
-          </label>`;
+// A small typing box that appears only when "other" is picked
+function otherBox(name, placeholder) {
+  return `<input class="mb-other" type="text" name="${name}Other" maxlength="${OTHER_TEXT_MAX}" placeholder="${esc(placeholder)}" data-other-for="${name}" hidden>`;
 }
 
-function chips(name, label, options, hint = '') {
+function select(name, label, options, hint = '', other = '') {
+  return `<div class="mb-field"><label>${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}
+            <select name="${name}"><option value="">Choose…</option>${options.map(([id, text]) => `<option value="${esc(id)}">${esc(text)}</option>`).join('')}</select></label>
+            ${other ? otherBox(name, other) : ''}
+          </div>`;
+}
+
+function chips(name, label, options, hint = '', other = '') {
   return `<fieldset class="mb-field mb-chips"><legend>${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}</legend>
             <div>${options.map(([id, text]) => `<label class="mb-chip"><input type="checkbox" name="${name}" value="${esc(id)}"><span>${esc(text)}</span></label>`).join('')}</div>
+            ${other ? otherBox(name, other) : ''}
           </fieldset>`;
 }
 
@@ -63,19 +71,18 @@ export function renderMembershipPage(origin) {
         <form id="profileForm" class="mb-profile" novalidate>
           <p class="mb-lead">All questions are optional. Your answers help us choose the right level of words and detail for our explainers. They are never shown to anyone or sold. See our <a href="/privacy">privacy policy</a>.</p>
           <div class="mb-grid2">
-            <label class="mb-field">Your name<input name="name" maxlength="80" autocomplete="name"></label>
-            ${select('country', 'Country you live in', PROFILE_OPTIONS.country)}
+            <div class="mb-field"><label>Your name<input name="name" maxlength="80" autocomplete="name"></label></div>
+            ${select('country', 'Country you live in', PROFILE_OPTIONS.country, '', 'Type your country')}
             ${select('ageRange', 'Age', PROFILE_OPTIONS.ageRange)}
-            ${select('profession', 'What you do', PROFILE_OPTIONS.profession)}
+            ${select('profession', 'What you do', PROFILE_OPTIONS.profession, '', 'Type what you do')}
           </div>
           <h3 class="mb-h3">About your investing</h3>
           <div class="mb-grid2">
             ${select('knowledge', 'How much do you know about investing?', PROFILE_OPTIONS.knowledge)}
             ${select('experience', 'How long have you been investing?', PROFILE_OPTIONS.experience)}
             ${select('investAmount', 'Roughly how much do you invest, or plan to?', PROFILE_OPTIONS.investAmount, 'A rough range is fine')}
-            ${select('depth', 'How should we explain things?', PROFILE_OPTIONS.depth)}
           </div>
-          ${chips('goals', 'Your goals', PROFILE_OPTIONS.goals, 'Pick any')}
+          ${chips('goals', 'Your goals', PROFILE_OPTIONS.goals, 'Pick any', 'Tell us your goal')}
           ${chips('interests', 'Topics you care about', INTEREST_OPTIONS.map((o) => [o.id, o.label]), 'Pick any')}
           ${chips('regions', 'Markets you follow', REGION_OPTIONS.map((o) => [o.id, o.label]), 'Pick any')}
           <div class="mb-form-actions"><button class="mb-btn gold" type="submit">Save my profile</button><span class="mb-saved" role="status" aria-live="polite"></span></div>

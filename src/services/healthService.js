@@ -32,6 +32,7 @@ const JOB_LIMITS = {
   learning: { warn: 12 * HOUR, fail: 48 * HOUR },
   funds: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
   health: { warn: 30 * HOUR, fail: 72 * HOUR },
+  property: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
 };
 
 function ago(iso) {
@@ -61,6 +62,20 @@ export async function getHealthReport() {
   const c = data.counts;
   add('Data', 'Companies saved', c.companies >= c.universe * 0.9 ? 'ok' : c.companies ? 'warn' : 'fail', `${c.companies} of ${c.universe}`);
   add('Data', 'Economy figures', c.economyFigures >= 5 ? 'ok' : c.economyFigures ? 'warn' : 'fail', `${c.economyFigures} of 5`);
+
+  /* Property pages */
+  try {
+    const { getPropertyStatus } = await import('./propertyService.js');
+    const ps = await getPropertyStatus();
+    const auto = ps.places.filter((p) => p.manualRows === null);
+    const withPrices = auto.filter((p) => p.prices);
+    add('Data', 'Property: places with house prices', withPrices.length === auto.length ? 'ok' : withPrices.length ? 'warn' : 'fail', `${withPrices.length} of ${auto.length}${withPrices.length < auto.length ? ` (missing: ${auto.filter((p) => !p.prices).map((p) => p.name).join(', ')})` : ''}`);
+    add('Data', 'Property: sources that failed last time', ps.failures.length ? 'warn' : 'ok', ps.failures.length ? ps.failures.map((f) => `${f.source}: ${f.reason}`).join('; ') : 'None');
+    const dubai = ps.places.find((p) => p.slug === 'dubai');
+    if (dubai) add('Content', 'Property: Dubai figures typed in', dubai.manualRows ? 'ok' : 'warn', dubai.manualRows ? `${dubai.manualRows} quarter(s)` : 'None yet — add them in Admin → Property (page shows "coming soon")');
+  } catch (error) {
+    add('Data', 'Property pages', 'warn', `Could not read property data: ${error.message}`);
+  }
 
   /* Marketstack quota */
   try {
@@ -110,6 +125,7 @@ export async function getHealthReport() {
   add('Licences', 'Share prices', 'ok', freePrices
     ? 'Off: Marketstack free plan is non-commercial. Switches on with Basic ($9.99/mo) + MARKETSTACK_MONTHLY_LIMIT=10000'
     : 'Marketstack paid plan (commercial use allowed)');
+  add('Licences', 'Property figures', 'ok', 'BIS (free use incl. commercial, as long as the figures are not behind a paywall, so property pages stay free), OECD (any use with credit), BLS, HM Land Registry (Open Government Licence). Dubai: typed in from public announcements with source links');
   add('Licences', 'Economy figures', 'ok', 'Official sources with credits shown: BLS, New York Fed, US Treasury, Freddie Mac (not FRED, whose terms bar commercial use)');
   add('Keys', 'Photos (Pexels)', key('PEXELS_API_KEY') ? 'ok' : 'warn', key('PEXELS_API_KEY') ? 'Saved' : 'Not saved: pages show no photos');
   add('Keys', 'Company logos (Logo.dev)', key('LOGO_DEV_KEY') ? 'ok' : 'warn', key('LOGO_DEV_KEY') ? 'Saved' : 'Not saved: initials shown instead');

@@ -209,7 +209,7 @@ async function syncCollectionToExternalApi({ endpoint, apiKey, type, user, paylo
 /* ── Reader profile (Membership → "Your profile") ─────────────────────── */
 export async function saveMemberProfile(token, payload) {
   const user = await requireSessionUser(token);
-  const { PROFILE_OPTIONS, MULTI_FIELDS } = await import('../data/profileOptions.js');
+  const { PROFILE_OPTIONS, MULTI_FIELDS, OTHER_TEXT_FIELDS, OTHER_TEXT_MAX } = await import('../data/profileOptions.js');
   const { INTEREST_OPTIONS, REGION_OPTIONS } = await import('../config.js');
   const allowed = {
     ...Object.fromEntries(Object.entries(PROFILE_OPTIONS).map(([k, list]) => [k, new Set(list.map(([id]) => id))])),
@@ -225,6 +225,12 @@ export async function saveMemberProfile(token, payload) {
       clean[field] = set.has(String(value || '')) ? String(value) : '';
     }
   }
+  // Typed answers when "other" was chosen (plain text only, kept short)
+  for (const field of OTHER_TEXT_FIELDS) {
+    const chosen = MULTI_FIELDS.includes(field) ? clean[field].includes('other') : clean[field] === 'other';
+    const typed = String(payload?.[`${field}Other`] || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, OTHER_TEXT_MAX);
+    clean[`${field}Other`] = chosen ? typed : '';
+  }
   const updated = await updateStore((store) => {
     const target = store.users.find((entry) => entry.id === user.id);
     if (!target) throw new Error('Member not found.');
@@ -239,8 +245,9 @@ export async function saveMemberProfile(token, payload) {
 }
 
 /* ── Admin: totals across readers who filled in their profile ─────────── */
+const ORDERED_FIELDS = ['knowledge', 'experience', 'ageRange', 'investAmount'];
 export async function getAudienceSummary() {
-  const { PROFILE_OPTIONS } = await import('../data/profileOptions.js');
+  const { PROFILE_OPTIONS, OTHER_TEXT_FIELDS } = await import('../data/profileOptions.js');
   const { INTEREST_OPTIONS, REGION_OPTIONS } = await import('../config.js');
   const store = await readStore();
   const members = store.users.filter((u) => u.role !== 'admin');
@@ -257,19 +264,38 @@ export async function getAudienceSummary() {
       const v = u.profile[field];
       for (const item of Array.isArray(v) ? v : v ? [v] : []) counts[item] = (counts[item] || 0) + 1;
     }
-    fields[field] = Object.entries(counts).sort((a, b) => b[1] - a[1])
-      .map(([id, n]) => ({ id, label: String(labels[field][id] || id).split(' — ')[0], n, pct: withProfile.length ? Math.round((n / withProfile.length) * 100) : 0 }));
+    const row = ([id, n]) => ({ id, label: String(labels[field][id] || id).split(' — ')[0], n, pct: withProfile.length ? Math.round((n / withProfile.length) * 100) : 0 });
+    // Ordered answers (age, experience…) keep their natural order, zeros included
+    fields[field] = ORDERED_FIELDS.includes(field)
+      ? PROFILE_OPTIONS[field].filter(([id]) => id !== 'na' || counts.na).map(([id]) => row([id, counts[id] || 0]))
+      : Object.entries(counts).sort((a, b) => b[1] - a[1]).map(row);
   }
-  // A plain suggestion for the writing level
+  // What readers typed under "other" (most common first)
+  const typed = {};
+  for (const field of OTHER_TEXT_FIELDS) {
+    const counts = {};
+    for (const u of withProfile) {
+      const t = String(u.profile[`${field}Other`] || '').trim();
+      if (t) { const key = t.toLowerCase(); counts[key] = counts[key] || { text: t, n: 0 }; counts[key].n += 1; }
+    }
+    typed[field] = Object.values(counts).sort((a, b) => b.n - a.n).slice(0, 10);
+  }
+  // A plain suggestion for the writing level, from what readers know
+  // and how long they have invested (we do not ask them to choose a level)
   const k = Object.fromEntries((fields.knowledge || []).map((x) => [x.id, x.pct]));
-  const d = Object.fromEntries((fields.depth || []).map((x) => [x.id, x.pct]));
+  const e = Object.fromEntries((fields.experience || []).map((x) => [x.id, x.pct]));
+  const newerKnow = (k.beginner || 0) + (k.some || 0);
+  const newerExp = (e.none || 0) + (e.lt1 || 0) + (e['1-3'] || 0);
+  const answered = (f) => (fields[f] || []).some((x) => x.n > 0);
+  const parts = [answered('knowledge') && newerKnow, answered('experience') && newerExp].filter((v) => v !== false);
+  const level = parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : 0;
   let suggestion = 'Not enough profiles yet to judge. Keep the current plain-English style.';
+  let tone = 'wait';
   if (withProfile.length >= 5) {
-    const newer = (k.beginner || 0) + (k.some || 0);
-    if (newer >= 60 || (d.simple || 0) >= 50) suggestion = `Most readers are newer to investing (${newer}% beginner or some knowledge). Keep explainers simple: short sentences, every term explained.`;
-    else if ((k.confident || 0) + (k.expert || 0) >= 60 || (d.detailed || 0) >= 50) suggestion = 'Most readers are confident. Explainers can use more market terms and go deeper into the numbers, while still explaining key words.';
-    else suggestion = 'Readers are a mix of levels. Keep the plain-English base, and add a short "Going deeper" part for confident readers.';
+    if (level >= 60) { tone = 'simple'; suggestion = `Most readers are newer to investing (${newerKnow}% beginner or basic knowledge; ${newerExp}% investing under 3 years). Keep explainers simple: short sentences, every term explained.`; }
+    else if (level <= 40) { tone = 'deeper'; suggestion = 'Most readers know their way around. Explainers can use more market terms and go deeper into the numbers, while still explaining key words.'; }
+    else { tone = 'mixed'; suggestion = 'Readers are a mix of levels. Keep the plain-English base, and add a short "Going deeper" part for confident readers.'; }
   }
-  return { members: members.length, withProfile: withProfile.length, fields, suggestion };
+  return { members: members.length, withProfile: withProfile.length, fields, typed, suggestion, tone, newerPct: withProfile.length ? level : null };
 }
 

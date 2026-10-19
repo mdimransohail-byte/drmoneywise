@@ -9,6 +9,7 @@
      learning   6 hours  rotates homepage explainers every 2 days and
                          writes new ones (checked first, see qualityService)
      health     daily    site health check, emailed if a Resend key is saved
+     property   weekly   BIS, OECD, BLS, HM Land Registry: home prices and rents
      prices     daily    Marketstack end-of-day prices — ONLY on the paid
                          Basic plan (free plan is non-commercial). Turns on
                          by itself once MARKETSTACK_MONTHLY_LIMIT is 10000.
@@ -46,6 +47,7 @@ const JOBS = {
   funds: { label: 'Big-fund holdings (SEC 13F)', every: 7 * 24 * HOUR },
   learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
+  property: { label: 'Property prices and rents (BIS, OECD, BLS, Land Registry)', every: 7 * 24 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 const FIRST_CHECK_AFTER_MS = 60 * 1000;
@@ -221,7 +223,12 @@ async function runHealth() {
   return { ok: !sent.skipped ? sent.ok : true, message: `${report.summary.ok} OK, ${report.summary.warn} to check, ${report.summary.fail} problems. ${sent.message}` };
 }
 
-const RUNNERS = { economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
+async function runProperty() {
+  const { refreshProperty } = await import('./propertyService.js');
+  return refreshProperty();
+}
+
+const RUNNERS = { property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

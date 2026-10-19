@@ -98,6 +98,14 @@ export const INFO_PAGES = {
         paragraphs: [
           'We take care to use reliable sources, but we cannot guarantee that every figure is complete, accurate or up to date. Prices may be delayed. Data from third parties is provided as received.',
           'News headlines link to their original publishers. We do not control and are not responsible for content on other websites.',
+          'Property figures are official averages for a whole country or city. Prices and rents for a particular home or area can be very different. They are not a valuation or a reason to buy, sell or rent.',
+        ],
+      },
+      {
+        heading: 'Advertising and partner links',
+        paragraphs: [
+          'Some pages may show adverts or links to partner companies. They are always labelled "Advertisement" or "Partner offer". If you buy through a partner link, we may earn a commission at no extra cost to you.',
+          'Adverts and partner offers are not recommendations by Dr MoneyWise, and they never change what we write or how we rate companies. Please check any product carefully before you buy.',
         ],
       },
       {
@@ -140,7 +148,7 @@ export const INFO_PAGES = {
       {
         heading: 'Cookies and storage',
         paragraphs: [
-          'We store a sign-in token and your chosen settings in your browser so you stay signed in. We do not currently use advertising or tracking cookies. If that changes, we will update this policy and ask for your consent where required.',
+          'We store a sign-in token and your chosen settings in your browser so you stay signed in. We do not currently use advertising or tracking cookies. Labelled adverts and partner links on our pages do not set cookies from us; if you click one, the other company’s own privacy policy applies. If we ever add an advertising service that uses cookies, we will update this policy and ask for your consent first where required.',
         ],
       },
       {
@@ -196,6 +204,7 @@ export const INFO_PAGES = {
         heading: 'Our content',
         paragraphs: [
           'Everything on the site is for education only and is not advice (see the Disclaimer). Content, design and the Dr MoneyWise name belong to us or our licensors.',
+          'Some pages show labelled adverts or partner offers. Any purchase you make from another company is between you and that company, under its own terms.',
         ],
       },
       {

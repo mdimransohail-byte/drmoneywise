@@ -91,12 +91,30 @@
     for (const el of form.querySelectorAll('select')) el.value = p[el.name] || '';
     const multi = { goals: p.goals || [], interests: p.interests || me.interests || [], regions: p.regions || me.regions || [] };
     for (const box of form.querySelectorAll('input[type=checkbox]')) box.checked = (multi[box.name] || []).includes(box.value);
+    // "Other" → show a typing box
+    const others = [...form.querySelectorAll('[data-other-for]')];
+    const otherPicked = (name) => {
+      const sel = form.querySelector(`select[name=${name}]`);
+      if (sel) return sel.value === 'other';
+      return Boolean(form.querySelector(`input[name=${name}][value=other]:checked`));
+    };
+    const syncOthers = (focusName) => {
+      for (const box of others) {
+        const show = otherPicked(box.dataset.otherFor);
+        box.hidden = !show;
+        if (show && focusName === box.dataset.otherFor) box.focus();
+      }
+    };
+    for (const box of others) box.value = p[`${box.dataset.otherFor}Other`] || '';
+    syncOthers();
+    form.addEventListener('change', (e) => { if (e.target.name && !e.target.name.endsWith('Other')) syncOthers(e.target.name); });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const saved = form.querySelector('.mb-saved');
       const data = { name: form.querySelector('[name=name]').value };
       for (const el of form.querySelectorAll('select')) data[el.name] = el.value;
       for (const name of ['goals', 'interests', 'regions']) data[name] = [...form.querySelectorAll(`input[name=${name}]:checked`)].map((b) => b.value);
+      for (const box of others) data[box.name] = box.hidden ? '' : box.value.trim();
       saved.textContent = 'Saving…';
       saved.className = 'mb-saved';
       try {
