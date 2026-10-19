@@ -141,6 +141,9 @@ const API = {
   dataRun:             (job) => API.post('/api/admin/data-run', { job }),
   health:              ()   => API.get('/api/admin/health'),
   healthEmail:         ()   => API.post('/api/admin/health/email', {}),
+  forumQueue:          ()   => API.get('/api/admin/forum/queue'),
+  forumAction:         (b)  => API.post('/api/admin/forum/action', b),
+  forumStarters:       ()   => API.post('/api/admin/forum/starters', {}),
   getBusinessSettings: ()   => API.get('/api/admin/business-settings'),
   saveBusinessSettings:(b)  => API.post('/api/admin/business-settings', b),
 };
@@ -1474,6 +1477,111 @@ function bind_health() {
   });
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE G: FORUM
+// ─────────────────
+// To change this page ONLY: edit render_forum() and bind_forum()
+// Posts held by the moderators, reported posts, banned readers.
+// ════════════════════════════════════════════════════════════════════════════
+
+function render_forum() {
+  const q = STATE.forum || { items: [], banned: [], stats: {} };
+  const st = q.stats || {};
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:#3cb5c4">Community</div>
+      <h1>Forum moderation</h1>
+      <p>${st.threads || 0} questions · ${st.replies || 0} replies · <strong>${q.items.length}</strong> waiting for you. Clean posts appear by themselves; only doubtful or reported ones wait here. <a href="/forum" target="_blank" style="color:#3cb5c4">Open the forum ↗</a></p>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">Forum on the site</div>
+      <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Status: <strong style="color:${STATE.forumEnabled ? '#2bc48a' : '#e8a33d'}">${STATE.forumEnabled ? 'ON — visible to readers, in the menu and on company pages' : 'OFF — hidden from readers (pages show "not found"). You can still prepare it here.'}</strong></p>
+      <button class="btn btn-gold btn-sm" id="forumToggleBtn">${STATE.forumEnabled ? 'Switch the forum off' : 'Switch the forum on'}</button>
+    </div>
+    <div class="settings-grid">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <div class="card-title">Waiting for review</div>
+          ${q.items.map((it) => `
+            <div class="api-row" style="align-items:flex-start;flex-wrap:wrap">
+              <div class="api-label" style="flex:1 1 100%">
+                ${h(it.kind === 'thread' ? 'Question' : 'Reply')} by <strong>${h(it.authorName)}</strong> · ${h(new Date(it.at).toLocaleString())}
+                ${it.reports ? ` · <span style="color:#f26a6a">${it.reports} report${it.reports === 1 ? '' : 's'}</span>` : ''}
+                <div class="api-hint">On: ${h(it.title)}</div>
+                <div class="api-hint" style="color:#e8a33d">${h(it.reason || '')}</div>
+                <div style="white-space:pre-wrap;background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;margin-top:6px;font-size:.8rem;color:#dbe6f3">${h(it.body)}</div>
+              </div>
+              <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+                <button class="btn btn-sm btn-green" data-fa="approve" data-id="${h(it.id)}">Approve</button>
+                <button class="btn btn-sm btn-rose" data-fa="remove" data-id="${h(it.id)}">Remove</button>
+                <button class="btn btn-sm btn-ghost" data-fa="ban" data-user="${h(it.authorId)}">Ban author</button>
+                <a class="btn btn-sm btn-ghost" href="${h(it.url)}" target="_blank">View ↗</a>
+              </div>
+            </div>`).join('') || '<p style="color:#9eb3cc;font-size:.8rem">Nothing waiting. 🎉</p>'}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card">
+          <div class="card-title">Starter threads</div>
+          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Adds 24 common questions with answers, 3 per topic, posted openly as "Dr MoneyWise Team". Safe to press twice (nothing is duplicated).</p>
+          <button class="btn btn-gold btn-sm" id="forumStartersBtn">Add starter threads</button>
+          <div id="forumMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Banned readers</div>
+          ${q.banned.map((b) => `<div class="api-row"><div class="api-label">${h(b.name)}<div class="api-hint">since ${h(new Date(b.at).toLocaleDateString())}</div></div><button class="btn btn-sm btn-ghost" data-fa="unban" data-user="${h(b.id)}">Lift ban</button></div>`).join('') || '<p style="color:#9eb3cc;font-size:.8rem">No one is banned.</p>'}
+        </div>
+        <div class="card">
+          <div class="card-title">How moderation works</div>
+          <p style="font-size:.78rem;color:#9eb3cc;margin:0">Every post is checked: first by fixed rules (links, contact details, shouting, promises of returns, posting too fast), then by the writing service. Clean posts show in seconds; doubtful ones wait here; clearly bad ones are refused with a reason. Two reader reports hide a post until you decide. On the forum itself, you also see Edit, Remove, Pin, Close and Ban on every post while signed in as admin.</p>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function load_forum() {
+  setMain('<div class="loading">Loading forum…</div>');
+  try {
+    const [queue, dash] = await Promise.all([API.forumQueue(), API.dashboard()]);
+    STATE.forum = queue;
+    STATE.forumEnabled = Boolean(dash?.settings?.forumEnabled);
+    setMain(render_forum());
+    bind_forum();
+  } catch (e) {
+    setMain(`<div class="loading">Could not load the forum: ${h(e.message)}</div>`);
+  }
+}
+
+function bind_forum() {
+  qs('#forumToggleBtn')?.addEventListener('click', async () => {
+    const next = !STATE.forumEnabled;
+    if (next && !confirm('Open the forum to readers now?')) return;
+    try {
+      await API.saveSettings({ forumEnabled: next });
+      showToast(next ? 'Forum is now ON' : 'Forum is now OFF');
+      await load_forum();
+    } catch (e) { showToast('Failed: ' + e.message); }
+  });
+  qsa('[data-fa]').forEach((b) => b.addEventListener('click', async () => {
+    const action = b.dataset.fa;
+    if ((action === 'remove' && !confirm('Remove this post?')) || (action === 'ban' && !confirm('Stop this reader from posting?'))) return;
+    try {
+      await API.forumAction({ action, postId: b.dataset.id, userId: b.dataset.user });
+      showToast('Done');
+      await load_forum();
+    } catch (e) { showToast('Failed: ' + e.message); }
+  }));
+  qs('#forumStartersBtn')?.addEventListener('click', async () => {
+    const msg = qs('#forumMsg');
+    try {
+      const res = await API.forumStarters();
+      if (msg) msg.textContent = '✓ ' + res.message;
+      await load_forum();
+    } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
+  });
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION 6: ROUTER
 // To add a new page: add an entry to the PAGES map
@@ -1486,6 +1594,7 @@ const PAGES = {
   inventory: { load: load_inventory,   render: render_inventory, bind: bind_inventory  },
   settings:  { load: load_settings,   render: render_settings,  bind: bind_settings   },
   health:    { load: load_health,     render: render_health,    bind: bind_health     },
+  forum:     { load: load_forum,      render: render_forum,     bind: bind_forum      },
 };
 
 const ROUTER = {

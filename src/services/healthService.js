@@ -89,6 +89,16 @@ export async function getHealthReport() {
   const latest = learning.filter((a) => a.source === 'trending-auto').sort((x, y) => String(y.createdAt || y.publishAt).localeCompare(String(x.createdAt || x.publishAt)))[0];
   add('Content', 'Last explainer written automatically', latest && Date.now() - new Date(latest.createdAt || latest.publishAt).getTime() < 5 * 24 * HOUR ? 'ok' : 'warn', latest ? `${ago(latest.createdAt || latest.publishAt)}: "${latest.headline}"` : 'none yet');
 
+  /* Forum */
+  try {
+    const { forumStats } = await import('./forumService.js');
+    const fs2 = await forumStats();
+    add('Forum', 'Posts waiting for a moderator', fs2.pending === 0 ? 'ok' : fs2.pending < 10 ? 'warn' : 'fail', fs2.pending ? `${fs2.pending} waiting — Admin → Forum` : 'None');
+    add('Forum', 'Forum size', 'ok', `${fs2.threads} questions, ${fs2.replies} replies`);
+  } catch (error) {
+    add('Forum', 'Forum', 'warn', `Could not read forum data: ${error.message}`);
+  }
+
   /* Keys */
   const key = (name) => Boolean(process.env[name]);
   const writer = ['CLAUDE_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY', 'PERPLEXITY_API_KEY'].filter(key);

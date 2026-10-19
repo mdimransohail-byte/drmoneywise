@@ -10,7 +10,7 @@
    These are sensible starting points, not legal advice.
    ════════════════════════════════════════════════════════════════════════ */
 
-export const LEGAL_UPDATED = '17 October 2026';
+export const LEGAL_UPDATED = '18 October 2026';
 export const CONTACT_EMAIL = 'hello@drmoneywise.com';
 
 export const INFO_PAGES = {
@@ -180,6 +180,14 @@ export const INFO_PAGES = {
           'Paid plans renew automatically each month or year until you cancel. You can cancel at any time with "Manage my plan"; you keep access until the end of the period you have paid for.',
           'Payments are not refundable for partial periods, except where the law requires otherwise. If something has gone wrong with a charge, email us within 14 days and we will look into it.',
           'We may change prices in future. Any change will apply from your next renewal, and we will tell you before it does.',
+        ],
+      },
+      {
+        heading: 'The community forum',
+        paragraphs: [
+          'Anyone with a free account may ask questions in the forum; paying members may also reply and edit their own posts. You are responsible for what you post. Posts are your own views, not advice from Dr MoneyWise.',
+          'Do not post anything unlawful, abusive, misleading, promotional or private (including links, contact details and personal information), and do not encourage others to buy or sell specific investments or promise returns. See the forum rules at /forum/rules.',
+          'Posts are checked by our moderators, who may hold, edit or remove any post and suspend accounts that break these terms or the forum rules. By posting you allow us to show your post (with your first name and the initial of your surname) on the site.',
         ],
       },
       {

@@ -62,6 +62,7 @@ export async function getAdminDashboard() {
       newsdataConfigured: Boolean(envSettings.NEWSDATA_API_KEY),
       marketstackConfigured: Boolean(envSettings.MARKETSTACK_API_KEY),
       searchVisible: String(envSettings.SEARCH_VISIBLE || '').toLowerCase() === 'yes',
+      forumEnabled: String(envSettings.FORUM_ENABLED || '').toLowerCase() === 'yes',
       stripeKeyMode: String(envSettings.STRIPE_SECRET_KEY || '').startsWith('sk_live_')
         ? 'live'
         : String(envSettings.STRIPE_SECRET_KEY || '').startsWith('sk_test_') ? 'test' : envSettings.STRIPE_SECRET_KEY ? 'unknown' : 'off',
@@ -234,6 +235,9 @@ export async function saveAdminSettings(payload) {
   }
   if (payload.searchVisible !== undefined) {
     envChanges.SEARCH_VISIBLE = payload.searchVisible ? 'yes' : 'no';
+  }
+  if (payload.forumEnabled !== undefined) {
+    envChanges.FORUM_ENABLED = payload.forumEnabled ? 'yes' : 'no';
   }
   if (payload.resendKey) {
     envChanges.RESEND_API_KEY = String(payload.resendKey).trim();

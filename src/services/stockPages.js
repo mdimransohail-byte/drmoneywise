@@ -20,7 +20,7 @@ import { reportCardHtml, yearBarsHtml } from './infographicService.js';
 import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
 import { cleanName } from './secService.js';
 import { iframeWidget } from './marketPages.js';
-import { buildHeadTags, pageShell } from './seoService.js';
+import { buildHeadTags, isForumEnabled, pageShell } from './seoService.js';
 import { getDividendTop10 } from './top10Service.js';
 import { SECTORS, SECTORS_REVIEWED, sectorOf } from '../data/sectorLeaders.js';
 import { getCompany, normaliseTicker, readExtraCompanies, searchAllCompanies } from './companyLookup.js';
@@ -362,6 +362,13 @@ export async function renderStockPage(origin, rawTicker) {
           <p class="members-cta"><a class="pill-gold" href="/#membership">Become a member</a> <a href="/#join">Already a member? Sign in</a></p>
         </div>
       </section>
+
+      ${isForumEnabled() ? `<section class="block">
+        <a class="forum-cta" href="/forum/stocks?ticker=${encodeURIComponent(ticker)}">
+          <strong>Questions about ${esc(name)}?</strong>
+          <span>See what other investors are asking about ${esc(ticker)} in the forum, or ask your own.</span>
+        </a>
+      </section>` : ''}
 
       <section class="block">
         <div class="block-head"><div><h2>Latest news on ${esc(name)}</h2><p>Headlines from TradingView's news feed.</p></div></div>

@@ -34,6 +34,16 @@ const FONT_LINKS = `
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />`;
 
+/** Forum on/off (Admin → Forum). Off by default until there are enough members. */
+export function isForumEnabled() {
+  return String(process.env.FORUM_ENABLED || '').toLowerCase() === 'yes';
+}
+
+/** Removes the Forum menu link from a page when the forum is switched off. */
+export function stripForumLinks(html) {
+  return isForumEnabled() ? html : html.replace(/\s*<a href="\/forum"[^>]*>Forum<\/a>/gu, '');
+}
+
 export function isSearchVisible() {
   return String(process.env.SEARCH_VISIBLE || '').toLowerCase() === 'yes';
 }
@@ -104,6 +114,12 @@ export async function buildSitemapXml(origin) {
       priority: '0.6',
     })),
   ];
+  if (isForumEnabled()) try {
+    const { forumSitemapEntries } = await import('./forumService.js');
+    urls.push({ loc: `${origin}/forum`, lastmod: today, priority: '0.7' }, ...(await import('../data/forumConfig.js')).FORUM_SECTIONS.map((sec) => ({ loc: `${origin}/forum/${sec.id}`, lastmod: today, priority: '0.6' })), ...(await forumSitemapEntries(origin)));
+  } catch (error) {
+    console.error('[seo] Forum left out of sitemap:', error.message);
+  }
   try {
     const { toolsSitemapEntries } = await import('./toolsPages.js');
     urls.push(...toolsSitemapEntries(origin));
@@ -184,7 +200,7 @@ export async function renderHomePage(template, origin) {
       url: `${origin}/`,
     },
   });
-  let html = injectHead(template, head);
+  let html = stripForumLinks(injectHead(template, head));
   html = await injectTopTenPanels(html);
   html = await injectPulse(html);
   html = await injectNewsWidget(html);
@@ -282,7 +298,7 @@ export async function renderArticlePage(template, slug, origin) {
 
   const articleHtml = `<article id="articleContainer" class="article-layout" data-slug="${escapeAttr(slug)}">${prerendered}
         </article>`;
-  const html = injectHead(template, head).replace(
+  const html = stripForumLinks(injectHead(template, head)).replace(
     /<article id="articleContainer" class="article-layout">[\s\S]*?<\/article>/u,
     () => articleHtml,
   );
@@ -405,6 +421,7 @@ export function pageShell({ head, body, active }) {
     ['top10', '/top-10', 'Top 10s'],
     ['stocks', '/stocks', 'Stocks'],
     ['tools', '/tools', 'Tools'],
+    ...(isForumEnabled() ? [['forum', '/forum', 'Forum']] : []),
     ['membership', '/#membership', 'Membership'],
   ];
   const links = nav

@@ -568,3 +568,32 @@ function lowercaseFirst(value) {
   }
   return value.charAt(0).toLowerCase() + value.slice(1);
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   FORUM MODERATION — a short check of one forum post (about 0.1 US cent).
+   Returns { verdict: 'allow' | 'review' | 'block', reason, checkedBy }
+   or null if no writing service answered (the forum then keeps the post
+   visible if it passed the rule checks, and logs it).
+   ════════════════════════════════════════════════════════════════════════ */
+export async function moderateForumPost({ title = '', body = '' }) {
+  const prompt = [
+    'You are the moderator of a friendly personal-finance education forum for everyday people.',
+    'Decide if this post may be shown. Rules:',
+    '- BLOCK: hate, harassment, threats, sexual content, illegal activity, scams, sharing personal contact details, spam/advertising, attempts to get people to message privately or join paid groups.',
+    '- REVIEW (a human will check): pumping a specific coin or share ("will 10x", "buy now before it moons"), promises of guaranteed returns, claims that sound like insider information, accusations against named people or companies, anything that looks like personal financial advice given as certain fact, or off-topic content.',
+    '- ALLOW: genuine questions, opinions, experiences and explanations about money, investing, markets, saving, retirement, taxes and the economy, even if blunt or mistaken.',
+    'Reply with JSON only: {"verdict":"allow"|"review"|"block","reason":"one short sentence in plain English"}',
+    `Title: ${String(title).slice(0, 300)}`,
+    `Post: ${String(body).slice(0, 4000)}`,
+  ].join('\n');
+  const order = ['claude', 'openai', 'gemini', 'perplexity'].filter((p) => process.env[KEY_ENV[p]]).slice(0, 2);
+  for (const provider of order) {
+    const result = await requestStructuredWriting({ slot: provider, provider, model: process.env[MODEL_ENV_KEYS[provider]] || '' }, prompt).catch(() => null);
+    const verdict = String(result?.verdict || '').toLowerCase();
+    if (['allow', 'review', 'block'].includes(verdict)) {
+      return { verdict, reason: String(result.reason || '').slice(0, 200), checkedBy: provider };
+    }
+  }
+  console.warn('[writerService] Forum moderation: no writing service answered — rule checks only.');
+  return null;
+}

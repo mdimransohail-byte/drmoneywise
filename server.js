@@ -39,6 +39,8 @@ import { renderDividendTop10, renderEtfTop10, renderTop10Hub } from './src/servi
 import { renderCryptoTop10, renderToday } from './src/services/marketPages.js';
 import { findCompanyPath, renderStockPage, renderStocksIndex, stockDetailsFor } from './src/services/stockPages.js';
 import { getHealthReport, sendHealthEmail } from './src/services/healthService.js';
+import { renderForumHome, renderForumNew, renderForumRules, renderForumSearch, renderForumSection, renderForumThread } from './src/services/forumPages.js';
+import { addReply, addStarterThreads, adminAction, createThread, editPost, getModerationQueue, reportPost } from './src/services/forumService.js';
 import { renderCalculator, renderGlossaryIndex, renderGlossaryTerm, renderToolsHub } from './src/services/toolsPages.js';
 import {
   confirmCheckoutSession,
@@ -50,6 +52,7 @@ import {
   buildRobotsTxt,
   buildSitemapXml,
   getSiteOrigin,
+  isForumEnabled,
   renderArticlePage,
   renderHomePage,
   renderLearnIndex,
@@ -420,6 +423,37 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { started: true });
     }
 
+    // ── Forum actions (public/forum.js) ─────────────────────────────────
+    if (requestUrl.pathname.startsWith('/api/forum/') && !isForumEnabled()) {
+      return sendJson(response, 404, { error: 'The forum is not open yet.' });
+    }
+
+    if (requestUrl.pathname.startsWith('/api/forum/') && request.method === 'POST') {
+      const body = await parseJsonBody(request);
+      let result = null;
+      let m;
+      if (requestUrl.pathname === '/api/forum/threads') result = await createThread(sessionUser, body);
+      else if ((m = requestUrl.pathname.match(/^\/api\/forum\/threads\/([a-z0-9-]+)\/replies$/u))) result = await addReply(sessionUser, m[1], body);
+      else if ((m = requestUrl.pathname.match(/^\/api\/forum\/posts\/([a-z0-9-]+)\/edit$/u))) result = await editPost(sessionUser, m[1], body);
+      else if ((m = requestUrl.pathname.match(/^\/api\/forum\/posts\/([a-z0-9-]+)\/report$/u))) result = await reportPost(sessionUser, m[1], body.reason);
+      if (result) return sendJson(response, result.error ? result.status || 400 : 200, result);
+    }
+
+    if (requestUrl.pathname === '/api/admin/forum/action' && request.method === 'POST') {
+      const result = await adminAction(sessionUser, await parseJsonBody(request));
+      return sendJson(response, result.error ? result.status || 400 : 200, result);
+    }
+
+    if (requestUrl.pathname === '/api/admin/forum/queue' && request.method === 'GET') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, await getModerationQueue());
+    }
+
+    if (requestUrl.pathname === '/api/admin/forum/starters' && request.method === 'POST') {
+      const result = await addStarterThreads(sessionUser);
+      return sendJson(response, result.error ? result.status || 400 : 200, result);
+    }
+
     // ── Members-only company numbers (company pages → public/members.js) ─
     if (requestUrl.pathname === '/api/stock/details' && request.method === 'GET') {
       const user = sessionUser;
@@ -558,6 +592,25 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (pathname === '/top-10/etfs') {
     return sendHtml(response, 200, await renderEtfTop10(origin));
+  }
+
+  // ── Forum (hidden with a 404 while switched off in Admin → Forum) ──────
+  if ((pathname === '/forum' || pathname.startsWith('/forum/')) && !isForumEnabled()) {
+    return sendHtml(response, 404, renderNotFound());
+  }
+  if (pathname === '/forum') return sendHtml(response, 200, await renderForumHome(origin));
+  if (pathname === '/forum/new') return sendHtml(response, 200, await renderForumNew(origin, requestUrl.searchParams));
+  if (pathname === '/forum/rules') return sendHtml(response, 200, renderForumRules(origin));
+  if (pathname === '/forum/search') return sendHtml(response, 200, await renderForumSearch(origin, String(requestUrl.searchParams.get('q') || '').slice(0, 100)));
+  const forumThread = pathname.match(/^\/forum\/t\/([a-z0-9-]{6,20})(?:\/[a-z0-9-]*)?$/u);
+  if (forumThread) {
+    const html = await renderForumThread(origin, forumThread[1]);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
+  }
+  const forumSection = pathname.match(/^\/forum\/([a-z-]{2,30})$/u);
+  if (forumSection) {
+    const html = await renderForumSection(origin, forumSection[1], requestUrl.searchParams);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
   }
 
   if (pathname === '/tools') {
