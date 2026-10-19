@@ -285,7 +285,7 @@ function renderLockedPanel(article) {
             return `
               <a
                 class="button ${plan.id === 'regular' ? 'secondary' : 'primary'}"
-                href="${escapeAttribute(primaryOption?.checkoutUrl || '/#membership')}"
+                href="${escapeAttribute(primaryOption?.checkoutUrl || '/membership')}"
                 ${primaryOption?.checkoutUrl ? 'target="_blank" rel="noopener"' : ''}
               >
                 ${escapeHtml(plan.name)}

@@ -39,6 +39,7 @@ import { renderDividendTop10, renderEtfTop10, renderTop10Hub } from './src/servi
 import { renderCryptoTop10, renderToday } from './src/services/marketPages.js';
 import { findCompanyPath, renderStockPage, renderStocksIndex, stockDetailsFor } from './src/services/stockPages.js';
 import { getHealthReport, sendHealthEmail } from './src/services/healthService.js';
+import { renderMembershipPage } from './src/services/membershipPage.js';
 import { renderForumHome, renderForumNew, renderForumRules, renderForumSearch, renderForumSection, renderForumThread } from './src/services/forumPages.js';
 import { addReply, addStarterThreads, adminAction, createThread, editPost, getModerationQueue, reportPost } from './src/services/forumService.js';
 import { renderCalculator, renderGlossaryIndex, renderGlossaryTerm, renderToolsHub } from './src/services/toolsPages.js';
@@ -46,6 +47,7 @@ import {
   confirmCheckoutSession,
   createCheckoutSession,
   createPortalSession,
+  refreshMemberSubscription,
   handleWebhook,
 } from './src/services/billingService.js';
 import {
@@ -127,6 +129,13 @@ export const server = http.createServer(async (request, response) => {
       const body = await parseJsonBody(request);
       const result = await confirmCheckoutSession({ user: sessionUser, sessionId: body.sessionId });
       return sendJson(response, 200, { ...result, user: await getSessionUser(token) });
+    }
+
+    // Membership page: refresh the plan from Stripe, then return the member
+    if (requestUrl.pathname === '/api/billing/status' && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 200, { user: null });
+      await refreshMemberSubscription(sessionUser);
+      return sendJson(response, 200, { user: await getSessionUser(token) });
     }
 
     if (requestUrl.pathname === '/api/billing/portal' && request.method === 'POST') {
@@ -592,6 +601,10 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (pathname === '/top-10/etfs') {
     return sendHtml(response, 200, await renderEtfTop10(origin));
+  }
+
+  if (pathname === '/membership') {
+    return sendHtml(response, 200, renderMembershipPage(origin));
   }
 
   // ── Forum (hidden with a 404 while switched off in Admin → Forum) ──────

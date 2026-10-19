@@ -162,8 +162,9 @@ export async function createCheckoutSession({ user, planId, cycle, couponCode, o
 
   const params = {
     mode: 'subscription',
-    success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}#membership`,
-    cancel_url: `${origin}/?checkout=cancelled#membership`,
+    success_url: `${origin}/membership?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/membership?checkout=cancelled`,
+    locale: 'en-GB', // British spelling on Stripe's pages ("cancelled")
     client_reference_id: user.id,
     metadata,
     subscription_data: { metadata },
@@ -326,6 +327,10 @@ async function applySubscriptionChange(subscription, eventType) {
   const renewsAt = subscription.current_period_end
     || subscription.items?.data?.[0]?.current_period_end
     || null;
+  // Newer Stripe versions mark "cancel at end of period" with cancel_at
+  // (a date) rather than cancel_at_period_end — handle both.
+  const cancelling = Boolean(subscription.cancel_at_period_end || subscription.cancel_at);
+  const endsAt = subscription.cancel_at || renewsAt;
 
   await updateStore((store) => {
     const member = store.users.find(
@@ -338,7 +343,8 @@ async function applySubscriptionChange(subscription, eventType) {
     }
     member.stripeSubscriptionId = subscription.id;
     member.stripeCustomerId = subscription.customer || member.stripeCustomerId;
-    member.planRenewsAt = renewsAt ? new Date(renewsAt * 1000).toISOString() : member.planRenewsAt || null;
+    const when = cancelling ? endsAt : renewsAt;
+    member.planRenewsAt = when ? new Date(when * 1000).toISOString() : member.planRenewsAt || null;
     member.updatedAt = new Date().toISOString();
 
     if (ended) {
@@ -352,7 +358,7 @@ async function applySubscriptionChange(subscription, eventType) {
       if (planId && ['active', 'trialing'].includes(subscription.status)) {
         member.plan = planId;
       }
-      member.planStatus = subscription.cancel_at_period_end ? 'cancelling' : subscription.status === 'past_due' ? 'past_due' : 'active';
+      member.planStatus = cancelling ? 'cancelling' : subscription.status === 'past_due' ? 'past_due' : 'active';
     }
     return store;
   });
@@ -381,7 +387,8 @@ export async function createPortalSession({ user, origin }) {
   try {
     const portal = await stripeRequest('POST', '/billing_portal/sessions', {
       customer: member.stripeCustomerId,
-      return_url: `${origin}/#membership`,
+      return_url: `${origin}/membership?from=portal`,
+      locale: 'en-GB',
     });
     return { url: portal.url };
   } catch (error) {
@@ -390,5 +397,21 @@ export async function createPortalSession({ user, origin }) {
       throw new Error('Plan management is being set up. Please email us to change your plan.');
     }
     throw error;
+  }
+}
+
+/* ── 5. Refresh a member's plan straight from Stripe ─────────────────────
+   Used by the Membership page so the status and dates are right even if a
+   webhook is late (e.g. just after cancelling on Stripe's page). */
+export async function refreshMemberSubscription(user) {
+  if (!user || user.role === 'admin' || !process.env.STRIPE_SECRET_KEY) return;
+  const store = await readStore();
+  const member = store.users.find((entry) => entry.id === user.id);
+  if (!member?.stripeSubscriptionId) return;
+  try {
+    const subscription = await stripeRequest('GET', `/subscriptions/${encodeURIComponent(member.stripeSubscriptionId)}`);
+    await applySubscriptionChange(subscription, 'sync');
+  } catch (error) {
+    console.error(`[billing] Could not refresh plan for ${member.email}: ${error.message}`);
   }
 }

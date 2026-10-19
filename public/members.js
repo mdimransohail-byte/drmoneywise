@@ -125,7 +125,7 @@
       const data = await res.json().catch(() => ({}));
       if (res.status === 403) {
         const cta = content.querySelector('.members-cta');
-        if (cta) cta.innerHTML = 'You are on the free plan. <a class="pill-gold" href="/#membership">Upgrade to see full results</a>';
+        if (cta) cta.innerHTML = 'You are on the free plan. <a class="pill-gold" href="/membership">Upgrade to see full results</a>';
         return;
       }
       if (!res.ok) return; // signed out or error: keep the teaser

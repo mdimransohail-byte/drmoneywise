@@ -359,7 +359,7 @@ export async function renderStockPage(origin, rawTicker) {
             <li>The last few quarters, so you see the newest results first</li>
             <li>What the company owns and owes today: cash, debt, total assets and liabilities</li>
           </ul>
-          <p class="members-cta"><a class="pill-gold" href="/#membership">Become a member</a> <a href="/#join">Already a member? Sign in</a></p>
+          <p class="members-cta"><a class="pill-gold" href="/membership">Become a member</a> <a href="/#join">Already a member? Sign in</a></p>
         </div>
       </section>
 

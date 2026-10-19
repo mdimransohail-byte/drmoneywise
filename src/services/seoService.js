@@ -422,7 +422,7 @@ export function pageShell({ head, body, active }) {
     ['stocks', '/stocks', 'Stocks'],
     ['tools', '/tools', 'Tools'],
     ...(isForumEnabled() ? [['forum', '/forum', 'Forum']] : []),
-    ['membership', '/#membership', 'Membership'],
+    ['membership', '/membership', 'Membership'],
   ];
   const links = nav
     .map(([id, href, label]) => `<a href="${href}"${id === active ? ' aria-current="page"' : ''}>${label}</a>`)

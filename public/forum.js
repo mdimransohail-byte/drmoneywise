@@ -64,9 +64,9 @@
       if (box.dataset.locked && !isAdmin) {
         box.innerHTML = '<p class="fa-muted">This thread is closed to new replies.</p>';
       } else if (!me) {
-        box.innerHTML = '<div class="fa-upsell"><strong>Join the conversation</strong><p>Members can reply to questions and share what they know. Anyone with a free account can ask new questions.</p><a class="fa-btn gold" href="/#membership">Become a member</a> <a href="/#join">Sign in</a></div>';
+        box.innerHTML = '<div class="fa-upsell"><strong>Join the conversation</strong><p>Members can reply to questions and share what they know. Anyone with a free account can ask new questions.</p><a class="fa-btn gold" href="/membership">Become a member</a> <a href="/#join">Sign in</a></div>';
       } else if (!isPaid) {
-        box.innerHTML = '<div class="fa-upsell"><strong>Replying is for members</strong><p>Upgrade to reply, edit your posts and take part in every discussion. You can still <a href="/forum/new">ask your own question</a> for free.</p><a class="fa-btn gold" href="/#membership">See membership</a></div>';
+        box.innerHTML = '<div class="fa-upsell"><strong>Replying is for members</strong><p>Upgrade to reply, edit your posts and take part in every discussion. You can still <a href="/forum/new">ask your own question</a> for free.</p><a class="fa-btn gold" href="/membership">See membership</a></div>';
       } else {
         box.innerHTML = `<form class="fa-form" id="replyForm"><label>Your reply<textarea name="body" rows="5" required minlength="20" maxlength="5000" placeholder="Share what you know. Please be kind, and no tips to buy or sell."></textarea></label><p class="fa-form-msg" role="status" aria-live="polite"></p><div class="fa-form-actions"><button class="fa-btn gold" type="submit">Post reply</button></div></form>`;
         const rf = box.querySelector('#replyForm');
