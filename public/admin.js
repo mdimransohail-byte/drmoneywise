@@ -329,12 +329,39 @@ function render_analytics() {
         </div>
       </div>
     </div>
+    ${renderAudience(STATE.audience)}
   `;
+}
+
+/* "Your readers": totals from Membership → Your profile, plus a writing-level suggestion */
+function renderAudience(a) {
+  if (!a) return '';
+  const names = { knowledge: 'Knowledge', depth: 'How they want things explained', experience: 'Investing experience', country: 'Country', ageRange: 'Age', profession: 'What they do', investAmount: 'Amount invested', goals: 'Goals', interests: 'Topics', regions: 'Markets' };
+  const block = (field) => {
+    const rows = (a.fields?.[field] || []).slice(0, 6);
+    return `<div class="card"><div class="card-title">${h(names[field])}</div>${rows.map((r) => `
+      <div style="display:grid;grid-template-columns:1fr 90px 40px;gap:8px;align-items:center;margin-bottom:7px">
+        <span style="font-size:.72rem;color:#dbe6f3">${h(r.label)}</span>
+        <div style="height:8px;border-radius:99px;background:rgba(255,255,255,.06)"><div style="height:8px;border-radius:99px;background:#ffcb6b;width:${r.pct}%"></div></div>
+        <span style="font-size:.7rem;color:#9eb3cc;text-align:right">${r.pct}%</span>
+      </div>`).join('') || '<p style="color:#9eb3cc;font-size:.75rem">No answers yet.</p>'}</div>`;
+  };
+  return `
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">Your readers</div>
+      <p style="font-size:.8rem;color:#dbe6f3;margin:0 0 6px">${a.withProfile} of ${a.members} readers have filled in their profile (Membership → Your profile).</p>
+      <p style="font-size:.8rem;color:#ffcb6b;margin:0">Writing level: ${h(a.suggestion)}</p>
+    </div>
+    <div class="card-grid two-col" style="margin-top:14px">
+      ${['knowledge', 'depth', 'experience', 'country', 'goals', 'interests', 'regions', 'profession', 'ageRange', 'investAmount'].map(block).join('')}
+    </div>`;
 }
 
 async function load_analytics() {
   try {
-    STATE.dashboard = await API.dashboard();
+    const [dash, audience] = await Promise.all([API.dashboard(), API.get('/api/admin/audience').catch(() => null)]);
+    STATE.dashboard = dash;
+    STATE.audience = audience;
     setMain(render_analytics());
     bind_analytics();
   } catch (e) {

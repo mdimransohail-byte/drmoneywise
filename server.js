@@ -29,7 +29,7 @@ import { getMediaDir } from './src/services/visualsService.js';
 import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOutSession, signUpMember } from './src/services/authService.js';
 import { trackEvent } from './src/services/analyticsService.js';
 import { getInterestHeadlines, getLiveHeadlines } from './src/services/newsService.js';
-import { saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
+import { getAudienceSummary, saveMemberProfile, saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
 import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
@@ -237,6 +237,15 @@ export const server = http.createServer(async (request, response) => {
 
     if (requestUrl.pathname === '/api/member/profile' && request.method === 'GET') {
       return sendJson(response, 200, await getMemberProfile(token));
+    }
+
+    if (requestUrl.pathname === '/api/member/about-me' && request.method === 'POST') {
+      return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
+    }
+
+    if (requestUrl.pathname === '/api/admin/audience' && request.method === 'GET') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, await getAudienceSummary());
     }
 
     if (requestUrl.pathname === '/api/member/preferences' && request.method === 'POST') {

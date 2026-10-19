@@ -259,6 +259,7 @@ export function sanitizeUser(user) {
     watchlist: user.watchlist || [],
     portfolio: user.portfolio || [],
     savedArticleSlugs: user.savedArticleSlugs || [],
+    profile: user.profile || null,
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt,
   };

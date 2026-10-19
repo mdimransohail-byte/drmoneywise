@@ -10,7 +10,7 @@
    These are sensible starting points, not legal advice.
    ════════════════════════════════════════════════════════════════════════ */
 
-export const LEGAL_UPDATED = '18 October 2026';
+export const LEGAL_UPDATED = '19 October 2026';
 export const CONTACT_EMAIL = 'hello@drmoneywise.com';
 
 export const INFO_PAGES = {
@@ -119,6 +119,7 @@ export const INFO_PAGES = {
         paragraphs: [
           'Account details: your name, email address and a scrambled (hashed) version of your password. We never store your password in readable form.',
           'Your preferences and tools: the regions and topics you choose, your watchlist, the holdings you add to your portfolio, and articles you save.',
+          'Your profile (optional): if you fill in "Your profile" on the Membership page, we keep your answers, such as country, age range, what you do, how much you know about investing, roughly how much you invest, your goals, topics and markets. Every question is optional and you can change or clear your answers at any time.',
           'Payments: if you subscribe, payments are handled by Stripe. We receive confirmation of your plan and a customer reference, but never your full card number.',
           'Usage: simple page-view and sign-up counts, so we know which pages are useful.',
         ],
@@ -126,6 +127,7 @@ export const INFO_PAGES = {
       {
         heading: 'How we use it',
         paragraphs: [
+          'We use profile answers only in totals (for example, "most readers are beginners") to decide how simply to write and which topics to cover. We never show your answers to other readers and never sell them.',
           'To run your account, show you the topics you care about, provide the features of your plan, process payments, reply to your messages and improve the site. We do not sell your personal information.',
         ],
       },

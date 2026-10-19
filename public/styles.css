@@ -765,3 +765,42 @@ a.fa-chip:hover { border-color: var(--sec, var(--navy)); }
 .mb-faq details p { margin: 10px 0 0; color: var(--ink-2); }
 @media (max-width: 900px) { .mb-grid { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; } .mb-tagline { min-height: 0; } }
 @media (max-width: 640px) { .mb-hero h1 { font-size: 30px; } .mb-coupon { justify-content: flex-start; } .mb-myplan { padding: 20px; } }
+/* Membership page v2: tabs, calmer cards, profile form */
+.mb-hero { margin: 36px auto 14px; }
+.mb-hero h1 { font-size: 38px; margin: 0 0 6px; }
+.mb-message { font-size: 16px; }
+.mb-message.ok { color: #15803d; font-weight: 800; }
+.mb-message.bad { color: #b91c1c; font-weight: 800; }
+.mb-tabs { display: flex; justify-content: center; gap: 6px; margin: 0 auto 22px; background: var(--beige-2); padding: 5px; border-radius: 999px; width: max-content; max-width: 100%; flex-wrap: wrap; }
+.mb-tabs[hidden] { display: none; }
+.mb-tabs button { border: 0; background: transparent; padding: 9px 18px; border-radius: 999px; font: 600 15px var(--sans); color: var(--ink-2); cursor: pointer; }
+.mb-tabs button[aria-selected="true"] { background: #fff; color: var(--navy); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+.mb-pane { max-width: 1040px; margin: 0 auto 50px; }
+.mb-myplan { max-width: 820px; }
+.mb-card h3 { font-size: 24px; margin: 4px 0 8px; }
+.mb-card ul { flex: 0; margin: 14px 0 6px; }
+.mb-more { margin: 0 0 16px; font-size: 15px; }
+.mb-more summary { cursor: pointer; color: var(--navy); font-weight: 600; }
+.mb-more ul { margin-top: 8px; }
+.mb-actions { margin-top: auto; }
+.mb-under { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+.mb-under .mb-coupon { margin: 0; }
+.mb-under .mb-small { margin: 0; }
+.mb-faq { margin: 26px auto 0; max-width: 760px; }
+.mb-profile { max-width: 820px; margin: 0 auto; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 26px 28px; display: grid; gap: 18px; }
+.mb-lead { margin: 0; color: var(--ink-2); }
+.mb-h3 { font-size: 19px; margin: 6px 0 -4px; }
+.mb-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.mb-field { display: grid; gap: 6px; font-weight: 600; color: var(--navy); font-size: 15px; border: 0; padding: 0; margin: 0; }
+.mb-field small { font-weight: 400; color: var(--ink-2); margin-left: 6px; }
+.mb-field select, .mb-field input { height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 10px; font: 400 15px var(--sans); background: #fff; color: var(--ink); }
+.mb-chips legend { padding: 0; margin-bottom: 8px; }
+.mb-chips > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.mb-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.mb-chip span { display: inline-block; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; font-weight: 500; color: var(--ink); cursor: pointer; }
+.mb-chip input:checked + span { background: var(--navy); border-color: var(--navy); color: #fff; }
+.mb-chip input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
+.mb-form-actions { display: flex; gap: 14px; align-items: center; }
+.mb-saved.ok { color: #15803d; font-weight: 800; }
+.mb-saved.bad { color: #b91c1c; font-weight: 800; }
+@media (max-width: 640px) { .mb-grid2 { grid-template-columns: 1fr; } .mb-profile { padding: 18px; } .mb-under { flex-direction: column; align-items: flex-start; } }

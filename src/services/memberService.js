@@ -205,3 +205,71 @@ async function syncCollectionToExternalApi({ endpoint, apiKey, type, user, paylo
     throw new Error(`${type} sync failed with status ${response.status}.`);
   }
 }
+
+/* ── Reader profile (Membership → "Your profile") ─────────────────────── */
+export async function saveMemberProfile(token, payload) {
+  const user = await requireSessionUser(token);
+  const { PROFILE_OPTIONS, MULTI_FIELDS } = await import('../data/profileOptions.js');
+  const { INTEREST_OPTIONS, REGION_OPTIONS } = await import('../config.js');
+  const allowed = {
+    ...Object.fromEntries(Object.entries(PROFILE_OPTIONS).map(([k, list]) => [k, new Set(list.map(([id]) => id))])),
+    interests: new Set(INTEREST_OPTIONS.map((o) => o.id)),
+    regions: new Set(REGION_OPTIONS.map((o) => o.id)),
+  };
+  const clean = {};
+  for (const [field, set] of Object.entries(allowed)) {
+    const value = payload?.[field];
+    if (MULTI_FIELDS.includes(field)) {
+      clean[field] = Array.isArray(value) ? [...new Set(value.map(String))].filter((v) => set.has(v)).slice(0, 12) : [];
+    } else {
+      clean[field] = set.has(String(value || '')) ? String(value) : '';
+    }
+  }
+  const updated = await updateStore((store) => {
+    const target = store.users.find((entry) => entry.id === user.id);
+    if (!target) throw new Error('Member not found.');
+    target.profile = { ...clean, updatedAt: new Date().toISOString() };
+    // Keep the older region/interest settings in step with the profile
+    if (clean.regions.length) { target.regions = clean.regions; target.region = clean.regions[0]; }
+    if (clean.interests.length) target.interests = clean.interests;
+    if (payload?.name && String(payload.name).trim()) target.name = String(payload.name).trim().slice(0, 80);
+    return store;
+  });
+  return sanitizeUser(updated.users.find((entry) => entry.id === user.id));
+}
+
+/* ── Admin: totals across readers who filled in their profile ─────────── */
+export async function getAudienceSummary() {
+  const { PROFILE_OPTIONS } = await import('../data/profileOptions.js');
+  const { INTEREST_OPTIONS, REGION_OPTIONS } = await import('../config.js');
+  const store = await readStore();
+  const members = store.users.filter((u) => u.role !== 'admin');
+  const withProfile = members.filter((u) => u.profile && u.profile.updatedAt);
+  const labels = {
+    ...Object.fromEntries(Object.entries(PROFILE_OPTIONS).map(([k, list]) => [k, Object.fromEntries(list)])),
+    interests: Object.fromEntries(INTEREST_OPTIONS.map((o) => [o.id, o.label])),
+    regions: Object.fromEntries(REGION_OPTIONS.map((o) => [o.id, o.label])),
+  };
+  const fields = {};
+  for (const field of Object.keys(labels)) {
+    const counts = {};
+    for (const u of withProfile) {
+      const v = u.profile[field];
+      for (const item of Array.isArray(v) ? v : v ? [v] : []) counts[item] = (counts[item] || 0) + 1;
+    }
+    fields[field] = Object.entries(counts).sort((a, b) => b[1] - a[1])
+      .map(([id, n]) => ({ id, label: String(labels[field][id] || id).split(' — ')[0], n, pct: withProfile.length ? Math.round((n / withProfile.length) * 100) : 0 }));
+  }
+  // A plain suggestion for the writing level
+  const k = Object.fromEntries((fields.knowledge || []).map((x) => [x.id, x.pct]));
+  const d = Object.fromEntries((fields.depth || []).map((x) => [x.id, x.pct]));
+  let suggestion = 'Not enough profiles yet to judge. Keep the current plain-English style.';
+  if (withProfile.length >= 5) {
+    const newer = (k.beginner || 0) + (k.some || 0);
+    if (newer >= 60 || (d.simple || 0) >= 50) suggestion = `Most readers are newer to investing (${newer}% beginner or some knowledge). Keep explainers simple: short sentences, every term explained.`;
+    else if ((k.confident || 0) + (k.expert || 0) >= 60 || (d.detailed || 0) >= 50) suggestion = 'Most readers are confident. Explainers can use more market terms and go deeper into the numbers, while still explaining key words.';
+    else suggestion = 'Readers are a mix of levels. Keep the plain-English base, and add a short "Going deeper" part for confident readers.';
+  }
+  return { members: members.length, withProfile: withProfile.length, fields, suggestion };
+}
+
