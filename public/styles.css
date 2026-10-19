@@ -912,3 +912,32 @@ body.has-ad-strip { padding-bottom: 52px; }
   .pr-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
   .pr-card { padding: 12px; }
 }
+/* ═══ Markets pages (commodities, bonds, ETFs) ═══ */
+.mk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin: 8px 0 26px; }
+.mk-card { display: grid; gap: 6px; background: var(--paper); border: 1px solid var(--line); border-top: 4px solid var(--gold); border-radius: var(--radius-md); padding: 18px 20px; text-decoration: none; color: var(--ink); transition: transform .12s, box-shadow .12s; }
+.mk-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(10,17,40,.08); }
+.mk-card strong { font: 700 22px/1.2 var(--serif); color: var(--navy); }
+.mk-card span { color: var(--ink-2); font-size: 15px; }
+.mk-card em { font-style: normal; font-weight: 700; font-size: 14px; color: var(--blue); }
+.mk-group { font-size: 20px; margin: 18px 0 8px; }
+.mk-unit { font: 600 13px var(--sans); color: var(--ink-2); margin-left: 2px; }
+.mk-facts, .mk-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.mk-two > .pr-panel, .mk-facts > .pr-panel { margin-bottom: 18px; }
+.mk-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.mk-chips span { display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px 6px 6px; font-weight: 600; }
+.mk-chips b { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 12px; }
+.mk-list { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.mk-lookup { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-width: 260px; max-width: 100%; }
+.mk-lookup input { width: 100%; }
+.mk-lookup label { font-weight: 700; color: var(--navy); font-size: 14px; }
+.mk-lookup div, .mk-overlap div { display: flex; gap: 8px; }
+.mk-lookup input, .mk-overlap select { height: 46px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; font: 600 16px var(--sans); background: #fff; color: var(--ink); min-width: 0; flex: 1; }
+.mk-lookup button, .mk-overlap button { height: 46px; border: 0; border-radius: 999px; padding: 0 20px; background: var(--gold); color: var(--navy); font: 700 15px var(--sans); cursor: pointer; }
+.mk-overlap { display: grid; gap: 6px; max-width: 560px; }
+.mk-overlap label { font-weight: 700; color: var(--navy); }
+.mk-etf-table small { color: var(--ink-2); font-weight: 400; }
+.mk-curve .pr-hit circle[style] { opacity: 1 !important; }
+.members-box .pr-table { margin-top: 6px; }
+@media (max-width: 760px) { .mk-facts, .mk-two { grid-template-columns: 1fr; gap: 0; } .mk-lookup { width: 100%; min-width: 0; } .pr-hero > div { min-width: 0; } }
+.mk-two > *, .mk-facts > * { min-width: 0; }
+.mk-big-note { font-size: 18px; margin: 4px 0 0; }

@@ -41,6 +41,7 @@ import { findCompanyPath, renderStockPage, renderStocksIndex, stockDetailsFor } 
 import { getHealthReport, sendHealthEmail } from './src/services/healthService.js';
 import { renderMembershipPage } from './src/services/membershipPage.js';
 import { renderPropertyHub, renderPropertyPlace } from './src/services/propertyPages.js';
+import { marketsMembersHtml, renderBondsHub, renderBondsPlace, renderCommoditiesHub, renderCommodity, renderEtf, renderEtfsHub, renderMarketsHub } from './src/services/marketsPages.js';
 import { deleteManualRow, getPropertyStatus, saveManualRow } from './src/services/propertyService.js';
 import { AD_SLOTS, getAdSettings, publicAdSlots, saveAdSettings } from './src/services/adService.js';
 import { renderForumHome, renderForumNew, renderForumRules, renderForumSearch, renderForumSection, renderForumThread } from './src/services/forumPages.js';
@@ -505,6 +506,20 @@ export const server = http.createServer(async (request, response) => {
     }
 
     // ── Members-only company numbers (company pages → public/members.js) ─
+    // Members-only "Deeper look" on commodity, bond and ETF pages
+    if (requestUrl.pathname === '/api/markets/details' && request.method === 'GET') {
+      const user = sessionUser;
+      if (!user) return sendJson(response, 401, { error: 'Sign in to see the deeper look.' });
+      if (user.role !== 'admin' && !canAccess(user.plan || 'free', 'regular')) {
+        return sendJson(response, 403, { error: 'The deeper look is for members.', plan: user.plan || 'free' });
+      }
+      const kind = String(requestUrl.searchParams.get('kind') || '');
+      const id = String(requestUrl.searchParams.get('id') || '').slice(0, 40);
+      const html = await marketsMembersHtml(kind, id, requestUrl.searchParams.get('other') || '');
+      if (!html) return sendJson(response, 404, { error: 'Not found.' });
+      return sendJson(response, 200, { html });
+    }
+
     if (requestUrl.pathname === '/api/stock/details' && request.method === 'GET') {
       const user = sessionUser;
       if (!user) return sendJson(response, 401, { error: 'Sign in to see full results.' });
@@ -642,6 +657,40 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (pathname === '/top-10/etfs') {
     return sendHtml(response, 200, await renderEtfTop10(origin));
+  }
+
+  // ── Markets: hub, commodities, bonds, ETFs ──────────────────────────
+  if (pathname === '/markets') return sendHtml(response, 200, await renderMarketsHub(origin));
+  if (pathname === '/commodities') {
+    const pick = String(requestUrl.searchParams.get('pick') || '').replace(/[^a-z-]/gu, '');
+    if (pick) { response.writeHead(302, { Location: `/commodities/${pick}` }); response.end(); return true; }
+    return sendHtml(response, 200, await renderCommoditiesHub(origin));
+  }
+  const commodityMatch = pathname.match(/^\/commodities\/([a-z-]{2,40})$/u);
+  if (commodityMatch) {
+    const html = await renderCommodity(origin, commodityMatch[1]);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
+  }
+  if (pathname === '/bonds') {
+    const pick = String(requestUrl.searchParams.get('pick') || '').replace(/[^a-z-]/gu, '');
+    if (pick) { response.writeHead(302, { Location: `/bonds/${pick}` }); response.end(); return true; }
+    return sendHtml(response, 200, await renderBondsHub(origin));
+  }
+  const bondMatch = pathname.match(/^\/bonds\/([a-z-]{2,40})$/u);
+  if (bondMatch) {
+    const html = await renderBondsPlace(origin, bondMatch[1]);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
+  }
+  if (pathname === '/etfs') {
+    const q = String(requestUrl.searchParams.get('q') || '').toUpperCase().replace(/[^A-Z0-9.-]/gu, '').slice(0, 10);
+    if (q) { response.writeHead(302, { Location: `/etfs/${q}` }); response.end(); return true; }
+    return sendHtml(response, 200, await renderEtfsHub(origin));
+  }
+  const etfMatch = pathname.match(/^\/etfs\/([A-Za-z0-9.-]{1,10})$/u);
+  if (etfMatch) {
+    if (etfMatch[1] !== etfMatch[1].toUpperCase()) { response.writeHead(301, { Location: `/etfs/${etfMatch[1].toUpperCase()}` }); response.end(); return true; }
+    const html = await renderEtf(origin, etfMatch[1]);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
   }
 
   if (pathname === '/property') {

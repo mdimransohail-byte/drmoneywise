@@ -226,7 +226,7 @@ export async function renderStocksIndex(origin, query = '') {
         </div>
         ${content}
       </section>`;
-  return pageShell({ head, body, active: 'stocks' });
+  return pageShell({ head, body, active: 'markets' });
 }
 
 /** Search box shortcut: exact ticker, exact name or a single clear match → its page. */
@@ -260,7 +260,7 @@ function lookupProblemPage(origin, ticker, result) {
         </form>
         <p class="helper-note"><a href="/stocks">See the largest companies in each sector</a></p>
       </section>`;
-  return pageShell({ head: `${head}\n    <meta name="robots" content="noindex" />`, body, active: 'stocks' });
+  return pageShell({ head: `${head}\n    <meta name="robots" content="noindex" />`, body, active: 'markets' });
 }
 
 /* ── /stock/<TICKER> ─────────────────────────────────────────────────── */
@@ -393,7 +393,7 @@ export async function renderStockPage(origin, rawTicker) {
       </section>
       ${adSlot('partner-box')}
       <script src="/members.js" defer></script>`;
-  return { status: 200, html: pageShell({ head, body, active: 'stocks' }) };
+  return { status: 200, html: pageShell({ head, body, active: 'markets' }) };
 }
 
 /* ── "What if" growth scenarios (members) ─────────────────────────────

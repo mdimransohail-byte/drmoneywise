@@ -122,6 +122,12 @@ export async function buildSitemapXml(origin) {
     console.error('[seo] Forum left out of sitemap:', error.message);
   }
   try {
+    const { marketsSitemapEntries } = await import('./marketsPages.js');
+    urls.push(...marketsSitemapEntries(origin));
+  } catch (error) {
+    console.error('[seo] Markets pages left out of sitemap:', error.message);
+  }
+  try {
     const { propertySitemapEntries } = await import('./propertyPages.js');
     urls.push(...propertySitemapEntries(origin));
   } catch (error) {
@@ -426,7 +432,7 @@ export function pageShell({ head, body, active }) {
     ['today', '/today', 'Today'],
     ['learn', '/learn', 'Learn'],
     ['top10', '/top-10', 'Top 10s'],
-    ['stocks', '/stocks', 'Stocks'],
+    ['markets', '/markets', 'Markets'],
     ['property', '/property', 'Property'],
     ['tools', '/tools', 'Tools'],
     ...(isForumEnabled() ? [['forum', '/forum', 'Forum']] : []),
@@ -476,7 +482,7 @@ export function pageShell({ head, body, active }) {
           </div>
         </div>
         <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
-        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the BIS, the OECD and HM Land Registry. Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
+        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the World Bank, the BIS, the OECD and HM Land Registry. Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
       </div>
     </footer>
     ${adSlot('bottom-strip')}

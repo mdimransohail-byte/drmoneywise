@@ -12,7 +12,7 @@
 
    Rents + prices compared with incomes and rents — OECD analytical house
      price indicators (OECD members only; others are simply left out):
-     https://sdmx.oecd.org/public/rest/data/OECD.ECO.MPD,DSD_AN_HOUSE_PRICES@DF_HOUSE_PRICES,1.0/USA+GBR.Q.RPI+HPI_YDH_AVG+HPI_RPI_AVG.?format=csvfile
+     https://sdmx.oecd.org/public/rest/data/OECD.ECO.MPD,DSD_AN_HOUSE_PRICES@DF_HOUSE_PRICES/USA+GBR.Q.RPI+HPI_YDH_AVG+HPI_RPI_AVG.?format=csvfile
      Terms: any use incl. commercial, with credit to the OECD.
 
    US rents — BLS API v1, CUSR0000SEHA (rent of primary residence), no key.
@@ -121,7 +121,7 @@ async function fetchOecd(codes) {
 }
 
 async function fetchOecdOnce(codes) {
-  const url = `https://sdmx.oecd.org/public/rest/data/OECD.ECO.MPD,DSD_AN_HOUSE_PRICES@DF_HOUSE_PRICES,1.0/${codes.join('+')}.Q.RPI+HPI_YDH_AVG+HPI_RPI_AVG.?startPeriod=${startQuarter()}&format=csvfile`;
+  const url = `https://sdmx.oecd.org/public/rest/data/OECD.ECO.MPD,DSD_AN_HOUSE_PRICES@DF_HOUSE_PRICES/${codes.join('+')}.Q.RPI+HPI_YDH_AVG+HPI_RPI_AVG.?startPeriod=${startQuarter()}&format=csvfile`;
   const rows = parseCsv(await getText(url, 'application/vnd.sdmx.data+csv; charset=utf-8'));
   const name = { RPI: 'rent', HPI_YDH_AVG: 'priceToIncome', HPI_RPI_AVG: 'priceToRent' };
   const out = {};
