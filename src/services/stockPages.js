@@ -302,7 +302,7 @@ export async function renderStockPage(origin, rawTicker) {
     ['Cash in the bank', formatMoney(company.cash)],
   ];
 
-  const newsHtml = await newsBlockHtml('stock', ticker, { title: `In the news: ${name}`, name, subject: `${name} (${ticker})` });
+  const newsHtml = await newsBlockHtml('stock', ticker, { title: `In the news: ${name}`, name, subject: `${name} (${ticker})`, search: name });
   const pool = { ...(companies || {}) };
   const related = (sector
     ? sector.tickers.map((t) => pool[t])

@@ -30,7 +30,12 @@ const DIR = path.join(process.cwd(), 'data', 'market', 'news');
 const HOUR = 60 * 60 * 1000;
 const FRESH = 11 * HOUR;
 const SUMMARY_EVERY = 22 * HOUR;
-const GAP_MS = 5500;
+// GDELT allows one request every 5 seconds per internet address. Railway
+// servers share addresses with other sites, so we go slower (one every 12
+// seconds) and, after a "please slow down" reply, everyone waits 2 minutes.
+const GAP_MS = 12000;
+const COOL_OFF_MS = 120000;
+let pauseUntil = 0;
 
 export const NEWS_CREDIT = 'Headlines found with the GDELT Project (gdeltproject.org). Each link opens the original article on the publisher’s site.';
 
@@ -152,7 +157,7 @@ let chain = Promise.resolve();
 let lastCall = 0;
 function throttled(fn) {
   const run = chain.then(async () => {
-    const wait = lastCall + GAP_MS - Date.now();
+    const wait = Math.max(lastCall + GAP_MS, pauseUntil) - Date.now();
     if (wait > 0) await new Promise((r) => { setTimeout(r, wait); });
     lastCall = Date.now();
     return fn();
@@ -163,24 +168,22 @@ function throttled(fn) {
 
 async function gdelt(query, days = 14) {
   const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(`${query} sourcelang:english`)}&mode=artlist&maxrecords=75&format=json&sort=datedesc&timespan=${days}d`;
-  // GDELT sometimes answers "please limit requests" or a server error when
-  // busy (other sites share the same servers): wait and try up to 2 more times.
+  // GDELT sometimes answers "please limit requests" (HTTP 429) or drops the
+  // connection when busy: pause all requests for 2 minutes, then try once more.
   let lastError = null;
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
       return await throttled(async () => {
         const response = await fetch(url, { headers: UA, signal: AbortSignal.timeout(25000) });
         const text = await response.text();
-        if (!response.ok) throw new Error(`HTTP ${response.status} from GDELT ${text.slice(0, 80).trim()}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status} from GDELT ${text.slice(0, 60).trim()}`);
         if (!text.trim().startsWith('{')) throw new Error(`GDELT said: ${text.slice(0, 120).trim()}`);
         return JSON.parse(text).articles || [];
       });
     } catch (error) {
       lastError = error;
-      if (attempt < 3) {
-        console.log(`[news] GDELT busy (${error.message}); waiting ${attempt * 15}s and trying again`);
-        await new Promise((r) => { setTimeout(r, attempt * 15000); });
-      }
+      pauseUntil = Date.now() + COOL_OFF_MS;
+      if (attempt < 2) console.log(`[news] GDELT busy (${error.message.slice(0, 60)}); all news requests pause 2 minutes`);
     }
   }
   throw lastError;
@@ -224,7 +227,7 @@ async function writeNews(kind, id, data) {
 /** Downloads fresh links (and a new summary if the headlines changed). */
 export async function refreshNews(kind, id, { subject, name, force = false } = {}) {
   const saved = await readNews(kind, id);
-  const freshFor = saved?.thin ? 2 * HOUR : FRESH;
+  const freshFor = saved?.thin ? 3 * HOUR : kind === 'stock' ? 23 * HOUR : FRESH;
   if (!force && saved && Date.now() - new Date(saved.fetchedAt).getTime() < freshFor) return saved;
   const tries = newsQueries(kind, id, { name });
   if (!tries.length) return saved;

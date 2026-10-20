@@ -954,3 +954,7 @@ body.has-ad-strip { padding-bottom: 52px; }
 .nw-list a:hover { text-decoration: underline; color: var(--blue); }
 .nw-list span { font-size: 13px; color: var(--ink-2); }
 .nw-credit { font-size: 12.5px; color: var(--ink-2); margin: 8px 2px 0; }
+.nw-more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; }
+.nw-more span { font-size: 14px; color: var(--ink-2); margin-right: 2px; }
+.nw-more a { padding: 6px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--line); text-decoration: none; color: var(--navy); font-weight: 600; font-size: 14px; }
+.nw-more a:hover { border-color: var(--gold); }

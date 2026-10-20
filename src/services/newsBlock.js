@@ -7,7 +7,6 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 import { queueNews, readNews } from './newsLinksService.js';
-import { newsWidget } from './marketPages.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 
@@ -35,32 +34,72 @@ const SITE_NAMES = {
 };
 const siteName = (d) => SITE_NAMES[d] || SITE_NAMES[Object.keys(SITE_NAMES).find((k) => d.endsWith(`.${k}`))] || d;
 
+/* ── "More news on other sites": plain links to each site's own page or
+   search for this subject (linking only — nothing is copied). ───────── */
+const gnews = (q) => `https://news.google.com/search?q=${encodeURIComponent(q)}&hl=en`;
+const PROPERTY_SITES = {
+  dubai: [['Gulf News: Property', 'https://gulfnews.com/business/property']],
+  'united-kingdom': [['The Guardian: Property', 'https://www.theguardian.com/money/property']],
+  thailand: [['Bangkok Post: Property', 'https://www.bangkokpost.com/property']],
+  singapore: [['The Straits Times: Housing', 'https://www.straitstimes.com/singapore/housing']],
+  'united-states': [['Realtor.com News', 'https://www.realtor.com/news/']],
+};
+const METALS = ['gold', 'silver', 'platinum'];
+const ENERGY = ['crude-oil', 'natural-gas'];
+function moreLinks(kind, id, words) {
+  if (kind === 'stock' || kind === 'etf') {
+    const t = String(id).toUpperCase();
+    const lower = t.toLowerCase().replace('.', '-');
+    return [
+      ['Yahoo Finance', `https://finance.yahoo.com/quote/${encodeURIComponent(t.replace('.', '-'))}/news/`],
+      ['Nasdaq', `https://www.nasdaq.com/market-activity/${kind === 'etf' ? 'etf' : 'stocks'}/${lower}/news-headlines`],
+      ...(kind === 'stock' ? [['MarketWatch', `https://www.marketwatch.com/investing/stock/${lower}`], ['TipRanks', `https://www.tipranks.com/stocks/${lower}/stock-news`], ['StockInvest.us', `https://stockinvest.us/stock/${encodeURIComponent(t.replace('.', '-'))}`]] : []),
+      ['Google News', gnews(`${words} ${kind === 'etf' ? 'ETF' : 'stock'}`)],
+    ];
+  }
+  if (kind === 'commodity') {
+    return [
+      ['Google News', gnews(words)],
+      ...(METALS.includes(id) ? [['Kitco News', 'https://www.kitco.com/news/']] : []),
+      ...(ENERGY.includes(id) ? [['OilPrice.com', 'https://oilprice.com/']] : []),
+      ['Reuters: Commodities', 'https://www.reuters.com/markets/commodities/'],
+    ];
+  }
+  if (kind === 'bond') return [['Google News', gnews(words)], ['Reuters: Rates and bonds', 'https://www.reuters.com/markets/rates-bonds/'], ['CNBC: Bonds', 'https://www.cnbc.com/bonds/']];
+  if (kind === 'property') return [['Google News', gnews(words)], ...(PROPERTY_SITES[id] || [])];
+  return [['Google News', gnews(words)]];
+}
+
 /**
  * kind: stock | etf | commodity | bond | property; id: ticker or slug.
- * opts.subject / opts.name help the background fetch when nothing is saved.
+ * opts.subject / opts.name help the background fetch when nothing is saved;
+ * opts.search is the wording for the "More news" search links.
  */
-export async function newsBlockHtml(kind, id, { title = 'In the news', subject = '', name = '' } = {}) {
+export async function newsBlockHtml(kind, id, { title = 'In the news', subject = '', name = '', search = '' } = {}) {
   const saved = await readNews(kind, id);
   const age = saved ? Date.now() - new Date(saved.fetchedAt).getTime() : Infinity;
-  const stale = !saved || age > 24 * 60 * 60 * 1000 || (saved.thin && age > 2 * 60 * 60 * 1000);
+  const stale = !saved || age > 24 * 60 * 60 * 1000 || (saved.thin && age > 3 * 60 * 60 * 1000);
   if (stale) queueNews(kind, id, { subject, name });
   const items = saved?.items || [];
-  if (items.length < 3) {
-    return `
-      <section class="block nw-box">
-        <div class="block-head"><div><h2>${esc(title)}</h2><p>Latest market headlines from TradingView’s free news feed while we gather articles about this page.</p></div></div>
-        ${newsWidget(420)}
-      </section>`;
-  }
-  const summary = saved.summary?.text ? `
+  const words = search || subject || name || id;
+  const links = moreLinks(kind, id, words);
+  const more = `
+        <div class="nw-more"><span>More news about ${esc(words)} on:</span>${links.map(([label, href]) => `<a href="${esc(href)}" target="_blank" rel="noopener nofollow">${esc(label)}</a>`).join('')}</div>`;
+  const summary = items.length >= 3 && saved.summary?.text ? `
         <div class="nw-summary"><h3>What the headlines say</h3><p>${esc(saved.summary.text)}</p><span>Our short summary of the headlines below, ${esc(ago(saved.summary.at))}. Not advice.</span></div>` : '';
-  return `
-      <section class="block nw-box">
-        <div class="block-head"><div><h2>${esc(title)}</h2><p>Recent articles from news sites, newest first. Each link opens the original article.</p></div></div>
-        ${summary}
+  const list = items.length ? `
         <ul class="nw-list">${items.map((x) => `
           <li><a href="${esc(x.url)}" target="_blank" rel="noopener nofollow">${esc(x.title)}</a><span>${esc(siteName(x.domain))}${x.date ? ` · ${esc(ago(x.date))}` : ''}</span></li>`).join('')}
-        </ul>
-        <p class="nw-credit">Headlines found with <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">the GDELT Project</a>. Articles belong to their publishers; we do not check or endorse them.</p>
+        </ul>` : '';
+  const intro = items.length
+    ? 'Recent articles from news sites, newest first. Each link opens the original article.'
+    : 'We are collecting the latest articles for this page; they appear here within a few hours. Meanwhile, these news sites cover it:';
+  return `
+      <section class="block nw-box">
+        <div class="block-head"><div><h2>${esc(title)}</h2><p>${esc(intro)}</p></div></div>
+        ${summary}
+        ${list}
+        ${more}
+        ${items.length ? '<p class="nw-credit">Headlines found with <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">the GDELT Project</a>. Articles belong to their publishers; we do not check or endorse them.</p>' : ''}
       </section>`;
 }
