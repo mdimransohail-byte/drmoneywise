@@ -127,25 +127,39 @@ export const WORLD_REGIONS = [
   },
   {
     id: 'gulf', name: 'Gulf (Middle East)', short: 'Gulf', currency: 'USD', colour: '#c9a227',
-    index: { symbol: 'TADAWUL:TASI', name: 'Tadawul All Share (Saudi)' },
+    // TradingView's free widgets don't show Gulf exchanges, so the Gulf pages
+    // use US-listed funds that hold Gulf shares: their prices (TradingView)
+    // and their official holdings reports to the SEC (Form N-PORT).
+    widgets: false,
+    index: { symbol: 'AMEX:KSA', name: 'Saudi shares (iShares MSCI Saudi Arabia ETF)' },
     exchanges: 'Saudi Exchange (Tadawul), Abu Dhabi (ADX), Dubai (DFM), Qatar (QSE) and Boursa Kuwait',
-    intro: 'The Saudi Exchange (Tadawul) is the region’s largest, led by Saudi Aramco. Abu Dhabi, Dubai, Qatar and Kuwait each have their own exchange. Oil and gas, banks and property dominate, and most Gulf currencies are fixed to the US dollar, so prices are not moved much by exchange rates. Gulf companies don’t report to the US regulator, so these pages use exchange data shown through TradingView.',
+    intro: 'The Saudi Exchange (Tadawul) is the region’s largest, led by Saudi Aramco. Abu Dhabi, Dubai, Qatar and Kuwait each have their own exchange. Oil and gas, banks and property dominate, and most Gulf currencies are fixed to the US dollar, so prices are not moved much by exchange rates. Gulf companies don’t report to the US regulator, so we follow them through US-listed funds that own them, using those funds’ official holdings reports.',
+    etfs: [
+      { ticker: 'KSA', tv: 'AMEX:KSA', name: 'iShares MSCI Saudi Arabia ETF', country: 'Saudi Arabia' },
+      { ticker: 'UAE', tv: 'NASDAQ:UAE', name: 'iShares MSCI UAE ETF', country: 'United Arab Emirates' },
+      { ticker: 'QAT', tv: 'NASDAQ:QAT', name: 'iShares MSCI Qatar ETF', country: 'Qatar' },
+      { ticker: 'KWT', tv: 'KWT', name: 'iShares MSCI Kuwait ETF', country: 'Kuwait' },
+    ],
+    officialSites: [
+      ['Saudi Exchange', 'https://www.saudiexchange.sa'], ['Abu Dhabi Securities Exchange', 'https://www.adx.ae'],
+      ['Dubai Financial Market', 'https://www.dfm.ae'], ['Qatar Stock Exchange', 'https://www.qe.com.qa'], ['Boursa Kuwait', 'https://www.boursakuwait.com.kw'],
+    ],
     sec: [],
     local: [
-      { slug: 'saudi-aramco', name: 'Saudi Aramco', symbol: 'TADAWUL:2222', sector: 'Energy' },
-      { slug: 'al-rajhi-bank', name: 'Al Rajhi Bank', symbol: 'TADAWUL:1120', sector: 'Banks & finance' },
-      { slug: 'saudi-national-bank', name: 'Saudi National Bank', symbol: 'TADAWUL:1180', sector: 'Banks & finance' },
-      { slug: 'sabic', name: 'SABIC', symbol: 'TADAWUL:2010', sector: 'Materials' },
-      { slug: 'stc', name: 'stc (Saudi Telecom)', symbol: 'TADAWUL:7010', sector: 'Communication' },
-      { slug: 'international-holding', name: 'International Holding Company', symbol: 'ADX:IHC', sector: 'Industry & transport' },
-      { slug: 'first-abu-dhabi-bank', name: 'First Abu Dhabi Bank', symbol: 'ADX:FAB', sector: 'Banks & finance' },
-      { slug: 'adnoc-gas', name: 'ADNOC Gas', symbol: 'ADX:ADNOCGAS', sector: 'Energy' },
-      { slug: 'e-and', name: 'e& (Etisalat)', symbol: 'ADX:EAND', sector: 'Communication' },
-      { slug: 'emaar-properties', name: 'Emaar Properties', symbol: 'DFM:EMAAR', sector: 'Property' },
-      { slug: 'emirates-nbd', name: 'Emirates NBD', symbol: 'DFM:EMIRATESNBD', sector: 'Banks & finance' },
-      { slug: 'dewa', name: 'Dubai Electricity and Water (DEWA)', symbol: 'DFM:DEWA', sector: 'Utilities' },
-      { slug: 'qnb', name: 'QNB (Qatar National Bank)', symbol: 'QSE:QNBK', sector: 'Banks & finance' },
-      { slug: 'kuwait-finance-house', name: 'Kuwait Finance House', symbol: 'KSE:KFH', sector: 'Banks & finance' },
+      { slug: 'saudi-aramco', name: 'Saudi Aramco', symbol: 'TADAWUL:2222', sector: 'Energy', etf: 'KSA', match: 'saudi arabian oil|aramco' },
+      { slug: 'al-rajhi-bank', name: 'Al Rajhi Bank', symbol: 'TADAWUL:1120', sector: 'Banks & finance', etf: 'KSA', match: 'al rajhi' },
+      { slug: 'saudi-national-bank', name: 'Saudi National Bank', symbol: 'TADAWUL:1180', sector: 'Banks & finance', etf: 'KSA', match: 'saudi national bank' },
+      { slug: 'sabic', name: 'SABIC', symbol: 'TADAWUL:2010', sector: 'Materials', etf: 'KSA', match: 'saudi basic industries|sabic' },
+      { slug: 'stc', name: 'stc (Saudi Telecom)', symbol: 'TADAWUL:7010', sector: 'Communication', etf: 'KSA', match: 'saudi telecom|\\bstc\\b' },
+      { slug: 'international-holding', name: 'International Holding Company', symbol: 'ADX:IHC', sector: 'Industry & transport', etf: 'UAE', match: 'international holding' },
+      { slug: 'first-abu-dhabi-bank', name: 'First Abu Dhabi Bank', symbol: 'ADX:FAB', sector: 'Banks & finance', etf: 'UAE', match: 'first abu dhabi' },
+      { slug: 'adnoc-gas', name: 'ADNOC Gas', symbol: 'ADX:ADNOCGAS', sector: 'Energy', etf: 'UAE', match: 'adnoc gas' },
+      { slug: 'e-and', name: 'e& (Etisalat)', symbol: 'ADX:EAND', sector: 'Communication', etf: 'UAE', match: 'emirates telecom|etisalat' },
+      { slug: 'emaar-properties', name: 'Emaar Properties', symbol: 'DFM:EMAAR', sector: 'Property', etf: 'UAE', match: 'emaar properties' },
+      { slug: 'emirates-nbd', name: 'Emirates NBD', symbol: 'DFM:EMIRATESNBD', sector: 'Banks & finance', etf: 'UAE', match: 'emirates nbd' },
+      { slug: 'dewa', name: 'Dubai Electricity and Water (DEWA)', symbol: 'DFM:DEWA', sector: 'Utilities', etf: 'UAE', match: 'dubai electricity' },
+      { slug: 'qnb', name: 'QNB (Qatar National Bank)', symbol: 'QSE:QNBK', sector: 'Banks & finance', etf: 'QAT', match: 'qatar national bank|\\bqnb\\b' },
+      { slug: 'kuwait-finance-house', name: 'Kuwait Finance House', symbol: 'KSE:KFH', sector: 'Banks & finance', etf: 'KWT', match: 'kuwait finance house' },
     ],
   },
 ];
@@ -155,6 +169,11 @@ export const worldRegion = (id) => WORLD_REGIONS.find((r) => r.id === id) || nul
 /** Every SEC-reporting overseas ticker (added to the data engine's list). */
 export function worldSecTickers() {
   return [...new Set(WORLD_REGIONS.flatMap((r) => r.sec.map(([t]) => t)))];
+}
+
+/** US-listed funds used to follow regions whose exchanges TradingView can't show. */
+export function worldEtfTickers() {
+  return [...new Set(WORLD_REGIONS.flatMap((r) => (r.etfs || []).map((e) => e.ticker)))];
 }
 
 /** { TICKER: { region, sector } } for the overseas SEC companies. */

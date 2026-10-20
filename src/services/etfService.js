@@ -201,6 +201,8 @@ async function writeEtf(t, data) {
 /** Weekly job: refresh every curated ETF. */
 export async function refreshEtfs() {
   let ok = 0; const failed = [];
+  const { worldEtfTickers } = await import('../data/worldStocks.js');
+  for (const t of worldEtfTickers()) { await getEtfData(t, { force: true }).catch(() => null); await pause(300); }
   for (const e of CURATED_ETFS) {
     if (e.sameAs || ETF_COMMODITY[e.ticker]) continue;
     const d = await getEtfData(e.ticker, { force: true });

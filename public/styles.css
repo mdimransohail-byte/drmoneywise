@@ -1191,3 +1191,13 @@ body.has-ad-strip { padding-bottom: 52px; }
 .wd-others a { --c: #2a78d6; text-decoration: none; font: 700 14px var(--sans); color: #fff; background: var(--c); padding: 7px 14px; border-radius: 999px; }
 .wd-top { margin-top: 4px; }
 @media (max-width: 760px) { .wd-hero h1 { font-size: 28px; } .wd-hero { padding: 22px 20px; } }
+.wd-funds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.wd-fund { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+.wd-fund h3 { margin: 0 0 10px; font-size: 18px; }
+.wd-fund h3 small { display: block; font: 600 12px var(--sans); color: #6b7290; margin-top: 2px; }
+.wd-fund .sc-donut { grid-template-columns: 130px minmax(0, 1fr); gap: 12px; }
+.wd-fund .sc-legend { font-size: 13px; }
+.sc-hbar > span { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wd-me > span, .wd-me b { color: #8a6a00; }
+@media (max-width: 760px) { .wd-fund .sc-donut { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .wd-funds { grid-template-columns: minmax(0, 1fr); } }
