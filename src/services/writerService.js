@@ -625,3 +625,40 @@ export async function summarizeHeadlines({ subject = '', headlines = [] }) {
   console.warn('[writerService] Headline summary: no writing service answered — links shown without a summary.');
   return null;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   COMPANY RESULTS — turns a company's results press release (from its SEC
+   filing) into: a headline, "In simple words", up to 4 key numbers (free)
+   and "What it means" (Premium). Only figures stated in the release.
+   About 1–2 US cents per result. Returns null if no service answered.
+   ════════════════════════════════════════════════════════════════════════ */
+export async function explainResults({ company = '', ticker = '', text = '' }) {
+  const prompt = [
+    'You write for Dr MoneyWise, a plain-English money education site for everyday readers (many are beginners).',
+    `Below is the results press release from ${String(company).slice(0, 80)} (${ticker}), taken from its official filing.`,
+    'Using ONLY facts and figures stated in the release, reply with JSON only:',
+    '{"headline":"max 80 characters, e.g. \\"Sales up 6% as more customers bought phones\\" (no company name)",',
+    ' "period":"the period covered, e.g. \\"three months to 30 September 2026\\"",',
+    ' "simple":"3 or 4 short sentences in simple words: what the company sold and earned in the period and how that compares with a year earlier",',
+    ' "numbers":[{"label":"Sales","value":"$94.9 billion","change":"up 6% on a year earlier"}],  (2 to 4 items: sales/revenue, profit, earnings per share, dividend — only if stated)',
+    ' "impact":"4 or 5 short sentences: what changed most and why the company says it changed, what the company says it expects next (only if it says so), and what readers may want to keep an eye on. No share-price predictions."}',
+    'Rules: never invent or calculate numbers that are not in the text; use the company’s own currency; British spelling; explain any finance word in brackets the first time; do not tell anyone to buy, sell or hold; do not mention how this text was written.',
+    '--- PRESS RELEASE ---',
+    String(text).slice(0, 16000),
+  ].join('\n');
+  const order = ['claude', 'openai', 'gemini', 'perplexity'].filter((p) => process.env[KEY_ENV[p]]).slice(0, 2);
+  if (!order.length) return null;
+  for (const provider of order) {
+    const r = await requestStructuredWriting({ slot: provider, provider, model: process.env[MODEL_ENV_KEYS[provider]] || '' }, prompt).catch(() => null);
+    const clean = (v, max) => String(v || '').replace(/<[^>]+>/gu, '').replace(/\s+/gu, ' ').trim().slice(0, max);
+    const headline = clean(r?.headline, 110);
+    const simple = clean(r?.simple, 900);
+    if (headline.length < 10 || simple.length < 60) continue;
+    const numbers = (Array.isArray(r.numbers) ? r.numbers : []).slice(0, 4)
+      .map((n) => ({ label: clean(n?.label, 40), value: clean(n?.value, 40), change: clean(n?.change, 60) }))
+      .filter((n) => n.label && n.value);
+    return { headline, period: clean(r.period, 80), simple, numbers, impact: clean(r.impact, 1400) || null, writtenBy: provider };
+  }
+  console.warn('[writerService] Results explanation: no writing service answered — listed with a link only.');
+  return null;
+}

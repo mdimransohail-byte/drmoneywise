@@ -17,7 +17,7 @@
      code    pasted code from an ad network (e.g. Google AdSense)
    Every ad is labelled "Advertisement" or "Partner offer". Affiliate links
    also say we may earn a commission, and carry rel="sponsored".
-   Option: hide all ads from paying members.
+   Option: hide all ads from Premium members (a Premium benefit).
    Saved in data/ads.json (Railway volume).
    ════════════════════════════════════════════════════════════════════════ */
 

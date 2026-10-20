@@ -50,6 +50,7 @@
         <a href="/membership">Membership</a>
       </nav>
     </header>
+    <div id="resultsStrip" class="rs-strip" hidden></div>
 
     <main>
       <div class="wrap"><div data-ad-fill="top-banner"></div></div>
@@ -78,6 +79,8 @@
 
       <div class="wrap">
         <!-- ═══ TOP 10s ═══════════════════════════════════════════════ -->
+        <section id="homeResults" class="block rs-box" hidden></section>
+
         <section id="top10" class="block">
           <div class="block-head">
             <div><h2>Top 10 lists</h2><p>Each list shows how it's ranked, so you know exactly what you're looking at.</p></div>
@@ -295,5 +298,6 @@
     <div data-ad-fill="bottom-strip"></div>
     <script type="module" src="/app.js"></script>
     <script src="/ads.js" defer></script>
+    <script src="/results.js" defer></script>
   </body>
 </html>

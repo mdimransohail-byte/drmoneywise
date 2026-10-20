@@ -41,6 +41,8 @@ import { findCompanyPath, renderStockPage, renderStocksIndex, stockDetailsFor } 
 import { getHealthReport, sendHealthEmail } from './src/services/healthService.js';
 import { renderMembershipPage } from './src/services/membershipPage.js';
 import { renderPropertyHub, renderPropertyPlace } from './src/services/propertyPages.js';
+import { renderResultsPage, resultCardHtml, resultsStripData } from './src/services/resultsPages.js';
+import { impactsFor, latestResults } from './src/services/resultsService.js';
 import { marketsMembersHtml, renderBondsHub, renderBondsPlace, renderCommoditiesHub, renderCommodity, renderEtf, renderEtfsHub, renderMarketsHub } from './src/services/marketsPages.js';
 import { deleteManualRow, getPropertyStatus, saveManualRow } from './src/services/propertyService.js';
 import { AD_SLOTS, getAdSettings, publicAdSlots, saveAdSettings } from './src/services/adService.js';
@@ -245,6 +247,24 @@ export const server = http.createServer(async (request, response) => {
 
     if (requestUrl.pathname === '/api/member/about-me' && request.method === 'POST') {
       return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
+    }
+
+    // Company results: scrolling strip + homepage cards (free)
+    if (requestUrl.pathname === '/api/site/results-strip' && request.method === 'GET') {
+      if (requestUrl.searchParams.get('cards')) {
+        const cards = latestResults(3, 21).map((r) => resultCardHtml(r)).join('');
+        return sendJson(response, 200, { cards });
+      }
+      return sendJson(response, 200, { items: resultsStripData() });
+    }
+
+    // "What it means" for results — Premium only
+    if (requestUrl.pathname === '/api/results/impact' && request.method === 'GET') {
+      const user = sessionUser;
+      if (!user) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'This is for Premium members.' });
+      const ids = String(requestUrl.searchParams.get('ids') || '').split(',').map((x) => x.replace(/[^0-9]/gu, '')).filter(Boolean).slice(0, 80);
+      return sendJson(response, 200, { impacts: impactsFor(ids) });
     }
 
     // Ad and partner spaces that are switched on (for the static pages)
@@ -658,6 +678,8 @@ async function handlePublicPage(requestUrl, request, response) {
   if (pathname === '/top-10/etfs') {
     return sendHtml(response, 200, await renderEtfTop10(origin));
   }
+
+  if (pathname === '/results') return sendHtml(response, 200, await renderResultsPage(origin));
 
   // ── Markets: hub, commodities, bonds, ETFs ──────────────────────────
   if (pathname === '/markets') return sendHtml(response, 200, await renderMarketsHub(origin));

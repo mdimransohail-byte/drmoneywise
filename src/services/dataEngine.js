@@ -13,6 +13,7 @@
      commodities weekly  World Bank monthly prices (gold, oil, copper, coffee…)
      bonds      weekly   US Treasury yield curve + OECD 10-year/3-month rates
      etfs       weekly   SEC N-PORT holdings for the ETFs with their own page
+     results    hourly   SEC: new company results (8-K item 2.02), explained simply
      news       12 hours GDELT headlines for every stock/ETF/commodity/bond/property
                          page + a short "What the headlines say" summary
      prices     daily    Marketstack end-of-day prices — ONLY on the paid
@@ -57,6 +58,7 @@ const JOBS = {
   bonds: { label: 'Government bond yields (US Treasury, OECD)', every: 7 * 24 * HOUR },
   etfs: { label: 'ETF holdings (SEC N-PORT)', every: 7 * 24 * HOUR },
   news: { label: 'In the news: headlines for each page (GDELT)', every: 12 * HOUR },
+  results: { label: 'Company results (SEC filings, checked hourly)', every: 1 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 const FIRST_CHECK_AFTER_MS = 60 * 1000;
@@ -257,7 +259,12 @@ async function runNews() {
   return refreshAllNews();
 }
 
-const RUNNERS = { news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
+async function runResults() {
+  const { checkResults } = await import('./resultsService.js');
+  return checkResults();
+}
+
+const RUNNERS = { results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {
@@ -312,6 +319,10 @@ async function checkSchedule() {
     const due = Date.now() - lastSuccess > job.every;
     const notRetriedRecently = Date.now() - lastRun > 2 * HOUR; // after a failure, retry every 2 hours
     if (due && notRetriedRecently && !running.has(name)) {
+      // The news job takes about an hour (the news index allows one search
+      // every few seconds), so it runs alongside the others instead of
+      // holding them up.
+      if (name === 'news') { runJob(name).catch(() => {}); continue; }
       await runJob(name);
     }
   }

@@ -37,6 +37,7 @@ const JOB_LIMITS = {
   bonds: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
   etfs: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
   news: { warn: 26 * HOUR, fail: 72 * HOUR },
+  results: { warn: 4 * HOUR, fail: 24 * HOUR },
 };
 
 function ago(iso) {

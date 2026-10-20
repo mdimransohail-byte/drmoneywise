@@ -1859,7 +1859,7 @@ function render_ads() {
       <p>Spaces for adverts and affiliate links. Everything is off until you switch it on. Every ad is labelled "Advertisement" or "Partner offer" on the site.</p>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <label style="display:flex;gap:8px;align-items:center;font-size:.8rem;color:#dbe6f3"><input type="checkbox" id="adsHideMembers" ${set.hideForMembers !== false ? 'checked' : ''} style="width:auto"> Hide all ads from paying members (a nice extra for members)</label>
+      <label style="display:flex;gap:8px;align-items:center;font-size:.8rem;color:#dbe6f3"><input type="checkbox" id="adsHideMembers" ${set.hideForMembers !== false ? 'checked' : ''} style="width:auto"> Hide all ads from Premium members (a Premium benefit)</label>
       <p style="font-size:.72rem;color:#e8a33d;margin:8px 0 0">Before switching on an ad network such as Google AdSense: those networks use cookies, so readers in the UK and Europe must be asked first (a cookie banner), which can be added when you are ready. Your own banners and partner links need no banner.</p>
     </div>
     <div class="card-grid two-col">${(a.slots || []).map(slotCard).join('')}</div>

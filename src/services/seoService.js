@@ -121,6 +121,7 @@ export async function buildSitemapXml(origin) {
   } catch (error) {
     console.error('[seo] Forum left out of sitemap:', error.message);
   }
+  urls.push({ loc: `${origin}/results`, lastmod: today, priority: '0.8' });
   try {
     const { marketsSitemapEntries } = await import('./marketsPages.js');
     urls.push(...marketsSitemapEntries(origin));
@@ -465,6 +466,7 @@ export function pageShell({ head, body, active }) {
         ${links}
       </nav>
     </header>
+    <div id="resultsStrip" class="rs-strip" hidden></div>
     <main>
       <div class="wrap">${adSlot('top-banner')}${body}
       </div>
@@ -487,6 +489,7 @@ export function pageShell({ head, body, active }) {
     </footer>
     ${adSlot('bottom-strip')}
     ${AD_SCRIPT}
+    <script src="/results.js" defer></script>
   </body>
 </html>
 `;

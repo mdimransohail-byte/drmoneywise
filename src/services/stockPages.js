@@ -23,6 +23,7 @@ import { iframeWidget } from './marketPages.js';
 import { buildHeadTags, isForumEnabled, pageShell } from './seoService.js';
 import { adSlot } from './adService.js';
 import { newsBlockHtml } from './newsBlock.js';
+import { companyResultsHtml } from './resultsPages.js';
 import { getDividendTop10 } from './top10Service.js';
 import { SECTORS, SECTORS_REVIEWED, sectorOf } from '../data/sectorLeaders.js';
 import { getCompany, normaliseTicker, readExtraCompanies, searchAllCompanies } from './companyLookup.js';
@@ -326,6 +327,8 @@ export async function renderStockPage(origin, rawTicker) {
           ${logoCard(company, name)}
         </div>
       </section>
+
+      ${companyResultsHtml(ticker, name)}
 
       <section class="block stock-grid">
         <div>

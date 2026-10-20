@@ -3,7 +3,7 @@
    Admin → Ads & partners. This file:
    • fills the spaces on the homepage and explainer pages
    • removes the bottom strip if the reader closed it this visit
-   • hides ads from paying members (if that option is on)
+   • hides ads from Premium members (if that option is on)
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
   function runScripts(box) {
@@ -30,7 +30,7 @@
       .then(function (r) { return r.ok ? r.json() : {}; })
       .then(function (d) {
         var u = d && d.user;
-        if (u && (u.plan === 'regular' || u.plan === 'premium' || u.role === 'admin')) {
+        if (u && (u.plan === 'premium' || u.role === 'admin')) {
           document.querySelectorAll('[data-ad-slot]').forEach(function (n) { n.remove(); });
           document.body.classList.remove('has-ad-strip');
         }

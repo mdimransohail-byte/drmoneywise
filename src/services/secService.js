@@ -23,12 +23,12 @@ const FACTS_URL = (cik) => `https://data.sec.gov/api/xbrl/companyfacts/CIK${Stri
 const ANNUAL_FORMS = new Set(['10-K', '10-K/A', '20-F', '20-F/A', '40-F', '40-F/A']);
 const PAUSE_MS = 250;
 
-function userAgent() {
+export function userAgent() {
   const email = process.env.SUPPORT_EMAIL || 'hello@drmoneywise.com';
   return `Dr MoneyWise ${email}`;
 }
 
-async function secFetchJson(url) {
+export async function secFetchJson(url) {
   const response = await fetch(url, {
     headers: { 'User-Agent': userAgent(), Accept: 'application/json' },
   });
