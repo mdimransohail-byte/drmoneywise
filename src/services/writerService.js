@@ -641,7 +641,8 @@ export async function explainResults({ company = '', ticker = '', text = '' }) {
     ' "period":"the period covered, e.g. \\"three months to 30 September 2026\\"",',
     ' "simple":"3 or 4 short sentences in simple words: what the company sold and earned in the period and how that compares with a year earlier",',
     ' "numbers":[{"label":"Sales","value":"$94.9 billion","change":"up 6% on a year earlier"}],  (2 to 4 items: sales/revenue, profit, earnings per share, dividend — only if stated)',
-    ' "impact":"4 or 5 short sentences: what changed most and why the company says it changed, what the company says it expects next (only if it says so), and what readers may want to keep an eye on. No share-price predictions."}',
+    ' "impact":"4 or 5 short sentences: what changed most and why the company says it changed, what the company says it expects next (only if it says so), and what readers may want to keep an eye on. No share-price predictions.",',
+    ' "dividend":{"action":"raised|cut|kept|started|stopped|special|none","amount":"e.g. $0.52 a share, or empty","previous":"previous amount if stated, or empty","summary":"one short sentence, or empty"}}  (use "none" if the release does not announce a dividend)',
     'Rules: never invent or calculate numbers that are not in the text; use the company’s own currency; British spelling; explain any finance word in brackets the first time; do not tell anyone to buy, sell or hold; do not mention how this text was written.',
     '--- PRESS RELEASE ---',
     String(text).slice(0, 16000),
@@ -657,8 +658,41 @@ export async function explainResults({ company = '', ticker = '', text = '' }) {
     const numbers = (Array.isArray(r.numbers) ? r.numbers : []).slice(0, 4)
       .map((n) => ({ label: clean(n?.label, 40), value: clean(n?.value, 40), change: clean(n?.change, 60) }))
       .filter((n) => n.label && n.value);
-    return { headline, period: clean(r.period, 80), simple, numbers, impact: clean(r.impact, 1400) || null, writtenBy: provider };
+    return { headline, period: clean(r.period, 80), simple, numbers, impact: clean(r.impact, 1400) || null, dividend: cleanDividend(r.dividend, clean), writtenBy: provider };
   }
   console.warn('[writerService] Results explanation: no writing service answered — listed with a link only.');
+  return null;
+}
+
+const DIVIDEND_ACTIONS = ['raised', 'cut', 'kept', 'started', 'stopped', 'special'];
+function cleanDividend(d, clean) {
+  const action = String(d?.action || '').toLowerCase().trim();
+  if (!DIVIDEND_ACTIONS.includes(action)) return null;
+  return { action, amount: clean(d.amount, 60), previous: clean(d.previous, 60), summary: clean(d.summary, 300) };
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   DIVIDEND ANNOUNCEMENTS — reads a company announcement that mentions a
+   dividend and says whether it was raised, cut, kept, started, stopped or a
+   one-off special payment. For dividend alerts (Regular and Premium).
+   ════════════════════════════════════════════════════════════════════════ */
+export async function explainDividend({ company = '', ticker = '', text = '' }) {
+  const prompt = [
+    `Below is an announcement from ${String(company).slice(0, 80)} (${ticker}), taken from its official filing.`,
+    'If it declares or changes a dividend, reply with JSON only:',
+    '{"action":"raised|cut|kept|started|stopped|special|none","amount":"e.g. $0.52 a share","previous":"previous amount if stated","payable":"payment date if stated","summary":"one or two short sentences in plain English"}',
+    'Use "none" if the announcement does not declare a dividend. Only use facts stated in the text. British spelling. Do not tell anyone to buy, sell or hold.',
+    '--- ANNOUNCEMENT ---',
+    String(text).slice(0, 8000),
+  ].join('\n');
+  const order = ['claude', 'openai', 'gemini', 'perplexity'].filter((p) => process.env[KEY_ENV[p]]).slice(0, 2);
+  for (const provider of order) {
+    const r = await requestStructuredWriting({ slot: provider, provider, model: process.env[MODEL_ENV_KEYS[provider]] || '' }, prompt).catch(() => null);
+    if (!r) continue;
+    const clean = (v, max) => String(v || '').replace(/<[^>]+>/gu, '').replace(/\s+/gu, ' ').trim().slice(0, max);
+    const d = cleanDividend(r, clean);
+    if (!d && String(r.action || '').toLowerCase() === 'none') return null;
+    if (d) return { ...d, payable: clean(r.payable, 60) };
+  }
   return null;
 }

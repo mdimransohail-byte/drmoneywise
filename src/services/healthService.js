@@ -38,6 +38,7 @@ const JOB_LIMITS = {
   etfs: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
   news: { warn: 26 * HOUR, fail: 72 * HOUR },
   results: { warn: 4 * HOUR, fail: 24 * HOUR },
+  alerts: { warn: 4 * HOUR, fail: 24 * HOUR },
 };
 
 function ago(iso) {
@@ -61,6 +62,7 @@ export async function getHealthReport() {
     const age = job.lastSuccessAt ? Date.now() - new Date(job.lastSuccessAt).getTime() : Infinity;
     let status = age <= limits.warn ? 'ok' : age <= limits.fail ? 'warn' : 'fail';
     if (job.name === 'prices' && freePrices) status = 'ok'; // deliberately off on the free (non-commercial) plan
+    if (job.name === 'alerts' && !process.env.RESEND_API_KEY) status = 'ok'; // off until a Resend key is saved (see Keys)
     if (job.running) status = 'ok';
     add('Data', job.label, status, `${job.running ? 'Running now. ' : ''}Last success ${ago(job.lastSuccessAt)}${job.lastResult && job.lastResult !== 'ok' ? `; last try ${job.lastResult}: ${job.lastMessage || ''}` : ''}`);
   }
@@ -139,6 +141,8 @@ export async function getHealthReport() {
   add('Keys', 'Prices (Marketstack)', key('MARKETSTACK_API_KEY') ? 'ok' : 'warn', key('MARKETSTACK_API_KEY') ? 'Saved' : 'Not saved');
   const stripe = String(process.env.STRIPE_SECRET_KEY || '');
   add('Keys', 'Payments (Stripe)', stripe.startsWith('sk_live_') ? 'ok' : 'warn', stripe.startsWith('sk_live_') ? 'Live' : stripe.startsWith('sk_test_') ? 'Test mode (no real payments)' : 'Not set up yet');
+  const alertsFrom = process.env.ALERTS_EMAIL_FROM || '';
+  add('Keys', 'Member emails (alerts, weekly email)', key('RESEND_API_KEY') && alertsFrom && !/resend\.dev/iu.test(alertsFrom) ? 'ok' : 'warn', !key('RESEND_API_KEY') ? 'No Resend key: member emails are off' : !alertsFrom ? 'Add a sending address on your own domain (verified in Resend) in Admin → Health' : /resend\.dev/iu.test(alertsFrom) ? 'resend.dev only delivers to your own inbox — verify your domain in Resend' : `Sending from ${alertsFrom}`);
   add('Keys', 'Daily health email', key('RESEND_API_KEY') && key('HEALTH_EMAIL_TO') ? 'ok' : 'warn', key('RESEND_API_KEY') && key('HEALTH_EMAIL_TO') ? `To ${process.env.HEALTH_EMAIL_TO}` : 'Not set up — add a Resend key and your email in Admin → Health');
 
   /* Site */

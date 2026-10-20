@@ -59,6 +59,7 @@ const JOBS = {
   etfs: { label: 'ETF holdings (SEC N-PORT)', every: 7 * 24 * HOUR },
   news: { label: 'In the news: headlines for each page (GDELT)', every: 12 * HOUR },
   results: { label: 'Company results (SEC filings, checked hourly)', every: 1 * HOUR },
+  alerts: { label: 'Member emails: dividend + big-fund alerts, Saturday weekly email', every: 1 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 const FIRST_CHECK_AFTER_MS = 60 * 1000;
@@ -144,7 +145,16 @@ function isPaidPriceTier() {
 async function priceTickers() {
   const { companies } = await readCompanies();
   if (isPaidPriceTier()) {
-    return getUniverse();
+    // Our companies plus any other company members hold or watch
+    // (for the Portfolio health check and watchlists)
+    let extra = [];
+    try {
+      const { readStore } = await import('./storeService.js');
+      const store = await readStore();
+      extra = (store.users || []).flatMap((u) => [...(u.portfolio || []).map((h) => h.ticker), ...(u.watchlist || [])])
+        .map((t) => String(t || '').toUpperCase().trim()).filter((t) => /^[A-Z.-]{1,6}$/u.test(t));
+    } catch { /* store not readable: universe only */ }
+    return [...new Set([...getUniverse(), ...extra])].slice(0, 300); // 300 a day fits the Basic plan (10,000 a month)
   }
   return Object.values(companies)
     .filter((company) => (company.derived?.yearsOfDividendRaises || 0) >= 10)
@@ -264,7 +274,12 @@ async function runResults() {
   return checkResults();
 }
 
-const RUNNERS = { results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
+async function runAlertsJob() {
+  const { runAlerts } = await import('./alertsService.js');
+  return runAlerts();
+}
+
+const RUNNERS = { alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

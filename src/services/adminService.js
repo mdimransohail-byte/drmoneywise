@@ -248,6 +248,12 @@ export async function saveAdminSettings(payload) {
   if (payload.healthEmailFrom !== undefined) {
     envChanges.HEALTH_EMAIL_FROM = String(payload.healthEmailFrom).trim();
   }
+  if (payload.alertsEmailFrom !== undefined) {
+    envChanges.ALERTS_EMAIL_FROM = String(payload.alertsEmailFrom).replace(/[\r\n]/gu, '').trim().slice(0, 120);
+  }
+  if (payload.businessAddress !== undefined) {
+    envChanges.BUSINESS_ADDRESS = String(payload.businessAddress).replace(/[\r\n]+/gu, ', ').trim().slice(0, 200);
+  }
   if (payload.logoDevKey !== undefined) {
     envChanges.LOGO_DEV_KEY = payload.logoDevKey;
   }

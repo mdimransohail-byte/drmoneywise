@@ -108,7 +108,7 @@ async function buildResult({ ticker, name, cik, acc, filed, primaryDoc }) {
 /** Hourly job: looks for new results filings from every company we cover. */
 export async function checkResults() {
   const map = await getTickerMapCached();
-  const known = new Set((cache.items || []).map((r) => r.id));
+  const known = new Set([...(cache.items || []).map((r) => r.id), ...(cache.seen || [])]);
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86400000).toISOString().slice(0, 10);
   const found = [];
   let checked = 0; let failed = 0;
@@ -121,12 +121,16 @@ export async function checkResults() {
       const r = sub?.filings?.recent;
       for (let i = 0; i < (r?.form?.length || 0); i += 1) {
         if (r.filingDate[i] < since) break;
-        if (r.form[i] !== '8-K' || !String(r.items?.[i] || '').split(',').map((x) => x.trim()).includes('2.02')) continue;
+        const items = String(r.items?.[i] || '').split(',').map((x) => x.trim());
+        if (r.form[i] !== '8-K') continue;
+        const isResults = items.includes('2.02');
+        // Other announcements (items 7.01 / 8.01) are read only to spot dividends
+        if (!isResults && !items.includes('7.01') && !items.includes('8.01')) continue;
         const acc = String(r.accessionNumber[i]).replace(/-/gu, '');
         if (known.has(acc)) continue;
         known.add(acc);
         const { cleanName } = await import('./secService.js');
-        found.push({ ticker, name: cleanName(sub.name || match.name || ticker), cik: match.cik, acc, filed: r.filingDate[i], primaryDoc: r.primaryDocument?.[i] || '' });
+        found.push({ ticker, name: cleanName(sub.name || match.name || ticker), cik: match.cik, acc, filed: r.filingDate[i], primaryDoc: r.primaryDocument?.[i] || '', kind: isResults ? 'results' : 'other' });
       }
     } catch (error) {
       failed += 1;
@@ -135,17 +139,55 @@ export async function checkResults() {
     await pause(150);
   }
   let written = 0;
-  for (const f of found) {
+  let dividends = 0;
+  for (const f of found.filter((x) => x.kind === 'other')) {
+    const d = await checkDividend(f);
+    if (d) dividends += 1;
+    await pause(250);
+  }
+  for (const f of found.filter((x) => x.kind === 'results')) {
     const result = await buildResult(f);
+    if (result.dividend) await addDividend({ id: f.acc, ticker: f.ticker, name: f.name, filed: f.filed, url: result.url, ...result.dividend });
     if (result.simple) written += 1;
     cache = { updatedAt: new Date().toISOString(), items: [result, ...(cache.items || []).filter((x) => x.id !== result.id)].sort((a, b) => String(b.filed).localeCompare(String(a.filed))).slice(0, KEEP) };
     await save();
     console.log(`[results] ${f.ticker}: results filed ${f.filed}${result.simple ? ' — explained' : ' — listed with a link'}`);
     await pause(300);
   }
-  if (!found.length) { cache.updatedAt = new Date().toISOString(); await save(); }
+  if (!found.length) { cache.updatedAt = new Date().toISOString(); }
+  // Remember announcements already read, so they are not read again
+  cache.seen = [...new Set([...(cache.seen || []), ...found.map((f) => f.acc)])].slice(-3000);
+  await save();
   if (!checked) return { ok: false, message: 'Could not read any SEC filing lists' };
-  return { ok: true, message: `${checked} companies checked; ${found.length} new results (${written} explained)${failed ? `; ${failed} lists failed` : ''}` };
+  const nResults = found.filter((x) => x.kind === 'results').length;
+  return { ok: true, message: `${checked} companies checked; ${nResults} new results (${written} explained); ${dividends} dividend announcements${failed ? `; ${failed} lists failed` : ''}` };
+}
+
+/* ── Dividends (for dividend alerts) ──────────────────────────────── */
+export const readDividends = () => cache.dividends || [];
+
+async function addDividend(event) {
+  cache.dividends = [event, ...(cache.dividends || []).filter((x) => x.id !== event.id)].slice(0, 400);
+  await save();
+}
+
+async function checkDividend(f) {
+  try {
+    const url = await pressReleaseUrl(f.cik, f.acc, f.primaryDoc);
+    if (!url) return null;
+    await pause(200);
+    const text = htmlToText(await secText(url)).slice(0, 9000);
+    if (!/dividend/iu.test(text.slice(0, 5000))) return null;
+    const { explainDividend } = await import('./writerService.js');
+    const d = await explainDividend({ company: f.name, ticker: f.ticker, text });
+    if (!d) return null;
+    await addDividend({ id: f.acc, ticker: f.ticker, name: f.name, filed: f.filed, url, ...d });
+    console.log(`[results] ${f.ticker}: dividend ${d.action}${d.amount ? ` (${d.amount})` : ''}`);
+    return d;
+  } catch (error) {
+    console.log(`[results] ${f.ticker}: announcement not readable (${error.message})`);
+    return null;
+  }
 }
 
 /** Premium: "What it means" for the given result ids. */

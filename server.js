@@ -29,7 +29,7 @@ import { getMediaDir } from './src/services/visualsService.js';
 import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOutSession, signUpMember } from './src/services/authService.js';
 import { trackEvent } from './src/services/analyticsService.js';
 import { getInterestHeadlines, getLiveHeadlines } from './src/services/newsService.js';
-import { getAudienceSummary, saveMemberProfile, saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
+import { saveHoldings, getAudienceSummary, saveMemberProfile, saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
 import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
@@ -42,7 +42,10 @@ import { getHealthReport, sendHealthEmail } from './src/services/healthService.j
 import { renderMembershipPage } from './src/services/membershipPage.js';
 import { renderPropertyHub, renderPropertyPlace } from './src/services/propertyPages.js';
 import { renderResultsPage, resultCardHtml, resultsStripData } from './src/services/resultsPages.js';
+import { examplePortfolioHealth, renderHealthCheckPage } from './src/services/healthCheckPage.js';
+import { portfolioHealth } from './src/services/healthCheckService.js';
 import { impactsFor, latestResults } from './src/services/resultsService.js';
+import { EMAIL_KINDS, emailPrefsFor, saveEmailPrefs, sendTestWeekly, unsubscribe } from './src/services/alertsService.js';
 import { marketsMembersHtml, renderBondsHub, renderBondsPlace, renderCommoditiesHub, renderCommodity, renderEtf, renderEtfsHub, renderMarketsHub } from './src/services/marketsPages.js';
 import { deleteManualRow, getPropertyStatus, saveManualRow } from './src/services/propertyService.js';
 import { AD_SLOTS, getAdSettings, publicAdSlots, saveAdSettings } from './src/services/adService.js';
@@ -57,6 +60,8 @@ import {
   handleWebhook,
 } from './src/services/billingService.js';
 import {
+  buildHeadTags,
+  pageShell,
   buildRobotsTxt,
   buildSitemapXml,
   getSiteOrigin,
@@ -247,6 +252,44 @@ export const server = http.createServer(async (request, response) => {
 
     if (requestUrl.pathname === '/api/member/about-me' && request.method === 'POST') {
       return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
+    }
+
+    // Portfolio health check (Premium)
+    if (requestUrl.pathname === '/api/site/portfolio-health-example' && request.method === 'GET') {
+      return sendJson(response, 200, await examplePortfolioHealth());
+    }
+
+    if ((requestUrl.pathname === '/api/member/portfolio-health' && request.method === 'GET') || (requestUrl.pathname === '/api/member/holdings' && request.method === 'POST')) {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'The portfolio health check is for Premium members.' });
+      let holdings = sessionUser.portfolio || [];
+      if (request.method === 'POST') {
+        const posted = (await parseJsonBody(request)).holdings;
+        // The admin login is not a stored member: check without saving
+        holdings = await saveHoldings(sessionUser.id, posted).catch((error) => {
+          if (sessionUser.role === 'admin') return (Array.isArray(posted) ? posted : []).slice(0, 30);
+          throw error;
+        });
+      }
+      return sendJson(response, 200, { holdings, health: await portfolioHealth(holdings) });
+    }
+
+    // Member email choices (Membership → Your plan)
+    if (requestUrl.pathname === '/api/member/email-prefs' && request.method === 'POST') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      await saveEmailPrefs(sessionUser.id, await parseJsonBody(request));
+      const fresh = await getSessionUser(token);
+      return sendJson(response, 200, { user: fresh, emails: emailPrefsFor(fresh) });
+    }
+
+    if (requestUrl.pathname === '/api/member/email-prefs' && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      return sendJson(response, 200, { emails: emailPrefsFor(sessionUser), kinds: EMAIL_KINDS });
+    }
+
+    if (requestUrl.pathname === '/api/admin/alerts/test-weekly' && request.method === 'POST') {
+      const admin = await requireAdminUser(token);
+      return sendJson(response, 200, await sendTestWeekly(admin));
     }
 
     // Company results: scrolling strip + homepage cards (free)
@@ -557,6 +600,11 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, {
         ...(await getHealthReport()),
         email: { configured: Boolean(process.env.RESEND_API_KEY && process.env.HEALTH_EMAIL_TO), to: process.env.HEALTH_EMAIL_TO || '' },
+        memberEmail: (() => {
+          const from = process.env.ALERTS_EMAIL_FROM || '';
+          const ready = Boolean(process.env.RESEND_API_KEY && from && !/resend\.dev/iu.test(from));
+          return { ready, from, address: process.env.BUSINESS_ADDRESS || '', note: !process.env.RESEND_API_KEY ? 'add a Resend key first' : !from ? 'add a sending address on your own (verified) domain' : /resend\.dev/iu.test(from) ? 'resend.dev addresses only reach your own inbox' : `sending from ${from}` };
+        })(),
       });
     }
 
@@ -680,6 +728,14 @@ async function handlePublicPage(requestUrl, request, response) {
   }
 
   if (pathname === '/results') return sendHtml(response, 200, await renderResultsPage(origin));
+  if (pathname === '/portfolio-health') return sendHtml(response, 200, renderHealthCheckPage(origin));
+
+  // One-click unsubscribe link from member emails
+  if (pathname === '/email/unsubscribe') {
+    const done = await unsubscribe(String(requestUrl.searchParams.get('u') || ''), String(requestUrl.searchParams.get('k') || ''), String(requestUrl.searchParams.get('t') || ''));
+    const head = buildHeadTags({ title: 'Email settings | Dr MoneyWise', description: 'Your Dr MoneyWise email settings.', canonical: `${origin}/email/unsubscribe` });
+    return sendHtml(response, done ? 200 : 400, pageShell({ head, active: 'membership', body: `<section class="block" style="max-width:640px;margin:40px auto"><h1>${done ? 'You are unsubscribed' : 'This link has expired'}</h1><p class="lede-dark">${done ? 'You will not get these emails any more. You can switch them back on at any time on your Membership page.' : 'Please change your email choices on your Membership page instead.'}</p><p><a class="pill-gold" href="/membership">Go to Membership</a></p></section>` }));
+  }
 
   // ── Markets: hub, commodities, bonds, ETFs ──────────────────────────
   if (pathname === '/markets') return sendHtml(response, 200, await renderMarketsHub(origin));

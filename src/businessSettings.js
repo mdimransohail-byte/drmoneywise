@@ -4,7 +4,7 @@
 export const BUSINESS_SETTINGS = {
   // Raise this number when you change any plan's features or tagline below,
   // so the live site picks up the new wording.
-  featuresVersion: 3,
+  featuresVersion: 5,
   plans: {
     free: {
       id: 'free',
@@ -66,8 +66,8 @@ export const BUSINESS_SETTINGS = {
         'Everything in Free',
         'The Deeper look on every company, ETF, bond and commodity: what the big funds own, "what if" scenarios and 10 years of results',
         'Portfolio and watchlist review',
-        'Dividend alerts for your watchlist (coming soon)',
-        'A weekly email: your watchlist, your topics and the economy (coming soon)',
+        'Dividend alerts for your watchlist',
+        'A weekly email: your watchlist, the week’s results and the economy',
         'Stock screener (coming soon)',
         'Ask Dr MoneyWise: send us your questions (coming soon)',
         'Price alerts (coming soon)',
@@ -104,11 +104,11 @@ export const BUSINESS_SETTINGS = {
         'Everything in Regular',
         'What each company’s results mean: what changed, what it expects next and what to watch',
         'No adverts anywhere on the site',
-        'Big-fund alerts: when famous investors buy or sell your companies (coming soon)',
+        'Big-fund alerts: when famous investors buy or sell your companies',
         'Company bosses buying or selling their own shares (coming soon)',
         'A monthly research report (coming soon)',
         'Ideas that match the rules you choose (coming soon)',
-        'Portfolio health check (coming soon)',
+        'Portfolio health check: a score and heat map for every holding and your whole portfolio',
         'Deeper explainers for confident readers (coming soon)',
       ],
     },

@@ -299,3 +299,23 @@ export async function getAudienceSummary() {
   return { members: members.length, withProfile: withProfile.length, fields, typed, suggestion, tone, newerPct: withProfile.length ? level : null };
 }
 
+
+/* ── Portfolio health check (Premium): holdings with shares + price paid ── */
+export async function saveHoldings(userId, holdings) {
+  const clean = (Array.isArray(holdings) ? holdings : []).map((h) => {
+    const ticker = String(h?.ticker || '').toUpperCase().replace(/[^A-Z0-9.-]/gu, '').slice(0, 10);
+    const n = (v) => { const x = Number(String(v ?? '').replace(/[$,\s]/gu, '')); return Number.isFinite(x) && x > 0 && x < 1e9 ? x : null; };
+    return { ticker, shares: n(h.shares), buyPrice: n(h.buyPrice) };
+  }).filter((h) => h.ticker).slice(0, 30);
+  const updated = await updateStore((store) => {
+    const target = store.users.find((u) => u.id === userId);
+    if (!target) throw new Error('Member not found.');
+    const old = target.portfolio || [];
+    target.portfolio = clean.map((h) => {
+      const prev = old.find((o) => o.ticker === h.ticker) || {};
+      return { ...prev, id: prev.id || crypto.randomUUID(), ticker: h.ticker, shares: h.shares, buyPrice: h.buyPrice, cost: h.buyPrice ? String(h.buyPrice) : prev.cost || '' };
+    });
+    return store;
+  });
+  return updated.users.find((u) => u.id === userId)?.portfolio || [];
+}

@@ -104,6 +104,7 @@ export function renderMembershipPage(origin) {
 
       <section class="mb-pane" data-pane="plan" hidden>
         <div id="myPlan" class="mb-myplan"></div>
+        <div id="myEmails" class="mb-emails" hidden></div>
       </section>
 
       <section class="mb-pane" data-pane="profile" hidden>

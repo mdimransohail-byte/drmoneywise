@@ -1554,12 +1554,30 @@ function render_health() {
           </div>
         </div>
         <div class="card">
+          <div class="card-title">Member emails (alerts and weekly email)</div>
+          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Status: <strong style="color:${r.memberEmail?.ready ? '#2bc48a' : '#e8a33d'}">${r.memberEmail?.ready ? 'On' : 'Not ready'}</strong> — ${h(r.memberEmail?.note || '')}<br/>
+            Uses the same Resend key. To email members, add your own domain in Resend (Domains → Add domain, then copy the DNS records it shows into your domain provider) and put an address on that domain below.</p>
+          <div class="form-gap">
+            <div><label class="field" for="alertsFrom">Send member emails from</label>
+              <input class="input" id="alertsFrom" value="${h(r.memberEmail?.from || '')}" placeholder="Dr MoneyWise &lt;alerts@yourdomain.com&gt;"/></div>
+            <div><label class="field" for="bizAddress">Business address (shown at the bottom of emails)</label>
+              <input class="input" id="bizAddress" value="${h(r.memberEmail?.address || '')}" placeholder="Company name, street, city, country"/></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-gold btn-sm" id="saveAlertsBtn">Save</button>
+              <button class="btn btn-ghost btn-sm" id="testWeeklyBtn">Send me a test weekly email</button>
+            </div>
+            <div id="alertsMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px"></div>
+          </div>
+        </div>
+        <div class="card">
           <div class="card-title">What runs by itself</div>
           <p style="font-size:.78rem;color:#9eb3cc;margin:0">
             • Every 6 hours: homepage explainers are checked; every 2 days they change, and new ones are written from the day's news.<br/>
             • Every new explainer is checked for banned words (for example "AI", tool names, promises of returns) and missing parts. Anything that fails is kept as a draft in Inventory for you to read.<br/>
             • Daily: economy numbers, Top 10 lists, photos, and this health check (emailed).<br/>
-            • Weekly: company financials.<br/>
+            • Hourly: new company results and dividend announcements (SEC), then member alert emails.<br/>
+            • Saturdays 07:00 Dubai time: the weekly members' email.<br/>
+            • Weekly: company financials, property, commodities, bonds, ETF holdings.<br/>
             Run any job by hand in APIs &amp; More → Data engine.</p>
         </div>
         <button class="btn btn-ghost btn-sm" id="refreshHealthBtn">Refresh checks</button>
@@ -1580,6 +1598,24 @@ async function load_health() {
 
 function bind_health() {
   qs('#refreshHealthBtn')?.addEventListener('click', () => load_health());
+  qs('#saveAlertsBtn')?.addEventListener('click', async () => {
+    const msg = qs('#alertsMsg');
+    const alertsEmailFrom = qs('#alertsFrom')?.value?.trim() || '';
+    if (alertsEmailFrom && !/@[^@\s>]+\.[^@\s>]+/.test(alertsEmailFrom)) { if (msg) msg.textContent = 'Check the sending address.'; return; }
+    try {
+      await API.saveSettings({ alertsEmailFrom, businessAddress: qs('#bizAddress')?.value?.trim() || '' });
+      showToast('Member email settings saved');
+      await load_health();
+    } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
+  });
+  qs('#testWeeklyBtn')?.addEventListener('click', async () => {
+    const msg = qs('#alertsMsg');
+    try {
+      if (msg) msg.textContent = 'Sending…';
+      const res = await API.post('/api/admin/alerts/test-weekly', {});
+      if (msg) msg.textContent = (res.ok ? '✓ ' : '') + res.message;
+    } catch (e) { if (msg) msg.textContent = 'Failed: ' + e.message; }
+  });
   qs('#saveHealthEmailBtn')?.addEventListener('click', async () => {
     const msg = qs('#healthMsg');
     const resendKey = qs('#resendKey')?.value?.trim() || '';

@@ -105,6 +105,8 @@ export async function renderMarketsHub(origin) {
     ['/commodities', 'Commodities', 'Gold, silver, oil, copper, coffee and more: prices over time and what moves them.', gold ? `Gold: ${usd(gold.latest.v)} an ounce (${periodWords(gold.latest.p)})` : `${COMMODITIES.length} commodities`],
     ['/top-10/crypto', 'Crypto', 'The ten biggest cryptocurrencies, explained simply, with live prices.', 'Top 10 by size'],
     ['/property', 'Property', 'Home prices and rents in the US, UK, Dubai, India and more.', 'Updated weekly'],
+    ['/results', 'Company results', 'What big companies reported, explained simply the day it came out.', 'Checked every hour'],
+    ['/portfolio-health', 'Portfolio health check', 'A score and heat map for every holding and your whole portfolio.', 'Premium'],
   ];
   const body = `
       <section class="block pr-page">

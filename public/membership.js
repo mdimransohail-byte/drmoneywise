@@ -82,6 +82,36 @@
     });
   }
 
+  /* ── Your emails ── */
+  var EMAILS = [
+    ['weekly', 'Weekly email', 'Saturday morning: your watchlist’s week, the biggest results and the economy.', 'regular'],
+    ['dividends', 'Dividend alerts', 'When a company on your watchlist raises, cuts, starts or stops its dividend.', 'regular'],
+    ['funds', 'Big-fund alerts', 'When a famous fund buys or sells a company on your watchlist (each quarter).', 'premium'],
+  ];
+  function renderEmails() {
+    const box = $('myEmails');
+    if (!box || !me) return;
+    const level = { free: 0, regular: 1, premium: 2 };
+    const mine = me.role === 'admin' ? 2 : (level[me.plan] || 0);
+    const prefs = me.emailPrefs || {};
+    box.innerHTML = `<h2>Your emails</h2><p class="mb-lead">Sent to ${esc(me.email || 'your email')}. Every email also has a one-click unsubscribe link.</p>
+      <div class="mb-email-list">${EMAILS.map(([id, name, about, need]) => {
+        const allowed = mine >= level[need];
+        const on = allowed && prefs[id] !== false;
+        return `<label class="mb-email${allowed ? '' : ' locked'}"><input type="checkbox" data-email="${id}" ${on ? 'checked' : ''} ${allowed ? '' : 'disabled'}><span><div><strong>${esc(name)}</strong>${allowed ? '' : ` <em>${need === 'premium' ? 'Premium' : 'Regular and Premium'}</em>`}</div><small>${esc(about)}</small></span></label>`;
+      }).join('')}</div>
+      ${(me.watchlist || []).length ? '' : '<p class="mb-small" style="text-align:left">Tip: alerts are about the companies on your watchlist. <a href="/#tools">Add some companies</a>.</p>'}
+      <span class="mb-saved" role="status" aria-live="polite"></span>`;
+    box.hidden = false;
+    box.querySelectorAll('[data-email]').forEach((input) => input.addEventListener('change', async () => {
+      const saved = box.querySelector('.mb-saved');
+      const body = {};
+      box.querySelectorAll('[data-email]:not([disabled])').forEach((x) => { body[x.dataset.email] = x.checked; });
+      saved.textContent = 'Saving…'; saved.className = 'mb-saved';
+      try { me = (await api('/api/member/email-prefs', body)).user || me; saved.textContent = '✓ Saved'; saved.className = 'mb-saved ok'; } catch (err) { saved.textContent = err.message; saved.className = 'mb-saved bad'; }
+    }));
+  }
+
   /* ── Your profile ── */
   function fillProfile() {
     const form = $('profileForm');
@@ -150,6 +180,7 @@
     if (me) {
       document.querySelector('.mb-tabs').hidden = false;
       renderMyPlan();
+      renderEmails();
       fillProfile();
       let tab = 'plan';
       try { tab = sessionStorage.getItem('dmw-mb-tab') || 'plan'; } catch (e) { /* ignore */ }
