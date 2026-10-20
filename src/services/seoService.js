@@ -122,6 +122,7 @@ export async function buildSitemapXml(origin) {
     console.error('[seo] Forum left out of sitemap:', error.message);
   }
   urls.push({ loc: `${origin}/results`, lastmod: today, priority: '0.8' });
+  urls.push({ loc: `${origin}/screener`, lastmod: today, priority: '0.7' });
   try {
     const { marketsSitemapEntries } = await import('./marketsPages.js');
     urls.push(...marketsSitemapEntries(origin));

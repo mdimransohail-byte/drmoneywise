@@ -43,6 +43,8 @@ import { renderMembershipPage } from './src/services/membershipPage.js';
 import { renderPropertyHub, renderPropertyPlace } from './src/services/propertyPages.js';
 import { renderResultsPage, resultCardHtml, resultsStripData } from './src/services/resultsPages.js';
 import { examplePortfolioHealth, renderHealthCheckPage } from './src/services/healthCheckPage.js';
+import { renderScreenerPage, screenerPreview } from './src/services/screenerPage.js';
+import { screenerRows, fundOwners, fundExplorer } from './src/services/screenerService.js';
 import { portfolioHealth } from './src/services/healthCheckService.js';
 import { impactsFor, latestResults } from './src/services/resultsService.js';
 import { EMAIL_KINDS, emailPrefsFor, saveEmailPrefs, sendTestWeekly, unsubscribe } from './src/services/alertsService.js';
@@ -252,6 +254,25 @@ export const server = http.createServer(async (request, response) => {
 
     if (requestUrl.pathname === '/api/member/about-me' && request.method === 'POST') {
       return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
+    }
+
+    // Stock screener (Regular) + big-fund data and Fund explorer (Premium)
+    if (requestUrl.pathname === '/api/site/screener-preview' && request.method === 'GET') {
+      return sendJson(response, 200, await screenerPreview());
+    }
+    if (requestUrl.pathname.startsWith('/api/screener') && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      const isAdmin = sessionUser.role === 'admin';
+      const plan = sessionUser.plan || 'free';
+      const premium = isAdmin || canAccess(plan, 'premium');
+      if (!isAdmin && !canAccess(plan, 'regular')) return sendJson(response, 403, { error: 'The screener is for Regular and Premium members.' });
+      if (requestUrl.pathname === '/api/screener') return sendJson(response, 200, { premium, ...(await screenerRows({ premium })) });
+      if (!premium) return sendJson(response, 403, { error: 'This is for Premium members.' });
+      if (requestUrl.pathname === '/api/screener/owners') {
+        const ticker = String(requestUrl.searchParams.get('ticker') || '').toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10);
+        return sendJson(response, 200, await fundOwners(ticker));
+      }
+      if (requestUrl.pathname === '/api/screener/funds') return sendJson(response, 200, await fundExplorer());
     }
 
     // Portfolio health check (Premium)
@@ -729,6 +750,7 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (pathname === '/results') return sendHtml(response, 200, await renderResultsPage(origin));
   if (pathname === '/portfolio-health') return sendHtml(response, 200, renderHealthCheckPage(origin));
+  if (pathname === '/screener') return sendHtml(response, 200, renderScreenerPage(origin));
 
   // One-click unsubscribe link from member emails
   if (pathname === '/email/unsubscribe') {
