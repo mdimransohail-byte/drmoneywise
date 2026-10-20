@@ -45,14 +45,16 @@ async function findFileUrl() {
 export function parsePinkSheet(rows) {
   const headerIndex = rows.findIndex((r) => (r || []).some((c) => typeof c === 'string' && c.trim() === 'Gold'));
   if (headerIndex < 0) throw new Error('could not find the heading row (format may have changed)');
-  const header = rows[headerIndex].map((c) => String(c ?? '').trim());
-  const units = (rows[headerIndex + 1] || []).map((c) => String(c ?? '').trim());
+  // Excel rows can have gaps (empty cells); Array.from fills them so every
+  // column has text (the World Bank file's first heading cell is empty).
+  const header = Array.from(rows[headerIndex], (c) => String(c ?? '').trim());
+  const units = Array.from(rows[headerIndex + 1] || [], (c) => String(c ?? '').trim());
   const data = rows.slice(headerIndex + 1).filter((r) => /^\d{4}M\d{2}$/u.test(String(r?.[0] ?? '').trim()));
   if (!data.length) throw new Error('no monthly rows found');
   const out = {};
   const missing = [];
   for (const c of COMMODITIES) {
-    const col = header.findIndex((h) => h.toLowerCase().startsWith(c.pink.toLowerCase()));
+    const col = header.findIndex((h) => String(h || '').toLowerCase().startsWith(String(c.pink || c.name).toLowerCase()));
     if (col < 0) { missing.push(c.name); continue; }
     const series = data.map((r) => ({ p: `${String(r[0]).slice(0, 4)}-${String(r[0]).slice(5, 7)}`, v: Number(r[col]) }))
       .filter((x) => Number.isFinite(x.v) && x.v > 0)

@@ -41,7 +41,8 @@ const siteName = (d) => SITE_NAMES[d] || SITE_NAMES[Object.keys(SITE_NAMES).find
  */
 export async function newsBlockHtml(kind, id, { title = 'In the news', subject = '', name = '' } = {}) {
   const saved = await readNews(kind, id);
-  const stale = !saved || Date.now() - new Date(saved.fetchedAt).getTime() > 24 * 60 * 60 * 1000;
+  const age = saved ? Date.now() - new Date(saved.fetchedAt).getTime() : Infinity;
+  const stale = !saved || age > 24 * 60 * 60 * 1000 || (saved.thin && age > 2 * 60 * 60 * 1000);
   if (stale) queueNews(kind, id, { subject, name });
   const items = saved?.items || [];
   if (items.length < 3) {

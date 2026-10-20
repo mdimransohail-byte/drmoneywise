@@ -101,6 +101,28 @@ const ETF_Q = {
   XLF: '("bank stocks" OR "financial stocks" OR "XLF")', XLE: '("energy stocks" OR "oil stocks" OR "XLE")',
 };
 
+/* Second try when the first search finds fewer than 3 articles (or GDELT
+   has a hiccup): plain keywords instead of exact phrases, over 30 days. */
+const COMMODITY_WIDE = {
+  gold: 'gold (price OR prices OR ounce)', silver: 'silver (price OR prices OR ounce)', platinum: 'platinum (price OR prices OR demand OR supply)',
+  copper: 'copper (price OR prices OR demand OR supply)', aluminium: '(aluminium OR aluminum) (price OR prices OR tariffs OR demand)',
+  nickel: 'nickel (price OR prices OR Indonesia OR supply)', zinc: 'zinc (price OR prices OR smelter OR supply)', 'iron-ore': '"iron ore"',
+  'crude-oil': '(oil OR crude) (prices OR OPEC OR Brent)', 'natural-gas': '"natural gas" (prices OR LNG OR supply)', coffee: 'coffee (prices OR beans OR harvest OR arabica)',
+  cocoa: 'cocoa (prices OR harvest OR chocolate)', sugar: 'sugar (prices OR harvest OR cane)', wheat: 'wheat (prices OR harvest OR exports OR crop)',
+  rice: 'rice (prices OR exports OR harvest)', 'palm-oil': '"palm oil"',
+};
+const BOND_WIDE = {
+  'united-states': '(Treasury OR Treasuries) yields', 'united-kingdom': '(gilt OR gilts) yields', germany: 'German bonds yields', france: 'France bonds yields',
+  italy: 'Italy bonds yields', japan: 'Japan bonds yields', india: 'India bonds yields', canada: 'Canada bonds yields', australia: 'Australia bonds yields',
+};
+const PROPERTY_WIDE = {
+  'united-states': '(housing OR "home prices" OR "home sales") (US OR America)', 'united-kingdom': '(UK OR Britain) (housing OR "house prices" OR property OR rents)',
+  dubai: 'Dubai (property OR "real estate" OR housing OR rents)', india: 'India (housing OR "real estate" OR property)',
+  thailand: '(Thailand OR Bangkok) (property OR condominium OR housing OR "real estate")', singapore: 'Singapore (property OR housing OR condo OR HDB)',
+  australia: 'Australia (housing OR "house prices" OR property OR rents)', canada: 'Canada (housing OR "home prices" OR "home sales" OR rents)',
+  spain: '(Spain OR Spanish) (housing OR property OR "house prices" OR rents)',
+};
+
 const STRIP = /[,.]?\s+(inc|incorporated|corp|corporation|co|company|plc|ltd|limited|holdings?|group|the|class [a-z]|n\.?v\.?|s\.?a\.?|ag|se)\.?$/iu;
 export function shortCompanyName(name) {
   let n = String(name || '').replace(/\s*\/[A-Za-z]{2,3}\/?\s*$/u, '').replace(/&amp;/gu, '&').trim();
@@ -108,18 +130,22 @@ export function shortCompanyName(name) {
   return n;
 }
 
-export function newsQuery(kind, id, extra = {}) {
-  if (kind === 'commodity') return COMMODITY_Q[id] || null;
-  if (kind === 'bond') return BOND_Q[id] || null;
-  if (kind === 'property') return PROPERTY_Q[id] || null;
-  if (kind === 'etf') return ETF_Q[id] || `("${id} ETF")`;
+/** The searches to try, in order: [query, days]. */
+export function newsQueries(kind, id, extra = {}) {
+  // Third try: two plain words, the simplest search GDELT accepts
+  const plain = String(extra.plain || id).replace(/-/gu, ' ');
+  if (kind === 'commodity') return [[COMMODITY_Q[id], 14], [COMMODITY_WIDE[id], 30], [`${plain} prices`, 30]].filter(([q]) => q);
+  if (kind === 'bond') return [[BOND_Q[id], 14], [BOND_WIDE[id], 30], [`${plain} bonds`, 30]].filter(([q]) => q);
+  if (kind === 'property') return [[PROPERTY_Q[id], 14], [PROPERTY_WIDE[id], 30], [`${plain} property`, 30]].filter(([q]) => q);
+  if (kind === 'etf') return [[ETF_Q[id] || `"${id} ETF"`, 14], [ETF_Q[id] || `"${id}" ETF`, 30]];
   if (kind === 'stock') {
-    const name = shortCompanyName(extra.name || id);
-    if (!name || name.length < 3) return null;
-    return `"${name.replace(/"/gu, '')}" (shares OR stock OR earnings OR investors)`;
+    const name = shortCompanyName(extra.name || id).replace(/"/gu, '');
+    if (!name || name.length < 3) return [];
+    return [[`"${name}" (shares OR stock OR earnings OR investors)`, 14], [`"${name}"`, 30]];
   }
-  return null;
+  return [];
 }
+export const newsQuery = (kind, id, extra) => newsQueries(kind, id, extra)[0]?.[0] || null;
 
 /* ── GDELT, one request at a time ─────────────────────────────────── */
 let chain = Promise.resolve();
@@ -135,15 +161,29 @@ function throttled(fn) {
   return run;
 }
 
-async function gdelt(query) {
-  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(`${query} sourcelang:english`)}&mode=artlist&maxrecords=75&format=json&sort=datedesc&timespan=14d`;
-  return throttled(async () => {
-    const response = await fetch(url, { headers: UA });
-    if (!response.ok) throw new Error(`HTTP ${response.status} from GDELT`);
-    const text = await response.text();
-    if (!text.trim().startsWith('{')) throw new Error(`GDELT said: ${text.slice(0, 120).trim()}`);
-    return JSON.parse(text).articles || [];
-  });
+async function gdelt(query, days = 14) {
+  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(`${query} sourcelang:english`)}&mode=artlist&maxrecords=75&format=json&sort=datedesc&timespan=${days}d`;
+  // GDELT sometimes answers "please limit requests" or a server error when
+  // busy (other sites share the same servers): wait and try up to 2 more times.
+  let lastError = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await throttled(async () => {
+        const response = await fetch(url, { headers: UA, signal: AbortSignal.timeout(25000) });
+        const text = await response.text();
+        if (!response.ok) throw new Error(`HTTP ${response.status} from GDELT ${text.slice(0, 80).trim()}`);
+        if (!text.trim().startsWith('{')) throw new Error(`GDELT said: ${text.slice(0, 120).trim()}`);
+        return JSON.parse(text).articles || [];
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        console.log(`[news] GDELT busy (${error.message}); waiting ${attempt * 15}s and trying again`);
+        await new Promise((r) => { setTimeout(r, attempt * 15000); });
+      }
+    }
+  }
+  throw lastError;
 }
 
 /** Picks the best 5: trusted sites first, no duplicates or spam sites. */
@@ -184,17 +224,30 @@ async function writeNews(kind, id, data) {
 /** Downloads fresh links (and a new summary if the headlines changed). */
 export async function refreshNews(kind, id, { subject, name, force = false } = {}) {
   const saved = await readNews(kind, id);
-  if (!force && saved && Date.now() - new Date(saved.fetchedAt).getTime() < FRESH) return saved;
-  const query = newsQuery(kind, id, { name });
-  if (!query) return saved;
-  let items;
-  try {
-    items = pickArticles(await gdelt(query), kind);
-  } catch (error) {
-    console.error(`[news] ${kind} ${id}: failed — ${error.message}${saved ? ' (last links kept)' : ''}`);
+  const freshFor = saved?.thin ? 2 * HOUR : FRESH;
+  if (!force && saved && Date.now() - new Date(saved.fetchedAt).getTime() < freshFor) return saved;
+  const tries = newsQueries(kind, id, { name });
+  if (!tries.length) return saved;
+  let items = [];
+  let query = tries[0][0];
+  const problems = [];
+  for (const [q, days] of tries) {
+    try {
+      const found = pickArticles(await gdelt(q, days), kind);
+      if (found.length > items.length) { items = found; query = q; }
+      if (items.length >= 3) break;
+    } catch (error) {
+      problems.push(error.message);
+    }
+  }
+  if (!items.length && problems.length) {
+    console.error(`[news] ${kind} ${id}: failed — ${problems.join(' / ')}${saved ? ' (last links kept)' : ''}`);
     return saved;
   }
-  const next = { kind, id, query, fetchedAt: new Date().toISOString(), items: items.length ? items : saved?.items || [], summary: saved?.summary || null };
+  if (items.length < 3) console.log(`[news] ${kind} ${id}: only ${items.length} article(s) found; will try again in 2 hours`);
+  else console.log(`[news] ${kind} ${id}: ${items.length} articles`);
+  const keep = items.length >= 3 || items.length >= (saved?.items?.length || 0);
+  const next = { kind, id, query, fetchedAt: new Date().toISOString(), thin: items.length < 3, items: keep ? items : saved.items, summary: saved?.summary || null };
   const changed = items.length >= 3 && JSON.stringify(items.map((x) => x.url).sort()) !== JSON.stringify((saved?.summary?.basis || []).slice().sort());
   const due = !saved?.summary || Date.now() - new Date(saved.summary.at).getTime() > SUMMARY_EVERY;
   if (changed && due) {
