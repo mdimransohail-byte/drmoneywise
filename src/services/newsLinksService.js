@@ -136,6 +136,17 @@ export function shortCompanyName(name) {
 }
 
 /** The searches to try, in order: [query, days]. */
+// Stocks by region: the market's own words first, then a wider search
+const REGION_Q = {
+  uk: [['("FTSE 100" OR "London Stock Exchange") (shares OR stocks)', 14], ['"FTSE 100"', 30]],
+  japan: [['("Nikkei 225" OR "Tokyo stocks" OR TOPIX) (shares OR stocks)', 14], ['"Nikkei"', 30]],
+  china: [['("Hang Seng" OR "Shanghai Composite" OR "China stocks")', 14], ['"China stocks"', 30]],
+  india: [['(Sensex OR "Nifty 50" OR "Indian shares")', 14], ['Sensex', 30]],
+  'south-korea': [['(KOSPI OR "Korean stocks" OR "Seoul shares")', 14], ['KOSPI', 30]],
+  brazil: [['(Ibovespa OR "Brazilian stocks" OR "B3 exchange")', 14], ['Ibovespa', 30]],
+  gulf: [['(Tadawul OR "Gulf stocks" OR "Dubai Financial Market" OR "Abu Dhabi Securities Exchange")', 14], ['"Gulf stocks"', 30]],
+};
+
 export function newsQueries(kind, id, extra = {}) {
   // Third try: two plain words, the simplest search GDELT accepts
   const plain = String(extra.plain || id).replace(/-/gu, ' ');
@@ -143,7 +154,8 @@ export function newsQueries(kind, id, extra = {}) {
   if (kind === 'bond') return [[BOND_Q[id], 14], [BOND_WIDE[id], 30], [`${plain} bonds`, 30]].filter(([q]) => q);
   if (kind === 'property') return [[PROPERTY_Q[id], 14], [PROPERTY_WIDE[id], 30], [`${plain} property`, 30]].filter(([q]) => q);
   if (kind === 'etf') return [[ETF_Q[id] || `"${id} ETF"`, 14], [ETF_Q[id] || `"${id}" ETF`, 30]];
-  if (kind === 'stock') {
+  if (kind === 'region') return REGION_Q[id] || [];
+  if (kind === 'stock' || kind === 'localstock') {
     const name = shortCompanyName(extra.name || id).replace(/"/gu, '');
     if (!name || name.length < 3) return [];
     return [[`"${name}" (shares OR stock OR earnings OR investors)`, 14], [`"${name}"`, 30]];
@@ -204,7 +216,7 @@ export function pickArticles(articles, kind) {
     const d = String(a.seendate || '');
     const date = /^\d{8}T/u.test(d) ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}T${d.slice(9, 11)}:${d.slice(11, 13)}:00Z` : null;
     let score = isTrusted(domain) ? 10 : 0;
-    if (isPress(domain)) score += kind === 'stock' ? 3 : -6;
+    if (isPress(domain)) score += kind === 'stock' || kind === 'localstock' ? 3 : -6;
     out.push({ title, url, domain, date, score });
   }
   return out.sort((x, y) => y.score - x.score || String(y.date).localeCompare(String(x.date)))
@@ -227,7 +239,7 @@ async function writeNews(kind, id, data) {
 /** Downloads fresh links (and a new summary if the headlines changed). */
 export async function refreshNews(kind, id, { subject, name, force = false } = {}) {
   const saved = await readNews(kind, id);
-  const freshFor = saved?.thin ? 3 * HOUR : kind === 'stock' ? 23 * HOUR : FRESH;
+  const freshFor = saved?.thin ? 3 * HOUR : kind === 'stock' || kind === 'localstock' || kind === 'region' ? 23 * HOUR : FRESH;
   if (!force && saved && Date.now() - new Date(saved.fetchedAt).getTime() < freshFor) return saved;
   const tries = newsQueries(kind, id, { name });
   if (!tries.length) return saved;
@@ -282,9 +294,9 @@ export function queueNews(kind, id, opts = {}) {
 
 /** Data engine job (twice a day): every page in our lists. */
 export async function refreshAllNews() {
-  const [{ COMMODITIES }, { BOND_PLACES }, { PROPERTY_PLACES }, { CURATED_ETFS }, { getUniverse }, { readCompanies }] = await Promise.all([
+  const [{ COMMODITIES }, { BOND_PLACES }, { PROPERTY_PLACES }, { CURATED_ETFS }, { getUniverse }, { readCompanies }, { WORLD_REGIONS }] = await Promise.all([
     import('../data/commodityList.js'), import('../data/bondList.js'), import('../data/propertyPlaces.js'),
-    import('./etfService.js'), import('../data/stockUniverse.js'), import('./dataEngine.js'),
+    import('./etfService.js'), import('../data/stockUniverse.js'), import('./dataEngine.js'), import('../data/worldStocks.js'),
   ]);
   const { companies } = await readCompanies();
   const jobs = [
@@ -292,6 +304,8 @@ export async function refreshAllNews() {
     ...BOND_PLACES.map((p) => ['bond', p.slug, { subject: `${p.name} government bond yields` }]),
     ...PROPERTY_PLACES.map((p) => ['property', p.slug, { subject: `the ${p.name} property market` }]),
     ...CURATED_ETFS.map((e) => ['etf', e.ticker, { subject: `${e.name} (${e.ticker}) and ${e.kind.toLowerCase()}` }]),
+    ...WORLD_REGIONS.map((r) => ['region', r.id, { subject: `shares in ${r.name}` }]),
+    ...WORLD_REGIONS.flatMap((r) => r.local.map((x) => ['localstock', `${r.id}--${x.slug}`, { name: x.name, subject: x.name }])),
     ...getUniverse().map((t) => {
       const c = companies?.[t];
       const name = c?.displayName || c?.name || t;

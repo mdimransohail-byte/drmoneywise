@@ -9,6 +9,7 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 import { sectorTickers } from './sectorLeaders.js';
+import { worldSecTickers } from './worldStocks.js';
 
 export const STOCK_UNIVERSE = [
   // Largest US companies
@@ -28,10 +29,11 @@ export const STOCK_UNIVERSE = [
   'FAST', 'GD', 'GWW', 'PNR', 'ROP', 'O', 'LIN', 'KVUE', 'MDT', 'D',
 ];
 
-/** Unique, upper-case list: the companies above plus every sector leader
- *  in src/data/sectorLeaders.js (protects against accidental duplicates). */
+/** Unique, upper-case list: the companies above, every sector leader in
+ *  src/data/sectorLeaders.js and the overseas companies in
+ *  src/data/worldStocks.js (protects against accidental duplicates). */
 export function getUniverse() {
-  return Array.from(new Set([...STOCK_UNIVERSE, ...sectorTickers()].map((ticker) => ticker.trim().toUpperCase()).filter(Boolean)));
+  return Array.from(new Set([...STOCK_UNIVERSE, ...sectorTickers(), ...worldSecTickers()].map((ticker) => ticker.trim().toUpperCase()).filter(Boolean)));
 }
 
 /** Marketstack writes share classes with a dot (BRK.B); the SEC uses a dash (BRK-B). */

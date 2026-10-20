@@ -44,6 +44,7 @@ import { renderPropertyHub, renderPropertyPlace } from './src/services/propertyP
 import { renderResultsPage, resultCardHtml, resultsStripData } from './src/services/resultsPages.js';
 import { examplePortfolioHealth, renderHealthCheckPage } from './src/services/healthCheckPage.js';
 import { renderScreenerPage, screenerPreview } from './src/services/screenerPage.js';
+import { renderLocalCompanyPage, renderRegionPage, renderWorldHub } from './src/services/worldPages.js';
 import { screenerRows, fundOwners, fundExplorer } from './src/services/screenerService.js';
 import { portfolioHealth } from './src/services/healthCheckService.js';
 import { impactsFor, latestResults } from './src/services/resultsService.js';
@@ -701,6 +702,13 @@ async function handlePublicPage(requestUrl, request, response) {
 
   if (isInfoPage(pathname.slice(1))) {
     return sendHtml(response, 200, renderInfoPage(pathname.slice(1), origin));
+  }
+
+  if (pathname === '/stocks/world') return sendHtml(response, 200, await renderWorldHub(origin));
+  const worldMatch = pathname.match(/^\/stocks\/world\/([a-z-]{2,20})(?:\/([a-z0-9-]{2,60}))?$/u);
+  if (worldMatch) {
+    const html = worldMatch[2] ? await renderLocalCompanyPage(origin, worldMatch[1], worldMatch[2]) : await renderRegionPage(origin, worldMatch[1]);
+    if (html) return sendHtml(response, 200, html);
   }
 
   if (pathname === '/stocks') {

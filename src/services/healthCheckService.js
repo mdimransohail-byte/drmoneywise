@@ -19,6 +19,7 @@
    No analyst forecasts are used (they need a paid licence).
    ════════════════════════════════════════════════════════════════════════ */
 
+import { worldTickerInfo } from '../data/worldStocks.js';
 import { buildReportCard } from './reportCardService.js';
 import { getCompany } from './companyLookup.js';
 import { readPrices } from './dataEngine.js';
@@ -81,11 +82,12 @@ async function scoreCompany(h, company, price) {
     { key: 'gain', label: 'vs your price', score: gainScore(gain), weight: 15, text: gain === null ? (price ? 'Add the price you paid' : 'Waiting for prices') : `${gain >= 0 ? '+' : '−'}${Math.abs(gain * 100).toFixed(1)}% since you bought` },
     { key: 'funds', label: 'Big funds', score: fundsScore, weight: 10, text: rows.length ? `${buyers} bought, ${sellers} sold last quarter` : 'Not held by the funds we follow' },
   ];
-  const sector = sectorOf(h.ticker)?.name || company.industry || 'Other';
+  const sector = sectorOf(h.ticker)?.name || worldTickerInfo()[h.ticker]?.sector || company.industry || 'Other';
   return {
     kind: 'stock', name: company.displayName || company.name || h.ticker, sector, checks, score: weighted(checks),
     gain, outlookPrice, outlookChange,
-    dividendPerShare: company.derived?.latestDividendPerShare || null,
+    // Overseas companies: per local share, not per US-listed ADR, so no income figure
+    dividendPerShare: company.foreignFiler ? null : company.derived?.latestDividendPerShare || null,
     highlights: card.map((r) => ({ label: r.label, grade: r.grade, plain: r.plain })),
   };
 }

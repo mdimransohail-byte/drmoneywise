@@ -9,19 +9,19 @@ import { screenerRows } from './screenerService.js';
 
 /** Free preview: the ten companies with the best report-card scores. */
 export async function screenerPreview() {
-  const { rows } = await screenerRows({ premium: false });
-  return { preview: true, rows: rows.slice().sort((a, b) => (b.score ?? -1) - (a.score ?? -1)).slice(0, 10), total: rows.length };
+  const { rows, regions } = await screenerRows({ premium: false });
+  return { preview: true, regions, rows: rows.slice().sort((a, b) => (b.score ?? -1) - (a.score ?? -1)).slice(0, 10), total: rows.length };
 }
 
 export function renderScreenerPage(origin) {
   const head = buildHeadTags({
     title: 'Stock screener: find companies by growth, profit, debt and dividends | Dr MoneyWise',
-    description: 'Filter large US companies by sales growth, profit, debt and dividend record, from their official filings. Premium adds what the big funds own.',
+    description: 'Filter large companies in the US and around the world by sales growth, profit, debt and dividend record, from their official filings. Premium adds what the big funds own.',
     canonical: `${origin}/screener`,
   });
   const body = `
       <section class="block sc-page">
-        <p class="crumbs"><a href="/markets">Markets</a> › Stock screener</p>
+        <p class="crumbs"><a href="/markets">Markets</a> › Stock screener · <a href="/stocks/world">Stocks around the world</a></p>
         <div id="scApp"><div class="pf-loading">Loading the screener…</div></div>
         <details class="pr-explain" style="margin-top:22px"><summary>What the columns mean</summary><ul>
           <li><strong>Score</strong>: the average of our five report-card checks (growth, profit, debt, cash, dividend), out of 100.</li>

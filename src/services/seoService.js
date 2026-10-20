@@ -124,6 +124,12 @@ export async function buildSitemapXml(origin) {
   urls.push({ loc: `${origin}/results`, lastmod: today, priority: '0.8' });
   urls.push({ loc: `${origin}/screener`, lastmod: today, priority: '0.7' });
   try {
+    const { worldSitemapEntries } = await import('./worldPages.js');
+    urls.push(...worldSitemapEntries(origin));
+  } catch (error) {
+    console.error('[seo] Region pages left out of sitemap:', error.message);
+  }
+  try {
     const { marketsSitemapEntries } = await import('./marketsPages.js');
     urls.push(...marketsSitemapEntries(origin));
   } catch (error) {
@@ -485,7 +491,7 @@ export function pageShell({ head, body, active }) {
           </div>
         </div>
         <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
-        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the World Bank, the BIS, the OECD and HM Land Registry. Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
+        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the World Bank, the BIS, the OECD, HM Land Registry and the European Central Bank (exchange rates). Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
       </div>
     </footer>
     ${adSlot('bottom-strip')}

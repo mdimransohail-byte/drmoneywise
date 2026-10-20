@@ -1167,3 +1167,27 @@ body.has-ad-strip { padding-bottom: 52px; }
 .sc-tile { background: #fff; border: 1px solid var(--line); border-top: 4px solid #2a78d6; border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
 .sc-tile b { font: 800 22px var(--sans); color: #0a1128; }
 .sc-tile span { font: 13px var(--sans); color: #4a5170; }
+
+/* ── Stocks around the world ── */
+.wd-hero { --c: #2a78d6; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; background: linear-gradient(135deg, #0a1128 0%, #16224f 70%); border-left: 8px solid var(--c); color: #e8ecf8; border-radius: 22px; padding: 26px 28px; margin-bottom: 18px; box-shadow: 0 18px 40px rgba(10,17,40,.18); }
+.wd-hero h1 { color: #fff; font-size: 36px; margin: 8px 0 8px; }
+.wd-hero p { margin: 0; color: #c9d0e6; max-width: 760px; line-height: 1.55; }
+.wd-flag { display: inline-block; background: var(--c); color: #fff; font: 700 12px var(--sans); letter-spacing: .04em; padding: 4px 12px; border-radius: 999px; }
+.wd-cards .mk-card, .wd-card { --c: #2a78d6; position: relative; display: grid; gap: 6px; text-decoration: none; color: inherit; background: var(--paper); border: 1px solid var(--line); border-top: 6px solid var(--c); border-radius: 16px; padding: 16px 18px; }
+.wd-card strong { font: 800 20px var(--serif, Georgia, serif); color: #0a1128; }
+.wd-card span { color: #4a5170; font-size: 14px; }
+.wd-card em { font-style: normal; font-weight: 700; color: var(--c); font-size: 14px; }
+.wd-card b { justify-self: start; color: #fff; font: 700 12px var(--sans); padding: 3px 10px; border-radius: 999px; }
+.wd-card:hover { box-shadow: 0 8px 22px rgba(10,17,40,.1); transform: translateY(-1px); }
+.wd-locals { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 14px; }
+.wd-local { --c: #2a78d6; display: grid; gap: 2px; text-decoration: none; background: #fff; border: 1px solid var(--line); border-left: 5px solid var(--c); border-radius: 12px; padding: 10px 12px; }
+.wd-local strong { color: #0a1128; font-size: 15px; }
+.wd-local span { color: #4a5170; font-size: 13px; }
+.wd-local em { font-style: normal; color: var(--c); font-weight: 700; font-size: 12px; }
+.wd-co { display: flex; gap: 10px; align-items: center; }
+.wd-co small { display: block; color: #6b7290; }
+.wd-others { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 16px; }
+.wd-others span { font-weight: 700; color: #4a5170; margin-right: 4px; }
+.wd-others a { --c: #2a78d6; text-decoration: none; font: 700 14px var(--sans); color: #fff; background: var(--c); padding: 7px 14px; border-radius: 999px; }
+.wd-top { margin-top: 4px; }
+@media (max-width: 760px) { .wd-hero h1 { font-size: 28px; } .wd-hero { padding: 22px 20px; } }

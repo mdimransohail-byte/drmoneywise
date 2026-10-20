@@ -28,6 +28,8 @@ import { getDividendTop10 } from './top10Service.js';
 import { SECTORS, SECTORS_REVIEWED, sectorOf } from '../data/sectorLeaders.js';
 import { getCompany, normaliseTicker, readExtraCompanies, searchAllCompanies } from './companyLookup.js';
 import { fundsForTicker } from './fundsService.js';
+import { WORLD_REGIONS, worldRegion, worldTickerInfo } from '../data/worldStocks.js';
+import { CURRENCY_WORDS } from './fxService.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 // Company name for display: tidy capitals and drop SEC state tags like "/De/".
@@ -58,6 +60,20 @@ function monthYear(isoDate) {
   return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
+/** "UNITED KINGDOM" → "the United Kingdom"; "JAPAN" → "Japan". */
+function titleCountry(text) {
+  const t = String(text).toLowerCase().replace(/\b([a-z])/gu, (x) => x.toUpperCase()).replace(/\bOf\b/gu, 'of').replace(/\bAnd\b/gu, 'and');
+  return /^(United|Netherlands|Cayman|Philippines|Czech)/u.test(t) ? `the ${t}` : t;
+}
+
+/** Note shown on overseas companies' pages about currency and share type. */
+export function foreignNote(company) {
+  if (!company.foreignFiler) return '';
+  const cur = company.currency || 'USD';
+  const fx = company.fx;
+  return `${cur !== 'USD' && fx?.rate ? `${company.displayName || company.ticker} reports in ${CURRENCY_WORDS[cur] || cur}. We show its figures in US dollars at the European Central Bank rate${fx.date ? ` of ${fx.date}` : ''} (1 ${cur} = $${fx.rate < 0.01 ? fx.rate.toFixed(5) : fx.rate.toFixed(4)}), the same rate for every year, so growth and profit margins are exactly as reported. ` : ''}Per-share figures are for one local share. Its US-listed shares are usually ADRs, and one ADR can stand for several local shares, so we don't work out a dividend yield from the US price.`;
+}
+
 /** The "In plain English" paragraph — built only from the numbers. */
 export function plainEnglishSummary(company) {
   const d = company.derived || {};
@@ -65,7 +81,9 @@ export function plainEnglishSummary(company) {
   const sales = company.revenue.at(-1)?.value;
   const profit = company.netIncome.at(-1)?.value;
   const parts = [];
-  parts.push(`${name} is a US-listed company${company.industry ? ` in the ${company.industry.toLowerCase()} business` : ''}.`);
+  parts.push(company.foreignFiler
+    ? `${name} is ${company.country ? `based in ${titleCountry(company.country)}` : 'based outside the US'}${company.industry ? `, in the ${company.industry.toLowerCase()} business,` : ''} and its shares also trade in the US.`
+    : `${name} is a US-listed company${company.industry ? ` in the ${company.industry.toLowerCase()} business` : ''}.`);
   if (sales) {
     let line = `In its latest financial year${company.latestFiscalYearEnd ? ` (to ${monthYear(company.latestFiscalYearEnd)})` : ''} it brought in ${formatMoney(sales)} from customers`;
     if (profit !== null && profit !== undefined) {
@@ -83,7 +101,7 @@ export function plainEnglishSummary(company) {
       : `Sales fell ${formatPercent(Math.abs(d.revenueGrowth))} compared with the year before.`);
   }
   if (d.latestDividendPerShare > 0) {
-    parts.push(`It paid shareholders a dividend of $${d.latestDividendPerShare.toFixed(2)} for each share${d.yearsOfDividendRaises >= 2 ? `, and has raised it ${d.dividendRaisesFullHistory ? 'for at least ' : ''}${d.yearsOfDividendRaises} years in a row` : ''}.`);
+    parts.push(`It paid shareholders a dividend of $${d.latestDividendPerShare.toFixed(2)} for each ${company.foreignFiler ? 'local ' : ''}share${d.yearsOfDividendRaises >= 2 ? `, and has raised it ${d.dividendRaisesFullHistory ? 'for at least ' : ''}${d.yearsOfDividendRaises} years in a row` : ''}.`);
   } else {
     parts.push('It does not currently pay a dividend; it keeps its profits to reinvest in the business.');
   }
@@ -210,6 +228,7 @@ export async function renderStocksIndex(origin, query = '') {
   } else {
     const jump = SECTORS.map((s) => `<a href="#${esc(s.id)}">${esc(s.name)}</a>`).join('');
     content = `
+        <div class="wd-others wd-top"><span>Outside the US:</span>${WORLD_REGIONS.map((r) => `<a href="/stocks/world/${esc(r.id)}" style="--c:${r.colour}">${esc(r.name)}</a>`).join('')}<a href="/screener" style="--c:#0a1128">Stock screener</a></div>
         <nav class="sector-jump" aria-label="Jump to sector">${jump}</nav>
         ${SECTORS.map((s) => sectorTable(s, sectorTop10(s, all, prices))).join('')}
         <p class="note-box">Prices are the latest closing prices${pricesAt ? ` (updated ${esc(pricesAt.slice(0, 10))})` : ''}. Sector lists reviewed ${esc(SECTORS_REVIEWED)}. These lists show size, not quality: they are not a recommendation to buy. Read our <a href="/disclaimer">disclaimer</a>.</p>`;
@@ -283,6 +302,8 @@ export async function renderStockPage(origin, rawTicker) {
   const d = company.derived || {};
   const dividendRank = dividendList.rows.findIndex((row) => row.ticker === ticker);
   const sector = sectorOf(ticker);
+  const world = worldTickerInfo()[ticker] || null;
+  const region = world ? worldRegion(world.region) : null;
   const last6 = (series) => (series || []).slice(-6);
 
   const head = buildHeadTags({
@@ -296,16 +317,18 @@ export async function renderStockPage(origin, rawTicker) {
     ['Share price', price?.price ? `$${price.price.toFixed(2)} (close ${price.date ? String(price.date).slice(0, 10) : ''})` : 'See the chart'],
     ['Sales (latest year)', formatMoney(company.revenue.at(-1)?.value)],
     ['Profit (latest year)', formatMoney(company.netIncome.at(-1)?.value)],
-    ['Earnings per share', company.eps.at(-1) ? `$${company.eps.at(-1).value.toFixed(2)}` : '—'],
-    ['Dividend per share', d.latestDividendPerShare ? `$${d.latestDividendPerShare.toFixed(2)} a year` : 'None'],
-    ['Dividend yield', price?.price && d.latestDividendPerShare ? formatPercent(d.latestDividendPerShare / price.price) : '—'],
+    [company.foreignFiler ? 'Earnings per local share' : 'Earnings per share', company.eps.at(-1) ? `$${company.eps.at(-1).value.toFixed(2)}` : '—'],
+    [company.foreignFiler ? 'Dividend per local share' : 'Dividend per share', d.latestDividendPerShare ? `$${d.latestDividendPerShare.toFixed(2)} a year` : 'None'],
+    ['Dividend yield', !company.foreignFiler && price?.price && d.latestDividendPerShare ? formatPercent(d.latestDividendPerShare / price.price) : '—'],
     ['Long-term debt', formatMoney(company.longTermDebt)],
     ['Cash in the bank', formatMoney(company.cash)],
   ];
 
   const newsHtml = await newsBlockHtml('stock', ticker, { title: `In the news: ${name}`, name, subject: `${name} (${ticker})`, search: name });
   const pool = { ...(companies || {}) };
-  const related = (sector
+  const related = (region
+    ? region.sec.map(([t]) => pool[t])
+    : sector
     ? sector.tickers.map((t) => pool[t])
     : Object.values(pool).filter((c) => c.industry && c.industry === company.industry))
     .filter((c) => c && c.ticker !== ticker)
@@ -313,7 +336,7 @@ export async function renderStockPage(origin, rawTicker) {
 
   const body = `
       <section class="block">
-        <p class="dateline-dark"><a href="/stocks">Company report cards</a>${sector ? ` · <a href="/stocks#${esc(sector.id)}">${esc(sector.name)}</a>` : ''} · ${esc(company.exchange || 'US')}: ${esc(ticker)}</p>
+        <p class="dateline-dark"><a href="/stocks">Company report cards</a>${region ? ` · <a href="/stocks/world/${esc(region.id)}">${esc(region.name)}</a>` : ''}${sector ? ` · <a href="/stocks#${esc(sector.id)}">${esc(sector.name)}</a>` : ''} · ${esc(company.exchange || 'US')}: ${esc(ticker)}</p>
         <div class="page-intro">
           <div>
             <h1 style="font-size:38px;margin:0 0 6px">${esc(name)} <span class="pick-ticker" style="font-size:18px">${esc(ticker)}</span></h1>
@@ -344,6 +367,7 @@ export async function renderStockPage(origin, rawTicker) {
             ${facts.map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td>${esc(v)}</td></tr>`).join('')}
           </table>
           <p class="helper-note">Figures for the year to ${esc(monthYear(company.latestFiscalYearEnd) || '—')}. Debt and cash as of ${esc(monthYear(company.balanceSheetAsOf) || '—')}.</p>
+          ${company.foreignFiler ? `<p class="note-box">${esc(foreignNote(company))}</p>` : ''}
         </div>
       </section>
 
@@ -390,7 +414,7 @@ export async function renderStockPage(origin, rawTicker) {
           <h2 style="font-size:22px;margin:0 0 8px">How we rate</h2>
           <ul class="plain-list">${RATING_RULES.map((rule) => `<li>${esc(rule)}</li>`).join('')}</ul>
         </div>
-        ${related.length ? `<h2 style="font-size:22px;margin:24px 0 10px">${sector ? `Other large ${esc(sector.name.toLowerCase())} companies` : `Other ${esc(company.industry.toLowerCase())} companies`}</h2>
+        ${related.length ? `<h2 style="font-size:22px;margin:24px 0 10px">${region ? `Other ${esc(region.name)} companies` : sector ? `Other large ${esc(sector.name.toLowerCase())} companies` : `Other ${esc(company.industry.toLowerCase())} companies`}</h2>
         <div class="stock-list">${related.map((c) => stockRow(c)).join('')}</div>` : ''}
         ${process.env.LOGO_DEV_KEY ? '<p class="helper-note">Company logos provided by <a href="https://logo.dev" target="_blank" rel="noopener">Logo.dev</a>. Logos belong to their companies and are shown only to identify them.</p>' : ''}
         <p class="note-box">This report card describes the business using its official figures. It is not a recommendation to buy or sell. Read our <a href="/disclaimer">disclaimer</a>.</p>
@@ -478,7 +502,9 @@ export async function stockDetailsFor(rawTicker) {
       equity: company.equity,
       sharesOutstanding: company.sharesOutstanding,
     },
-    source: `${nameOf(company)} filings with the US SEC (10-K yearly, 10-Q quarterly)`,
+    source: company.foreignFiler
+      ? `${nameOf(company)} yearly reports (Form 20-F) filed with the US SEC${company.fx?.rate ? `, in US dollars at the European Central Bank rate of ${company.fx.date || 'the latest day'}` : ''}`
+      : `${nameOf(company)} filings with the US SEC (10-K yearly, 10-Q quarterly)`,
     updatedAt: company.updatedAt,
   };
 }

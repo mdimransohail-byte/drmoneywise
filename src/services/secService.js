@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { getFxRates } from './fxService.js';
+
 /* ════════════════════════════════════════════════════════════════════════
    SEC EDGAR — official company financials (free, no key needed)
    ───────────────────────────────────────────────────────────────────────
@@ -60,9 +62,15 @@ function daysBetween(start, end) {
 }
 
 /** Full-year values (from annual reports), one per fiscal year end, newest last. */
+const TAXONOMIES = ['us-gaap', 'ifrs-full'];
+const unitMapOf = (facts, concept) => {
+  for (const tax of TAXONOMIES) if (facts?.[tax]?.[concept]?.units) return facts[tax][concept].units;
+  return {};
+};
+
 function annualSeries(facts, concepts, units) {
   for (const concept of concepts) {
-    const unitMap = facts?.['us-gaap']?.[concept]?.units || {};
+    const unitMap = unitMapOf(facts, concept);
     for (const unit of units) {
       const rows = (unitMap[unit] || []).filter(
         (row) => ANNUAL_FORMS.has(row.form) && row.start && row.end
@@ -89,9 +97,9 @@ function annualSeries(facts, concepts, units) {
 }
 
 /** Latest balance-sheet value (point in time) from annual or quarterly reports. */
-function latestInstant(facts, concepts, units = ['USD'], taxonomy = 'us-gaap') {
+function latestInstant(facts, concepts, units = ['USD']) {
   for (const concept of concepts) {
-    const unitMap = facts?.[taxonomy]?.[concept]?.units || {};
+    const unitMap = unitMapOf(facts, concept);
     for (const unit of units) {
       const rows = (unitMap[unit] || []).filter((row) => row.end && !row.start && Number.isFinite(Number(row.val)));
       if (!rows.length) continue;
@@ -108,7 +116,7 @@ function latestInstant(facts, concepts, units = ['USD'], taxonomy = 'us-gaap') {
 /** Three-month values from quarterly reports (10-Q), newest last. */
 function quarterlySeries(facts, concepts, units, keep = 5) {
   for (const concept of concepts) {
-    const unitMap = facts?.['us-gaap']?.[concept]?.units || {};
+    const unitMap = unitMapOf(facts, concept);
     for (const unit of units) {
       const rows = (unitMap[unit] || []).filter(
         (row) => (row.form === '10-Q' || row.form === '10-Q/A') && row.start && row.end
@@ -156,9 +164,27 @@ function lastN(series, n = 10) {
   return series.slice(-n);
 }
 
-/** Turns one company's full SEC file into the small summary we keep. */
-export function summariseCompanyFacts(ticker, factsJson) {
+/** The currency a company reports in: the unit used most for its sales
+ *  and profit (overseas companies often add a few US-dollar "convenience"
+ *  figures, which this ignores). */
+export function reportingCurrency(facts) {
+  const counts = {};
+  for (const concept of ['Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'Revenue', 'RevenueFromContractsWithCustomers',
+    'NetIncomeLoss', 'ProfitLoss', 'ProfitLossAttributableToOwnersOfParent', 'Assets', 'CashFlowsFromUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivities']) {
+    for (const [unit, rows] of Object.entries(unitMapOf(facts, concept))) {
+      if (/^[A-Z]{3}$/u.test(unit)) counts[unit] = (counts[unit] || 0) + rows.length;
+    }
+  }
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'USD';
+}
+
+/** Turns one company's full SEC file into the small summary we keep.
+ *  fx = { usdPer: { JPY: 0.0066, … }, date } (needed for non-dollar filers). */
+export function summariseCompanyFacts(ticker, factsJson, fx = null) {
   const facts = factsJson?.facts || {};
+  const cur = reportingCurrency(facts);
+  const M = [cur];
+  const PS = [`${cur}/shares`];
   const revenue = annualSeries(facts, [
     'Revenues',
     'RevenueFromContractWithCustomerExcludingAssessedTax',
@@ -169,27 +195,46 @@ export function summariseCompanyFacts(ticker, factsJson) {
     'RevenueFromContractWithCustomerProductAndServiceExcludingAssessedTax',
     'OperatingLeasesIncomeStatementLeaseRevenue',
     'InterestAndDividendIncomeOperating',
-  ], ['USD']);
-  const netIncome = annualSeries(facts, ['NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLoss'], ['USD']);
-  const eps = annualSeries(facts, ['EarningsPerShareDiluted', 'EarningsPerShareBasic'], ['USD/shares']);
-  const dividendsPerShare = annualSeries(facts, ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid'], ['USD/shares']);
-  const dividendsPaid = annualSeries(facts, ['PaymentsOfDividendsCommonStock', 'PaymentsOfDividends'], ['USD']);
-  const operatingCashFlow = annualSeries(facts, ['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations'], ['USD']);
-  const capex = annualSeries(facts, ['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets', 'PaymentsForCapitalImprovements'], ['USD']);
-  const grossProfit = annualSeries(facts, ['GrossProfit'], ['USD']);
-  const operatingIncome = annualSeries(facts, ['OperatingIncomeLoss'], ['USD']);
-  const totalAssets = latestInstant(facts, ['Assets']);
-  const totalLiabilities = latestInstant(facts, ['Liabilities']);
+    // IFRS names (companies outside the US)
+    'Revenue', 'RevenueFromContractsWithCustomers', 'RevenueFromSaleOfGoods', 'RevenueFromRenderingOfServices',
+    'RevenueAndOperatingIncome', 'RevenueFromInterest', 'InterestRevenueCalculatedUsingEffectiveInterestMethod',
+  ], M);
+  const netIncome = annualSeries(facts, ['NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLossAttributableToOwnersOfParent', 'ProfitLoss'], M);
+  const eps = annualSeries(facts, ['EarningsPerShareDiluted', 'EarningsPerShareBasic', 'DilutedEarningsLossPerShare', 'BasicEarningsLossPerShare'], PS);
+  const dividendsPerShare = annualSeries(facts, ['CommonStockDividendsPerShareDeclared', 'CommonStockDividendsPerShareCashPaid', 'DividendsRecognisedAsDistributionsToOwnersPerShare'], PS);
+  const dividendsPaid = annualSeries(facts, ['PaymentsOfDividendsCommonStock', 'PaymentsOfDividends', 'DividendsPaidClassifiedAsFinancingActivities', 'DividendsPaidToEquityHoldersOfParentClassifiedAsFinancingActivities', 'DividendsPaid'], M);
+  const operatingCashFlow = annualSeries(facts, ['NetCashProvidedByUsedInOperatingActivities', 'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations', 'CashFlowsFromUsedInOperatingActivities'], M);
+  const capex = annualSeries(facts, ['PaymentsToAcquirePropertyPlantAndEquipment', 'PaymentsToAcquireProductiveAssets', 'PaymentsForCapitalImprovements', 'PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities', 'PurchaseOfPropertyPlantAndEquipment', 'PurchaseOfPropertyPlantAndEquipmentIntangibleAssetsOtherThanGoodwillInvestmentPropertyAndOtherNoncurrentAssets'], M);
+  const grossProfit = annualSeries(facts, ['GrossProfit'], M);
+  const operatingIncome = annualSeries(facts, ['OperatingIncomeLoss', 'ProfitLossFromOperatingActivities'], M);
+  const totalAssets = latestInstant(facts, ['Assets'], M);
+  const totalLiabilities = latestInstant(facts, ['Liabilities'], M);
   const quarters = {
-    revenue: quarterlySeries(facts, ['Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'RevenueFromContractWithCustomerIncludingAssessedTax', 'SalesRevenueNet', 'RevenuesNetOfInterestExpense'], ['USD']),
-    netIncome: quarterlySeries(facts, ['NetIncomeLoss', 'ProfitLoss'], ['USD']),
-    eps: quarterlySeries(facts, ['EarningsPerShareDiluted', 'EarningsPerShareBasic'], ['USD/shares']),
+    revenue: quarterlySeries(facts, ['Revenues', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'RevenueFromContractWithCustomerIncludingAssessedTax', 'SalesRevenueNet', 'RevenuesNetOfInterestExpense'], M),
+    netIncome: quarterlySeries(facts, ['NetIncomeLoss', 'ProfitLossAttributableToOwnersOfParent', 'ProfitLoss'], M),
+    eps: quarterlySeries(facts, ['EarningsPerShareDiluted', 'EarningsPerShareBasic'], PS),
   };
 
-  const cash = latestInstant(facts, ['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents']);
-  const longTermDebt = latestInstant(facts, ['LongTermDebt', 'LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations', 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', 'DebtInstrumentCarryingAmount', 'SeniorLongTermNotes', 'DebtLongtermAndShorttermCombinedAmount', 'LongTermNotesPayable']);
-  const equity = latestInstant(facts, ['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest']);
+  const cash = latestInstant(facts, ['CashAndCashEquivalentsAtCarryingValue', 'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents', 'CashAndCashEquivalents'], M);
+  const longTermDebt = latestInstant(facts, ['LongTermDebt', 'LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations', 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', 'DebtInstrumentCarryingAmount', 'SeniorLongTermNotes', 'DebtLongtermAndShorttermCombinedAmount', 'LongTermNotesPayable', 'LongtermBorrowings', 'NoncurrentPortionOfNoncurrentBorrowings', 'Borrowings'], M);
+  const equity = latestInstant(facts, ['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest', 'EquityAttributableToOwnersOfParent', 'Equity'], M);
   const shares = sharesOutstandingTotal(facts);
+
+
+  // Non-dollar filers: convert every money figure at today's rate, so the
+  // whole site can show US dollars. One rate for every year keeps growth
+  // rates, margins and other ratios exactly as reported.
+  const rate = cur === 'USD' ? 1 : fx?.usdPer?.[cur];
+  if (!rate) throw new Error(`reports in ${cur} and no exchange rate is available yet`);
+  if (rate !== 1) {
+    for (const s of [revenue, netIncome, eps, dividendsPerShare, dividendsPaid, operatingCashFlow, capex, grossProfit, operatingIncome]) {
+      s.series = s.series.map((row) => ({ ...row, value: row.value * rate }));
+    }
+    for (const x of [totalAssets, totalLiabilities, cash, longTermDebt, equity]) if (x.value !== null) x.value *= rate;
+    for (const k of Object.keys(quarters)) quarters[k] = quarters[k].map((row) => ({ ...row, value: row.value * rate }));
+  }
+  const coverRows = (facts.dei?.EntityCommonStockSharesOutstanding?.units?.shares || []).slice().sort((a, b) => String(a.filed).localeCompare(String(b.filed)));
+  const annualForm = /^(20-F|40-F)/u.test(coverRows.at(-1)?.form || '') ? coverRows.at(-1).form : null;
 
   const latest = (s) => s.series.at(-1)?.value ?? null;
   const growth = (s) => {
@@ -223,6 +268,11 @@ export function summariseCompanyFacts(ticker, factsJson) {
     longTermDebt: longTermDebt.value,
     equity: equity.value,
     sharesOutstanding: shares.value,
+    currency: cur,
+    fx: rate !== 1 ? { rate, date: fx?.date || null } : null,
+    // Files yearly reports as an overseas company (20-F): its US-listed
+    // shares are usually ADRs, each worth one or more local shares
+    foreignFiler: Boolean(annualForm) || cur !== 'USD',
     balanceSheetAsOf: equity.asOf || cash.asOf || null,
     derived: {
       revenueGrowth: growth(revenue),
@@ -325,13 +375,16 @@ export async function getTickerMapCached() {
 /** Financials + company details for one ticker. Throws if the SEC has nothing. */
 export async function fetchOneCompany(ticker, match) {
   const facts = await secFetchJson(FACTS_URL(match.cik));
-  const summary = summariseCompanyFacts(ticker, facts);
+  const fx = reportingCurrency(facts?.facts || {}) === 'USD' ? null : await getFxRates();
+  const summary = summariseCompanyFacts(ticker, facts, fx);
   summary.name = match.name || summary.name;
   try {
     await sleep(PAUSE_MS);
     const submissions = await secFetchJson(SUBMISSIONS_URL(match.cik));
     summary.industry = submissions?.sicDescription || '';
     summary.exchange = submissions?.exchanges?.[0] || '';
+    const where = submissions?.addresses?.business || {};
+    summary.country = where.stateOrCountryDescription && !/^[A-Z]{2}$/u.test(where.stateOrCountry || '') ? where.stateOrCountryDescription : (where.stateOrCountry ? 'United States' : '');
     summary.displayName = cleanName(submissions?.name || match.name || ticker);
     summary.announcements = recentAnnouncements(submissions, match.cik);
   } catch (error) {

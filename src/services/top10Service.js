@@ -62,7 +62,7 @@ async function computeDividendList() {
   const [{ companies, updatedAt }, { prices, updatedAt: pricesAt }] = await Promise.all([readCompanies(), readPrices()]);
   const candidates = Object.values(companies || {}).filter((c) => {
     const d = c.derived || {};
-    return (d.yearsOfDividendRaises || 0) >= MIN_RAISES
+    return !c.foreignFiler && (d.yearsOfDividendRaises || 0) >= MIN_RAISES
       && d.latestDividendPerShare > 0
       && d.payoutRatio !== null && d.payoutRatio > 0 && d.payoutRatio < MAX_PAYOUT;
   });

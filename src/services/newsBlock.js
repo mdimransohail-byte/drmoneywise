@@ -7,6 +7,7 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 import { queueNews, readNews } from './newsLinksService.js';
+import { worldRegion } from '../data/worldStocks.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 
@@ -64,6 +65,16 @@ function moreLinks(kind, id, words) {
       ...(ENERGY.includes(id) ? [['OilPrice.com', 'https://oilprice.com/']] : []),
       ['Reuters: Commodities', 'https://www.reuters.com/markets/commodities/'],
     ];
+  }
+  if (kind === 'region') {
+    const reuters = { uk: 'europe', japan: 'asia', china: 'asia', india: 'asia', 'south-korea': 'asia' }[id];
+    return [['Google News', gnews(words)], ...(reuters ? [[`Reuters: ${reuters === 'asia' ? 'Asian' : 'European'} markets`, `https://www.reuters.com/markets/${reuters}/`]] : [['Reuters: Markets', 'https://www.reuters.com/markets/']])];
+  }
+  if (kind === 'localstock') {
+    const [regionId, slug] = String(id).split('--');
+    const co = worldRegion(regionId)?.local.find((x) => x.slug === slug);
+    const [ex, sym] = String(co?.symbol || '').split(':');
+    return [['Google News', gnews(`${words} shares`)], ...(sym ? [['TradingView', `https://www.tradingview.com/symbols/${ex}-${encodeURIComponent(sym)}/news/`]] : [])];
   }
   if (kind === 'bond') return [['Google News', gnews(words)], ['Reuters: Rates and bonds', 'https://www.reuters.com/markets/rates-bonds/'], ['CNBC: Bonds', 'https://www.cnbc.com/bonds/']];
   if (kind === 'property') return [['Google News', gnews(words)], ...(PROPERTY_SITES[id] || [])];

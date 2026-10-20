@@ -17,6 +17,7 @@ import { readExtraCompanies } from './companyLookup.js';
 import { buildReportCard } from './reportCardService.js';
 import { sectorOf } from '../data/sectorLeaders.js';
 import { whatIfScenarios } from './stockPages.js';
+import { WORLD_REGIONS, worldTickerInfo } from '../data/worldStocks.js';
 
 const FUNDS_FILE = path.join(process.cwd(), 'data', 'market', 'funds.json');
 const GRADE_POINTS = { good: 100, okay: 60, weak: 15 };
@@ -35,6 +36,7 @@ export async function screenerRows({ premium = false } = {}) {
     const [{ companies }, extra, prices, funds] = await Promise.all([readCompanies(), readExtraCompanies(), readPrices(), readFunds()]);
     const all = { ...(extra || {}), ...(companies || {}) };
     const rows = [];
+    const world = worldTickerInfo();
     for (const c of Object.values(all)) {
       if (!c?.ticker || !c.revenue?.length) continue;
       const d = c.derived || {};
@@ -53,7 +55,8 @@ export async function screenerRows({ premium = false } = {}) {
       rows.push({
         ticker: c.ticker,
         name: String(c.displayName || c.name || c.ticker).replace(/\s*\/[A-Za-z]{2,3}\/?\s*$/u, ''),
-        sector: sectorOf(c.ticker)?.name || 'Other',
+        sector: sectorOf(c.ticker)?.name || world[c.ticker]?.sector || 'Other',
+        region: world[c.ticker]?.region || (c.foreignFiler ? 'other' : 'us'),
         sales: latest(c.revenue),
         salesGrowth: r1((d.revenueGrowth ?? null) * 100),
         margin: r1((d.profitMargin ?? null) * 100),
@@ -62,7 +65,7 @@ export async function screenerRows({ premium = false } = {}) {
         spareCash: d.freeCashFlow ?? null,
         dividend: d.latestDividendPerShare || 0,
         divYears: d.yearsOfDividendRaises || 0,
-        divYield: price && d.latestDividendPerShare ? r1((d.latestDividendPerShare / price) * 100, 2) : null,
+        divYield: !c.foreignFiler && price && d.latestDividendPerShare ? r1((d.latestDividendPerShare / price) * 100, 2) : null,
         price,
         score,
         ...({
@@ -70,7 +73,7 @@ export async function screenerRows({ premium = false } = {}) {
           buyers: positions.filter((p) => p.change === 'new' || p.change === 'added').length,
           sellers: positions.filter((p) => p.change === 'reduced' || p.change === 'sold').length,
           fundsValue: holders.reduce((a, p) => a + (p.value || 0), 0) || null,
-          ownedPct: c.sharesOutstanding && sharesHeld ? r1((sharesHeld / c.sharesOutstanding) * 100, 2) : null,
+          ownedPct: !c.foreignFiler && c.sharesOutstanding && sharesHeld ? r1((sharesHeld / c.sharesOutstanding) * 100, 2) : null,
           topFund: biggest ? biggest.fund : null,
           bigBet: bigBet ? { fund: bigBet.fund, pct: r1((bigBet.shareOfFund || 0) * 100) } : null,
         }),
@@ -79,7 +82,9 @@ export async function screenerRows({ premium = false } = {}) {
     memo = { at: Date.now(), rowsPremium: rows, period: funds.funds?.map((f) => f.period).sort().at(-1) || null, pricesOn: Object.keys(prices.prices || {}).length > 0 };
   }
   const strip = (r) => { const { funds, buyers, sellers, fundsValue, ownedPct, topFund, bigBet, ...rest } = r; return rest; };
-  return { rows: premium ? memo.rowsPremium : memo.rowsPremium.map(strip), fundsPeriod: premium ? memo.period : null, pricesOn: memo.pricesOn };
+  const present = new Set(memo.rowsPremium.map((r) => r.region));
+  const regions = [{ id: 'us', name: 'United States' }, ...WORLD_REGIONS.map((r) => ({ id: r.id, name: r.name })), { id: 'other', name: 'Elsewhere' }].filter((r) => present.has(r.id));
+  return { rows: premium ? memo.rowsPremium : memo.rowsPremium.map(strip), fundsPeriod: premium ? memo.period : null, pricesOn: memo.pricesOn, regions };
 }
 
 /** Premium: one company's big-fund owners (for the pie chart). */
@@ -94,7 +99,7 @@ export async function fundOwners(ticker) {
     owners: rows.map((p) => ({
       fund: p.fund, manager: p.manager, value: p.value, shares: p.shares, change: p.change,
       pctOfFund: r1((p.shareOfFund || 0) * 100, 2),
-      pctOfCompany: c?.sharesOutstanding && p.shares ? r1((p.shares / c.sharesOutstanding) * 100, 3) : null,
+      pctOfCompany: !c?.foreignFiler && c?.sharesOutstanding && p.shares ? r1((p.shares / c.sharesOutstanding) * 100, 3) : null,
     })),
   };
 }

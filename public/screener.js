@@ -21,7 +21,8 @@
   }
   var heatInk = function (s) { return s != null && s >= 50 && s < 65 ? '#0a1128' : '#fff'; };
 
-  var S = { data: null, premium: false, preview: false, preset: 'all', sort: 'score', dir: -1, tab: 'screen', f: { sector: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false } };
+  var S = { data: null, premium: false, preview: false, preset: 'all', sort: 'score', dir: -1, tab: 'screen', f: { region: '', sector: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false } };
+  try { var qr = new URLSearchParams(location.search).get('region'); if (qr) S.f.region = qr; } catch (e) { /* old browser */ }
 
   /* ── Charts ── */
   function donut(slices, opts) {
@@ -84,6 +85,8 @@
       t('Average profit margin', m == null ? '–' : m.toFixed(1) + '%', '#1baf7a') + t('Pay a dividend', pay + ' of ' + rows.length, '#eda100') + '</div>';
   }
 
+  function regionName(id) { var g = (S.data.regions || []).filter(function (x) { return x.id === id; })[0]; return g ? g.name : id; }
+
   /* ── Filtering ── */
   var PRESETS = [
     ['all', 'All companies', function () { return true; }],
@@ -100,6 +103,7 @@
     var num = function (v) { return v === '' || v == null ? null : Number(v); };
     return rows.filter(function (r) {
       if (p && !p[2](r)) return false;
+      if (f.region && r.region !== f.region) return false;
       if (f.sector && r.sector !== f.sector) return false;
       if (num(f.growth) != null && !(r.salesGrowth >= num(f.growth))) return false;
       if (num(f.margin) != null && !(r.margin >= num(f.margin))) return false;
@@ -139,6 +143,7 @@
       return '<button class="sc-preset' + (S.preset === p[0] ? ' on' : '') + '" data-preset="' + p[0] + '"' + (dis ? ' disabled' : '') + '>' + esc(p[1]) + (prem ? ' <span class="sc-prem">Premium</span>' : '') + '</button>';
     }).join('') + '</div>';
     html += '<div class="sc-filters' + (locked ? ' locked' : '') + '">' +
+      field('Region', '<select data-f="region"' + (locked ? ' disabled' : '') + '><option value="">Every region</option>' + (S.data.regions || []).map(function (g) { return '<option value="' + esc(g.id) + '"' + (S.f.region === g.id ? ' selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select>') +
       field('Area', '<select data-f="sector"' + (locked ? ' disabled' : '') + '><option value="">All areas</option>' + sectors.map(function (s) { return '<option' + (S.f.sector === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>') +
       field('Sales growth at least (%)', inp('growth', 'e.g. 5')) + field('Profit margin at least (%)', inp('margin', 'e.g. 15')) + field('Score at least', inp('score', 'e.g. 70')) +
       field('Dividend raises at least (years)', inp('divYears', 'e.g. 10')) + field('Debt at most (years)', inp('debt', 'e.g. 3')) +
@@ -155,7 +160,7 @@
     html += '<div class="pf-panel sc-table-wrap"><table class="sc-table"><thead><tr>' + cols.map(function (c) {
       return '<th><button data-sort="' + c[0] + '"' + (locked ? ' disabled' : '') + '>' + esc(c[1]) + (S.sort === c[0] ? (S.dir < 0 ? ' ▼' : ' ▲') : '') + '</button></th>';
     }).join('') + '</tr></thead><tbody>' + rows.slice(0, 200).map(function (r) {
-      var cells = '<td class="sc-co"><a href="/stock/' + esc(r.ticker) + '"><b>' + esc(r.ticker) + '</b> ' + esc(r.name) + '</a><small>' + esc(r.sector) + '</small></td>' +
+      var cells = '<td class="sc-co"><a href="/stock/' + esc(r.ticker) + '"><b>' + esc(r.ticker) + '</b> ' + esc(r.name) + '</a><small>' + esc(r.sector) + (r.region && r.region !== 'us' ? ' · ' + esc(regionName(r.region)) : '') + '</small></td>' +
         '<td><span class="sc-score" style="background:' + heat(r.score) + ';color:' + heatInk(r.score) + '">' + (r.score == null ? '–' : r.score) + '</span></td>' +
         '<td>' + chip(r.salesGrowth, 5, 0, '%') + '</td><td>' + chip(r.margin, 10, 0, '%') + '</td><td>' + chip(r.epsGrowth, 8, 0, '%') + '</td>' +
         '<td>' + (r.debtYears == null ? '<span class="sc-chip none">—</span>' : '<span class="sc-chip ' + (r.debtYears < 3 ? 'good' : r.debtYears <= 6 ? 'okay' : 'weak') + '">' + r.debtYears + '</span>') + '</td>' +
@@ -231,7 +236,7 @@
       el.addEventListener('change', function () { S.f[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value.trim(); draw(); });
     });
     var reset = app.querySelector('[data-reset]');
-    if (reset) reset.addEventListener('click', function () { S.f = { sector: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false }; S.preset = 'all'; draw(); });
+    if (reset) reset.addEventListener('click', function () { S.f = { region: '', sector: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false }; S.preset = 'all'; draw(); });
     if (S.premium) app.querySelectorAll('tr.sc-click').forEach(function (tr) { tr.addEventListener('click', function (e) { if (e.target.closest('a')) return; openOwners(tr.dataset.ticker); }); });
   }
 
