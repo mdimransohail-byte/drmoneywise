@@ -22,6 +22,7 @@ import { cleanName } from './secService.js';
 import { iframeWidget } from './marketPages.js';
 import { buildHeadTags, isForumEnabled, pageShell } from './seoService.js';
 import { adSlot } from './adService.js';
+import { newsBlockHtml } from './newsBlock.js';
 import { getDividendTop10 } from './top10Service.js';
 import { SECTORS, SECTORS_REVIEWED, sectorOf } from '../data/sectorLeaders.js';
 import { getCompany, normaliseTicker, readExtraCompanies, searchAllCompanies } from './companyLookup.js';
@@ -301,6 +302,7 @@ export async function renderStockPage(origin, rawTicker) {
     ['Cash in the bank', formatMoney(company.cash)],
   ];
 
+  const newsHtml = await newsBlockHtml('stock', ticker, { title: `In the news: ${name}`, name, subject: `${name} (${ticker})` });
   const pool = { ...(companies || {}) };
   const related = (sector
     ? sector.tickers.map((t) => pool[t])
@@ -373,13 +375,12 @@ export async function renderStockPage(origin, rawTicker) {
         </a>
       </section>` : ''}
 
-      <section class="block">
-        <div class="block-head"><div><h2>Latest news on ${esc(name)}</h2><p>Headlines from TradingView's news feed.</p></div></div>
-        ${iframeWidget('embed-widget-timeline.js', {
-          feedMode: 'symbol', symbol: tvSymbol(company), colorTheme: 'light', isTransparent: false,
-          displayMode: 'regular', width: '100%', height: '100%', locale: 'en',
-        }, 460)}
-      </section>
+      ${newsHtml}
+
+      ${(company.announcements || []).length ? `<section class="block">
+        <div class="block-head"><div><h2>Official announcements</h2><p>What ${esc(name)} has formally told investors recently, in its own filings with the US Securities and Exchange Commission.</p></div></div>
+        <ul class="nw-list">${company.announcements.map((a) => `<li><a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.what)}</a><span>Form 8-K · ${esc(new Date(`${a.date}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }))}</span></li>`).join('')}</ul>
+      </section>` : ''}
 
       <section class="block">
         <div class="surface">

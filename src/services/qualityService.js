@@ -59,3 +59,14 @@ export function checkArticle(article) {
 
   return { ok: issues.length === 0, issues };
 }
+
+/** Checks a short news summary. News may mention AI as a topic (e.g. a
+    company making AI chips), so only the other banned phrases apply. */
+export function checkNewsText(text) {
+  const issues = [];
+  for (const [pattern, reason] of BANNED.slice(3)) {
+    const match = String(text || '').match(pattern);
+    if (match) issues.push(`${reason} ("${match[0]}")`);
+  }
+  return issues;
+}

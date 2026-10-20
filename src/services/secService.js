@@ -269,6 +269,37 @@ export function cleanName(name) {
     .replace(/\bIbm\b/gu, 'IBM');
 }
 
+/* ── Official company announcements (Form 8-K), newest first ──────────── */
+const ITEM_WORDS = {
+  '1.01': 'Signed a major agreement', '1.02': 'Ended a major agreement', '1.03': 'Bankruptcy or receivership',
+  '2.01': 'Completed a purchase or sale of assets', '2.02': 'Results announced', '2.03': 'Took on new debt',
+  '2.05': 'Cost-cutting or restructuring', '2.06': 'Wrote down the value of assets', '3.01': 'Stock-exchange listing notice',
+  '3.02': 'Sold new shares privately', '3.03': 'Changed shareholders’ rights', '4.01': 'Changed its auditor',
+  '4.02': 'Earlier accounts should not be relied on', '5.01': 'Change in control of the company',
+  '5.02': 'Directors or top managers changed (or their pay)', '5.03': 'Changed its company rules or year-end',
+  '5.07': 'Shareholder vote results', '7.01': 'Shared information with investors', '8.01': 'Other news the company chose to report',
+  '9.01': 'Financial statements and attachments',
+};
+export function recentAnnouncements(submissions, cik) {
+  const r = submissions?.filings?.recent;
+  if (!r?.form) return [];
+  const out = [];
+  for (let i = 0; i < r.form.length && out.length < 6; i += 1) {
+    if (r.form[i] !== '8-K') continue;
+    const items = String(r.items?.[i] || '').split(',').map((x) => x.trim()).filter((x) => x && x !== '9.01');
+    const words = [...new Set(items.map((x) => ITEM_WORDS[x]).filter(Boolean))];
+    const acc = String(r.accessionNumber?.[i] || '').replace(/-/gu, '');
+    const doc = r.primaryDocument?.[i] || '';
+    if (!acc) continue;
+    out.push({
+      date: r.filingDate?.[i] || '',
+      what: words.length ? words.join('; ') : 'Company announcement',
+      url: doc ? `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${acc}/${doc}` : `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${acc}/`,
+    });
+  }
+  return out;
+}
+
 /* ── One company on request (any US-listed ticker) ──────────────────── */
 const TICKER_CACHE = path.join(process.cwd(), 'data', 'market', 'sec-tickers.json');
 let tickerMapMemo = null;
@@ -302,6 +333,7 @@ export async function fetchOneCompany(ticker, match) {
     summary.industry = submissions?.sicDescription || '';
     summary.exchange = submissions?.exchanges?.[0] || '';
     summary.displayName = cleanName(submissions?.name || match.name || ticker);
+    summary.announcements = recentAnnouncements(submissions, match.cik);
   } catch (error) {
     console.log(`[sec] ${ticker}: company details not available (${error.message}) — financials still saved`);
     summary.displayName = cleanName(match.name || ticker);

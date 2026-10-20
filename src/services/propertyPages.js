@@ -14,6 +14,7 @@ import { readProperty, readPropertyManual } from './propertyService.js';
 import { readEconomy } from './dataEngine.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 import { adSlot } from './adService.js';
+import { newsBlockHtml } from './newsBlock.js';
 
 import { C, MONTHS, QWORDS, changeBars, changeOver, esc, gauge, lineChart, money, niceTicks, pct, periodWords, plainPct, rankBars, shortPeriod, spark, tile, toneOf, upDown } from './chartsSvg.js';
 
@@ -235,8 +236,9 @@ export async function renderPropertyPlace(origin, slug) {
         </div>
         ${yoy8.length ? `<div class="pr-panel"><h2>Price change on a year earlier</h2><p class="helper-note">Each bar compares three months with the same three months a year before.</p>${changeBars({ points: yoy8, title: `Yearly change in home prices, ${place.name}` })}</div>` : ''}
         ${ukChart}
-        ${rentPoints.length ? `<div class="pr-panel"><h2>Rents: change on a year earlier</h2><p class="helper-note">${rentSource === 'bls-rent' ? 'What tenants pay across the US (Bureau of Labor Statistics).' : 'Rents across the country (OECD).'}</p>${changeBars({ points: rentPoints, title: `Yearly change in rents, ${place.name}` })}</div>` : `<p class="note-box">We do not have a free official rent figure for ${esc(place.called || place.name)} that we are allowed to republish yet, so rents are left out rather than guessed.</p>`}
+        ${rentPoints.length ? `<div class="pr-panel"><h2>Rents: change on a year earlier</h2><p class="helper-note">${rentSource === 'bls-rent' ? 'What tenants pay across the US (Bureau of Labor Statistics).' : 'Rents across the country (OECD).'}</p>${changeBars({ points: rentPoints, title: `Yearly change in rents, ${place.name}` })}</div>` : `<p class="note-box">We do not have an official rent figure for ${esc(place.called || place.name)} that we are allowed to republish yet, so rents are left out rather than guessed.</p>`}
         ${afford}
+        ${await newsBlockHtml('property', slug, { title: `In the news: property in ${place.called || place.name}`, subject: `the ${place.name} property market` })}
         ${adSlot('in-content')}
         ${EXPLAIN}
         ${adSlot('partner-box')}
@@ -262,7 +264,7 @@ async function renderManualPlace(origin, place) {
           ${picker(place.slug)}
         </div>`;
   if (!rows.length) {
-    return pageShell({ head, active: 'property', body: `<section class="block pr-page">${top}<p class="note-box">Figures for ${esc(place.name)} are coming soon. We only show numbers we can link to an official source.</p><div class="pr-others"><h2>Other places</h2><div>${PROPERTY_PLACES.filter((p) => p.slug !== place.slug).map((p) => `<a href="/property/${p.slug}">${esc(p.name)}</a>`).join('')}</div></div></section>` });
+    return pageShell({ head, active: 'property', body: `<section class="block pr-page">${top}<p class="note-box">Figures for ${esc(place.name)} are coming soon. We only show numbers we can link to an official source.</p>${await newsBlockHtml('property', place.slug, { title: `In the news: property in ${place.name}`, subject: `the ${place.name} property market` })}<div class="pr-others"><h2>Other places</h2><div>${PROPERTY_PLACES.filter((p) => p.slug !== place.slug).map((p) => `<a href="/property/${p.slug}">${esc(p.name)}</a>`).join('')}</div></div></section>` });
   }
   const last = rows.at(-1);
   const yearAgo = rows.find((r) => r.period === `${Number(last.period.slice(0, 4)) - 1}${last.period.slice(4)}`);
@@ -305,6 +307,7 @@ async function renderManualPlace(origin, place) {
           <thead><tr><th>Quarter</th><th class="num">Sales</th><th class="num">Value (AED bn)</th><th class="num">AED per sq ft</th><th>Source</th></tr></thead>
           <tbody>${rows.slice().reverse().map((r) => `<tr><th scope="row">${esc(periodWords(r.period))}</th><td class="num">${r.salesCount !== null ? esc(r.salesCount.toLocaleString('en-GB')) : '—'}</td><td class="num">${r.salesValueBn ?? '—'}</td><td class="num">${r.pricePerSqft !== null ? esc(r.pricePerSqft.toLocaleString('en-GB')) : '—'}</td><td><a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener nofollow">${esc(r.sourceName || 'Official source')}</a></td></tr>`).join('')}</tbody>
         </table></div>
+        ${await newsBlockHtml('property', place.slug, { title: `In the news: property in ${place.name}`, subject: `the ${place.name} property market` })}
         ${adSlot('in-content')}
         ${credits(['manual'])}
         <div class="pr-others"><h2>Other places</h2><div>${PROPERTY_PLACES.filter((p) => p.slug !== place.slug).map((p) => `<a href="/property/${p.slug}">${esc(p.name)}</a>`).join('')}</div></div>

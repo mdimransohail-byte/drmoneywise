@@ -22,6 +22,7 @@ import { readEconomy } from './dataEngine.js';
 import { iframeWidget } from './marketPages.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 import { adSlot } from './adService.js';
+import { newsBlockHtml } from './newsBlock.js';
 import { C, MONTHS, changeBars, esc, lineChart, niceTicks, pct, periodWords, plainPct, rankBars, spark, tile, toneOf, upDown } from './chartsSvg.js';
 
 const countryName = (() => {
@@ -179,7 +180,7 @@ export async function renderCommodity(origin, slug) {
         </div>`;
   const others = `<div class="pr-others"><h2>Other commodities</h2><div>${COMMODITIES.filter((x) => x.slug !== slug).map((x) => `<a href="/commodities/${x.slug}">${esc(x.name)}</a>`).join('')}</div></div>`;
   if (!f) {
-    return pageShell({ head, active: 'markets', body: `<section class="block pr-page">${top}${liveBox(c.tv, `${c.name} price now`)}<p class="note-box">The monthly price history for ${esc(c.name.toLowerCase())} is being collected. Please check back shortly.</p>${factsPanel}${sources([COMMODITY_CREDIT])}${others}</section>` });
+    return pageShell({ head, active: 'markets', body: `<section class="block pr-page">${top}${liveBox(c.tv, `${c.name} price now`)}<p class="note-box">The monthly price history for ${esc(c.name.toLowerCase())} is being collected. Please check back shortly.</p>${factsPanel}${await newsBlockHtml('commodity', slug, { title: `In the news: ${c.name}`, subject: `${c.name} prices` })}${sources([COMMODITY_CREDIT])}${others}</section>` });
   }
   const when = periodWords(f.latest.p);
   const lines = [
@@ -212,6 +213,7 @@ export async function renderCommodity(origin, slug) {
         <div class="pr-panel"><h2>Month-by-month change</h2><p class="helper-note">How much the average price moved from one month to the next.</p>
           ${changeBars({ points: monthly, title: `${c.name}: change on the month before`, tip: 'on the month before' })}</div>
         ${factsPanel}
+        ${await newsBlockHtml('commodity', slug, { title: `In the news: ${c.name}`, subject: `${c.name} prices` })}
         ${etf ? `<p class="note-box">One way people invest in ${esc(c.name.toLowerCase())} is through a fund: see <a href="/etfs/${etf.ticker}">${esc(etf.name)} (${esc(etf.ticker)})</a>.</p>` : ''}
         ${adSlot('in-content')}
         ${membersBox('commodity', slug, `The full history since 1960 and the patterns inside it, worked out from the World Bank's monthly prices.`, [
@@ -355,7 +357,7 @@ export async function renderBondsPlace(origin, slug) {
         </div>`;
   const others = `<div class="pr-others"><h2>Other countries</h2><div>${BOND_PLACES.filter((p) => p.slug !== slug).map((p) => `<a href="/bonds/${p.slug}">${esc(p.name)}</a>`).join('')}</div></div>`;
   if (!s?.long?.length) {
-    return pageShell({ head, active: 'markets', body: `<section class="block pr-page">${top}${liveBox(place.tv, `${place.name} 10-year yield now`)}<p class="note-box">The history of ${esc(place.called)}’s bond yields is being collected. Please check back shortly.</p>${BOND_EXPLAIN}${others}</section>` });
+    return pageShell({ head, active: 'markets', body: `<section class="block pr-page">${top}${liveBox(place.tv, `${place.name} 10-year yield now`)}<p class="note-box">The history of ${esc(place.called)}’s bond yields is being collected. Please check back shortly.</p>${await newsBlockHtml('bond', slug, { title: `In the news: ${place.bond}`, subject: `${place.name} government bond yields` })}${BOND_EXPLAIN}${others}</section>` });
   }
   const last = s.long.at(-1);
   const yearAgo = s.long.length > 12 ? s.long[s.long.length - 13] : null;
@@ -400,6 +402,7 @@ export async function renderBondsPlace(origin, slug) {
           ${lineChart({ series, title: `${place.name}: 10-year and 3-month interest rates`, fmt: (v) => `${v.toFixed(2)}%` })}</div>
         ${changes.length ? `<div class="pr-panel"><h2>10-year yield: change on a year earlier</h2><p class="helper-note">In percentage points. A rise means new loans pay more, and older bonds fall in price.</p>
           ${changeBars({ points: changes, title: '10-year yield, change on a year earlier', fmt: (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}`, axisFmt: (t) => `${t}`, tip: 'points on a year earlier' })}</div>` : ''}
+        ${await newsBlockHtml('bond', slug, { title: `In the news: ${place.bond}`, subject: `${place.name} government bond yields` })}
         ${BOND_EXPLAIN}
         ${adSlot('in-content')}
         ${membersBox('bond', slug, `Worked out from the official figures for ${place.called}.`, [
@@ -570,6 +573,7 @@ export async function renderEtf(origin, rawTicker) {
           : rankBars({ rows: assets.map((a) => ({ name: a.name, v: a.pct, tip: 'of the fund' })), title: 'Asset mix', fmt: sharePlain, labelWidth: 190, link: false })}</div>` : ''}
         ${issuers.length ? `<div class="pr-panel"><h2>Who it lends to</h2><p class="helper-note">For the bonds and loans in the fund.</p>${rankBars({ rows: issuers.map((a) => ({ name: a.name, v: a.pct, tip: 'of the fund' })), title: 'Borrowers', fmt: sharePlain, labelWidth: 190, link: false })}</div>` : ''}
         ${returns.length ? `<div class="pr-panel"><h2>Returns, month by month</h2><p class="helper-note">Total return each month (price change plus income paid out), from the fund’s report.</p>${changeBars({ points: returns, title: 'Monthly total returns', tip: 'total return that month', height: 220 })}</div>` : ''}
+        ${await newsBlockHtml('etf', ticker, { title: `In the news: ${ticker}`, subject: curated ? `${name} (${ticker}) and ${curated.kind.toLowerCase()}` : `${name} (${ticker})` })}
         ${adSlot('in-content')}
         ${hasData ? membersBox('etf', borrowed || ticker, 'Everything inside the fund, worked out from its latest report.', [
           '<strong>Top 50 holdings</strong> with their share of the fund and country',

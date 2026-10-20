@@ -597,3 +597,31 @@ export async function moderateForumPost({ title = '', body = '' }) {
   console.warn('[writerService] Forum moderation: no writing service answered — rule checks only.');
   return null;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   "WHAT THE HEADLINES SAY" — 2–3 plain-English sentences written ONLY from
+   a list of recent headlines (never from the articles themselves), for the
+   "In the news" box on stock, ETF, commodity, bond and property pages.
+   About 0.1 US cent each; at most once a day per page.
+   Returns the text, or null if no writing service answered.
+   ════════════════════════════════════════════════════════════════════════ */
+export async function summarizeHeadlines({ subject = '', headlines = [] }) {
+  if (headlines.length < 3) return null;
+  const prompt = [
+    'You write for Dr MoneyWise, a plain-English money education site for everyday readers.',
+    `Below are recent news headlines about ${String(subject).slice(0, 120)}.`,
+    'Write 2 or 3 short sentences (60 words at most) saying what the headlines are mainly about.',
+    'Rules: use only what the headlines say; do not add facts, numbers or reasons that are not in them; do not predict prices; do not tell anyone to buy, sell or hold; say "headlines report" or "news this week focused on" rather than stating things as certain; British spelling; simple words; no jargon without a short explanation; do not mention how this text was written.',
+    'Reply with JSON only: {"summary":"..."}',
+    ...headlines.slice(0, 6).map((h, i) => `${i + 1}. ${String(h).slice(0, 220)}`),
+  ].join('\n');
+  const order = ['claude', 'openai', 'gemini', 'perplexity'].filter((p) => process.env[KEY_ENV[p]]).slice(0, 2);
+  if (!order.length) return null;
+  for (const provider of order) {
+    const result = await requestStructuredWriting({ slot: provider, provider, model: process.env[MODEL_ENV_KEYS[provider]] || '' }, prompt).catch(() => null);
+    const text = String(result?.summary || '').replace(/<[^>]+>/gu, '').replace(/\s+/gu, ' ').trim();
+    if (text.length >= 40 && text.length <= 600) return text;
+  }
+  console.warn('[writerService] Headline summary: no writing service answered — links shown without a summary.');
+  return null;
+}

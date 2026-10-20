@@ -36,6 +36,7 @@ const JOB_LIMITS = {
   commodities: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
   bonds: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
   etfs: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
+  news: { warn: 26 * HOUR, fail: 72 * HOUR },
 };
 
 function ago(iso) {
@@ -128,6 +129,7 @@ export async function getHealthReport() {
   add('Licences', 'Share prices', 'ok', freePrices
     ? 'Off: Marketstack free plan is non-commercial. Switches on with Basic ($9.99/mo) + MARKETSTACK_MONTHLY_LIMIT=10000'
     : 'Marketstack paid plan (commercial use allowed)');
+  add('Licences', 'In the news (headlines)', 'ok', 'GDELT Project news index: free for any use incl. commercial, with a credit link (shown). We show headline + site name + link only; summaries are written from headlines, not copied from articles');
   add('Licences', 'Commodities, bonds, ETFs', 'ok', 'World Bank commodity prices (CC BY 4.0), US Treasury (public domain), OECD interest rates (any use with credit), SEC fund reports (public). Live price boxes: TradingView widgets with credit');
   add('Licences', 'Property figures', 'ok', 'BIS (free use incl. commercial, as long as the figures are not behind a paywall, so property pages stay free), OECD (any use with credit), BLS, HM Land Registry (Open Government Licence). Dubai: typed in from public announcements with source links');
   add('Licences', 'Economy figures', 'ok', 'Official sources with credits shown: BLS, New York Fed, US Treasury, Freddie Mac (not FRED, whose terms bar commercial use)');
