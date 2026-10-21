@@ -1201,3 +1201,73 @@ body.has-ad-strip { padding-bottom: 52px; }
 .wd-me > span, .wd-me b { color: #8a6a00; }
 @media (max-width: 760px) { .wd-fund .sc-donut { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) { .wd-funds { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── Company bosses' trades ── */
+.in-net { display: grid; gap: 8px; }
+.in-net-row { display: grid; grid-template-columns: minmax(120px, 230px) minmax(0, 1fr) 80px; gap: 10px; align-items: center; font: 14px var(--sans); }
+.in-net-row a { color: #0a1128; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.in-net-track { position: relative; height: 18px; background: #f3ecdc; border-radius: 6px; }
+.in-net-track i { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+.in-net-track i.buy { background: #1baf7a; }
+.in-net-track i.sell { background: #eb6834; }
+.in-zero { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: #8b8571; }
+.in-net-row em { font-style: normal; font-weight: 800; text-align: right; }
+.in-net-row em.up { color: #0e8a5a; } .in-net-row em.down { color: #d2462f; }
+.in-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.in-card { display: grid; gap: 4px; text-decoration: none; background: #fff; border: 1px solid var(--line); border-left: 5px solid #1baf7a; border-radius: 14px; padding: 14px; color: #4a5170; font-size: 14px; }
+.in-card strong { font: 800 26px var(--sans); color: #0e8a5a; }
+.in-card b { color: #0a1128; }
+.in-card em { font-style: normal; font-size: 13px; }
+.in-card .sc-tag { justify-self: start; }
+.in-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.in-role { display: block; color: #6b7290; white-space: normal; max-width: 220px; }
+.in-table td { vertical-align: top; }
+.in-meter { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: #eb6834; margin: 4px 0 6px; }
+.in-meter .buy { background: #1baf7a; }
+.in-meter .sell { flex: 1; }
+.in-locked { border: 2px dashed #c9a227; }
+@media (max-width: 760px) { .in-net-row { grid-template-columns: minmax(0, 1fr) 76px; } .in-net-row .in-net-track { grid-column: 1 / -1; grid-row: 2; } }
+
+/* ── Idea lists ── */
+.sc-save { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: #fff7e0; border: 1px solid #c9a227; border-radius: 14px; padding: 12px 16px; margin: 0 0 12px; font: 14px var(--sans); }
+.sc-save > span { flex: 1 1 260px; }
+.sc-save input { flex: 1 1 220px; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; font: 15px var(--sans); }
+.sc-save em { flex-basis: 100%; font-style: normal; color: #0e6b45; font-weight: 700; }
+.sc-save em:empty { display: none; }
+.sc-save-lock { background: #fff7e0; border-radius: 12px; padding: 10px 14px; font: 14px var(--sans); }
+.id-list { border-top: 6px solid #2a78d6; }
+.id-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 12px; }
+.id-head h2 { margin: 0 0 8px; }
+.id-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.id-chips span { background: #eef3fc; color: #1d4f99; font: 700 12px var(--sans); padding: 4px 10px; border-radius: 999px; }
+.id-count { display: grid; justify-items: center; background: #0a1128; color: #fff; border-radius: 16px; padding: 10px 18px; min-width: 110px; }
+.id-count strong { font: 800 30px var(--sans); line-height: 1; }
+.id-count span { font-size: 12px; color: #c9d0e6; }
+.id-count b { margin-top: 6px; background: linear-gradient(135deg, #f7d07c, #c9a227); color: #0a1128; font: 800 12px var(--sans); padding: 3px 10px; border-radius: 999px; }
+.id-body { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start; }
+.id-donut svg { width: 120px; display: block; margin: 0 auto 8px; }
+.id-donut ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font: 13px var(--sans); }
+.id-donut li { display: flex; gap: 6px; align-items: center; }
+.id-donut li b { margin-left: auto; }
+.id-donut i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.id-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.id-card { position: relative; display: grid; gap: 3px; text-decoration: none; color: #0a1128; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.id-card.new { border: 2px solid #c9a227; background: #fffaf0; }
+.id-card .sc-score { justify-self: start; }
+.id-card strong { font-size: 17px; }
+.id-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.id-card small { color: #6b7290; }
+.id-stats { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.id-stats em { font: 700 11px var(--sans); font-style: normal; background: #f3ecdc; padding: 2px 7px; border-radius: 999px; }
+.id-stats em.up { background: #dff3e8; color: #0e6b45; } .id-stats em.down { background: #fbe0dc; color: #a3291c; }
+.id-new { position: absolute; top: 10px; right: 10px; background: #c9a227; color: #0a1128; font: 800 11px var(--sans); padding: 2px 8px; border-radius: 999px; }
+.id-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.id-del { color: #a3291c !important; }
+.id-rename { display: flex; gap: 8px; margin-bottom: 8px; }
+.id-rename input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font: 18px var(--sans); }
+.id-starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px; }
+.id-starter { --c: #2a78d6; display: grid; gap: 6px; align-content: start; background: #fff; border: 1px solid var(--line); border-top: 5px solid var(--c); border-radius: 14px; padding: 14px; }
+.id-starter span { color: #4a5170; font-size: 14px; }
+.id-starter .pf-btn { justify-self: start; }
+@media (max-width: 760px) { .id-body { grid-template-columns: minmax(0, 1fr); } .id-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.st-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }

@@ -206,6 +206,14 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
       const ok = await send(user, 'weekly', `Your week in money${user.name ? `, ${user.name.split(' ')[0]}` : ''}`, 'Your week in money', 'The week’s money news that matters to you, in plain English.', sections);
       if (ok && !forceWeeklyTo) mark(`weekly:${user.id}:${week}`);
     }
+    // Premium idea lists: remember this week's matches so next week can say what's new
+    if (!forceWeeklyTo && !testUser) {
+      const { ideasFor, rememberMatches } = await import('./ideasService.js');
+      for (const user of users) {
+        if (!(user.ideas || []).length || !canAccess(user.plan || 'free', 'premium') || log[`ideas:${user.id}:${week}`]) continue;
+        try { await rememberMatches(user.id, await ideasFor(user)); mark(`ideas:${user.id}:${week}`); } catch (error) { console.error(`[alerts] idea lists for ${user.email}: ${error.message}`); }
+      }
+    }
   }
 
   await writeJson(LOG, Object.fromEntries(Object.entries(log).filter(([, at]) => Date.now() - new Date(at).getTime() < 200 * 86400000)));
@@ -243,6 +251,18 @@ async function weeklySections(user, c, site) {
     out.push(section('Your watchlist this week', rows.length ? rows.join('') : line('A quiet week for the companies you follow: no results, dividend news or major headlines.')));
   } else {
     out.push(section('Your watchlist', line(`Add companies to your watchlist and this email will tell you what happened to them each week. <a href="${esc(site)}/#tools" style="color:#1a2a9e">Set up your watchlist</a>`)));
+  }
+  if ((user.ideas || []).length && canAccess(user.plan || 'free', 'premium')) {
+    const { ideasFor } = await import('./ideasService.js');
+    const lists = await ideasFor(user).catch(() => []);
+    if (lists.length) {
+      out.push(section('Ideas that match your rules', lists.map((i) => {
+        const fresh = i.rows.filter((r) => i.newTickers.includes(r.ticker)).slice(0, 6);
+        return `<div style="margin:0 0 12px"><strong>${esc(i.name)}</strong> <span style="color:#4a5170">(${esc(i.words || 'all companies')})</span>
+          ${line(`<strong>${i.count}</strong> compan${i.count === 1 ? 'y matches' : 'ies match'} today${i.newTickers.length ? `, <strong>${i.newTickers.length} new</strong> this week` : ''}.`)}
+          ${fresh.map((r) => line(`New: <a href="${esc(site)}/stock/${esc(r.ticker)}" style="color:#0a1128;font-weight:700">${esc(r.name)} (${esc(r.ticker)})</a>, score ${r.score ?? '–'}`)).join('')}</div>`;
+      }).join('') + line(`<a href="${esc(site)}/ideas" style="color:#1a2a9e">See all your idea lists</a>. These companies match the rules you chose; they are not recommendations.`)));
+    }
   }
   if (c.week.length) {
     out.push(section('The week’s biggest results', c.week.slice(0, 4).map((r) => line(`<strong><a href="${esc(site)}/stock/${esc(r.ticker)}" style="color:#0a1128">${esc(r.name)}</a>:</strong> ${esc(r.headline)}.`)).join('') + line(`<a href="${esc(site)}/results" style="color:#1a2a9e">All results, explained</a>`)));

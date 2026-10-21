@@ -45,6 +45,10 @@ import { renderResultsPage, resultCardHtml, resultsStripData } from './src/servi
 import { examplePortfolioHealth, renderHealthCheckPage } from './src/services/healthCheckPage.js';
 import { renderScreenerPage, screenerPreview } from './src/services/screenerPage.js';
 import { renderLocalCompanyPage, renderRegionPage, renderWorldHub } from './src/services/worldPages.js';
+import { insiderPreview, renderInsidersPage } from './src/services/insiderPage.js';
+import { insiderSummary } from './src/services/insiderService.js';
+import { MAX_IDEAS, STARTER_IDEAS, cleanIdea, describe as describeIdea, ideasFor, saveIdeas } from './src/services/ideasService.js';
+import { renderIdeasPage } from './src/services/ideasPage.js';
 import { screenerRows, fundOwners, fundExplorer } from './src/services/screenerService.js';
 import { portfolioHealth } from './src/services/healthCheckService.js';
 import { impactsFor, latestResults } from './src/services/resultsService.js';
@@ -255,6 +259,37 @@ export const server = http.createServer(async (request, response) => {
 
     if (requestUrl.pathname === '/api/member/about-me' && request.method === 'POST') {
       return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
+    }
+
+    // Ideas that match your rules (Premium)
+    if (requestUrl.pathname === '/api/member/ideas' && (request.method === 'GET' || request.method === 'POST')) {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Idea lists are for Premium members.' });
+      let owner = sessionUser;
+      if (request.method === 'POST') {
+        const posted = (await parseJsonBody(request)).ideas;
+        // The admin login is not a stored member: work out the lists without saving
+        const saved = await saveIdeas(sessionUser.id, posted).catch((error) => {
+          if (sessionUser.role === 'admin') return (Array.isArray(posted) ? posted : []).slice(0, MAX_IDEAS).map((x, i) => ({ ...cleanIdea(x), id: x.id || `admin-${i}-${Date.now()}` }));
+          throw error;
+        });
+        owner = { ...sessionUser, ideas: saved };
+      }
+      const lists = (await ideasFor(owner)).map(({ allTickers, lastMatches, ...rest }) => rest);
+      return sendJson(response, 200, { ideas: lists, max: MAX_IDEAS, starters: STARTER_IDEAS.map((x) => ({ ...x, words: describeIdea(x) })) });
+    }
+
+    // Company bosses' trades (Premium)
+    if (requestUrl.pathname === '/api/site/insiders-preview' && request.method === 'GET') {
+      return sendJson(response, 200, await insiderPreview());
+    }
+    if (requestUrl.pathname === '/api/insiders' && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Company bosses’ trades are for Premium members.' });
+      const days = [30, 90, 180].includes(Number(requestUrl.searchParams.get('days'))) ? Number(requestUrl.searchParams.get('days')) : 90;
+      const ticker = String(requestUrl.searchParams.get('ticker') || '').toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10) || null;
+      const mine = [...new Set([...(sessionUser.watchlist || []), ...(sessionUser.portfolio || []).map((h) => h.ticker)].map((t) => String(t || '').toUpperCase()))];
+      return sendJson(response, 200, { ...(await insiderSummary({ days, ticker })), mine });
     }
 
     // Stock screener (Regular) + big-fund data and Fund explorer (Premium)
@@ -759,6 +794,8 @@ async function handlePublicPage(requestUrl, request, response) {
   if (pathname === '/results') return sendHtml(response, 200, await renderResultsPage(origin));
   if (pathname === '/portfolio-health') return sendHtml(response, 200, renderHealthCheckPage(origin));
   if (pathname === '/screener') return sendHtml(response, 200, renderScreenerPage(origin));
+  if (pathname === '/insiders') return sendHtml(response, 200, renderInsidersPage(origin));
+  if (pathname === '/ideas') return sendHtml(response, 200, renderIdeasPage(origin));
 
   // One-click unsubscribe link from member emails
   if (pathname === '/email/unsubscribe') {

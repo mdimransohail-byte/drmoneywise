@@ -123,6 +123,7 @@ export async function buildSitemapXml(origin) {
   }
   urls.push({ loc: `${origin}/results`, lastmod: today, priority: '0.8' });
   urls.push({ loc: `${origin}/screener`, lastmod: today, priority: '0.7' });
+  urls.push({ loc: `${origin}/insiders`, lastmod: today, priority: '0.6' });
   try {
     const { worldSitemapEntries } = await import('./worldPages.js');
     urls.push(...worldSitemapEntries(origin));

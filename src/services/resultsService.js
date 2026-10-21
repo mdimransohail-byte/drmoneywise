@@ -111,6 +111,11 @@ export async function checkResults() {
   const known = new Set([...(cache.items || []).map((r) => r.id), ...(cache.seen || [])]);
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86400000).toISOString().slice(0, 10);
   const found = [];
+  // Company bosses' trades (Form 4): looked for in the same filing lists
+  const { insiderSeen, processInsiderFilings } = await import('./insiderService.js');
+  const insiderKnown = await insiderSeen();
+  const insiderSince = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+  const form4s = [];
   let checked = 0; let failed = 0;
   for (const ticker of getUniverse()) {
     const match = map[ticker];
@@ -120,7 +125,13 @@ export async function checkResults() {
       checked += 1;
       const r = sub?.filings?.recent;
       for (let i = 0; i < (r?.form?.length || 0); i += 1) {
-        if (r.filingDate[i] < since) break;
+        if (r.filingDate[i] < insiderSince) break;
+        if (r.form[i] === '4') {
+          const acc4 = String(r.accessionNumber[i]).replace(/-/gu, '');
+          if (!insiderKnown.has(acc4)) form4s.push({ ticker, name: sub.name || match.name || ticker, cik: match.cik, acc: acc4, filed: r.filingDate[i], primaryDoc: r.primaryDocument?.[i] || '' });
+          continue;
+        }
+        if (r.filingDate[i] < since) continue;
         const items = String(r.items?.[i] || '').split(',').map((x) => x.trim());
         if (r.form[i] !== '8-K') continue;
         const isResults = items.includes('2.02');
@@ -158,9 +169,15 @@ export async function checkResults() {
   // Remember announcements already read, so they are not read again
   cache.seen = [...new Set([...(cache.seen || []), ...found.map((f) => f.acc)])].slice(-3000);
   await save();
+  let insiderNote = '';
+  if (form4s.length) {
+    const { cleanName } = await import('./secService.js');
+    const ins = await processInsiderFilings(form4s.map((f) => ({ ...f, name: cleanName(f.name) }))).catch((error) => { console.error(`[insiders] failed — ${error.message}`); return null; });
+    if (ins) insiderNote = `; ${ins.added} bosses' trades saved${ins.waiting ? ` (${ins.waiting} filings waiting)` : ''}`;
+  }
   if (!checked) return { ok: false, message: 'Could not read any SEC filing lists' };
   const nResults = found.filter((x) => x.kind === 'results').length;
-  return { ok: true, message: `${checked} companies checked; ${nResults} new results (${written} explained); ${dividends} dividend announcements${failed ? `; ${failed} lists failed` : ''}` };
+  return { ok: true, message: `${checked} companies checked; ${nResults} new results (${written} explained); ${dividends} dividend announcements${insiderNote}${failed ? `; ${failed} lists failed` : ''}` };
 }
 
 /* ── Dividends (for dividend alerts) ──────────────────────────────── */

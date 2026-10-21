@@ -18,6 +18,7 @@ import { buildReportCard } from './reportCardService.js';
 import { sectorOf } from '../data/sectorLeaders.js';
 import { whatIfScenarios } from './stockPages.js';
 import { WORLD_REGIONS, worldTickerInfo } from '../data/worldStocks.js';
+import { insiderCounts } from './insiderService.js';
 
 const FUNDS_FILE = path.join(process.cwd(), 'data', 'market', 'funds.json');
 const GRADE_POINTS = { good: 100, okay: 60, weak: 15 };
@@ -33,7 +34,7 @@ async function readFunds() {
  *  figures; they are removed for anyone who is not Premium). */
 export async function screenerRows({ premium = false } = {}) {
   if (!memo || Date.now() - memo.at > 10 * 60 * 1000) {
-    const [{ companies }, extra, prices, funds] = await Promise.all([readCompanies(), readExtraCompanies(), readPrices(), readFunds()]);
+    const [{ companies }, extra, prices, funds, insiders] = await Promise.all([readCompanies(), readExtraCompanies(), readPrices(), readFunds(), insiderCounts().catch(() => ({}))]);
     const all = { ...(extra || {}), ...(companies || {}) };
     const rows = [];
     const world = worldTickerInfo();
@@ -76,12 +77,14 @@ export async function screenerRows({ premium = false } = {}) {
           ownedPct: !c.foreignFiler && c.sharesOutstanding && sharesHeld ? r1((sharesHeld / c.sharesOutstanding) * 100, 2) : null,
           topFund: biggest ? biggest.fund : null,
           bigBet: bigBet ? { fund: bigBet.fund, pct: r1((bigBet.shareOfFund || 0) * 100) } : null,
+          bossBuys: insiders[c.ticker]?.buys || 0,
+          bossSells: insiders[c.ticker]?.sells || 0,
         }),
       });
     }
     memo = { at: Date.now(), rowsPremium: rows, period: funds.funds?.map((f) => f.period).sort().at(-1) || null, pricesOn: Object.keys(prices.prices || {}).length > 0 };
   }
-  const strip = (r) => { const { funds, buyers, sellers, fundsValue, ownedPct, topFund, bigBet, ...rest } = r; return rest; };
+  const strip = (r) => { const { funds, buyers, sellers, fundsValue, ownedPct, topFund, bigBet, bossBuys, bossSells, ...rest } = r; return rest; };
   const present = new Set(memo.rowsPremium.map((r) => r.region));
   const regions = [{ id: 'us', name: 'United States' }, ...WORLD_REGIONS.map((r) => ({ id: r.id, name: r.name })), { id: 'other', name: 'Elsewhere' }].filter((r) => present.has(r.id));
   return { rows: premium ? memo.rowsPremium : memo.rowsPremium.map(strip), fundsPeriod: premium ? memo.period : null, pricesOn: memo.pricesOn, regions };

@@ -22,7 +22,7 @@
   var heatInk = function (s) { return s != null && s >= 50 && s < 65 ? '#0a1128' : '#fff'; };
 
   var S = { data: null, premium: false, preview: false, preset: 'all', sort: 'score', dir: -1, tab: 'screen', f: { region: '', sector: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false } };
-  try { var qr = new URLSearchParams(location.search).get('region'); if (qr) S.f.region = qr; } catch (e) { /* old browser */ }
+  try { var qp = new URLSearchParams(location.search); if (qp.get('region')) S.f.region = qp.get('region'); if (qp.get('sector')) S.f.sector = qp.get('sector'); } catch (e) { /* old browser */ }
 
   /* ── Charts ── */
   function donut(slices, opts) {
@@ -97,13 +97,14 @@
     ['top', 'Top scores', function (r) { return r.score != null && r.score >= 80; }],
     ['fundsbuy', 'Big funds buying', function (r) { return (r.buyers || 0) > (r.sellers || 0) && (r.buyers || 0) >= 2; }, true],
     ['fundsown', 'Most owned by big funds', function (r) { return (r.funds || 0) >= 4; }, true],
+    ['bosses', 'Bosses buying', function (r) { return (r.bossBuys || 0) > 0; }, true],
   ];
   function filtered() {
     var rows = S.data.rows, f = S.f, p = PRESETS.filter(function (x) { return x[0] === S.preset; })[0];
     var num = function (v) { return v === '' || v == null ? null : Number(v); };
     return rows.filter(function (r) {
       if (p && !p[2](r)) return false;
-      if (f.region && r.region !== f.region) return false;
+      if (f.region === 'abroad' ? r.region === 'us' : f.region && r.region !== f.region) return false;
       if (f.sector && r.sector !== f.sector) return false;
       if (num(f.growth) != null && !(r.salesGrowth >= num(f.growth))) return false;
       if (num(f.margin) != null && !(r.margin >= num(f.margin))) return false;
@@ -131,7 +132,7 @@
     var rows = filtered();
     var cols = [['name', 'Company'], ['score', 'Score'], ['salesGrowth', 'Sales growth'], ['margin', 'Profit margin'], ['epsGrowth', 'EPS growth (5y)'], ['debtYears', 'Debt (years)'], ['divYears', 'Dividend raises'], ['dividend', 'Dividend']];
     if (S.data.pricesOn) cols.push(['divYield', 'Yield']);
-    if (S.premium) cols = cols.concat([['funds', 'Big funds'], ['buyers', 'Bought / sold'], ['ownedPct', 'Owned by funds'], ['bigBet', 'Biggest bet']]);
+    if (S.premium) cols = cols.concat([['funds', 'Big funds'], ['buyers', 'Bought / sold'], ['ownedPct', 'Owned by funds'], ['bigBet', 'Biggest bet'], ['bossBuys', 'Bosses’ trades (90 days)']]);
     var sectors = Array.from(new Set(S.data.rows.map(function (r) { return r.sector; }))).sort();
     var locked = S.preview;
     var html = '<div class="sc-hero"><div><span class="pf-badge">' + (S.premium ? '★ Premium' : 'Members') + '</span><h1>Stock screener</h1><p>Find companies by growth, profit, debt and dividends, from their official filings.' + (S.premium ? ' Plus what the big funds own.' : '') + '</p></div>' +
@@ -143,12 +144,14 @@
       return '<button class="sc-preset' + (S.preset === p[0] ? ' on' : '') + '" data-preset="' + p[0] + '"' + (dis ? ' disabled' : '') + '>' + esc(p[1]) + (prem ? ' <span class="sc-prem">Premium</span>' : '') + '</button>';
     }).join('') + '</div>';
     html += '<div class="sc-filters' + (locked ? ' locked' : '') + '">' +
-      field('Region', '<select data-f="region"' + (locked ? ' disabled' : '') + '><option value="">Every region</option>' + (S.data.regions || []).map(function (g) { return '<option value="' + esc(g.id) + '"' + (S.f.region === g.id ? ' selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select>') +
+      field('Region', '<select data-f="region"' + (locked ? ' disabled' : '') + '><option value="">Every region</option><option value="abroad"' + (S.f.region === 'abroad' ? ' selected' : '') + '>Outside the US</option>' + (S.data.regions || []).map(function (g) { return '<option value="' + esc(g.id) + '"' + (S.f.region === g.id ? ' selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select>') +
       field('Area', '<select data-f="sector"' + (locked ? ' disabled' : '') + '><option value="">All areas</option>' + sectors.map(function (s) { return '<option' + (S.f.sector === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>') +
       field('Sales growth at least (%)', inp('growth', 'e.g. 5')) + field('Profit margin at least (%)', inp('margin', 'e.g. 15')) + field('Score at least', inp('score', 'e.g. 70')) +
       field('Dividend raises at least (years)', inp('divYears', 'e.g. 10')) + field('Debt at most (years)', inp('debt', 'e.g. 3')) +
       (S.premium ? field('Held by at least (big funds)', inp('funds', 'e.g. 3')) + '<label class="sc-check"><input type="checkbox" data-f="buying"' + (S.f.buying ? ' checked' : '') + '> More funds buying than selling</label>' : '') +
       '<button class="pf-btn ghost" data-reset' + (locked ? ' disabled' : '') + '>Clear</button></div>';
+    if (S.premium && !locked) html += '<form class="sc-save" data-save><span><strong>Like these rules?</strong> Save them and we’ll show you every match, with what’s new each week.</span><input name="name" maxlength="60" placeholder="Name your list, e.g. My dividend ideas" aria-label="List name"><button class="pf-btn gold" type="submit">Save as an idea list</button><a href="/ideas">Your idea lists</a><em data-save-msg>' + esc(S.saveMsg || '') + '</em></form>';
+    else if (!S.premium && !locked) html += '<p class="sc-save-lock">★ Premium members can save these rules as an idea list and get new matches by email. <a href="/membership#plans">See Premium</a></p>';
     html += '<p class="sc-count"><strong>' + rows.length + '</strong> ' + (locked ? 'of the best-scoring companies shown (' + S.data.total + ' in the full screener)' : 'companies match') + '</p>';
     html += '<div class="sc-charts"><div class="pf-panel"><h2>By area of the economy</h2>' + (rows.length ? donut(sectorSlices(rows), { center: rows.length, sub: 'companies', title: 'Companies by area' }) + summaryTiles(rows) : '<p class="pf-sub">No companies match.</p>') + '</div>' +
       '<div class="pf-panel"><h2>Growth and profit map</h2>' + scatter(rows) + '</div></div>';
@@ -170,7 +173,8 @@
         (S.premium ? '<td>' + (r.funds ? '<span class="sc-dots">' + new Array(Math.min(r.funds, 10) + 1).join('●') + '</span> ' + r.funds : '—') + '</td>' +
           '<td>' + (r.funds || r.sellers ? '<span class="up">▲' + r.buyers + '</span> <span class="down">▼' + r.sellers + '</span>' : '—') + '</td>' +
           '<td>' + (r.ownedPct != null ? r.ownedPct + '%' : '—') + '</td>' +
-          '<td>' + (r.bigBet ? '<small>' + esc(r.bigBet.fund) + '</small> ' + r.bigBet.pct + '%' : '—') + '</td>' : '');
+          '<td>' + (r.bigBet ? '<small>' + esc(r.bigBet.fund) + '</small> ' + r.bigBet.pct + '%' : '—') + '</td>' +
+          '<td>' + (r.bossBuys || r.bossSells ? '<a href="/stock/' + esc(r.ticker) + '#insidersBox"><span class="up">▲' + r.bossBuys + '</span> <span class="down">▼' + r.bossSells + '</span></a>' : '—') + '</td>' : '');
       return '<tr id="sc-' + esc(r.ticker) + '" data-ticker="' + esc(r.ticker) + '"' + (S.premium ? ' class="sc-click" title="Show the big-fund owners"' : '') + '>' + cells + '</tr>';
     }).join('') + '</tbody></table>' + (rows.length > 200 ? '<p class="pf-sub">Showing the first 200; narrow the filters to see the rest.</p>' : '') + '</div>';
     html += '<div id="scDrawer"></div>';
@@ -235,6 +239,18 @@
     app.querySelectorAll('[data-f]').forEach(function (el) {
       el.addEventListener('change', function () { S.f[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value.trim(); draw(); });
     });
+    var saveForm = app.querySelector('[data-save]');
+    if (saveForm) saveForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = saveForm.name.value.trim();
+      var msg = function (t) { S.saveMsg = t; var el = app.querySelector('[data-save-msg]'); if (el) el.textContent = t; };
+      msg('Saving…');
+      ideas('GET').then(function (d) {
+        var list = d.ideas || [];
+        if (list.length >= (d.max || 5)) { msg('You already have ' + (d.max || 5) + ' lists. Delete one on Your idea lists first.'); return null; }
+        return ideas('POST', { ideas: list.map(function (i) { return { id: i.id, name: i.name, preset: i.preset, f: i.f }; }).concat([{ name: name, preset: S.preset, f: S.f }]) }).then(function () { msg('Saved. Open “Your idea lists” to see every match.'); });
+      }).catch(function () { msg('Could not save. Please try again.'); });
+    });
     var reset = app.querySelector('[data-reset]');
     if (reset) reset.addEventListener('click', function () { S.f = { region: '', sector: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false }; S.preset = 'all'; draw(); });
     if (S.premium) app.querySelectorAll('tr.sc-click').forEach(function (tr) { tr.addEventListener('click', function (e) { if (e.target.closest('a')) return; openOwners(tr.dataset.ticker); }); });
@@ -244,12 +260,31 @@
     return fetch(url, { headers: token ? { 'x-session-token': token } : {} }).then(function (r) { return r.json().then(function (d) { if (!r.ok) { var e = new Error(d.error || 'error'); e.status = r.status; throw e; } return d; }); });
   }
 
+  function ideas(method, body) {
+    var h = { 'Content-Type': 'application/json' }; if (token) h['x-session-token'] = token;
+    return fetch('/api/member/ideas', { method: method, headers: h, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'error'); return d; }); });
+  }
+  /** /screener?idea=<id>: start from one of the member's saved lists. */
+  function loadIdea() {
+    var id = ''; try { id = new URLSearchParams(location.search).get('idea') || ''; } catch (e) { id = ''; }
+    if (!id || !S.premium) return;
+    ideas('GET').then(function (d) {
+      var i = (d.ideas || []).filter(function (x) { return x.id === id; })[0];
+      if (!i) return;
+      S.preset = i.preset || 'all';
+      Object.keys(S.f).forEach(function (k) { S.f[k] = k === 'buying' ? false : ''; });
+      Object.keys(i.f || {}).forEach(function (k) { S.f[k] = i.f[k]; });
+      S.saveMsg = 'Showing your list “' + i.name + '”. To keep changes, save them as a new list and delete the old one.';
+      draw();
+    }).catch(function () { /* stay on the plain screener */ });
+  }
+
   function preview(text) {
     fetch('/api/site/screener-preview').then(function (r) { return r.json(); }).then(function (d) {
       S.data = d; S.preview = true; S.lockText = text; draw();
     }).catch(function () { app.innerHTML = '<p class="note-box">The screener could not load. Please try again.</p>'; });
   }
   if (!token) { preview('The screener is for members. Sign in or join to use every filter.'); return; }
-  api('/api/screener').then(function (d) { S.data = d; S.premium = Boolean(d.premium); draw(); })
+  api('/api/screener').then(function (d) { S.data = d; S.premium = Boolean(d.premium); draw(); loadIdea(); })
     .catch(function (e) { preview(e.status === 403 ? 'The screener is part of Regular and Premium. Upgrade to use every filter.' : 'Sign in to use the screener.'); });
 }());

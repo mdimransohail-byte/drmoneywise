@@ -42,9 +42,12 @@ function weightIn(fund, co) {
   const row = fund.top.find((h) => re.test(h.name) || re.test(h.title || ''));
   return row ? { pct: row.pct, name: row.name } : null;
 }
-const tidy = (n) => String(n || '').toLowerCase().replace(/\b([a-z])/gu, (x) => x.toUpperCase())
-  .replace(/\s+(Pjsc|Qpsc|Qsc|Kscp|Ksc|Sjsc|Psc|Plc|Co|Corp|Company|Group Co)\.?$/gu, '').replace(/\s+(Pjsc|Co)\.?$/gu, '')
-  .replace(/\b(Nbd|Adnoc|Qnb|Sabic|Acwa|Uae|Ihc|Dewa)\b/gu, (w) => w.toUpperCase()).replace(/ & /gu, ' & ');
+const tidy = (n) => {
+  // Drop legal endings: "P.J.S.C.", "(Q.P.S.C.)", "K.S.C.P", "S.A.K.P.", "PJSC", "Co", "Corporation"…
+  let t = String(n || '').replace(/\s*\(?\b(?:[A-Za-z]\.){2,}[A-Za-z]?\.?\)?\s*$/u, '').replace(/\s+\b(PJSC|QPSC|QSC|KSCP|KSC|SJSC|PSC|PLC|CO|CORP|Company|Corporation|Co)\b\.?$/iu, '').trim();
+  if (t === t.toUpperCase()) t = t.toLowerCase().replace(/\b([a-z])/gu, (x) => x.toUpperCase());
+  return t.replace(/\b(Nbd|Adnoc|Qnb|Sabic|Acwa|Uae|Ihc|Dewa)\b/gu, (w) => w.toUpperCase()).replace(/\b(And|Of)\b/gu, (w) => w.toLowerCase());
+};
 
 const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948', '#0e8a8a', '#8a5a2b'];
 const signPct = (v) => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}%`);

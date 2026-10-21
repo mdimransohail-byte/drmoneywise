@@ -108,6 +108,7 @@ export async function renderMarketsHub(origin) {
     ['/property', 'Property', 'Home prices and rents in the US, UK, Dubai, India and more.', 'Updated weekly'],
     ['/results', 'Company results', 'What big companies reported, explained simply the day it came out.', 'Checked every hour'],
     ['/screener', 'Stock screener', 'Filter companies by growth, profit, debt and dividends. Premium adds what the big funds own.', 'Members'],
+    ['/insiders', 'Company bosses’ trades', 'When directors and top managers buy or sell their own company’s shares.', 'Premium'],
     ['/portfolio-health', 'Portfolio health check', 'A score and heat map for every holding and your whole portfolio.', 'Premium'],
   ];
   const body = `

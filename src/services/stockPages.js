@@ -30,6 +30,7 @@ import { getCompany, normaliseTicker, readExtraCompanies, searchAllCompanies } f
 import { fundsForTicker } from './fundsService.js';
 import { WORLD_REGIONS, worldRegion, worldTickerInfo } from '../data/worldStocks.js';
 import { CURRENCY_WORDS } from './fxService.js';
+import { insiderBoxHtml } from './insiderPage.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 // Company name for display: tidy capitals and drop SEC state tags like "/De/".
@@ -345,6 +346,7 @@ export async function renderStockPage(origin, rawTicker) {
               <h2>In plain English</h2>
               <p>${esc(plainEnglishSummary(company))}</p>
             </div>
+            <p class="st-links"><a class="pf-btn ghost" href="/screener?${region ? `region=${encodeURIComponent(region.id)}` : `sector=${encodeURIComponent(sector?.name || '')}`}">Find similar companies in the screener</a>${company.foreignFiler ? '' : ' <a class="pf-btn ghost" href="#insidersBox">Company bosses’ trades</a>'}</p>
             ${dividendRank >= 0 ? `<p class="note-box" style="margin-top:12px">Number ${dividendRank + 1} on this month's <a href="/top-10/dividend-stocks">Top 10 dividend stocks</a>.</p>` : ''}
           </div>
           ${logoCard(company, name)}
@@ -392,6 +394,8 @@ export async function renderStockPage(origin, rawTicker) {
           <p class="members-cta"><a class="pill-gold" href="/membership">Become a member</a> <a href="/#join">Already a member? Sign in</a></p>
         </div>
       </section>
+
+      ${company.foreignFiler ? '' : insiderBoxHtml(ticker, name)}
 
       ${adSlot('in-content')}
 

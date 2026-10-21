@@ -133,6 +133,22 @@ export async function renderToolsHub(origin) {
             <span class="go">Open the glossary</span>
           </a>
         </div>
+        <div class="block-head" style="margin-top:30px"><div><h2 style="font-size:28px;margin:0">Tools for members</h2>
+          <p>Research tools built from companies’ and funds’ official reports.</p></div></div>
+        <div class="tens">
+          ${[
+            ['/screener', 'Stock screener', 'Regular and Premium', 'Filter companies in the US and around the world by growth, profit, debt and dividends. Premium adds what the big funds own.'],
+            ['/ideas', 'Ideas that match your rules', 'Premium', 'Save up to 5 sets of rules and see every company that matches, with new matches in your Saturday email.'],
+            ['/portfolio-health', 'Portfolio health check', 'Premium', 'A score and colour heat map for every holding and for your whole portfolio.'],
+            ['/insiders', 'Company bosses’ trades', 'Premium', 'When directors and top managers buy or sell their own company’s shares.'],
+          ].map(([href, title, plan, text]) => `
+          <a class="ten hub" href="${href}">
+            <h2>${esc(title)}</h2>
+            <p class="rule"><span class="sc-prem">${esc(plan)}</span></p>
+            <p class="meaning">${esc(text)}</p>
+            <span class="go">Open</span>
+          </a>`).join('')}
+        </div>
         <p class="note-box">Want to track your own holdings? Use <a href="/#tools">My watchlist and portfolio</a>.</p>
       </section>`;
   return pageShell({ head, body, active: 'tools' });
