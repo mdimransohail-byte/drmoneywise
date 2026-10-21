@@ -4,7 +4,7 @@
 export const BUSINESS_SETTINGS = {
   // Raise this number when you change any plan's features or tagline below,
   // so the live site picks up the new wording.
-  featuresVersion: 7,
+  featuresVersion: 8,
   plans: {
     free: {
       id: 'free',
@@ -29,11 +29,11 @@ export const BUSINESS_SETTINGS = {
       features: [
         'Plain-English explainers, new ones every two days',
         'Company results explained in simple words, the day they come out',
-        'A report card for any US-listed company, plus ETFs, bonds, commodities and property',
+        'A report card for any US-listed company and big companies around the world, plus ETFs, bonds, commodities and property',
         'The latest news on every page',
         'Top 10 lists, money calculators and glossary',
         'A simple watchlist',
-        'Your own learning path (coming soon)',
+        'Your own learning path: short steps, with your progress saved',
       ],
     },
     regular: {
@@ -69,7 +69,7 @@ export const BUSINESS_SETTINGS = {
         'Dividend alerts for your watchlist',
         'A weekly email: your watchlist, the week’s results and the economy',
         'Stock screener: filter companies in the US and around the world by growth, profit, debt and dividends',
-        'Ask Dr MoneyWise: send us your questions (coming soon)',
+        'Ask Dr MoneyWise: send us up to 3 money questions a month',
         'Price alerts (coming soon)',
         'Reply in the members’ forum (when it opens)',
       ],
@@ -107,10 +107,11 @@ export const BUSINESS_SETTINGS = {
         'Big-fund alerts: when famous investors buy or sell your companies',
         'Big-fund data in the screener, plus the Fund explorer: what about 20 famous investors own, and in what proportions',
         'Company bosses buying or selling their own shares, from their official reports',
-        'A monthly research report (coming soon)',
+        'A monthly research report: the month in figures, with charts',
         'Ideas that match the rules you choose, with new matches in your Saturday email',
         'Portfolio health check: a score and heat map for every holding and your whole portfolio',
-        'Deeper explainers for confident readers (coming soon)',
+        'Deeper explainers for confident readers',
+        'Ask Dr MoneyWise: up to 10 questions a month',
       ],
     },
   },

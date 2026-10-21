@@ -174,3 +174,9 @@ export async function insiderCounts(days = 90) {
   }
   return out;
 }
+
+/** Market buys and sells with a trade date from `from` to `to` (YYYY-MM-DD, inclusive). */
+export async function insiderTradesBetween(from, to) {
+  const c = await load();
+  return c.trades.filter((t) => t.date >= from && t.date <= to);
+}

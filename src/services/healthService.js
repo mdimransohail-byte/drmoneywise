@@ -30,6 +30,8 @@ const JOB_LIMITS = {
   top10: { warn: 30 * HOUR, fail: 72 * HOUR },
   photos: { warn: 30 * HOUR, fail: 7 * 24 * HOUR },
   learning: { warn: 12 * HOUR, fail: 48 * HOUR },
+  deeper: { warn: 4 * 24 * HOUR, fail: 8 * 24 * HOUR },
+  report: { warn: 30 * HOUR, fail: 72 * HOUR },
   funds: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },
   health: { warn: 30 * HOUR, fail: 72 * HOUR },
   property: { warn: 8 * 24 * HOUR, fail: 15 * 24 * HOUR },

@@ -125,6 +125,12 @@ export async function buildSitemapXml(origin) {
   urls.push({ loc: `${origin}/screener`, lastmod: today, priority: '0.7' });
   urls.push({ loc: `${origin}/insiders`, lastmod: today, priority: '0.6' });
   try {
+    const { reportSitemapEntries } = await import('./reportPages.js');
+    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' });
+  } catch (error) {
+    console.error('[seo] Reports left out of sitemap:', error.message);
+  }
+  try {
     const { worldSitemapEntries } = await import('./worldPages.js');
     urls.push(...worldSitemapEntries(origin));
   } catch (error) {
@@ -256,8 +262,14 @@ export async function renderLearnIndex(origin) {
     description: 'Plain-English explainers on saving, investing, stocks, ETFs, crypto and the economy, with everyday examples.',
     canonical: `${origin}/learn`,
   });
-  const list = articles.length
-    ? `<div class="explain">${articles.map(renderExplainItem).join('')}</div>`
+  const deeper = articles.filter((a) => (a.tags || []).includes('deeper'));
+  const everyday = articles.filter((a) => !(a.tags || []).includes('deeper'));
+  const deeperHtml = `
+        <div class="dp-box"><div class="dp-head"><div><span class="sc-prem">Premium</span><h2>Deeper explainers</h2><p>For confident investors: how things really work, what professionals watch and the common mistakes. A new one every few days.</p></div></div>
+          ${deeper.length ? `<div class="dp-cards">${deeper.slice(0, 9).map((a) => `<a class="dp-card" href="/learn/${escapeAttr(a.slug)}"><strong>${escapeHtml(a.headline)}</strong><span>${escapeHtml(String(a.summary || '').slice(0, 140))}${String(a.summary || '').length > 140 ? '…' : ''}</span><em>${escapeHtml(a.readingTime || '7 min read')} · Premium</em></a>`).join('')}</div>` : '<p class="dp-soon">The first deeper explainers are being written. Topics include reading a cash flow statement, return on invested capital, the yield curve and what big-fund reports really show.</p>'}
+        </div>`;
+  const list = everyday.length
+    ? `<div class="explain">${everyday.map(renderExplainItem).join('')}</div>`
     : '<p class="empty-note">New explainers are on their way. Check back soon.</p>';
   const { getPhoto, photoFigure, PAGE_PHOTO_QUERIES } = await import('./imageService.js');
   const photo = await getPhoto('page:learn', PAGE_PHOTO_QUERIES.learn);
@@ -267,6 +279,9 @@ export async function renderLearnIndex(origin) {
         <div class="block-head">
           <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with real-life examples. ${articles.length} explainer${articles.length === 1 ? '' : 's'} so far.</p></div>
         </div>
+        ${deeperHtml}
+        <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge">Members</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in plain English. Read other readers’ answers too.</span><em>Ask a question →</em></a>
+        <a class="lp-banner" href="/learn/path"><span class="pf-badge">Free</span><strong>Your learning path</strong><span>Short steps from your first savings to running a portfolio. Tick them off as you go.</span><em>Start the path →</em></a>
         ${list}
       </section>`;
   return pageShell({ head, body, active: 'learn' });

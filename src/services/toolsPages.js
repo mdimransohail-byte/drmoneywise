@@ -141,6 +141,9 @@ export async function renderToolsHub(origin) {
             ['/ideas', 'Ideas that match your rules', 'Premium', 'Save up to 5 sets of rules and see every company that matches, with new matches in your Saturday email.'],
             ['/portfolio-health', 'Portfolio health check', 'Premium', 'A score and colour heat map for every holding and for your whole portfolio.'],
             ['/insiders', 'Company bosses’ trades', 'Premium', 'When directors and top managers buy or sell their own company’s shares.'],
+            ['/reports', 'Monthly research report', 'Premium', 'The month in figures: economy, markets, results, and what bosses and big funds did.'],
+            ['/ask', 'Ask Dr MoneyWise', 'Regular and Premium', 'Send us your money questions; read the answers to other readers’ questions.'],
+            ['/learn/path', 'Your learning path', 'Free', 'Short steps from your first savings to running a portfolio, with your progress saved.'],
           ].map(([href, title, plan, text]) => `
           <a class="ten hub" href="${href}">
             <h2>${esc(title)}</h2>

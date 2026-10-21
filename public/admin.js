@@ -146,6 +146,9 @@ const API = {
   forumStarters:       ()   => API.post('/api/admin/forum/starters', {}),
   propertyStatus:      ()   => API.get('/api/admin/property'),
   propertyManual:      (b)  => API.post('/api/admin/property/manual', b),
+  askGet:              ()   => API.get('/api/admin/ask'),
+  askDraft:            (id) => API.post('/api/admin/ask/draft', { id }),
+  askAnswer:           (b)  => API.post('/api/admin/ask/answer', b),
   adsGet:              ()   => API.get('/api/admin/ads'),
   adsSave:             (b)  => API.post('/api/admin/ads', b),
   getBusinessSettings: ()   => API.get('/api/admin/business-settings'),
@@ -1942,6 +1945,82 @@ function bind_ads() {
   });
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE J: ASK DR MONEYWISE
+// ─────────────────
+// Members' questions. "Write a first draft" fills the box with a draft to
+// check and edit; "Send answer" saves it and emails the member. Answers are
+// shown on /ask (without names) only if the member agreed and you tick
+// "Show on the Ask page".
+// ════════════════════════════════════════════════════════════════════════════
+
+function render_ask() {
+  const a = STATE.ask || { questions: [], waiting: 0, topics: [] };
+  const topic = Object.fromEntries(a.topics || []);
+  const badge = { waiting: ['Waiting', '#e8a33d'], answered: ['Answered', '#2bc48a'], declined: ['Declined', '#9eb3cc'] };
+  const card = (q) => {
+    const b = badge[q.status] || badge.waiting;
+    return `
+      <div class="card" data-q="${h(q.id)}">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <span style="font-size:.72rem;font-weight:700;color:${b[1]}">${b[0]} · ${h(topic[q.topic] || q.topic)}</span>
+          <span style="font-size:.7rem;color:#9eb3cc">${h(q.name || 'Member')} (${h(q.plan)}) · ${h(new Date(q.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</span>
+        </div>
+        <p style="font-size:.9rem;color:#fff;margin:10px 0">${h(q.question)}</p>
+        <label><span class="field">Answer (general information, not personal advice)</span><textarea name="answer" rows="8">${h(q.answer || q.draft || '')}</textarea></label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:.74rem;color:${q.publishOk ? '#dbe6f3' : '#9eb3cc'};margin:8px 0"><input type="checkbox" name="publish" ${q.published || (q.status === 'waiting' && q.publishOk) ? 'checked' : ''} ${q.publishOk ? '' : 'disabled'} style="width:auto"> Show on the Ask page without their name ${q.publishOk ? '' : '(the member said no)'}</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn" data-act="draft">Write a first draft</button>
+          <button class="btn btn-gold" data-act="send">${q.status === 'answered' ? 'Save changes' : 'Send answer'}</button>
+          ${q.status === 'waiting' ? '<button class="btn" data-act="decline">Decline</button>' : ''}
+          <span class="ask-msg" style="font-size:.74rem"></span>
+        </div>
+      </div>`;
+  };
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:#3cb5c4">Members</div>
+      <h1>Ask Dr MoneyWise</h1>
+      <p>${a.waiting} question${a.waiting === 1 ? '' : 's'} waiting. "Write a first draft" gives you a starting point: always read and correct it before sending. The member is emailed when you send an answer.</p>
+    </div>
+    ${a.questions.length ? `<div class="card-grid two-col">${a.questions.map(card).join('')}</div>` : '<div class="card"><p style="color:#9eb3cc">No questions yet. Members ask them at /ask.</p></div>'}`;
+}
+
+async function load_ask() {
+  try {
+    STATE.ask = await API.askGet();
+    setMain(render_ask());
+    bind_ask();
+  } catch (e) {
+    setMain(`<div class="loading">Could not load questions: ${h(e.message)}</div>`);
+  }
+}
+
+function bind_ask() {
+  qsa('[data-q] [data-act]').forEach((btn) => btn.addEventListener('click', async () => {
+    const card = btn.closest('[data-q]');
+    const id = card.dataset.q;
+    const msg = card.querySelector('.ask-msg');
+    const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? '#f26a6a' : '#2bc48a'; };
+    btn.disabled = true;
+    try {
+      if (btn.dataset.act === 'draft') {
+        say('Writing a draft…');
+        const r = await API.askDraft(id);
+        card.querySelector('textarea[name=answer]').value = r.draft;
+        say('Draft ready. Please read and correct it before sending.');
+      } else {
+        const r = await API.askAnswer({ id, answer: card.querySelector('textarea[name=answer]').value, publish: card.querySelector('input[name=publish]').checked, decline: btn.dataset.act === 'decline' });
+        showToast(r.status === 'declined' ? 'Question declined' : r.emailed && !r.emailed.ok ? `Saved, but the email failed: ${r.emailed.message}` : 'Answer saved');
+        await load_ask();
+        return;
+      }
+    } catch (e) { say(e.message, true); }
+    btn.disabled = false;
+  }));
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION 6: ROUTER
 // To add a new page: add an entry to the PAGES map
@@ -1957,6 +2036,7 @@ const PAGES = {
   forum:     { load: load_forum,      render: render_forum,     bind: bind_forum      },
   property:  { load: load_property,   render: render_property,  bind: bind_property   },
   ads:       { load: load_ads,        render: render_ads,       bind: bind_ads        },
+  ask:       { load: load_ask,        render: render_ask,       bind: bind_ask        },
 };
 
 const ROUTER = {

@@ -261,6 +261,7 @@ export function sanitizeUser(user) {
     savedArticleSlugs: user.savedArticleSlugs || [],
     profile: user.profile || null,
     emailPrefs: user.emailPrefs || null,
+    learningDone: user.learningDone || [],
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt,
   };

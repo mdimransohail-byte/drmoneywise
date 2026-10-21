@@ -133,3 +133,40 @@ export async function pickEvergreenTopic({ excludeTopics = [] } = {}) {
   const label = fresh || EVERGREEN_TOPICS[Math.floor(Math.random() * EVERGREEN_TOPICS.length)];
   return { label, sampleHeadline: label, score: 1 };
 }
+
+/* ── Deeper explainers (Premium) ──────────────────────────────────────
+   For confident readers: written in the paid-tier style (second-order
+   effects, what professionals watch). One is written every 3 days by the
+   data engine ("deeper" job), each topic once before any repeats. */
+export const DEEPER_TOPICS = [
+  'Reading a cash flow statement: where a company’s money really goes',
+  'Return on invested capital: how to tell a great business from a busy one',
+  'Share buybacks versus dividends: which returns more to shareholders, and when',
+  'Share-based pay: the hidden cost that profit figures leave out',
+  'Operating leverage: why small sales changes can swing profits',
+  'Working capital: why fast-growing companies can run short of cash',
+  'Goodwill and write-downs: what an acquisition costs years later',
+  'Valuation beyond P/E: EV/EBITDA, free cash flow yield and when to use each',
+  'Discounted cash flow in plain English: what a share is worth today',
+  'Why interest rates move share valuations: the discount-rate effect',
+  'The yield curve: what an inverted curve has signalled before recessions',
+  'Credit spreads: what the extra yield on company bonds tells you about risk',
+  'Duration and convexity: how much a bond fund can fall when rates rise',
+  'Real yields and inflation-linked bonds: what TIPS and linkers protect against',
+  'Quantitative tightening: what happens when central banks shrink their balance sheets',
+  'The dollar cycle: how a strong dollar squeezes emerging markets',
+  'Sequence-of-returns risk: why the first years of retirement matter most',
+  'Factor investing: value, momentum, quality and size explained',
+  'Index concentration: what it means when a few giants dominate the market',
+  'Currency hedging: when it helps an overseas investment and when it costs you',
+  'ADRs explained: owning foreign companies through US-listed shares',
+  'Reading a 13F: what big-fund reports show and what they hide',
+  'Insider buying and selling: what the research says about following bosses',
+  'Dividend cuts: the warning signs in a company’s figures',
+  'Leverage inside ETFs: why daily-reset funds lose value over time',
+  'Commodity futures and roll yield: why commodity ETFs can lag the price',
+  'Tax-loss harvesting: using losses to lower your tax bill (and the rules)',
+  'Bond ladders versus bond funds for a steady income',
+  'How index rebalancing days move share prices',
+  'Earnings quality: spotting profits that may not last',
+];

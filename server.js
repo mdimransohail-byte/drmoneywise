@@ -29,7 +29,7 @@ import { getMediaDir } from './src/services/visualsService.js';
 import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOutSession, signUpMember } from './src/services/authService.js';
 import { trackEvent } from './src/services/analyticsService.js';
 import { getInterestHeadlines, getLiveHeadlines } from './src/services/newsService.js';
-import { saveHoldings, getAudienceSummary, saveMemberProfile, saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
+import { saveHoldings, saveLearningDone, getAudienceSummary, saveMemberProfile, saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
 import { ensureStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
@@ -49,6 +49,11 @@ import { insiderPreview, renderInsidersPage } from './src/services/insiderPage.j
 import { insiderSummary } from './src/services/insiderService.js';
 import { MAX_IDEAS, STARTER_IDEAS, cleanIdea, describe as describeIdea, ideasFor, saveIdeas } from './src/services/ideasService.js';
 import { renderIdeasPage } from './src/services/ideasPage.js';
+import { renderLearningPath } from './src/services/learningPathPage.js';
+import { renderReportPage, renderReportsIndex, reportFullHtml } from './src/services/reportPages.js';
+import { readReport } from './src/services/reportService.js';
+import { ASK_TOPICS, adminAnswer, adminQuestions, askQuestion, draftAnswer, myQuestions } from './src/services/askService.js';
+import { renderAskPage } from './src/services/askPage.js';
 import { screenerRows, fundOwners, fundExplorer } from './src/services/screenerService.js';
 import { portfolioHealth } from './src/services/healthCheckService.js';
 import { impactsFor, latestResults } from './src/services/resultsService.js';
@@ -261,6 +266,30 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
     }
 
+    // Monthly research report (Premium)
+    const reportApi = requestUrl.pathname.match(/^\/api\/reports\/(\d{4}-\d{2})$/u);
+    if (reportApi && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'The monthly report is for Premium members.' });
+      const report = await readReport(reportApi[1]);
+      if (!report) return sendJson(response, 404, { error: 'No report for that month.' });
+      return sendJson(response, 200, { id: report.id, html: reportFullHtml(report) });
+    }
+
+    // Learning path (free): ticks saved to the member's account
+    if (requestUrl.pathname === '/api/member/learning' && (request.method === 'GET' || request.method === 'POST')) {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      let done = sessionUser.learningDone || [];
+      if (request.method === 'POST') {
+        const posted = (await parseJsonBody(request)).done;
+        done = await saveLearningDone(sessionUser.id, posted).catch((error) => {
+          if (sessionUser.role === 'admin') return Array.isArray(posted) ? posted : [];
+          throw error;
+        });
+      }
+      return sendJson(response, 200, { done, profile: sessionUser.profile || null });
+    }
+
     // Ideas that match your rules (Premium)
     if (requestUrl.pathname === '/api/member/ideas' && (request.method === 'GET' || request.method === 'POST')) {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
@@ -375,6 +404,27 @@ export const server = http.createServer(async (request, response) => {
     // Ad and partner spaces that are switched on (for the static pages)
     if (requestUrl.pathname === '/api/site/ads' && request.method === 'GET') {
       return sendJson(response, 200, publicAdSlots());
+    }
+
+    // Ask Dr MoneyWise: members' questions (Regular and Premium) and the team's answers
+    if (requestUrl.pathname === '/api/member/ask' && (request.method === 'GET' || request.method === 'POST')) {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (request.method === 'POST') {
+        if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'regular')) return sendJson(response, 403, { error: 'Ask Dr MoneyWise is for Regular and Premium members.' });
+        try { await askQuestion(sessionUser, await parseJsonBody(request)); } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
+      }
+      return sendJson(response, 200, { ...(await myQuestions(sessionUser)), topics: ASK_TOPICS, canAsk: sessionUser.role === 'admin' || canAccess(sessionUser.plan || 'free', 'regular') });
+    }
+    if (requestUrl.pathname === '/api/admin/ask' && request.method === 'GET') {
+      await requireAdminUser(token);
+      return sendJson(response, 200, await adminQuestions());
+    }
+    if ((requestUrl.pathname === '/api/admin/ask/draft' || requestUrl.pathname === '/api/admin/ask/answer') && request.method === 'POST') {
+      await requireAdminUser(token);
+      const body = await parseJsonBody(request);
+      try {
+        return sendJson(response, 200, requestUrl.pathname.endsWith('/draft') ? await draftAnswer(body.id) : await adminAnswer(body.id, body));
+      } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
     }
 
     if (requestUrl.pathname === '/api/admin/ads' && request.method === 'GET') {
@@ -801,6 +851,13 @@ async function handlePublicPage(requestUrl, request, response) {
   if (pathname === '/screener') return sendHtml(response, 200, renderScreenerPage(origin));
   if (pathname === '/insiders') return sendHtml(response, 200, renderInsidersPage(origin));
   if (pathname === '/ideas') return sendHtml(response, 200, renderIdeasPage(origin));
+  if (pathname === '/reports') return sendHtml(response, 200, await renderReportsIndex(origin));
+  if (pathname === '/ask') return sendHtml(response, 200, await renderAskPage(origin));
+  const reportMatch = pathname.match(/^\/reports\/(\d{4}-\d{2})$/u);
+  if (reportMatch) {
+    const html = await renderReportPage(origin, reportMatch[1]);
+    if (html) return sendHtml(response, 200, html);
+  }
 
   // One-click unsubscribe link from member emails
   if (pathname === '/email/unsubscribe') {
@@ -909,6 +966,7 @@ async function handlePublicPage(requestUrl, request, response) {
   if (pathname === '/learn') {
     return sendHtml(response, 200, await renderLearnIndex(origin));
   }
+  if (pathname === '/learn/path') return sendHtml(response, 200, await renderLearningPath(origin));
 
   const learnMatch = pathname.match(/^\/learn\/([^/]+)$/u);
   if (learnMatch) {

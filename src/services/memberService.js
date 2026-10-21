@@ -319,3 +319,16 @@ export async function saveHoldings(userId, holdings) {
   });
   return updated.users.find((u) => u.id === userId)?.portfolio || [];
 }
+
+/* ── Learning path: steps the member has ticked as done ─────────────── */
+export async function saveLearningDone(userId, ids) {
+  const { ALL_STEP_IDS } = await import('../data/learningPath.js');
+  const clean = [...new Set((Array.isArray(ids) ? ids : []).map(String).filter((id) => ALL_STEP_IDS.includes(id)))];
+  const updated = await updateStore((store) => {
+    const target = store.users.find((u) => u.id === userId);
+    if (!target) throw new Error('Member not found.');
+    target.learningDone = clean;
+    return store;
+  });
+  return updated.users.find((u) => u.id === userId)?.learningDone || [];
+}

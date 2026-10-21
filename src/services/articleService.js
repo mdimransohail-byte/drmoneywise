@@ -774,3 +774,54 @@ export async function runLearningAutopilot() {
     message: `${writeFailed ? 'Could not write new explainers — check the writing-service keys (Railway log lines starting [writerService] say why). ' : topUp.written ? `Wrote ${topUp.written} new. ` : ''}${active.length} explainers on the homepage, ${waiting} waiting for the next change${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
   };
 }
+
+/* ── Deeper explainers (Premium) — data engine job "deeper" ──────────────
+   Writes one Premium explainer from DEEPER_TOPICS (src/data/explainerTopics.js)
+   in the paid-tier style. Topics are used once before any repeats; quality
+   checks decide whether it goes live or waits as a draft. */
+export async function writeDeeperExplainer() {
+  const { DEEPER_TOPICS } = await import('../data/explainerTopics.js');
+  const store = await readStore();
+  const used = store.articles.filter((a) => a.source === 'deeper-auto' && a.trendingTopic).map((a) => a.trendingTopic);
+  const unused = DEEPER_TOPICS.filter((t) => !used.includes(t));
+  const topic = (unused.length ? unused : DEEPER_TOPICS)[0];
+  const interest = guessInterestFromTopic(topic);
+  const generated = await createLearningArticleFromTopic(topic, 'premium', 'global', interest, '',
+    'Deeper explainer for confident investors: go beyond the basics, explain the mechanics, what professionals watch, the common mistakes and one worked example with round numbers. Do not give personal advice.');
+  if (generated.provider === 'local-fallback') return { ok: false, message: `No writing service answered for "${topic}"; will try again next run` };
+  generated.headline = String(generated.headline || topic).trim();
+  const quality = checkArticle(generated);
+  const saved = await saveAdminArticle({
+    headline: generated.headline,
+    contentType: 'learning',
+    accessTier: 'premium',
+    region: 'global',
+    interest,
+    status: quality.ok ? 'scheduled' : 'draft',
+    publishAt: new Date().toISOString(),
+    source: 'deeper-auto',
+    summary: generated.summary,
+    plainEnglish: generated.plainEnglish,
+    whyItMatters: generated.whyItMatters,
+    everydayExample: generated.everydayExample,
+    takeaways: generated.takeaways,
+    jargonBuster: generated.jargonBuster,
+    infographic: generated.infographic,
+    bodySections: [
+      { heading: 'How it works', body: generated.plainEnglish },
+      { heading: 'What professionals watch', body: generated.whyItMatters },
+      { heading: 'Everyday example', body: generated.everydayExample },
+    ],
+    tags: ['learning', 'deeper', interest],
+    readingTime: '7 min read',
+    engineSlot: generated.writerSlot,
+    heroMood: interest,
+  });
+  await updateStore((s2) => {
+    const target = s2.articles.find((a) => a.id === saved.id);
+    if (target) { target.trendingTopic = topic; target.qualityIssues = quality.issues; target.qualityCheckedAt = new Date().toISOString(); }
+    return s2;
+  });
+  try { await attachPexelsImage(saved.id, generated.headline); } catch (error) { console.error('[articleService] Photo for deeper explainer failed:', error.message); }
+  return { ok: true, message: quality.ok ? `Written: "${generated.headline}" (Premium)` : `Written but held as a draft for a read: "${generated.headline}" (${quality.issues.join('; ')})` };
+}

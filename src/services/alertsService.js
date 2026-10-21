@@ -35,6 +35,7 @@ export const EMAIL_KINDS = {
   dividends: { label: 'Dividend alerts', plan: 'regular', about: 'When a company on your watchlist raises, cuts, starts or stops its dividend.' },
   weekly: { label: 'Weekly email', plan: 'regular', about: 'Saturday morning: your watchlist’s week, the biggest results and the economy.' },
   funds: { label: 'Big-fund alerts', plan: 'premium', about: 'When a famous fund buys or sells a company on your watchlist (each quarter).' },
+  report: { label: 'Monthly research report', plan: 'premium', about: 'On the 1st of each month: the month in figures, with a link to the full report.' },
 };
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
@@ -193,6 +194,20 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
     }
   }
 
+  // 2b. Monthly research report (Premium), once per finished report
+  if (!testOnly) {
+    const { listReports } = await import('./reportService.js');
+    const latest = (await listReports()).find((r) => !r.partial);
+    if (latest && Date.now() - new Date(latest.createdAt).getTime() < 5 * 86400000) {
+      for (const user of users) {
+        if (!emailPrefsFor(user).report.on || log[`report:${user.id}:${latest.id}`]) continue;
+        const ok = await send(user, 'report', `Your ${latest.month} research report`, `${latest.month}: ${latest.text.headline}`, 'The month in figures, explained simply.',
+          [section('Executive summary', latest.text.summary.slice(0, 2).map((p) => line(esc(p))).join('') + line(`<a href="${esc(site)}/reports/${esc(latest.id)}" style="color:#1a2a9e;font-weight:700">Read the full report, with charts</a>`))]);
+        if (ok) mark(`report:${user.id}:${latest.id}`);
+      }
+    }
+  }
+
   // 3. Weekly email: Saturdays from 07:00 Dubai time (03:00 UTC)
   const now = new Date();
   const week = `${now.getUTCFullYear()}-${Math.ceil((((now - new Date(Date.UTC(now.getUTCFullYear(), 0, 1))) / 86400000) + 1) / 7)}`;
@@ -289,4 +304,21 @@ export async function sendTestWeekly(adminUser) {
   const testUser = { id: adminUser?.id || 'admin', email: to, name: adminUser?.name || 'Admin', role: 'admin', plan: 'premium', watchlist: stored?.watchlist?.length ? stored.watchlist : ['AAPL', 'MSFT', 'KO', 'JPM'] };
   const r = await runAlerts({ forceWeeklyTo: to, testUser });
   return { ...r, message: r.ok && !r.message.startsWith('0') ? `Test weekly email sent to ${to}` : r.message };
+}
+
+/** Ask Dr MoneyWise: tells the member their question has been answered. */
+export async function sendAskAnswer(q) {
+  if (!q.email) return { ok: false, message: 'No email address' };
+  const site = await siteUrl();
+  const { html } = layout({
+    title: 'Your question has been answered',
+    intro: 'Thank you for asking Dr MoneyWise. Here is our answer.',
+    sections: [
+      section('You asked', line(esc(q.question))),
+      section('Our answer', String(q.answer).split(/\n{2,}/u).map((p) => line(esc(p).replace(/\n/gu, '<br>'))).join('')),
+      line(`<a href="${esc(site)}/ask" style="color:#1a2a9e;font-weight:700">See all your questions</a>. This is general information to help you learn, not personal financial advice.`),
+    ],
+    site, user: { id: q.userId, name: q.name }, kind: '', token: '',
+  });
+  return sendEmail({ to: q.email, subject: 'Your Dr MoneyWise question has been answered', html: html.replace(/ · <a href="[^"]*email\/unsubscribe[^"]*"[^>]*>Unsubscribe from these<\/a>/u, '') });
 }

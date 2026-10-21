@@ -52,6 +52,8 @@ const JOBS = {
   photos: { label: 'Photos for explainers (Pexels)', every: 20 * HOUR },
   funds: { label: 'Big-fund holdings (SEC 13F)', every: 7 * 24 * HOUR },
   learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
+  deeper: { label: 'Deeper explainers for Premium (one every 3 days)', every: 3 * 24 * HOUR },
+  report: { label: 'Monthly research report (built on the 1st)', every: 20 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
   property: { label: 'Property prices and rents (BIS, OECD, BLS, Land Registry)', every: 7 * 24 * HOUR },
   commodities: { label: 'Commodity prices (World Bank)', every: 7 * 24 * HOUR },
@@ -234,6 +236,16 @@ async function runLearning() {
   return runLearningAutopilot();
 }
 
+async function runReport() {
+  const { runReports } = await import('./reportService.js');
+  return runReports();
+}
+
+async function runDeeper() {
+  const { writeDeeperExplainer } = await import('./articleService.js');
+  return writeDeeperExplainer();
+}
+
 async function runHealth() {
   const { getHealthReport, sendHealthEmail } = await import('./healthService.js');
   const report = await getHealthReport();
@@ -279,7 +291,7 @@ async function runAlertsJob() {
   return runAlerts();
 }
 
-const RUNNERS = { alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
+const RUNNERS = { report: runReport, deeper: runDeeper, alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

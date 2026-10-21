@@ -696,3 +696,57 @@ export async function explainDividend({ company = '', ticker = '', text = '' }) 
   }
   return null;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   MONTHLY RESEARCH REPORT — the executive summary and "what to watch",
+   written only from the figures we pass in (reportService.js then checks
+   every number in the text against those figures).
+   ════════════════════════════════════════════════════════════════════════ */
+export async function writeReportSummary({ month, facts }) {
+  const prompt = [
+    'You write for Dr MoneyWise, a plain-English money education site for everyday investors.',
+    `Write the opening of our monthly research report for ${month}, using ONLY the figures below.`,
+    'Return JSON only: {"headline":"...","summary":["...","...","..."],"watch":["...","...","..."]}',
+    '- headline: under 80 characters, the month’s main theme.',
+    '- summary: 3 or 4 short paragraphs (40-70 words each) on what the figures show and why it matters to an everyday investor.',
+    '- watch: 3 short points (under 30 words each) on what to keep an eye on next month, based only on these figures.',
+    'Rules: every number you write must appear in the figures below, written the same way; do not add facts, events, dates, forecasts or company news that are not in the figures; do not predict prices; do not tell anyone to buy, sell or hold; British spelling; simple words; explain any jargon in a few words; do not mention how this text was written.',
+    'Figures:',
+    JSON.stringify(facts),
+  ].join('\n');
+  const order = ['claude', 'openai', 'gemini', 'perplexity'].filter((p) => process.env[KEY_ENV[p]]).slice(0, 3);
+  for (const provider of order) {
+    const result = await requestStructuredWriting({ slot: provider, provider, model: process.env[MODEL_ENV_KEYS[provider]] || '' }, prompt).catch(() => null);
+    const clean = (t) => String(t || '').replace(/<[^>]+>/gu, '').replace(/\s+/gu, ' ').trim();
+    const out = {
+      headline: clean(result?.headline).slice(0, 110),
+      summary: (Array.isArray(result?.summary) ? result.summary : []).map(clean).filter((p) => p.length > 20).slice(0, 4),
+      watch: (Array.isArray(result?.watch) ? result.watch : []).map(clean).filter((p) => p.length > 10).slice(0, 4),
+      provider,
+    };
+    if (out.headline && out.summary.length >= 2) return out;
+  }
+  return null;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ASK DR MONEYWISE — a first draft of an answer for the team to check and
+   edit in Admin before anything is sent.
+   ════════════════════════════════════════════════════════════════════════ */
+export async function writeAskDraft({ question, topic }) {
+  const prompt = [
+    'You help the Dr MoneyWise team answer questions from members of a plain-English money education site.',
+    `Topic: ${String(topic).slice(0, 60)}`,
+    `Member’s question: ${String(question).slice(0, 1200)}`,
+    'Write a draft answer of 150-300 words that the team will check and edit before sending.',
+    'Rules: explain the ideas and the main options in general terms; give the questions the reader should think about; do NOT give personal advice or tell them what to buy, sell or do with their money; do not name specific shares or funds to buy; no made-up figures (only well-known general facts, and say "about" or "usually" when rules vary by country); if tax or legal rules matter, say they differ by country and suggest checking with an official source or a qualified adviser; British spelling; short paragraphs separated by a blank line; friendly and clear; do not mention how this text was written.',
+    'Reply with JSON only: {"answer":"..."}',
+  ].join('\n');
+  const order = ['claude', 'openai', 'gemini', 'perplexity'].filter((p) => process.env[KEY_ENV[p]]).slice(0, 2);
+  for (const provider of order) {
+    const result = await requestStructuredWriting({ slot: provider, provider, model: process.env[MODEL_ENV_KEYS[provider]] || '' }, prompt).catch(() => null);
+    const text = String(result?.answer || '').replace(/<[^>]+>/gu, '').trim();
+    if (text.length >= 200) return text;
+  }
+  return null;
+}
