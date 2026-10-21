@@ -289,7 +289,12 @@ export const server = http.createServer(async (request, response) => {
       const days = [30, 90, 180].includes(Number(requestUrl.searchParams.get('days'))) ? Number(requestUrl.searchParams.get('days')) : 90;
       const ticker = String(requestUrl.searchParams.get('ticker') || '').toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10) || null;
       const mine = [...new Set([...(sessionUser.watchlist || []), ...(sessionUser.portfolio || []).map((h) => h.ticker)].map((t) => String(t || '').toUpperCase()))];
-      return sendJson(response, 200, { ...(await insiderSummary({ days, ticker })), mine });
+      try {
+        return sendJson(response, 200, { ...(await insiderSummary({ days, ticker })), mine });
+      } catch (error) {
+        console.error('[insiders] page data failed:', error);
+        return sendJson(response, 500, { error: `server problem: ${error.message}` });
+      }
     }
 
     // Stock screener (Regular) + big-fund data and Fund explorer (Premium)

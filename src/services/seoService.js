@@ -466,7 +466,7 @@ export function pageShell({ head, body, active }) {
           ${links}
         </nav>
         <div class="header-actions">
-          <a class="pill-gold" href="/#join">Sign in</a>
+          <a class="pill-gold" href="/#join" onclick="try{sessionStorage.setItem('dmw-back',location.pathname+location.search)}catch(e){}">Sign in</a>
           <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobileNav" onclick="var n=document.getElementById('mobileNav');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);this.textContent=o?'Close':'Menu';">Menu</button>
         </div>
       </div>

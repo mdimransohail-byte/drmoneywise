@@ -40,6 +40,7 @@ async function init() {
   await refreshInterestHeadlines();
   await refreshPortfolioReview();
   renderAll();
+  goToSignIn();
   await refreshMarketDataQuotes();
   await trackView('/', 'page_view');
   window.setInterval(() => refreshHome({ quiet: true }), 300000);
@@ -882,6 +883,25 @@ async function handleSignOut() {
   await refreshMarketDataQuotes();
 }
 
+/* Arrived from "Sign in" on another page (/#join): open the sign-in form and
+   scroll to it once the page above has finished loading (it grows as the
+   results, lists and prices arrive, which pushed the form further down). */
+function goToSignIn() {
+  if (window.location.hash !== '#join') return;
+  if (!state.user) setAuthMode('signin');
+  const go = () => document.querySelector('#join')?.scrollIntoView({ block: 'start' });
+  go();
+  window.setTimeout(go, 600);
+  window.setTimeout(go, 1800);
+}
+
+/* After signing in, go back to the page the member was on, if any. */
+function goBackAfterSignIn() {
+  let back = '';
+  try { back = sessionStorage.getItem('dmw-back') || ''; sessionStorage.removeItem('dmw-back'); } catch { back = ''; }
+  if (/^\/[^/]/u.test(back) && back !== '/') window.location.href = back;
+}
+
 async function finishAuth(session, message) {
   state.token = session.token;
   state.user = session.user;
@@ -902,6 +922,7 @@ async function finishAuth(session, message) {
   await refreshPortfolioReview();
   renderAll();
   await refreshMarketDataQuotes();
+  goBackAfterSignIn();
 }
 
 async function handleRegionToggle(event) {
