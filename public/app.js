@@ -189,9 +189,20 @@ async function refreshHome({ quiet = false } = {}) {
 async function refreshPortfolioReview() {
   if (!state.user) {
     elements.portfolioReview.innerHTML = `
-      <div class="review-column">
-        <h3>Sign in to save and review</h3>
-        <p>Create a free account to save your watchlist and portfolio. Regular and Premium members unlock the full review.</p>
+      <div class="review-column rv-guest" style="--c:#1baf7a">
+        <span class="rv-icon" aria-hidden="true">✓</span>
+        <h3>Strengths</h3>
+        <p>Which of your holdings are growing, profitable and paying you, from each company’s official figures.</p>
+      </div>
+      <div class="review-column rv-guest" style="--c:#eb6834">
+        <span class="rv-icon" aria-hidden="true">!</span>
+        <h3>Risks</h3>
+        <p>Too much in one company or one part of the economy, heavy debt, or a dividend that isn’t covered by spare cash.</p>
+      </div>
+      <div class="review-column rv-guest" style="--c:#2a78d6">
+        <span class="rv-icon" aria-hidden="true">→</span>
+        <h3>Next steps</h3>
+        <p>Plain-English points to check, never buy or sell tips. <a href="#join" class="rv-join">Create a free account</a> to save your list; Regular and Premium members get the full review.</p>
       </div>
     `;
     return;

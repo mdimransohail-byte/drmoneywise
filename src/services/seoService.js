@@ -385,7 +385,7 @@ async function injectPulse(html) {
     const pulse = await renderHomePulse();
     if (!pulse) return html;
     return html.replace(
-      /(<div id="marketPulse" class="pulse" aria-label="Markets today">)[\s\S]*?(<\/div>\s*<\/div>\s*<\/section>)/u,
+      /(<div id="marketPulse" class="pulse hn-pulse" aria-label="Today's numbers">)[\s\S]*?(<\/div>\s*<\/div>\s*<\/div>\s*<\/section>)/u,
       (match, open, close) => `${open}\n            ${pulse}\n          ${close}`,
     );
   } catch (error) {

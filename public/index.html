@@ -106,6 +106,8 @@
             <a class="mk-card" href="/stocks/world"><strong>Stocks around the world</strong><span>The UK, Japan, China, India, South Korea, Brazil and the Gulf.</span><em>Free</em></a>
             <a class="mk-card" href="/ideas"><strong>Ideas that match your rules</strong><span>Save your rules and see every company that matches.</span><em>Premium</em></a>
             <a class="mk-card" href="/portfolio-health"><strong>Portfolio health check</strong><span>A score and heat map for every holding.</span><em>Premium</em></a>
+            <a class="mk-card" href="/insiders"><strong>Company bosses’ trades</strong><span>When directors buy or sell their own company’s shares.</span><em>Premium</em></a>
+            <a class="mk-card" href="/reports"><strong>Monthly research report</strong><span>The month in figures, with charts.</span><em>Premium</em></a>
           </div>
         </section>
 
@@ -173,7 +175,7 @@
           <div id="feedAreas" class="area-grid"></div>
         </section>
 
-        <!-- ═══ LOOK UP A COMPANY + CALCULATORS ═══════════════════════ -->
+        <!-- ═══ LOOK UP A COMPANY + TODAY'S NUMBERS ═══════════════════════ -->
         <section id="lookup" class="block">
           <div class="split">
             <div class="split-col">
@@ -193,16 +195,12 @@
               <span class="go">Open the glossary</span>
             </a>
             </div>
-            <div class="surface">
-              <h2 class="sr-only">Money calculators</h2>
-              <h3>Money calculators</h3>
-              <ul class="calc-list">
-                <li><a href="/tools/savings-growth"><strong>Grow my savings</strong><span>What a lump sum could grow to</span></a></li>
-                <li><a href="/tools/retirement"><strong>Retirement check</strong><span>Am I on track?</span></a></li>
-                <li><a href="/tools/dividend-income"><strong>Dividend income</strong><span>Yearly payout from my shares</span></a></li>
-                <li><a href="/tools/monthly-investing"><strong>Monthly investing</strong><span>Investing a little every month</span></a></li>
-              </ul>
-              <p class="helper-note">US, UK, India and UAE tax settings built in. <a href="/tools">All calculators</a></p>
+            <div class="surface hn-box">
+              <h3>Today’s numbers</h3>
+              <p class="helper-note">The official figures that move savings, loans and markets.</p>
+              <div id="marketPulse" class="pulse hn-pulse" aria-label="Today's numbers">
+                <div class="pulse-row"><span class="pulse-name">Economy figures</span><span class="pulse-move flat">Soon</span><span class="pulse-plain">Inflation, interest rates and mortgage rates will show here.</span></div>
+              </div>
             </div>
           </div>
         </section>

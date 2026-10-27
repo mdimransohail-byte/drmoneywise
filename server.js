@@ -393,10 +393,10 @@ export const server = http.createServer(async (request, response) => {
     // Company results: scrolling strip + homepage cards (free)
     if (requestUrl.pathname === '/api/site/results-strip' && request.method === 'GET') {
       if (requestUrl.searchParams.get('cards')) {
-        const cards = latestResults(3, 21).map((r) => resultCardHtml(r)).join('');
-        return sendJson(response, 200, { cards });
+        const { homeResultCards } = await import('./src/services/resultsPages.js');
+        return sendJson(response, 200, { cards: await homeResultCards() });
       }
-      return sendJson(response, 200, { items: resultsStripData() });
+      return sendJson(response, 200, { items: await resultsStripData() });
     }
 
     // "What it means" for results — Premium only

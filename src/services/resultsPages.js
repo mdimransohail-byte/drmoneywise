@@ -43,9 +43,44 @@ export function companyResultsHtml(ticker, name) {
       </section>`;
 }
 
-/** Small JSON for the scrolling strip. */
-export function resultsStripData() {
-  return latestResults(14, 21).map((r) => ({ id: r.id, ticker: r.ticker, headline: r.headline, filed: r.filed }));
+/* ── The 100 biggest companies (by yearly sales, from their filings) ──
+   The homepage cards and the scrolling strip show only these, so the
+   front page is about names everyone knows. /results still lists all. */
+let bigMemo = null;
+export async function biggestTickers(n = 100) {
+  if (bigMemo && Date.now() - bigMemo.at < 6 * 60 * 60 * 1000) return bigMemo.set;
+  const { readCompanies } = await import('./dataEngine.js');
+  const { companies } = await readCompanies();
+  const ranked = Object.values(companies || {}).filter((c) => c?.revenue?.length)
+    .sort((a, b) => (b.revenue.at(-1)?.value || 0) - (a.revenue.at(-1)?.value || 0)).slice(0, n).map((c) => c.ticker);
+  bigMemo = { at: Date.now(), set: new Set(ranked) };
+  return bigMemo.set;
+}
+async function bigResults(n, days) {
+  const big = await biggestTickers();
+  const all = latestResults(200, days);
+  const top = all.filter((r) => big.has(r.ticker));
+  return (top.length >= Math.min(3, n) ? top : all).slice(0, n);
+}
+
+/** Small JSON for the scrolling strip (biggest companies only). */
+export async function resultsStripData() {
+  return (await bigResults(14, 21)).map((r) => ({ id: r.id, ticker: r.ticker, headline: r.headline, filed: r.filed }));
+}
+
+/** Homepage: 3 compact cards side by side (biggest companies only). */
+export async function homeResultCards() {
+  const list = (await bigResults(3, 21)).filter((r) => r.simple);
+  if (!list.length) return '';
+  const cut = (t, n) => (String(t).length > n ? `${String(t).slice(0, n).replace(/\s+\S*$/u, '')}…` : String(t));
+  return `<div class="rs-grid">${list.map((r) => `
+          <a class="rs-mini" href="/results#r-${esc(r.id)}">
+            <span class="rs-mini-co"><span class="pick-ticker">${esc(r.ticker)}</span> ${esc(r.name)}</span>
+            <strong>${esc(r.headline)}</strong>
+            <span class="rs-mini-text">${esc(cut(r.simple, 170))}</span>
+            ${(r.numbers || []).length ? `<span class="rs-mini-nums">${r.numbers.slice(0, 2).map((x) => `<b>${esc(x.label)}: ${esc(x.value)}</b>`).join('')}</span>` : ''}
+            <em>Results filed ${esc(day(r.filed))} · Read more →</em>
+          </a>`).join('')}</div>`;
 }
 
 export async function renderResultsPage(origin) {

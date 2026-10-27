@@ -30,7 +30,7 @@
   if (home) {
     fetch('/api/site/results-strip?cards=1').then(function (r) { return r.ok ? r.json() : { cards: '' }; }).then(function (d) {
       if (!d || !d.cards) { home.remove(); return; }
-      home.innerHTML = '<div class="block-head"><div><h2>Latest company results</h2><p>Explained in plain English, the day they come out. <a href="/results">See all results</a></p></div></div>' + d.cards;
+      home.innerHTML = '<div class="block-head"><div><h2>Latest results from the biggest companies</h2><p>Explained in plain English, the day they come out. <a href="/results">See all results</a></p></div></div>' + d.cards;
       home.hidden = false;
       unlock();
     }).catch(function () { home.remove(); });

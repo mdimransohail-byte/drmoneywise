@@ -1458,3 +1458,20 @@ body.has-ad-strip { padding-bottom: 52px; }
 .rn-empty { padding: 20px 16px; color: #4a5170; }
 .rn-credit { font: 12px var(--sans); color: #6b7290; margin: 10px 0 0; }
 @media (max-width: 760px) { .rn-window { height: 300px; } .rn-pick, .rn-pick select { width: 100%; } .hc-head h2 { font-size: 21px; } }
+
+/* ── Homepage: compact results cards, today's numbers, guest review ── */
+.rs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.rs-mini { display: grid; gap: 8px; align-content: start; text-decoration: none; color: #0a1128; background: var(--paper); border: 1px solid var(--line); border-top: 5px solid #c9a227; border-radius: 16px; padding: 16px 18px; }
+.rs-mini:hover { box-shadow: 0 8px 22px rgba(10,17,40,.1); }
+.rs-mini-co { font: 700 14px var(--sans); color: #4a5170; }
+.rs-mini strong { font: 700 19px/1.3 var(--serif, Georgia, serif); }
+.rs-mini-text { font-size: 15px; line-height: 1.5; color: #333a55; }
+.rs-mini-nums { display: flex; flex-wrap: wrap; gap: 6px; }
+.rs-mini-nums b { font: 700 12px var(--sans); background: #eef3fc; color: #1d4f99; padding: 3px 9px; border-radius: 999px; }
+.rs-mini em { font-style: normal; font: 600 13px var(--sans); color: #1a2a9e; }
+.hn-box h3 { margin-top: 0; }
+.hn-pulse { padding: 0; background: transparent; }
+.rv-guest { --c: #2a78d6; border-top: 5px solid var(--c); }
+.rv-icon { display: inline-grid; place-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--c); color: #fff; font: 800 18px var(--sans); margin-bottom: 6px; }
+.rv-join { font-weight: 700; }
+@media (max-width: 900px) { .rs-grid { grid-template-columns: minmax(0, 1fr); } }
