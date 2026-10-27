@@ -148,6 +148,29 @@ const REGION_Q = {
   brazil: [['(Ibovespa OR "Brazilian economy" OR "Brazil economy" OR "Banco Central do Brasil")', 3], ['(Ibovespa OR "Brazil economy")', 14]],
   gulf: [['(Tadawul OR "Saudi economy" OR "UAE economy" OR "Dubai Financial Market" OR "Abu Dhabi Securities Exchange" OR "Gulf stocks")', 3], ['("Saudi economy" OR "UAE economy" OR "Gulf stocks")', 14]],
 };
+/* Headline test for each region. GDELT matches words anywhere in an
+   article, so many results only mention the place in passing. We keep a
+   headline only if it names one of the region's markets or institutions,
+   or names the place together with a business word. */
+const BUSINESS_WORDS = /\b(econom\w*|market\w*|stocks?|shares?|equit\w*|bank\w*|profits?|earnings|revenue|sales|results|inflation|interest rates?|rates?|trade|tariffs?|exports?|imports?|invest\w*|growth|gdp|budget|tax\w*|currency|bonds?|yields?|ipo|listing|deal|merger|acquisition|oil|prices?|jobs|unemployment|jobless|startups?|companies|company|firms?|business\w*|industr\w*|factory|manufactur\w*|retail\w*|consumer\w*|property|housing|debt|funding|billion|million|dollar|euro|pound|yen|yuan|rupee|riyal|dirham)\b/iu;
+const REGION_TITLE = {
+  us: { market: /\b(wall street|s&p 500|nasdaq|dow jones|dow|federal reserve|the fed|fed's|powell|us treasur\w*|nyse)\b/iu, place: /(\bU\.S\.|\bUS\b|\bUnited States\b|\bAmerica\w*)/u },
+  europe: { market: /\b(euro stoxx|stoxx|european central bank|ecb|eurozone|euro zone|dax|cac 40|ftse mib|ibex)\b/iu, place: /\b(europe\w*|eu|germany|german|france|french|italy|italian|spain|spanish|netherlands|dutch|eurozone)\b/iu },
+  uk: { market: /\b(ftse|bank of england|boe|london stock exchange|lse-listed|gilts?|sterling|reeves|hmrc)\b/iu, place: /\b(uk|u\.k\.|britain|british|england|english|london|scotland)\b/iu },
+  india: { market: /\b(sensex|nifty|reserve bank of india|rbi|sebi|bse|nse|dalal street|rupee)\b/iu, place: /\b(india|indian|mumbai|delhi|bengaluru|bangalore)\b/iu },
+  china: { market: /\b(hang seng|shanghai composite|csi 300|pboc|people's bank of china|yuan|renminbi|shenzhen)\b/iu, place: /\b(china|chinese|beijing|shanghai|hong kong)\b/iu },
+  japan: { market: /\b(nikkei|topix|bank of japan|boj|yen)\b/iu, place: /\b(japan|japanese|tokyo)\b/iu },
+  'south-korea': { market: /\b(kospi|kosdaq|bank of korea|korean won|chaebol)\b/iu, place: /\b(south korea\w*|korean|korea's|seoul|samsung|hyundai|sk hynix)\b/iu },
+  brazil: { market: /\b(ibovespa|bovespa|b3|banco central do brasil|brazilian real|petrobras|vale)\b/iu, place: /\b(brazil|brazilian|sao paulo|são paulo|lula)\b/iu },
+  gulf: { market: /\b(tadawul|tasi|dfm|adx|aramco|adnoc|emaar|qatarenergy|riyal|dirham|sama)\b/iu, place: /\b(gulf|gcc|saudi\w*|uae|emirat\w*|dubai|abu dhabi|qatar\w*|kuwait\w*|bahrain\w*|oman\w*|riyadh|doha)\b/iu },
+};
+
+/** True if a headline is clearly about this region's business news. */
+export function regionHeadlineOk(id, title) {
+  const rule = REGION_TITLE[id];
+  return !rule || rule.market.test(title) || (rule.place.test(title) && BUSINESS_WORDS.test(title));
+}
+
 /** Regions for the homepage news box (id, name), in display order. */
 export const HOME_NEWS_REGIONS = [
   ['us', 'United States'], ['uk', 'United Kingdom'], ['europe', 'Europe'], ['india', 'India'], ['china', 'China'],
@@ -186,8 +209,8 @@ function throttled(fn) {
   return run;
 }
 
-async function gdelt(query, days = 14) {
-  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(`${query} sourcelang:english`)}&mode=artlist&maxrecords=75&format=json&sort=datedesc&timespan=${days}d`;
+async function gdelt(query, days = 14, max = 75) {
+  const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(`${query} sourcelang:english`)}&mode=artlist&maxrecords=${max}&format=json&sort=datedesc&timespan=${days}d`;
   // GDELT sometimes answers "please limit requests" (HTTP 429) or drops the
   // connection when busy: pause all requests for 2 minutes, then try once more.
   let lastError = null;
@@ -210,14 +233,17 @@ async function gdelt(query, days = 14) {
 }
 
 /** Picks the best 5 (15 for regions): trusted sites first, no duplicates or spam sites. */
-export function pickArticles(articles, kind, limit = kind === 'region' ? 15 : 5) {
+export function pickArticles(articles, kind, limit = kind === 'region' ? 15 : 5, id = '') {
   const seen = new Set();
   const out = [];
+  const rule = kind === 'region' ? REGION_TITLE[id] : null;
   for (const a of articles || []) {
     const url = String(a.url || '').replace(/^http:\/\//u, 'https://');
     const domain = domainOf(url) || String(a.domain || '');
     const title = cleanTitle(a.title);
     if (!url || !title || title.length < 25 || isBlocked(domain)) continue;
+    // Regions: the HEADLINE itself must be about that place and about business
+    if (rule && !(rule.market.test(title) || (rule.place.test(title) && BUSINESS_WORDS.test(title)))) continue;
     const key = title.toLowerCase().replace(/[^a-z0-9]+/gu, ' ').slice(0, 70);
     if (seen.has(key)) continue;
     seen.add(key);
@@ -256,7 +282,7 @@ export async function refreshNews(kind, id, { subject, name, force = false } = {
   const problems = [];
   for (const [q, days] of tries) {
     try {
-      const found = pickArticles(await gdelt(q, days), kind);
+      const found = pickArticles(await gdelt(q, days, kind === 'region' ? 250 : 75), kind, undefined, id);
       if (found.length > items.length) { items = found; query = q; }
       if (items.length >= (kind === 'region' ? 10 : 3)) break;
     } catch (error) {
@@ -269,7 +295,7 @@ export async function refreshNews(kind, id, { subject, name, force = false } = {
   }
   if (items.length < 3) console.log(`[news] ${kind} ${id}: only ${items.length} article(s) found; will try again in 2 hours`);
   else console.log(`[news] ${kind} ${id}: ${items.length} articles`);
-  const keep = items.length >= 3 || items.length >= (saved?.items?.length || 0);
+  const keep = kind === 'region' || items.length >= 3 || items.length >= (saved?.items?.length || 0);
   const next = { kind, id, query, fetchedAt: new Date().toISOString(), thin: items.length < 3, items: keep ? items : saved.items, summary: saved?.summary || null };
   const changed = items.length >= 3 && JSON.stringify(items.map((x) => x.url).sort()) !== JSON.stringify((saved?.summary?.basis || []).slice().sort());
   const due = !saved?.summary || Date.now() - new Date(saved.summary.at).getTime() > SUMMARY_EVERY;
@@ -337,7 +363,13 @@ export async function homeRegionNews(regionId) {
   const region = HOME_NEWS_REGIONS.find(([id]) => id === regionId);
   if (!region) return null;
   const saved = await readNews('region', region[0]);
+  const rule = REGION_TITLE[region[0]];
+  // Only headlines that are clearly about this region and about business
+  const items = (saved?.items || []).filter((x) => !rule || rule.market.test(x.title) || (rule.place.test(x.title) && BUSINESS_WORDS.test(x.title)));
   const age = saved ? Date.now() - new Date(saved.fetchedAt).getTime() : Infinity;
-  if (!saved || age > 6 * HOUR || (saved.thin && age > 3 * HOUR)) queueNews('region', region[0], { subject: `business news from ${region[1]}` });
-  return { region: region[0], name: region[1], items: saved?.items || [], fetchedAt: saved?.fetchedAt || null };
+  const oldList = saved && items.length < (saved.items || []).length; // saved before the headline test existed
+  if (!saved || oldList || age > 6 * HOUR || (saved.thin && age > 3 * HOUR)) {
+    queueNews('region', region[0], { subject: `business news from ${region[1]}`, force: oldList });
+  }
+  return { region: region[0], name: region[1], items, fetchedAt: saved?.fetchedAt || null };
 }

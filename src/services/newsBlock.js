@@ -6,7 +6,7 @@
    and TradingView's free news feed is shown meanwhile (never an empty box).
    ════════════════════════════════════════════════════════════════════════ */
 
-import { queueNews, readNews } from './newsLinksService.js';
+import { queueNews, readNews, regionHeadlineOk } from './newsLinksService.js';
 import { worldRegion } from '../data/worldStocks.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
@@ -91,7 +91,7 @@ export async function newsBlockHtml(kind, id, { title = 'In the news', subject =
   const age = saved ? Date.now() - new Date(saved.fetchedAt).getTime() : Infinity;
   const stale = !saved || age > 24 * 60 * 60 * 1000 || (saved.thin && age > 3 * 60 * 60 * 1000);
   if (stale) queueNews(kind, id, { subject, name });
-  const items = (saved?.items || []).slice(0, 6);
+  const items = (saved?.items || []).filter((x) => kind !== 'region' || regionHeadlineOk(id, x.title)).slice(0, 6);
   const words = search || subject || name || id;
   const links = moreLinks(kind, id, words);
   const more = `
