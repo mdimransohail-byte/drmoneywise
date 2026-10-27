@@ -39,12 +39,32 @@ function articleText(article) {
   return parts.filter(Boolean).map(String).join('\n');
 }
 
+/* Phrases like "guaranteed returns" are fine when the sentence is WARNING
+   readers about them (an explainer on spotting scams has to name them).
+   Returns the first phrase used as a real promise, or null. */
+const WARNING_WORDS = /\b(scams?|scammers?|fraud\w*|red flags?|warning signs?|beware|be wary|wary of|suspicious|too good to be true|no (legitimate )?investment|nobody can|no one can|cannot|can'?t (really )?(be )?guarantee|never|avoid|walk away|fake|ponzi|pyramid|regulators?|claims? (of|to)|promis\w+|lure|trap|mislead\w*)\b/iu;
+function promiseNotWarning(text, pattern) {
+  const global = new RegExp(pattern.source, `${pattern.flags.replace('g', '')}g`);
+  for (const m of String(text).matchAll(global)) {
+    const start = Math.max(String(text).lastIndexOf('.', m.index) + 1, String(text).lastIndexOf('\n', m.index) + 1, 0);
+    const endDot = String(text).slice(m.index).search(/[.\n]/u);
+    const sentence = String(text).slice(start, endDot === -1 ? undefined : m.index + endDot);
+    if (!WARNING_WORDS.test(sentence.replace(m[0], ''))) return m[0];
+  }
+  return null;
+}
+
 /** Returns { ok, issues: [plain-English reasons] } */
 export function checkArticle(article) {
   const issues = [];
   const text = articleText(article);
 
   for (const [pattern, reason] of BANNED) {
+    if (reason === 'promises returns') {
+      const bad = promiseNotWarning(text, pattern);
+      if (bad) issues.push(`${reason} ("${bad}")`);
+      continue;
+    }
     const match = text.match(pattern);
     if (match) issues.push(`${reason} ("${match[0]}")`);
   }

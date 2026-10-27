@@ -70,9 +70,13 @@
               <div><dt>What you can do</dt><dd id="aidDo">Usually nothing urgent. We say so when it isn't.</dd></div>
             </dl>
           </div>
-          <div id="marketPulse" class="pulse" aria-label="Markets today">
-            <div class="pulse-row"><span class="pulse-name">Market prices</span><span class="pulse-move flat">Soon</span><span class="pulse-plain">Daily prices for shares, gold, oil and Bitcoin will show here, each with a one-line meaning.</span></div>
-            <div class="pulse-foot"><a href="/today">See today's markets</a></div>
+          <div id="homeCalcs" class="hc-box" aria-label="Money calculators">
+            <div class="hc-head"><h2>Money calculators</h2><span>Free · nothing you type leaves your device</span></div>
+            <a class="hc-row" href="/tools/savings-growth" style="--c:#1baf7a"><i aria-hidden="true">$</i><span><strong>Grow my savings</strong><small>What a lump sum could grow to</small></span><b aria-hidden="true">→</b></a>
+            <a class="hc-row" href="/tools/monthly-investing" style="--c:#2a78d6"><i aria-hidden="true">↗</i><span><strong>Monthly investing</strong><small>Investing a little every month</small></span><b aria-hidden="true">→</b></a>
+            <a class="hc-row" href="/tools/retirement" style="--c:#6250d6"><i aria-hidden="true">⌂</i><span><strong>Retirement check</strong><small>Am I on track?</small></span><b aria-hidden="true">→</b></a>
+            <a class="hc-row" href="/tools/dividend-income" style="--c:#eda100"><i aria-hidden="true">%</i><span><strong>Dividend income</strong><small>Yearly payout from my shares</small></span><b aria-hidden="true">→</b></a>
+            <div class="hc-foot"><a href="/tools">All calculators and the money glossary</a> · <a href="/today">Today’s markets</a></div>
           </div>
         </div>
       </section>
@@ -80,6 +84,20 @@
       <div class="wrap">
         <!-- ═══ TOP 10s ═══════════════════════════════════════════════ -->
         <section id="homeResults" class="block rs-box" hidden></section>
+
+        <!-- ═══ BUSINESS NEWS BY REGION (public/regionnews.js) ═══ -->
+        <section class="block rn-box" id="regionNews">
+          <div class="rn-head">
+            <div><h2>Business news by region</h2><p>The latest headlines from news sites. Choose a region; click a headline to read it on the publisher’s site.</p></div>
+            <label class="rn-pick"><span>Region</span><select id="rnRegion" aria-label="Choose a region">
+              <option value="us">United States</option><option value="uk">United Kingdom</option><option value="europe">Europe</option>
+              <option value="india">India</option><option value="china">China</option><option value="japan">Japan</option>
+              <option value="south-korea">South Korea</option><option value="brazil">Brazil</option><option value="gulf">Gulf (Middle East)</option>
+            </select></label>
+          </div>
+          <div class="rn-window" id="rnWindow"><ul class="rn-list" id="rnList"><li class="rn-empty">Loading headlines…</li></ul></div>
+          <p class="rn-credit">Headlines found with <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">the GDELT Project</a>. Articles belong to their publishers; we don’t check or endorse them. <a id="rnMore" href="/stocks/world">More on this region</a></p>
+        </section>
 
         <section class="block home-tools">
           <div class="block-head"><div><h2>Research tools</h2><p>Built from companies’ and funds’ official reports.</p></div></div>
@@ -309,5 +327,6 @@
     <script type="module" src="/app.js"></script>
     <script src="/ads.js" defer></script>
     <script src="/results.js" defer></script>
+    <script src="/regionnews.js" defer></script>
   </body>
 </html>

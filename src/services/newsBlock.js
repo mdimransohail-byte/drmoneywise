@@ -91,7 +91,7 @@ export async function newsBlockHtml(kind, id, { title = 'In the news', subject =
   const age = saved ? Date.now() - new Date(saved.fetchedAt).getTime() : Infinity;
   const stale = !saved || age > 24 * 60 * 60 * 1000 || (saved.thin && age > 3 * 60 * 60 * 1000);
   if (stale) queueNews(kind, id, { subject, name });
-  const items = saved?.items || [];
+  const items = (saved?.items || []).slice(0, 6);
   const words = search || subject || name || id;
   const links = moreLinks(kind, id, words);
   const more = `

@@ -1415,3 +1415,46 @@ body.has-ad-strip { padding-bottom: 52px; }
 .rp-wide { margin-top: 16px; }
 .rp-top-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 760px) { .rp-top-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── Header: keep menu items on one line ── */
+.main-nav a { white-space: nowrap; }
+@media (max-width: 1240px) { .main-nav { gap: 16px; } .main-nav a { font-size: 15px; } }
+@media (max-width: 1240px) { .header-search { width: 180px; } }
+
+/* ── Homepage: money calculators (hero) ── */
+.hc-box { background: var(--paper); color: var(--ink); border-radius: var(--radius-lg); padding: 18px 20px 12px; box-shadow: 0 18px 40px rgba(0,0,0,.25); }
+.hc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.hc-head h2 { margin: 0; font-size: 24px; }
+.hc-head span { font: 12px var(--sans); color: #6b7290; }
+.hc-row { --c: #2a78d6; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-decoration: none; color: var(--ink); padding: 12px 6px; border-bottom: 1px solid var(--line); border-radius: 10px; transition: background .15s; }
+.hc-row:hover { background: #fff; }
+.hc-row i { display: grid; place-content: center; width: 44px; height: 44px; border-radius: 12px; background: var(--c); color: #fff; font: 800 17px var(--sans); font-style: normal; }
+.hc-row strong { display: block; font-size: 17px; }
+.hc-row small { color: #4a5170; font-size: 14px; }
+.hc-row b { color: var(--c); font-size: 20px; }
+.hc-foot { font: 13px var(--sans); color: #4a5170; padding: 10px 6px 4px; }
+.hc-foot a { color: #1a2a9e; }
+
+/* ── Homepage: business news by region ── */
+.rn-box { background: var(--paper); border: 1px solid var(--line); border-top: 6px solid #2a78d6; border-radius: 18px; padding: 18px 22px; }
+.rn-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.rn-head h2 { margin: 0 0 4px; font-size: 26px; }
+.rn-head p { margin: 0; color: #4a5170; font-size: 14px; max-width: 620px; }
+.rn-pick { display: grid; gap: 4px; font: 700 13px var(--sans); color: #4a5170; }
+.rn-pick select { min-width: 220px; padding: 10px 12px; border: 2px solid #2a78d6; border-radius: 12px; font: 700 16px var(--sans); color: #0a1128; background: #fff; }
+.rn-window { position: relative; height: 330px; overflow: hidden; border-radius: 12px; background: #fff; border: 1px solid var(--line); }
+.rn-window::before, .rn-window::after { content: ""; position: absolute; left: 0; right: 0; height: 28px; z-index: 1; pointer-events: none; }
+.rn-window::before { top: 0; background: linear-gradient(#fff, rgba(255,255,255,0)); }
+.rn-window::after { bottom: 0; background: linear-gradient(rgba(255,255,255,0), #fff); }
+.rn-list { list-style: none; margin: 0; padding: 6px 0; }
+.rn-list.rn-scroll { height: 100%; overflow-y: auto; }
+.rn-list.rn-roll { animation: rn-up var(--rn-time, 60s) linear infinite; }
+.rn-window:hover .rn-roll, .rn-window:focus-within .rn-roll { animation-play-state: paused; }
+@keyframes rn-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.rn-list li a { display: grid; gap: 3px; padding: 11px 16px; text-decoration: none; color: #0a1128; border-bottom: 1px solid #efe8d8; }
+.rn-list li a:hover { background: #f5f8fe; }
+.rn-list li a strong { font-size: 16px; line-height: 1.35; }
+.rn-list li a span { font: 12px var(--sans); color: #6b7290; }
+.rn-empty { padding: 20px 16px; color: #4a5170; }
+.rn-credit { font: 12px var(--sans); color: #6b7290; margin: 10px 0 0; }
+@media (max-width: 760px) { .rn-window { height: 300px; } .rn-pick, .rn-pick select { width: 100%; } .hc-head h2 { font-size: 21px; } }

@@ -308,6 +308,13 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { ideas: lists, max: MAX_IDEAS, starters: STARTER_IDEAS.map((x) => ({ ...x, words: describeIdea(x) })) });
     }
 
+    // Homepage: business news by region (free)
+    if (requestUrl.pathname === '/api/site/region-news' && request.method === 'GET') {
+      const { homeRegionNews, HOME_NEWS_REGIONS } = await import('./src/services/newsLinksService.js');
+      const data = await homeRegionNews(String(requestUrl.searchParams.get('region') || 'us'));
+      return sendJson(response, data ? 200 : 404, data ? { ...data, regions: HOME_NEWS_REGIONS } : { error: 'Unknown region' });
+    }
+
     // Company bosses' trades (Premium)
     if (requestUrl.pathname === '/api/site/insiders-preview' && request.method === 'GET') {
       return sendJson(response, 200, await insiderPreview());

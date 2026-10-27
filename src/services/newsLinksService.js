@@ -138,14 +138,22 @@ export function shortCompanyName(name) {
 /** The searches to try, in order: [query, days]. */
 // Stocks by region: the market's own words first, then a wider search
 const REGION_Q = {
-  uk: [['("FTSE 100" OR "London Stock Exchange") (shares OR stocks)', 14], ['"FTSE 100"', 30]],
-  japan: [['("Nikkei 225" OR "Tokyo stocks" OR TOPIX) (shares OR stocks)', 14], ['"Nikkei"', 30]],
-  china: [['("Hang Seng" OR "Shanghai Composite" OR "China stocks")', 14], ['"China stocks"', 30]],
-  india: [['(Sensex OR "Nifty 50" OR "Indian shares")', 14], ['Sensex', 30]],
-  'south-korea': [['(KOSPI OR "Korean stocks" OR "Seoul shares")', 14], ['KOSPI', 30]],
-  brazil: [['(Ibovespa OR "Brazilian stocks" OR "B3 exchange")', 14], ['Ibovespa', 30]],
-  gulf: [['(Tadawul OR "Gulf stocks" OR "Dubai Financial Market" OR "Abu Dhabi Securities Exchange")', 14], ['"Gulf stocks"', 30]],
+  us: [['("Wall Street" OR "S&P 500" OR Nasdaq OR "Federal Reserve" OR "US economy")', 3], ['("Wall Street" OR "US economy")', 7]],
+  europe: [['("Euro Stoxx" OR "European Central Bank" OR "eurozone economy" OR DAX OR "CAC 40")', 3], ['("European stocks" OR eurozone)', 7]],
+  uk: [['("FTSE 100" OR "Bank of England" OR "UK economy" OR "London Stock Exchange")', 3], ['("FTSE 100" OR "UK economy")', 14]],
+  japan: [['(Nikkei OR "Bank of Japan" OR "Japanese economy" OR TOPIX)', 3], ['(Nikkei OR "Japan economy")', 14]],
+  china: [['("Hang Seng" OR "Shanghai Composite" OR "China economy" OR "Chinese economy" OR PBOC)', 3], ['("China stocks" OR "Chinese economy")', 14]],
+  india: [['(Sensex OR Nifty OR "Reserve Bank of India" OR "Indian economy")', 3], ['(Sensex OR "Indian economy")', 14]],
+  'south-korea': [['(KOSPI OR "Bank of Korea" OR "South Korean economy" OR "Korean stocks")', 3], ['(KOSPI OR "Korean economy")', 14]],
+  brazil: [['(Ibovespa OR "Brazilian economy" OR "Brazil economy" OR "Banco Central do Brasil")', 3], ['(Ibovespa OR "Brazil economy")', 14]],
+  gulf: [['(Tadawul OR "Saudi economy" OR "UAE economy" OR "Dubai Financial Market" OR "Abu Dhabi Securities Exchange" OR "Gulf stocks")', 3], ['("Saudi economy" OR "UAE economy" OR "Gulf stocks")', 14]],
 };
+/** Regions for the homepage news box (id, name), in display order. */
+export const HOME_NEWS_REGIONS = [
+  ['us', 'United States'], ['uk', 'United Kingdom'], ['europe', 'Europe'], ['india', 'India'], ['china', 'China'],
+  ['japan', 'Japan'], ['south-korea', 'South Korea'], ['brazil', 'Brazil'], ['gulf', 'Gulf (Middle East)'],
+];
+
 
 export function newsQueries(kind, id, extra = {}) {
   // Third try: two plain words, the simplest search GDELT accepts
@@ -201,8 +209,8 @@ async function gdelt(query, days = 14) {
   throw lastError;
 }
 
-/** Picks the best 5: trusted sites first, no duplicates or spam sites. */
-export function pickArticles(articles, kind) {
+/** Picks the best 5 (15 for regions): trusted sites first, no duplicates or spam sites. */
+export function pickArticles(articles, kind, limit = kind === 'region' ? 15 : 5) {
   const seen = new Set();
   const out = [];
   for (const a of articles || []) {
@@ -220,7 +228,7 @@ export function pickArticles(articles, kind) {
     out.push({ title, url, domain, date, score });
   }
   return out.sort((x, y) => y.score - x.score || String(y.date).localeCompare(String(x.date)))
-    .slice(0, 5)
+    .slice(0, limit)
     .sort((x, y) => String(y.date).localeCompare(String(x.date)))
     .map(({ score, ...rest }) => rest);
 }
@@ -239,7 +247,7 @@ async function writeNews(kind, id, data) {
 /** Downloads fresh links (and a new summary if the headlines changed). */
 export async function refreshNews(kind, id, { subject, name, force = false } = {}) {
   const saved = await readNews(kind, id);
-  const freshFor = saved?.thin ? 3 * HOUR : kind === 'stock' || kind === 'localstock' || kind === 'region' ? 23 * HOUR : FRESH;
+  const freshFor = saved?.thin ? 3 * HOUR : kind === 'region' ? 6 * HOUR : kind === 'stock' || kind === 'localstock' ? 23 * HOUR : FRESH;
   if (!force && saved && Date.now() - new Date(saved.fetchedAt).getTime() < freshFor) return saved;
   const tries = newsQueries(kind, id, { name });
   if (!tries.length) return saved;
@@ -250,7 +258,7 @@ export async function refreshNews(kind, id, { subject, name, force = false } = {
     try {
       const found = pickArticles(await gdelt(q, days), kind);
       if (found.length > items.length) { items = found; query = q; }
-      if (items.length >= 3) break;
+      if (items.length >= (kind === 'region' ? 10 : 3)) break;
     } catch (error) {
       problems.push(error.message);
     }
@@ -304,7 +312,7 @@ export async function refreshAllNews() {
     ...BOND_PLACES.map((p) => ['bond', p.slug, { subject: `${p.name} government bond yields` }]),
     ...PROPERTY_PLACES.map((p) => ['property', p.slug, { subject: `the ${p.name} property market` }]),
     ...CURATED_ETFS.map((e) => ['etf', e.ticker, { subject: `${e.name} (${e.ticker}) and ${e.kind.toLowerCase()}` }]),
-    ...WORLD_REGIONS.map((r) => ['region', r.id, { subject: `shares in ${r.name}` }]),
+    ...HOME_NEWS_REGIONS.map(([id, name]) => ['region', id, { subject: `business news from ${name}` }]),
     ...WORLD_REGIONS.flatMap((r) => r.local.map((x) => ['localstock', `${r.id}--${x.slug}`, { name: x.name, subject: x.name }])),
     ...getUniverse().map((t) => {
       const c = companies?.[t];
@@ -322,4 +330,14 @@ export async function refreshAllNews() {
   }
   if (!ok && !withLinks) return { ok: false, message: 'No headlines could be downloaded from GDELT' };
   return { ok: true, message: `${ok} pages refreshed; ${withLinks} of ${jobs.length} have 3+ articles; ${summaries} new summaries written` };
+}
+
+/** Homepage news box: one region's latest business headlines. */
+export async function homeRegionNews(regionId) {
+  const region = HOME_NEWS_REGIONS.find(([id]) => id === regionId);
+  if (!region) return null;
+  const saved = await readNews('region', region[0]);
+  const age = saved ? Date.now() - new Date(saved.fetchedAt).getTime() : Infinity;
+  if (!saved || age > 6 * HOUR || (saved.thin && age > 3 * HOUR)) queueNews('region', region[0], { subject: `business news from ${region[1]}` });
+  return { region: region[0], name: region[1], items: saved?.items || [], fetchedAt: saved?.fetchedAt || null };
 }

@@ -753,6 +753,22 @@ export function getPlanCatalog() {
 
 /* ── Called by the data engine every few hours (no visitors needed) ── */
 export async function runLearningAutopilot() {
+  // Explainers held by an earlier, stricter version of the quality checks:
+  // check them again and let the ones that now pass join the queue.
+  try {
+    let released = 0;
+    await updateStore((s) => {
+      for (const a of s.articles || []) {
+        if (a.status !== 'draft' || !['trending-auto', 'deeper-auto'].includes(a.source) || !(a.qualityIssues || []).length || a.adminHeld) continue;
+        const again = checkArticle(a);
+        if (again.ok) { a.status = 'scheduled'; a.qualityIssues = []; a.qualityCheckedAt = new Date().toISOString(); released += 1; }
+      }
+      return s;
+    });
+    if (released) console.log(`[articleService] ${released} held explainer(s) passed the updated checks and joined the queue`);
+  } catch (error) {
+    console.error('[articleService] Re-checking held explainers failed:', error.message);
+  }
   const active = await getActiveLearningPoints();
   // Between changes, keep writing (max 4 per run) until 10 are waiting.
   let topUp = { written: 0 };
