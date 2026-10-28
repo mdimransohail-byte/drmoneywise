@@ -1475,3 +1475,37 @@ body.has-ad-strip { padding-bottom: 52px; }
 .rv-icon { display: inline-grid; place-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--c); color: #fff; font: 800 18px var(--sans); margin-bottom: 6px; }
 .rv-join { font-weight: 700; }
 @media (max-width: 900px) { .rs-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── Newsletter sign-up and pages ─────────────────────────────────── */
+.nl-box { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px 22px; align-items: center; background: linear-gradient(120deg, #0a1128 0%, #1a2a9e 100%); color: #e8ecf8; border-radius: 20px; padding: 22px 24px; margin: 0 0 16px; }
+.nl-text { display: flex; gap: 14px; align-items: center; }
+.nl-icon { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #c9a227; color: #0a1128; display: grid; place-items: center; font-size: 26px; }
+.nl-text strong { display: block; color: #fff; font: 700 21px Georgia, serif; margin-bottom: 4px; }
+.nl-text span { color: #c9d0e6; font-size: 14px; line-height: 1.45; }
+.nl-fields { display: flex; gap: 8px; }
+.nl-fields input { flex: 1; min-width: 0; border: 0; border-radius: 999px; padding: 12px 16px; font-size: 15px; }
+.nl-fields .pf-btn { white-space: nowrap; }
+.nl-msg { grid-column: 1 / -1; margin: 0; font-size: 14px; min-height: 0; }
+.nl-msg:empty { display: none; }
+.nl-msg.good { color: #8ff0c6; }
+.nl-msg.bad { color: #ffb4a8; }
+.nl-home { padding-top: 0; padding-bottom: 0; }
+.nl-home .nl-box { margin: 0; }
+.nl-promise { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 22px; }
+.nl-promise div { background: #fff; border-radius: 14px; border-top: 5px solid var(--c); padding: 14px 16px; }
+.nl-promise b { display: block; font: 700 28px Georgia, serif; color: var(--c); }
+.nl-promise span { color: #4a5170; font-size: 14px; }
+.nl-archive { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.nl-issue { display: block; background: #fff; border-radius: 14px; border-left: 5px solid var(--c); padding: 14px 16px; color: inherit; text-decoration: none; }
+.nl-issue:hover { box-shadow: 0 6px 18px rgba(10, 17, 40, .12); }
+.nl-issue small { color: var(--c); font-weight: 700; }
+.nl-issue strong { display: block; font: 700 17px Georgia, serif; margin: 4px 0; }
+.nl-issue span { color: #4a5170; font-size: 13px; }
+.nl-back { margin: 0 0 10px; }
+.nl-web { margin: 0 0 18px; }
+.nl-web > div { padding: 0 !important; background: transparent !important; }
+@media (max-width: 760px) {
+  .nl-box { grid-template-columns: 1fr; padding: 18px; }
+  .nl-fields { flex-direction: column; }
+  .nl-promise { grid-template-columns: 1fr; }
+}

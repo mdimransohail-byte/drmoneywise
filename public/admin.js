@@ -149,6 +149,8 @@ const API = {
   askGet:              ()   => API.get('/api/admin/ask'),
   askDraft:            (id) => API.post('/api/admin/ask/draft', { id }),
   askAnswer:           (b)  => API.post('/api/admin/ask/answer', b),
+  nlGet:               ()   => API.get('/api/admin/newsletter'),
+  nlPost:              (sub, b) => API.post('/api/admin/newsletter/' + sub, b || {}),
   adsGet:              ()   => API.get('/api/admin/ads'),
   adsSave:             (b)  => API.post('/api/admin/ads', b),
   getBusinessSettings: ()   => API.get('/api/admin/business-settings'),
@@ -2021,6 +2023,173 @@ function bind_ask() {
   }));
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE K: NEWSLETTER
+// ─────────────────
+// Write a newsletter, preview it, send yourself a test, then send it to an
+// audience. Big sends are spread over days by the daily limit and carry on
+// by themselves every hour. Members can switch it off; subscribers confirm
+// their address first (double opt-in).
+// ════════════════════════════════════════════════════════════════════════════
+
+const NL_BLANK = () => ({ id: '', subject: '', preheader: '', intro: '', closing: 'Have a good week,\nThe Dr MoneyWise team', audience: 'everyone', items: [{ heading: '', text: '', url: '', button: '' }] });
+
+function render_newsletter() {
+  const d = STATE.nl || { stats: { counts: {}, subscribers: {} }, issues: [], audiences: {} };
+  const st = d.stats; const ed = STATE.nlEdit || NL_BLANK();
+  const tile = (n, label, c) => `<div class="card" style="border-left:4px solid ${c};padding:12px 14px"><div style="font-size:1.5rem;font-weight:700;color:#fff">${fmtNum(n)}</div><div style="font-size:.72rem;color:#9eb3cc">${label}</div></div>`;
+  const statusBadge = { draft: ['Draft', '#9eb3cc'], sending: ['Sending', '#e8a33d'], sent: ['Sent', '#2bc48a'], stopped: ['Stopped', '#f26a6a'] };
+  const itemRow = (x, i) => `
+      <div class="card nl-item" data-i="${i}" style="background:rgba(255,255,255,.03);margin:0 0 10px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.78rem;color:#c9a227">Story ${i + 1}</strong><button class="btn" data-nl="remove" data-i="${i}" style="padding:4px 10px">Remove</button></div>
+        <label style="display:block;margin:8px 0"><span class="field">Heading</span><input class="input" name="heading" value="${h(x.heading)}" maxlength="160"></label>
+        <label style="display:block;margin:8px 0"><span class="field">Text (a blank line starts a new paragraph)</span><textarea name="text" rows="4" maxlength="2000">${h(x.text)}</textarea></label>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+          <label style="display:block;margin:8px 0"><span class="field">Link (optional)</span><input class="input" name="url" value="${h(x.url)}" placeholder="https://drmoneywise.com/learn/..."></label>
+          <label style="display:block;margin:8px 0"><span class="field">Button words</span><input class="input" name="button" value="${h(x.button)}" maxlength="40" placeholder="Read more"></label>
+        </div>
+      </div>`;
+  const locked = ed.status && ed.status !== 'draft';
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:#c9a227">Members</div>
+      <h1>Newsletter</h1>
+      <p>Write it, preview it, send yourself a test, then send. Each email has its own one-click unsubscribe link. ${st.emailReady ? '' : '<strong style="color:#f26a6a">Sending is off until the Resend key and your own "from" address (ALERTS_EMAIL_FROM) are saved.</strong>'}</p>
+    </div>
+    <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
+      ${tile(st.counts.everyone || 0, 'Would get it (everyone)', '#c9a227')}
+      ${tile(st.counts.members || 0, 'Members with it switched on', '#2a78d6')}
+      ${tile(st.subscribers.active || 0, 'Confirmed subscribers', '#2bc48a')}
+      ${tile(st.subscribers.pending || 0, 'Waiting to confirm', '#e8a33d')}
+      ${tile((st.subscribers.unsubscribed || 0) + (st.membersOptedOut || 0), 'Unsubscribed', '#f26a6a')}
+      ${tile(st.sentToday || 0, `Sent today (limit ${fmtNum(st.dailyLimit)})`, '#3cb5c4')}
+    </div>
+    <div class="card-grid two-col">
+      <div class="card" id="nlEditor">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <h2 style="margin:0">${ed.id ? (locked ? 'Sent newsletter (read only)' : 'Edit draft') : 'New newsletter'}</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-nl="new">Start a blank one</button><button class="btn" data-nl="fill">Fill from this week on the site</button></div>
+        </div>
+        <label style="display:block;margin:8px 0"><span class="field">Subject line</span><input class="input" name="subject" value="${h(ed.subject)}" maxlength="140" placeholder="Your week in money: 7 November"></label>
+        <label style="display:block;margin:8px 0"><span class="field">Preview text (shown after the subject in most inboxes)</span><input class="input" name="preheader" value="${h(ed.preheader)}" maxlength="160"></label>
+        <label style="display:block;margin:8px 0"><span class="field">Opening words</span><textarea name="intro" rows="4" maxlength="4000">${h(ed.intro)}</textarea></label>
+        <div id="nlItems">${(ed.items || []).map(itemRow).join('')}</div>
+        <button class="btn" data-nl="add">+ Add a story</button>
+        <label style="margin-top:10px"><span class="field">Closing words</span><textarea name="closing" rows="3" maxlength="2000">${h(ed.closing)}</textarea></label>
+        <label style="display:block;margin:8px 0"><span class="field">Send to</span><select name="audience">${Object.entries(d.audiences).map(([k, v]) => `<option value="${k}" ${ed.audience === k ? 'selected' : ''}>${h(v)} — ${fmtNum(st.counts[k] || 0)} people</option>`).join('')}</select></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
+          ${locked ? '' : `<button class="btn" data-nl="save">Save draft</button>
+          <button class="btn" data-nl="preview">Preview</button>
+          <button class="btn" data-nl="test">Send me a test</button>
+          <button class="btn btn-gold" data-nl="send">Send to everyone chosen</button>`}
+          <span id="nlMsg" style="font-size:.76rem"></span>
+        </div>
+        <p style="font-size:.7rem;color:#9eb3cc;margin-top:10px">Tip: keep each story short with one link. The footer (education-only note, unsubscribe link and your business address) is added for you.</p>
+      </div>
+      <div>
+        <div class="card"><h2 style="margin-top:0">Preview</h2><iframe id="nlPreview" title="Newsletter preview" style="width:100%;height:520px;border:0;border-radius:10px;background:#f1e8d6"></iframe></div>
+        <div class="card"><h2 style="margin-top:0">Sending speed</h2>
+          <p style="font-size:.76rem;color:#9eb3cc">Resend's free plan allows about 100 emails a day in total, and member alerts use some of those. A bigger list carries on automatically the next day. If you move to a paid Resend plan, raise this number.</p>
+          <div style="display:flex;gap:8px;align-items:end"><label style="flex:1"><span class="field">Newsletter emails per day</span><input class="input" type="number" name="nlLimit" min="1" value="${st.dailyLimit}"></label><button class="btn" data-nl="limit">Save</button></div>
+        </div>
+        <div class="card"><h2 style="margin-top:0">Past and current newsletters</h2>
+          ${d.issues.length ? d.issues.map((x) => { const b = statusBadge[x.status] || statusBadge.draft; const pct = x.total ? Math.round(((x.sent || 0) / x.total) * 100) : 0; return `
+          <div style="border-top:1px solid rgba(255,255,255,.08);padding:10px 0">
+            <div style="display:flex;justify-content:space-between;gap:8px"><strong style="color:#fff;font-size:.84rem">${h(x.subject || '(no subject)')}</strong><span style="color:${b[1]};font-size:.72rem;font-weight:700">${b[0]}</span></div>
+            <div style="font-size:.7rem;color:#9eb3cc">${h(d.audiences[x.audience] || '')} · ${fmtDate(x.sentAt || x.startedAt || x.updatedAt || x.createdAt)}</div>
+            ${x.status !== 'draft' ? `<div style="height:8px;background:rgba(255,255,255,.08);border-radius:6px;margin:6px 0"><div style="height:8px;width:${pct}%;background:${b[1]};border-radius:6px"></div></div><div style="font-size:.7rem;color:#dbe6f3">${fmtNum(x.sent || 0)} of ${fmtNum(x.total || 0)} sent${x.failed ? `, ${fmtNum(x.failed)} failed` : ''}${x.lastError ? ` · <span style="color:#f26a6a">${h(x.lastError)}</span>` : ''}</div>` : ''}
+            <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+              <button class="btn" data-nl="open" data-id="${h(x.id)}" style="padding:4px 10px">${x.status === 'draft' ? 'Edit' : 'View'}</button>
+              ${x.status === 'draft' ? `<button class="btn" data-nl="delete" data-id="${h(x.id)}" style="padding:4px 10px">Delete</button>` : ''}
+              ${x.status === 'sending' ? `<button class="btn" data-nl="continue" style="padding:4px 10px">Send next batch now</button><button class="btn" data-nl="stop" data-id="${h(x.id)}" style="padding:4px 10px">Stop</button>` : ''}
+              ${x.status === 'sent' ? `<a class="btn" href="/newsletter/${h(x.id)}" target="_blank" rel="noopener" style="padding:4px 10px">Web page</a>` : ''}
+            </div>
+          </div>`; }).join('') : '<p style="color:#9eb3cc;font-size:.8rem">None yet.</p>'}
+          <p style="margin-top:10px"><button class="btn" data-nl="csv">Download subscriber list (CSV)</button></p>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function load_newsletter() {
+  try {
+    STATE.nl = await API.nlGet();
+    setMain(render_newsletter());
+    bind_newsletter();
+  } catch (e) {
+    setMain(`<div class="loading">Could not load the newsletter page: ${h(e.message)}</div>`);
+  }
+}
+
+function nlRead() {
+  const ed = qs('#nlEditor');
+  const v = (n) => (ed.querySelector(`[name=${n}]`) || {}).value || '';
+  return {
+    ...(STATE.nlEdit || {}),
+    subject: v('subject'), preheader: v('preheader'), intro: v('intro'), closing: v('closing'), audience: v('audience') || 'everyone',
+    items: qsa('#nlItems .nl-item').map((el) => ({ heading: el.querySelector('[name=heading]').value, text: el.querySelector('[name=text]').value, url: el.querySelector('[name=url]').value, button: el.querySelector('[name=button]').value })),
+  };
+}
+
+async function nlPreview() {
+  const frame = qs('#nlPreview');
+  if (!frame) return;
+  try { const r = await API.nlPost('preview', nlRead()); frame.srcdoc = r.html; } catch (e) { /* preview only */ }
+}
+
+function bind_newsletter() {
+  const msg = qs('#nlMsg');
+  const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? '#f26a6a' : '#2bc48a'; } };
+  const redraw = async (keepEdit) => { if (keepEdit) STATE.nlEdit = keepEdit; STATE.nl = await API.nlGet(); setMain(render_newsletter()); bind_newsletter(); };
+  const saveDraft = async () => { const r = await API.nlPost('save', nlRead()); STATE.nlEdit = r.issue; return r.issue; };
+  qsa('#nlEditor input, #nlEditor textarea, #nlEditor select').forEach((el) => el.addEventListener('change', nlPreview));
+  qsa('[data-nl]').forEach((btn) => btn.addEventListener('click', async () => {
+    const act = btn.dataset.nl;
+    btn.disabled = true;
+    try {
+      if (act === 'new') { STATE.nlEdit = NL_BLANK(); setMain(render_newsletter()); bind_newsletter(); return; }
+      if (act === 'add' || act === 'remove') {
+        const cur = nlRead();
+        if (act === 'add') cur.items.push({ heading: '', text: '', url: '', button: '' }); else cur.items.splice(Number(btn.dataset.i), 1);
+        STATE.nlEdit = cur; setMain(render_newsletter()); bind_newsletter(); return;
+      }
+      if (act === 'fill') {
+        say('Gathering this week’s explainers and results…');
+        const r = await API.nlPost('draft-from-site');
+        STATE.nlEdit = { ...r.draft, id: (STATE.nlEdit || {}).status === 'draft' ? STATE.nlEdit.id : '' };
+        setMain(render_newsletter()); bind_newsletter();
+        qs('#nlMsg').textContent = 'Filled from the site. Please read it through and edit before sending.'; return;
+      }
+      if (act === 'save') { await saveDraft(); await redraw(); qs('#nlMsg').textContent = 'Draft saved.'; return; }
+      if (act === 'preview') { await nlPreview(); say('Preview updated.'); }
+      if (act === 'test') { const issue = await saveDraft(); const r = await API.nlPost('test', { id: issue.id }); say(r.ok ? 'Test sent to your admin email.' : `Test failed: ${r.message}`, !r.ok); }
+      if (act === 'send') {
+        const cur = nlRead();
+        const count = (STATE.nl.stats.counts || {})[cur.audience] || 0;
+        if (!cur.subject.trim()) { say('Add a subject line first.', true); btn.disabled = false; return; }
+        if (!window.confirm(`Send "${cur.subject}" to ${count} people? This can’t be undone.`)) { btn.disabled = false; return; }
+        const issue = await saveDraft();
+        const r = await API.nlPost('send', { id: issue.id });
+        showToast(r.done ? `Sent to ${r.sent} people` : r.message || 'Sending started');
+        STATE.nlEdit = NL_BLANK(); await redraw(); return;
+      }
+      if (act === 'open') { const it = STATE.nl.issues.find((x) => x.id === btn.dataset.id); STATE.nlEdit = { ...it }; setMain(render_newsletter()); bind_newsletter(); nlPreview(); return; }
+      if (act === 'delete') { if (!window.confirm('Delete this draft?')) { btn.disabled = false; return; } await API.nlPost('delete', { id: btn.dataset.id }); if ((STATE.nlEdit || {}).id === btn.dataset.id) STATE.nlEdit = NL_BLANK(); await redraw(); return; }
+      if (act === 'continue') { const r = await API.nlPost('continue'); showToast(r.message); await redraw(); return; }
+      if (act === 'stop') { if (!window.confirm('Stop sending? People who already got it keep it.')) { btn.disabled = false; return; } await API.nlPost('stop', { id: btn.dataset.id }); await redraw(); return; }
+      if (act === 'limit') { const r = await API.nlPost('limit', { limit: qs('[name=nlLimit]').value }); showToast(`Daily limit set to ${r.dailyLimit}`); await redraw(nlRead()); return; }
+      if (act === 'csv') {
+        const res = await fetch('/api/admin/newsletter/subscribers.csv', { headers: { 'x-session-token': STATE.token } });
+        const blob = await res.blob();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'newsletter-subscribers.csv'; a.click();
+      }
+    } catch (e) { say(e.message, true); }
+    btn.disabled = false;
+  }));
+  nlPreview();
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION 6: ROUTER
 // To add a new page: add an entry to the PAGES map
@@ -2037,6 +2206,7 @@ const PAGES = {
   property:  { load: load_property,   render: render_property,  bind: bind_property   },
   ads:       { load: load_ads,        render: render_ads,       bind: bind_ads        },
   ask:       { load: load_ask,        render: render_ask,       bind: bind_ask        },
+  newsletter:{ load: load_newsletter, render: render_newsletter, bind: bind_newsletter },
 };
 
 const ROUTER = {

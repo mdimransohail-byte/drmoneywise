@@ -41,6 +41,7 @@ const JOB_LIMITS = {
   news: { warn: 26 * HOUR, fail: 72 * HOUR },
   results: { warn: 4 * HOUR, fail: 24 * HOUR },
   alerts: { warn: 4 * HOUR, fail: 24 * HOUR },
+  newsletter: { warn: 4 * HOUR, fail: 24 * HOUR },
 };
 
 function ago(iso) {

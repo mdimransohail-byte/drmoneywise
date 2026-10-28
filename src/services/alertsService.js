@@ -36,6 +36,7 @@ export const EMAIL_KINDS = {
   weekly: { label: 'Weekly email', plan: 'regular', about: 'Saturday morning: your watchlist’s week, the biggest results and the economy.' },
   funds: { label: 'Big-fund alerts', plan: 'premium', about: 'When a famous fund buys or sells a company on your watchlist (each quarter).' },
   report: { label: 'Monthly research report', plan: 'premium', about: 'On the 1st of each month: the month in figures, with a link to the full report.' },
+  newsletter: { label: 'Newsletter', plan: 'free', about: 'About once a week: our best explainers, the biggest results and new research. Easy to stop at any time.' },
 };
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
@@ -322,3 +323,6 @@ export async function sendAskAnswer(q) {
   });
   return sendEmail({ to: q.email, subject: 'Your Dr MoneyWise question has been answered', html: html.replace(/ · <a href="[^"]*email\/unsubscribe[^"]*"[^>]*>Unsubscribe from these<\/a>/u, '') });
 }
+
+/* Shared with the newsletter (newsletterService.js) */
+export { layout, section, line, sign, secret, siteUrl, esc };

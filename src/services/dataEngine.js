@@ -61,6 +61,7 @@ const JOBS = {
   etfs: { label: 'ETF holdings (SEC N-PORT)', every: 7 * 24 * HOUR },
   news: { label: 'In the news: headlines for each page (GDELT)', every: 12 * HOUR },
   results: { label: 'Company results (SEC filings, checked hourly)', every: 1 * HOUR },
+  newsletter: { label: 'Newsletter: carries on a big send (daily limit)', every: 1 * HOUR },
   alerts: { label: 'Member emails: dividend + big-fund alerts, Saturday weekly email', every: 1 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
@@ -241,6 +242,11 @@ async function runReport() {
   return runReports();
 }
 
+async function runNewsletter() {
+  const { continueSending } = await import('./newsletterService.js');
+  return continueSending();
+}
+
 async function runDeeper() {
   const { writeDeeperExplainer } = await import('./articleService.js');
   return writeDeeperExplainer();
@@ -291,7 +297,7 @@ async function runAlertsJob() {
   return runAlerts();
 }
 
-const RUNNERS = { report: runReport, deeper: runDeeper, alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
+const RUNNERS = { newsletter: runNewsletter, report: runReport, deeper: runDeeper, alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

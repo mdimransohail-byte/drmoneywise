@@ -54,6 +54,8 @@ import { renderReportPage, renderReportsIndex, reportFullHtml } from './src/serv
 import { readReport } from './src/services/reportService.js';
 import { ASK_TOPICS, adminAnswer, adminQuestions, askQuestion, draftAnswer, myQuestions } from './src/services/askService.js';
 import { renderAskPage } from './src/services/askPage.js';
+import { renderNewsletterPage, renderNewsletterIssue, renderNewsletterMessage } from './src/services/newsletterPage.js';
+import * as newsletter from './src/services/newsletterService.js';
 import { screenerRows, fundOwners, fundExplorer } from './src/services/screenerService.js';
 import { portfolioHealth } from './src/services/healthCheckService.js';
 import { impactsFor, latestResults } from './src/services/resultsService.js';
@@ -117,7 +119,9 @@ export const server = http.createServer(async (request, response) => {
     response.writeHead = (statusCode, headers = {}) => originalWriteHead(statusCode, { ...headers, ...robotsHeaders });
 
     // ── Public pages built on the server (readable by Google) ──────────
-    if (request.method === 'GET' && !requestUrl.pathname.startsWith('/api/')) {
+    // Email apps "one-click unsubscribe" with a POST to the same link
+    const oneClick = request.method === 'POST' && ['/email/unsubscribe', '/newsletter/unsubscribe'].includes(requestUrl.pathname);
+    if ((request.method === 'GET' || oneClick) && !requestUrl.pathname.startsWith('/api/')) {
       const handled = await handlePublicPage(requestUrl, request, response);
       if (handled) {
         return;
@@ -306,6 +310,41 @@ export const server = http.createServer(async (request, response) => {
       }
       const lists = (await ideasFor(owner)).map(({ allTickers, lastMatches, ...rest }) => rest);
       return sendJson(response, 200, { ideas: lists, max: MAX_IDEAS, starters: STARTER_IDEAS.map((x) => ({ ...x, words: describeIdea(x) })) });
+    }
+
+    // Newsletter: public sign-up (double opt-in)
+    if (requestUrl.pathname === '/api/site/newsletter' && request.method === 'POST') {
+      const ip = String(request.headers['x-forwarded-for'] || request.socket?.remoteAddress || '').split(',')[0].trim();
+      const body = await parseJsonBody(request);
+      try {
+        return sendJson(response, 200, await newsletter.subscribe(body.email, { ip, source: String(body.source || 'site').replace(/[^a-z0-9-]/giu, '').slice(0, 30) }));
+      } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
+    }
+    // Newsletter: Admin
+    if (requestUrl.pathname.startsWith('/api/admin/newsletter')) {
+      const admin = await requireAdminUser(token);
+      const sub = requestUrl.pathname.slice('/api/admin/newsletter'.length);
+      try {
+        if (sub === '' && request.method === 'GET') return sendJson(response, 200, { stats: await newsletter.newsletterStats(), issues: await newsletter.listIssues(), audiences: newsletter.AUDIENCES });
+        if (sub === '/subscribers.csv' && request.method === 'GET') {
+          response.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="newsletter-subscribers.csv"' });
+          response.end(await newsletter.subscribersCsv());
+          return true;
+        }
+        if (request.method === 'POST') {
+          const body = await parseJsonBody(request);
+          if (sub === '/draft-from-site') return sendJson(response, 200, { draft: await newsletter.draftFromSite() });
+          if (sub === '/save') return sendJson(response, 200, { issue: await newsletter.saveIssue(body.id, body) });
+          if (sub === '/delete') { await newsletter.deleteIssue(body.id); return sendJson(response, 200, { ok: true }); }
+          if (sub === '/test') return sendJson(response, 200, await newsletter.sendTest(body.id, body.to || admin.email));
+          if (sub === '/send') return sendJson(response, 200, await newsletter.startSend(body.id));
+          if (sub === '/continue') return sendJson(response, 200, await newsletter.continueSending());
+          if (sub === '/stop') { await newsletter.cancelSend(body.id); return sendJson(response, 200, { ok: true }); }
+          if (sub === '/limit') return sendJson(response, 200, { dailyLimit: await newsletter.saveDailyLimit(body.limit) });
+          if (sub === '/preview') return sendJson(response, 200, { html: newsletter.newsletterHtml({ ...body, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site: getSiteOrigin(request), name: 'Sam', webUrl: '#', unsubscribeUrl: '#' }) });
+        }
+        return sendJson(response, 404, { error: 'Not found' });
+      } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
     }
 
     // Homepage: business news by region (free)
@@ -863,6 +902,22 @@ async function handlePublicPage(requestUrl, request, response) {
   const reportMatch = pathname.match(/^\/reports\/(\d{4}-\d{2})$/u);
   if (reportMatch) {
     const html = await renderReportPage(origin, reportMatch[1]);
+    if (html) return sendHtml(response, 200, html);
+  }
+
+  // Newsletter pages
+  if (pathname === '/newsletter') return sendHtml(response, 200, await renderNewsletterPage(origin));
+  if (pathname === '/newsletter/confirm') {
+    const ok = await newsletter.confirmSubscriber(String(requestUrl.searchParams.get('t') || ''));
+    return sendHtml(response, ok ? 200 : 400, renderNewsletterMessage(origin, ok ? { title: 'You’re signed up', text: 'Thank you for confirming. The next Dr MoneyWise newsletter will come straight to your inbox.' } : { ok: false, title: 'This link didn’t work', text: 'The link may be old or already used. Please sign up again on the newsletter page.' }));
+  }
+  if (pathname === '/newsletter/unsubscribe') {
+    const ok = await newsletter.unsubscribeSubscriber(String(requestUrl.searchParams.get('t') || ''));
+    return sendHtml(response, ok ? 200 : 400, renderNewsletterMessage(origin, ok ? { title: 'You are unsubscribed', text: 'You won’t get the newsletter any more. You can sign up again at any time.' } : { ok: false, title: 'This link didn’t work', text: 'The link may be old. If you still get newsletters, reply to one and we’ll remove you.' }));
+  }
+  const nlMatch = pathname.match(/^\/newsletter\/([a-f0-9]{8})$/u);
+  if (nlMatch) {
+    const html = await renderNewsletterIssue(origin, nlMatch[1]);
     if (html) return sendHtml(response, 200, html);
   }
 

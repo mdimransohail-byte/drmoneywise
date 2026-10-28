@@ -84,9 +84,11 @@
 
   /* ── Your emails ── */
   var EMAILS = [
+    ['newsletter', 'Newsletter', 'About once a week: our best explainers, the biggest results and new research.', 'free'],
     ['weekly', 'Weekly email', 'Saturday morning: your watchlist’s week, the biggest results and the economy.', 'regular'],
     ['dividends', 'Dividend alerts', 'When a company on your watchlist raises, cuts, starts or stops its dividend.', 'regular'],
     ['funds', 'Big-fund alerts', 'When a famous fund buys or sells a company on your watchlist (each quarter).', 'premium'],
+    ['report', 'Monthly research report', 'On the 1st of each month: the month in figures, with a link to the full report.', 'premium'],
   ];
   function renderEmails() {
     const box = $('myEmails');

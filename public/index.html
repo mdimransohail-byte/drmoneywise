@@ -144,6 +144,15 @@
           <div id="learningPoints" class="explain"></div>
         </section>
 
+        <!-- ═══ NEWSLETTER SIGN-UP (public/newsletter.js) ═══ -->
+        <section class="block nl-home">
+          <form class="nl-box" data-nl-form data-source="home">
+          <div class="nl-text"><span class="nl-icon" aria-hidden="true">✉</span><div><strong>Get the free weekly newsletter</strong><span>Our best plain-English explainers, the biggest company results and new research. About once a week, easy to stop.</span></div></div>
+          <div class="nl-fields"><label class="sr-only" for="nl-home">Your email</label><input id="nl-home" type="email" name="email" required maxlength="160" placeholder="Your email address" autocomplete="email"><button class="pf-btn gold" type="submit">Sign me up</button></div>
+          <p class="nl-msg" aria-live="polite"></p>
+        </form>
+        </section>
+
         <!-- ═══ TOP STORIES ═══════════════════════════════════════════ -->
         <section id="news" class="block">
           <div class="block-head">
@@ -312,6 +321,7 @@
             <a href="/about">About</a>
             <a href="/contact">Contact</a>
             <a href="/disclaimer">Disclaimer</a>
+            <a href="/newsletter">Newsletter</a>
             <a href="/privacy">Privacy</a>
             <a href="/terms">Terms</a>
           </div>
@@ -326,5 +336,6 @@
     <script src="/ads.js" defer></script>
     <script src="/results.js" defer></script>
     <script src="/regionnews.js" defer></script>
+    <script src="/newsletter.js" defer></script>
   </body>
 </html>

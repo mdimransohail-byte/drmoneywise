@@ -123,6 +123,7 @@ export async function buildSitemapXml(origin) {
   }
   urls.push({ loc: `${origin}/results`, lastmod: today, priority: '0.8' });
   urls.push({ loc: `${origin}/screener`, lastmod: today, priority: '0.7' });
+  urls.push({ loc: `${origin}/newsletter`, lastmod: today, priority: '0.5' });
   urls.push({ loc: `${origin}/insiders`, lastmod: today, priority: '0.6' });
   try {
     const { reportSitemapEntries } = await import('./reportPages.js');
@@ -502,6 +503,7 @@ export function pageShell({ head, body, active }) {
             <a href="/about">About</a>
             <a href="/contact">Contact</a>
             <a href="/disclaimer">Disclaimer</a>
+            <a href="/newsletter">Newsletter</a>
             <a href="/privacy">Privacy</a>
             <a href="/terms">Terms</a>
           </div>
