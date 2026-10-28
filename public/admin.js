@@ -2089,6 +2089,17 @@ function render_newsletter() {
       </div>
       <div>
         <div class="card"><h2 style="margin-top:0">Preview</h2><iframe id="nlPreview" title="Newsletter preview" style="width:100%;height:520px;border:0;border-radius:10px;background:#f1e8d6"></iframe></div>
+        <div class="card"><h2 style="margin-top:0">Add people by hand</h2>
+          <p style="font-size:.76rem;color:#9eb3cc">Type or paste email addresses (up to 50, separated by commas, spaces or new lines).</p>
+          <textarea class="input" id="nlPeople" rows="4" placeholder="friend@example.com, colleague@example.com"></textarea>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-gold" data-nl="once">Send the newsletter on the left once</button>
+            <button class="btn" data-nl="invite">Invite to subscribe (they confirm)</button>
+            <button class="btn" data-nl="gift">Gift subscription (added now)</button>
+          </div>
+          <div id="nlPeopleMsg" style="font-size:.74rem;margin-top:8px"></div>
+          <p style="font-size:.7rem;color:#9eb3cc;margin-top:8px"><b>Once:</b> they get this one email only and aren't added to the list. <b>Invite:</b> they get a "please confirm" email and join only if they click it. <b>Gift:</b> they're added straight away and get a short email saying someone gave them the newsletter, with an unsubscribe link. Only gift it to people you know would welcome it.</p>
+        </div>
         <div class="card"><h2 style="margin-top:0">Sending speed</h2>
           <p style="font-size:.76rem;color:#9eb3cc">Resend's free plan allows about 100 emails a day in total, and member alerts use some of those. A bigger list carries on automatically the next day. If you move to a paid Resend plan, raise this number.</p>
           <div style="display:flex;gap:8px;align-items:end"><label style="flex:1"><span class="field">Newsletter emails per day</span><input class="input" type="number" name="nlLimit" min="1" value="${st.dailyLimit}"></label><button class="btn" data-nl="limit">Save</button></div>
@@ -2178,6 +2189,30 @@ function bind_newsletter() {
       if (act === 'delete') { if (!window.confirm('Delete this draft?')) { btn.disabled = false; return; } await API.nlPost('delete', { id: btn.dataset.id }); if ((STATE.nlEdit || {}).id === btn.dataset.id) STATE.nlEdit = NL_BLANK(); await redraw(); return; }
       if (act === 'continue') { const r = await API.nlPost('continue'); showToast(r.message); await redraw(); return; }
       if (act === 'stop') { if (!window.confirm('Stop sending? People who already got it keep it.')) { btn.disabled = false; return; } await API.nlPost('stop', { id: btn.dataset.id }); await redraw(); return; }
+      if (act === 'once' || act === 'invite' || act === 'gift') {
+        const pm = qs('#nlPeopleMsg'); const emails = qs('#nlPeople').value;
+        const show = (t, bad) => { pm.textContent = t; pm.style.color = bad ? '#f26a6a' : '#2bc48a'; };
+        if (!emails.trim()) { show('Add at least one email address.', true); btn.disabled = false; return; }
+        show('Working…');
+        let r; let text;
+        if (act === 'once') {
+          const cur = nlRead();
+          const id = cur.status && cur.status !== 'draft' ? cur.id : (await saveDraft()).id;
+          r = await API.nlPost('send-once', { id, emails });
+          text = `Sent to ${r.sent}.`;
+        } else {
+          r = await API.nlPost('add-people', { emails, mode: act });
+          text = act === 'gift' ? `${r.added} added and told about their gift.` : `${r.invited} invited to confirm.`;
+          if (r.already) text += ` ${r.already} already on the list.`;
+          if (r.members) text += ` ${r.members} already members (they get it through their membership).`;
+        }
+        if (r.failed?.length) text += ` Failed: ${r.failed.join('; ')}.`;
+        if (r.skipped?.length) text += ` Not valid, skipped: ${r.skipped.join(', ')}.`;
+        show(text, Boolean(r.failed?.length));
+        if (!r.failed?.length) qs('#nlPeople').value = '';
+        if (act !== 'once') { STATE.nl = await API.nlGet(); }
+        btn.disabled = false; return;
+      }
       if (act === 'limit') { const r = await API.nlPost('limit', { limit: qs('[name=nlLimit]').value }); showToast(`Daily limit set to ${r.dailyLimit}`); await redraw(nlRead()); return; }
       if (act === 'csv') {
         const res = await fetch('/api/admin/newsletter/subscribers.csv', { headers: { 'x-session-token': STATE.token } });

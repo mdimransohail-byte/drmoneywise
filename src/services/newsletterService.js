@@ -69,13 +69,15 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
 
 /* ── Subscribers (people who aren't members) ──────────────────────── */
 const ipHits = new Map();
-export async function subscribe(rawEmail, { ip = '', source = 'site' } = {}) {
+export async function subscribe(rawEmail, { ip = '', source = 'site', admin = false } = {}) {
   const email = String(rawEmail || '').trim().toLowerCase().slice(0, 160);
   if (!EMAIL_RE.test(email)) throw Object.assign(new Error('Please check your email address.'), { status: 400 });
   const now = Date.now();
-  const hits = (ipHits.get(ip) || []).filter((t) => now - t < 3600000);
-  if (hits.length >= 5) throw Object.assign(new Error('Too many sign-ups from here. Please try again later.'), { status: 429 });
-  ipHits.set(ip, [...hits, now]);
+  if (!admin) {
+    const hits = (ipHits.get(ip) || []).filter((t) => now - t < 3600000);
+    if (hits.length >= 5) throw Object.assign(new Error('Too many sign-ups from here. Please try again later.'), { status: 429 });
+    ipHits.set(ip, [...hits, now]);
+  }
   let sub = null; let resend = false;
   await updateStore((s) => {
     s.subscribers = s.subscribers || [];
@@ -94,7 +96,7 @@ export async function subscribe(rawEmail, { ip = '', source = 'site' } = {}) {
   if (resend) {
     const site = await siteUrl();
     const link = `${site}/newsletter/confirm?t=${sub.token}`;
-    const html = newsletterHtml({ subject: 'Please confirm your newsletter sign-up', intro: `Thanks for signing up to the Dr MoneyWise newsletter: our best plain-English explainers, the biggest company results and new research, about once a week.\n\nPlease confirm it was you by clicking the button below. If you didn't sign up, ignore this email and you won't hear from us.`, items: [{ heading: '', text: '', url: link, button: 'Yes, send me the newsletter' }] }, { site });
+    const html = newsletterHtml({ subject: 'Please confirm your newsletter sign-up', intro: `${admin ? 'You’ve been invited to the Dr MoneyWise newsletter' : 'Thanks for signing up to the Dr MoneyWise newsletter'}: our best plain-English explainers, the biggest company results and new research, about once a week.\n\nPlease confirm by clicking the button below. If you don’t want it, ignore this email and you won't hear from us.`, items: [{ heading: '', text: '', url: link, button: 'Yes, send me the newsletter' }] }, { site });
     const r = await sendEmail({ to: email, subject: 'Please confirm your Dr MoneyWise newsletter sign-up', html });
     if (!r.ok) console.error(`[newsletter] confirmation email to ${email} failed: ${r.message}`);
   }
@@ -336,4 +338,72 @@ export async function subscribersCsv() {
   const store = await readStore();
   const rows = [['email', 'status', 'signed up', 'confirmed', 'source'], ...(store.subscribers || []).map((x) => [x.email, x.status, x.createdAt, x.confirmedAt || '', x.source || ''])];
   return rows.map((r) => r.map((v) => `"${String(v).replace(/"/gu, '""')}"`).join(',')).join('\n');
+}
+
+/* ── Admin: add people by hand ────────────────────────────────────── */
+function emailList(text) {
+  const all = String(text || '').toLowerCase().split(/[\s,;]+/u).map((x) => x.replace(/^<|>$/gu, '').trim()).filter(Boolean);
+  const good = [...new Set(all.filter((e) => EMAIL_RE.test(e) && e.length <= 160))];
+  const bad = all.filter((e) => !EMAIL_RE.test(e));
+  if (good.length > 50) throw Object.assign(new Error('Please add up to 50 addresses at a time.'), { status: 400 });
+  if (!good.length) throw Object.assign(new Error('No valid email addresses found.'), { status: 400 });
+  return { good, bad };
+}
+async function countSent(n) {
+  await updateStore((s) => { s.newsletterLog = { ...(s.newsletterLog || {}), [todayKey()]: (s.newsletterLog?.[todayKey()] || 0) + n }; return s; });
+}
+
+/** Sends one newsletter (draft or already sent) to a few addresses, once. They are not added to the list. */
+export async function sendOnce(id, text) {
+  const { good, bad } = emailList(text);
+  const store = await readStore();
+  const issue = (store.newsletters || []).find((x) => x.id === id);
+  if (!issue) throw Object.assign(new Error('Save the newsletter first.'), { status: 404 });
+  if (!issue.subject) throw Object.assign(new Error('Add a subject line first.'), { status: 400 });
+  const site = await siteUrl();
+  const html = newsletterHtml({ ...issue, dateLabel: issue.dateLabel || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site, webUrl: issue.status === 'sent' ? `${site}/newsletter/${issue.id}` : '', unsubscribeUrl: `${site}/newsletter` });
+  const failed = [];
+  for (const to of good) {
+    const r = await sendEmail({ to, subject: issue.subject, html });
+    if (!r.ok) failed.push(`${to} (${r.message})`);
+  }
+  await countSent(good.length - failed.length);
+  return { ok: !failed.length, sent: good.length - failed.length, failed, skipped: bad };
+}
+
+/** Adds people to the newsletter list: "invite" asks them to confirm; "gift" adds them now and tells them, with an unsubscribe link. */
+export async function addSubscribers(text, mode = 'invite') {
+  const { good, bad } = emailList(text);
+  const site = await siteUrl();
+  const out = { added: 0, invited: 0, already: 0, members: 0, failed: [], skipped: bad };
+  const store = await readStore();
+  const memberEmails = new Set((store.users || []).map((u) => String(u.email || '').toLowerCase()));
+  for (const email of good) {
+    if (memberEmails.has(email)) { out.members += 1; continue; }
+    if (mode !== 'gift') {
+      const r = await subscribe(email, { source: 'admin-invite', admin: true }).catch((e) => ({ error: e.message }));
+      if (r.error) out.failed.push(`${email} (${r.error})`); else if (r.already) out.already += 1; else out.invited += 1;
+      continue;
+    }
+    let sub = null; let isNew = false;
+    await updateStore((s) => {
+      s.subscribers = s.subscribers || [];
+      sub = s.subscribers.find((x) => x.email === email);
+      if (sub?.status === 'active') return s;
+      if (!sub) { sub = { id: crypto.randomUUID(), email, token: crypto.randomBytes(18).toString('hex'), createdAt: new Date().toISOString() }; s.subscribers.push(sub); }
+      Object.assign(sub, { status: 'active', source: 'admin-gift', confirmedAt: new Date().toISOString() });
+      isNew = true;
+      return s;
+    });
+    if (!isNew) { out.already += 1; continue; }
+    out.added += 1;
+    const html = newsletterHtml({
+      subject: 'A free subscription to the Dr MoneyWise newsletter',
+      intro: 'Someone thought you’d enjoy the Dr MoneyWise newsletter, so you now get it for free: our best plain-English explainers on saving and investing, the biggest company results and new research, about once a week.\n\nIf you’d rather not get it, use the unsubscribe link at the bottom of this email and you won’t hear from us again.',
+      items: [{ heading: '', text: '', url: `${site}/newsletter`, button: 'See past issues' }],
+    }, { site, unsubscribeUrl: `${site}/newsletter/unsubscribe?t=${sub.token}` });
+    const r = await sendEmail({ to: email, subject: 'You’ve been given the Dr MoneyWise newsletter', html, unsubscribeUrl: `${site}/newsletter/unsubscribe?t=${sub.token}` });
+    if (!r.ok) out.failed.push(`${email} (welcome email: ${r.message})`);
+  }
+  return out;
 }

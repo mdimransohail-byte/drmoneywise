@@ -340,6 +340,8 @@ export const server = http.createServer(async (request, response) => {
           if (sub === '/send') return sendJson(response, 200, await newsletter.startSend(body.id));
           if (sub === '/continue') return sendJson(response, 200, await newsletter.continueSending());
           if (sub === '/stop') { await newsletter.cancelSend(body.id); return sendJson(response, 200, { ok: true }); }
+          if (sub === '/send-once') return sendJson(response, 200, await newsletter.sendOnce(body.id, body.emails));
+          if (sub === '/add-people') return sendJson(response, 200, await newsletter.addSubscribers(body.emails, body.mode === 'gift' ? 'gift' : 'invite'));
           if (sub === '/limit') return sendJson(response, 200, { dailyLimit: await newsletter.saveDailyLimit(body.limit) });
           if (sub === '/preview') return sendJson(response, 200, { html: newsletter.newsletterHtml({ ...body, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site: getSiteOrigin(request), name: 'Sam', webUrl: '#', unsubscribeUrl: '#' }) });
         }
