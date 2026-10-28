@@ -336,14 +336,14 @@ export const server = http.createServer(async (request, response) => {
           if (sub === '/draft-from-site') return sendJson(response, 200, { draft: await newsletter.draftFromSite() });
           if (sub === '/save') return sendJson(response, 200, { issue: await newsletter.saveIssue(body.id, body) });
           if (sub === '/delete') { await newsletter.deleteIssue(body.id); return sendJson(response, 200, { ok: true }); }
-          if (sub === '/test') return sendJson(response, 200, await newsletter.sendTest(body.id, body.to || admin.email));
+          if (sub === '/test') return sendJson(response, 200, await newsletter.sendTest(body.id, body.to || admin.email, { premiumAs: body.premium ? admin : null }));
           if (sub === '/send') return sendJson(response, 200, await newsletter.startSend(body.id));
           if (sub === '/continue') return sendJson(response, 200, await newsletter.continueSending());
           if (sub === '/stop') { await newsletter.cancelSend(body.id); return sendJson(response, 200, { ok: true }); }
           if (sub === '/send-once') return sendJson(response, 200, await newsletter.sendOnce(body.id, body.emails));
           if (sub === '/add-people') return sendJson(response, 200, await newsletter.addSubscribers(body.emails, body.mode === 'gift' ? 'gift' : 'invite'));
           if (sub === '/limit') return sendJson(response, 200, { dailyLimit: await newsletter.saveDailyLimit(body.limit) });
-          if (sub === '/preview') return sendJson(response, 200, { html: newsletter.newsletterHtml({ ...body, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site: getSiteOrigin(request), name: 'Sam', webUrl: '#', unsubscribeUrl: '#' }) });
+          if (sub === '/preview') return sendJson(response, 200, { html: newsletter.newsletterHtml({ ...body, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site: getSiteOrigin(request), extra: body.premiumSection !== false ? '<div style="background:#0a1128;color:#c9a227;border-radius:10px;padding:12px 16px;margin:6px 0 14px;font:700 15px Georgia,serif">★ Premium members also get their own section here: their portfolio’s week, their companies’ news, results expected in the coming week and Premium extras. Use “Send me a test (Premium version)” to see it.</div>' : '', name: 'Sam', webUrl: '#', unsubscribeUrl: '#' }) });
         }
         return sendJson(response, 404, { error: 'Not found' });
       } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }

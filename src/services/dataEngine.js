@@ -203,6 +203,13 @@ async function runPrices({ manual = false } = {}) {
     return { ok: false, message: `No prices fetched${lastError ? ` — ${lastError}` : ''}` };
   }
   await writeJson(FILES.prices, { updatedAt: new Date().toISOString(), prices });
+  // Keep a short daily history so the Premium newsletter can show the week's change
+  try {
+    const { savePriceSnapshot } = await import('./premiumWeekService.js');
+    await savePriceSnapshot(prices);
+  } catch (error) {
+    console.error('[data] Could not save the price history:', error.message);
+  }
   // If this month's dividend list had to be ranked without prices, rebuild it now.
   try {
     const saved = await readJson(path.join(marketDir, 'top10.json'), {});

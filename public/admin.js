@@ -2033,7 +2033,7 @@ function bind_ask() {
 // their address first (double opt-in).
 // ════════════════════════════════════════════════════════════════════════════
 
-const NL_BLANK = () => ({ id: '', subject: '', preheader: '', intro: '', closing: 'Have a good week,\nThe Dr MoneyWise team', audience: 'everyone', items: [{ heading: '', text: '', url: '', button: '' }] });
+const NL_BLANK = () => ({ id: '', premiumSection: true, subject: '', preheader: '', intro: '', closing: 'Have a good week,\nThe Dr MoneyWise team', audience: 'everyone', items: [{ heading: '', text: '', url: '', button: '' }] });
 
 function render_newsletter() {
   const d = STATE.nl || { stats: { counts: {}, subscribers: {} }, issues: [], audiences: {} };
@@ -2077,11 +2077,13 @@ function render_newsletter() {
         <div id="nlItems">${(ed.items || []).map(itemRow).join('')}</div>
         <button class="btn" data-nl="add">+ Add a story</button>
         <label style="margin-top:10px"><span class="field">Closing words</span><textarea name="closing" rows="3" maxlength="2000">${h(ed.closing)}</textarea></label>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:.78rem;color:#dbe6f3"><input type="checkbox" name="premiumSection" ${ed.premiumSection !== false ? 'checked' : ''} style="width:auto;margin-top:2px"> <span>Add each Premium member's own section: their portfolio's week, their companies' news, results expected in the coming week and Premium extras</span></label>
         <label style="display:block;margin:8px 0"><span class="field">Send to</span><select name="audience">${Object.entries(d.audiences).map(([k, v]) => `<option value="${k}" ${ed.audience === k ? 'selected' : ''}>${h(v)} — ${fmtNum(st.counts[k] || 0)} people</option>`).join('')}</select></label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
           ${locked ? '' : `<button class="btn" data-nl="save">Save draft</button>
           <button class="btn" data-nl="preview">Preview</button>
           <button class="btn" data-nl="test">Send me a test</button>
+          <button class="btn" data-nl="testp">Send me a test (Premium version)</button>
           <button class="btn btn-gold" data-nl="send">Send to everyone chosen</button>`}
           <span id="nlMsg" style="font-size:.76rem"></span>
         </div>
@@ -2138,6 +2140,7 @@ function nlRead() {
   const v = (n) => (ed.querySelector(`[name=${n}]`) || {}).value || '';
   return {
     ...(STATE.nlEdit || {}),
+    premiumSection: Boolean(ed.querySelector('[name=premiumSection]')?.checked),
     subject: v('subject'), preheader: v('preheader'), intro: v('intro'), closing: v('closing'), audience: v('audience') || 'everyone',
     items: qsa('#nlItems .nl-item').map((el) => ({ heading: el.querySelector('[name=heading]').value, text: el.querySelector('[name=text]').value, url: el.querySelector('[name=url]').value, button: el.querySelector('[name=button]').value })),
   };
@@ -2174,6 +2177,7 @@ function bind_newsletter() {
       }
       if (act === 'save') { await saveDraft(); await redraw(); qs('#nlMsg').textContent = 'Draft saved.'; return; }
       if (act === 'preview') { await nlPreview(); say('Preview updated.'); }
+      if (act === 'testp') { const issue = await saveDraft(); const r = await API.nlPost('test', { id: issue.id, premium: true }); say(r.ok ? 'Premium test sent to your admin email.' : `Test failed: ${r.message}`, !r.ok); }
       if (act === 'test') { const issue = await saveDraft(); const r = await API.nlPost('test', { id: issue.id }); say(r.ok ? 'Test sent to your admin email.' : `Test failed: ${r.message}`, !r.ok); }
       if (act === 'send') {
         const cur = nlRead();

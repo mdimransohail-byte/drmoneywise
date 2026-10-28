@@ -116,6 +116,8 @@ export async function checkResults() {
   const insiderKnown = await insiderSeen();
   const insiderSince = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
   const form4s = [];
+  const yearAgo = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
+  const reportDates = { ...(cache.reportDates || {}) };
   let checked = 0; let failed = 0;
   for (const ticker of getUniverse()) {
     const match = map[ticker];
@@ -124,8 +126,12 @@ export async function checkResults() {
       const sub = await secFetchJson(`https://data.sec.gov/submissions/CIK${String(match.cik).padStart(10, '0')}.json`);
       checked += 1;
       const r = sub?.filings?.recent;
+      const past = [];
       for (let i = 0; i < (r?.form?.length || 0); i += 1) {
-        if (r.filingDate[i] < insiderSince) break;
+        if (r.filingDate[i] < yearAgo) break;
+        // Results dates over the last 13 months: used to estimate when the next results are due
+        if (r.form[i] === '8-K' && String(r.items?.[i] || '').split(',').map((x) => x.trim()).includes('2.02')) past.push(r.filingDate[i]);
+        if (r.filingDate[i] < insiderSince) continue;
         if (r.form[i] === '4') {
           const acc4 = String(r.accessionNumber[i]).replace(/-/gu, '');
           if (!insiderKnown.has(acc4)) form4s.push({ ticker, name: sub.name || match.name || ticker, cik: match.cik, acc: acc4, filed: r.filingDate[i], primaryDoc: r.primaryDocument?.[i] || '' });
@@ -143,6 +149,7 @@ export async function checkResults() {
         const { cleanName } = await import('./secService.js');
         found.push({ ticker, name: cleanName(sub.name || match.name || ticker), cik: match.cik, acc, filed: r.filingDate[i], primaryDoc: r.primaryDocument?.[i] || '', kind: isResults ? 'results' : 'other' });
       }
+      if (past.length) reportDates[ticker] = past.slice(0, 8);
     } catch (error) {
       failed += 1;
       if (failed <= 3) console.log(`[results] ${ticker}: filing list not available (${error.message})`);
@@ -160,12 +167,13 @@ export async function checkResults() {
     const result = await buildResult(f);
     if (result.dividend) await addDividend({ id: f.acc, ticker: f.ticker, name: f.name, filed: f.filed, url: result.url, ...result.dividend });
     if (result.simple) written += 1;
-    cache = { updatedAt: new Date().toISOString(), items: [result, ...(cache.items || []).filter((x) => x.id !== result.id)].sort((a, b) => String(b.filed).localeCompare(String(a.filed))).slice(0, KEEP) };
+    cache = { ...cache, updatedAt: new Date().toISOString(), items: [result, ...(cache.items || []).filter((x) => x.id !== result.id)].sort((a, b) => String(b.filed).localeCompare(String(a.filed))).slice(0, KEEP) };
     await save();
     console.log(`[results] ${f.ticker}: results filed ${f.filed}${result.simple ? ' — explained' : ' — listed with a link'}`);
     await pause(300);
   }
   if (!found.length) { cache.updatedAt = new Date().toISOString(); }
+  cache.reportDates = reportDates;
   // Remember announcements already read, so they are not read again
   cache.seen = [...new Set([...(cache.seen || []), ...found.map((f) => f.acc)])].slice(-3000);
   await save();
@@ -182,6 +190,8 @@ export async function checkResults() {
 
 /* ── Dividends (for dividend alerts) ──────────────────────────────── */
 export const readDividends = () => cache.dividends || [];
+/** { TICKER: ['YYYY-MM-DD', ...] } results-filing dates over the last 13 months, newest first. */
+export const readReportDates = () => cache.reportDates || {};
 
 async function addDividend(event) {
   cache.dividends = [event, ...(cache.dividends || []).filter((x) => x.id !== event.id)].slice(0, 400);

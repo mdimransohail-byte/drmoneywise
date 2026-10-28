@@ -20,6 +20,7 @@ import crypto from 'node:crypto';
 import { canAccess } from '../config.js';
 import { readStore, updateStore } from './storeService.js';
 import { esc, secret, sign, siteUrl, sendEmail } from './alertsService.js';
+import { premiumWeekContext, premiumWeekHtml } from './premiumWeekService.js';
 
 export const AUDIENCES = {
   everyone: 'Everyone (members and newsletter subscribers)',
@@ -38,7 +39,7 @@ const clean = (t, max) => String(t ?? '').replace(/\r/gu, '').trim().slice(0, ma
 const para = (t) => String(t).split(/\n{2,}/u).map((p) => p.trim()).filter(Boolean)
   .map((p) => `<p style="margin:0 0 12px;line-height:1.6">${esc(p).replace(/\n/gu, '<br>').replace(/(https?:\/\/[^\s<]+)/gu, '<a href="$1" style="color:#1a2a9e">$1</a>')}</p>`).join('');
 
-export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl = '', name = '', why = '' } = {}) {
+export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl = '', name = '', why = '', extra = '' } = {}) {
   const items = (issue.items || []).filter((x) => x.heading || x.text || x.url);
   const colours = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#6250d6', '#e34948'];
   const address = process.env.BUSINESS_ADDRESS ? `<br>${esc(process.env.BUSINESS_ADDRESS)}` : '';
@@ -58,6 +59,7 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
         ${para(x.text || '')}
         ${x.url ? `<p style="margin:0"><a href="${esc(x.url.startsWith('/') ? `${site}${x.url}` : x.url)}" style="display:inline-block;background:#c9a227;color:#0a1128;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:999px">${esc(x.button || 'Read more')}</a></p>` : ''}
       </div>`).join('')}
+      ${extra}
       ${issue.closing ? para(issue.closing) : ''}
     </div>
     <div style="padding:14px 22px;background:#f3ead6;font-size:12px;color:#4a5170;line-height:1.5">
@@ -167,6 +169,7 @@ function cleanIssue(raw = {}) {
     intro: clean(raw.intro, 4000),
     closing: clean(raw.closing, 2000),
     audience: AUDIENCES[raw.audience] ? raw.audience : 'everyone',
+    premiumSection: raw.premiumSection !== false,
     items: (Array.isArray(raw.items) ? raw.items : []).slice(0, 10).map((x) => ({
       heading: clean(x.heading, 160), text: clean(x.text, 2000),
       url: /^https?:\/\/|^\//u.test(String(x.url || '')) ? clean(x.url, 400) : '', button: clean(x.button, 40),
@@ -240,13 +243,19 @@ async function linksFor(r, site, issueId) {
   };
 }
 
-export async function sendTest(id, to) {
+export async function sendTest(id, to, { premiumAs = null } = {}) {
   const store = await readStore();
   const issue = (store.newsletters || []).find((x) => x.id === id);
   if (!issue) throw Object.assign(new Error('Newsletter not found.'), { status: 404 });
   const site = await siteUrl();
-  const html = newsletterHtml({ ...issue, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site, webUrl: `${site}/newsletter/${issue.id}`, unsubscribeUrl: `${site}/newsletter` });
-  return sendEmail({ to, subject: `[Test] ${issue.subject}`, html });
+  let extra = '';
+  if (premiumAs && issue.premiumSection !== false) {
+    // The admin login isn't a stored member: use a member with the same email if there is one
+    const me = (store.users || []).find((u) => String(u.email || '').toLowerCase() === String(premiumAs.email || '').toLowerCase()) || premiumAs;
+    extra = await premiumWeekHtml({ ...me, plan: 'premium' }, await premiumWeekContext(), site);
+  }
+  const html = newsletterHtml({ ...issue, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site, extra, webUrl: `${site}/newsletter/${issue.id}`, unsubscribeUrl: `${site}/newsletter` });
+  return sendEmail({ to, subject: `[Test${extra ? ', Premium version' : ''}] ${issue.subject}`, html });
 }
 
 /** Starts sending: takes a snapshot of who should get it, then sends in batches. */
@@ -279,14 +288,21 @@ export async function continueSending() {
   const site = await siteUrl();
   const from = process.env.ALERTS_EMAIL_FROM || process.env.HEALTH_EMAIL_FROM || 'Dr MoneyWise <onboarding@resend.dev>';
   let sent = issue.sent || 0; let failed = issue.failed || 0; let stopped = '';
+  const users = new Map((store.users || []).map((u) => [u.id, u]));
+  let ctx = null;
   while (room > 0 && sent + failed < issue.recipients.length) {
     const chunk = issue.recipients.slice(sent + failed, sent + failed + Math.min(BATCH, room));
     const emails = [];
     for (const r of chunk) {
       const links = await linksFor(r, site, issue.id);
+      let extra = '';
+      if (issue.premiumSection !== false && r.kind === 'member' && users.get(r.id)) {
+        if (!ctx) ctx = await premiumWeekContext().catch(() => null);
+        if (ctx) extra = await premiumWeekHtml(users.get(r.id), ctx, site).catch((error) => { console.error(`[newsletter] Premium section for ${r.email}: ${error.message}`); return ''; });
+      }
       emails.push({
         from, to: [r.email], subject: issue.subject,
-        html: newsletterHtml(issue, { site, name: r.name || '', ...links }),
+        html: newsletterHtml(issue, { site, name: r.name || '', extra, ...links }),
         headers: { 'List-Unsubscribe': `<${links.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
       });
     }

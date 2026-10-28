@@ -59,7 +59,11 @@ async function secret() {
 const sign = (s, userId, kind) => crypto.createHmac('sha256', s).update(`${userId}:${kind}`).digest('hex').slice(0, 32);
 
 async function siteUrl() {
-  const domain = (await readStore()).settings?.siteDomain || process.env.SITE_DOMAIN || process.env.RAILWAY_PUBLIC_DOMAIN || '';
+  // Before launch your own domain doesn't point at the site yet, so email links use
+  // Railway's own address until search engines are switched on (launch day).
+  const railway = process.env.RAILWAY_PUBLIC_DOMAIN || '';
+  const live = String(process.env.SEARCH_VISIBLE || '').toLowerCase() === 'yes';
+  const domain = (!live && railway) ? railway : (await readStore()).settings?.siteDomain || process.env.SITE_DOMAIN || railway || '';
   return domain ? (domain.startsWith('http') ? domain : `https://${domain}`).replace(/\/$/u, '') : '';
 }
 
