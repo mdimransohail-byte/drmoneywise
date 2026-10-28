@@ -38,8 +38,8 @@ const clean = (t, max) => String(t ?? '').replace(/\r/gu, '').trim().slice(0, ma
 const para = (t) => String(t).split(/\n{2,}/u).map((p) => p.trim()).filter(Boolean)
   .map((p) => `<p style="margin:0 0 12px;line-height:1.6">${esc(p).replace(/\n/gu, '<br>').replace(/(https?:\/\/[^\s<]+)/gu, '<a href="$1" style="color:#1a2a9e">$1</a>')}</p>`).join('');
 
-export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl = '', name = '' } = {}) {
-  const items = (issue.items || []).filter((x) => x.heading || x.text);
+export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl = '', name = '', why = '' } = {}) {
+  const items = (issue.items || []).filter((x) => x.heading || x.text || x.url);
   const colours = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#6250d6', '#e34948'];
   const address = process.env.BUSINESS_ADDRESS ? `<br>${esc(process.env.BUSINESS_ADDRESS)}` : '';
   return `<!doctype html><html><body style="margin:0;background:#f1e8d6">
@@ -61,7 +61,7 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
       ${issue.closing ? para(issue.closing) : ''}
     </div>
     <div style="padding:14px 22px;background:#f3ead6;font-size:12px;color:#4a5170;line-height:1.5">
-      For education only, not financial advice. You get this because you joined Dr MoneyWise or signed up for our newsletter.
+      For education only, not financial advice. ${esc(why || 'You get this because you joined Dr MoneyWise or signed up for our newsletter.')}
       ${webUrl ? `<a href="${esc(webUrl)}" style="color:#1a2a9e">Read it on the website</a> · ` : ''}${unsubscribeUrl ? `<a href="${esc(unsubscribeUrl)}" style="color:#1a2a9e">Unsubscribe</a>` : ''}${address}
     </div>
   </div></div></body></html>`;
@@ -96,7 +96,7 @@ export async function subscribe(rawEmail, { ip = '', source = 'site', admin = fa
   if (resend) {
     const site = await siteUrl();
     const link = `${site}/newsletter/confirm?t=${sub.token}`;
-    const html = newsletterHtml({ subject: 'Please confirm your newsletter sign-up', intro: `${admin ? 'You’ve been invited to the Dr MoneyWise newsletter' : 'Thanks for signing up to the Dr MoneyWise newsletter'}: our best plain-English explainers, the biggest company results and new research, about once a week.\n\nPlease confirm by clicking the button below. If you don’t want it, ignore this email and you won't hear from us.`, items: [{ heading: '', text: '', url: link, button: 'Yes, send me the newsletter' }] }, { site });
+    const html = newsletterHtml({ subject: 'Please confirm your newsletter sign-up', intro: `${admin ? 'You’ve been invited to the Dr MoneyWise newsletter' : 'Thanks for signing up to the Dr MoneyWise newsletter'}: our best plain-English explainers, the biggest company results and new research, about once a week.\n\nPlease confirm by clicking the button below. If you don’t want it, ignore this email and you won't hear from us.`, items: [{ heading: '', text: '', url: link, button: 'Yes, send me the newsletter' }] }, { site, why: 'You get this because your address was entered for the Dr MoneyWise newsletter. Nothing more will be sent unless you confirm.' });
     const r = await sendEmail({ to: email, subject: 'Please confirm your Dr MoneyWise newsletter sign-up', html });
     if (!r.ok) console.error(`[newsletter] confirmation email to ${email} failed: ${r.message}`);
   }

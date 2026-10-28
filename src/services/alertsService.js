@@ -59,7 +59,7 @@ async function secret() {
 const sign = (s, userId, kind) => crypto.createHmac('sha256', s).update(`${userId}:${kind}`).digest('hex').slice(0, 32);
 
 async function siteUrl() {
-  const domain = (await readStore()).settings?.siteDomain || process.env.SITE_DOMAIN || '';
+  const domain = (await readStore()).settings?.siteDomain || process.env.SITE_DOMAIN || process.env.RAILWAY_PUBLIC_DOMAIN || '';
   return domain ? (domain.startsWith('http') ? domain : `https://${domain}`).replace(/\/$/u, '') : '';
 }
 
