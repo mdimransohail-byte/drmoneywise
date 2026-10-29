@@ -133,10 +133,11 @@ async function pollGammaGeneration(generationId) {
     const payload = await response.json();
 
     if (payload.status === 'completed') {
-      if (!payload.exportUrl) {
-        throw new Error('Gamma generation completed but returned no exportUrl.');
+      const url = payload.exportUrl || payload.exportUrls?.[0] || payload.export?.url || payload.files?.[0]?.url;
+      if (!url) {
+        throw new Error('Gamma finished but didn’t return a download link.');
       }
-      return payload.exportUrl;
+      return url;
     }
 
     if (payload.status === 'failed') {
@@ -156,6 +157,12 @@ async function extractFirstImageFromZip(zipUrl) {
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
+  // Gamma now sends a single PNG for one card (it used to send a ZIP): accept both
+  if (buffer[0] === 0x89 && buffer.slice(1, 4).toString() === 'PNG') return { buffer, extension: 'png' };
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) return { buffer, extension: 'jpg' };
+  if (buffer.slice(0, 2).toString() !== 'PK') {
+    throw new Error(`Gamma’s download wasn’t a picture (it looked like ${buffer.slice(0, 4).toString() === '%PDF' ? 'a PDF' : 'another kind of file'}).`);
+  }
   const zip = new AdmZip(buffer);
   const entries = zip.getEntries();
   const imageEntry = entries.find((entry) => /\.(png|jpe?g)$/i.test(entry.entryName));
