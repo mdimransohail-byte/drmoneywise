@@ -35,7 +35,8 @@ const FORMATS = {
   short: { w: 1080, h: 1920, fps: 30, label: 'Short (vertical, 30–60 seconds)' },
   long: { w: 1920, h: 1080, fps: 25, label: 'Video (landscape, a few minutes)' },
 };
-export const VOICES = ['coral', 'sage', 'nova', 'alloy', 'ash', 'onyx'];
+// marin and cedar are OpenAI's best-sounding voices (recommended in their guide, Oct 2026)
+export const VOICES = ['marin', 'cedar', 'coral', 'sage', 'nova', 'ballad', 'verse', 'alloy', 'ash', 'onyx', 'shimmer', 'echo', 'fable'];
 const WORDS_PER_SECOND = 2.5;
 
 let ffmpegPath = null;
@@ -166,7 +167,7 @@ export async function createProject({ url, format = 'short', origin = '' }) {
   const id = crypto.randomBytes(5).toString('hex');
   const p = {
     id, url, format, kind: c.kind, title: c.title, badge: c.badge, link: c.link, tags: c.tags || [], heroPhoto: c.photo || null, ticker: c.ticker || null,
-    voice: 'computer', voiceName: 'coral', scenes, status: 'draft', createdAt: new Date().toISOString(),
+    voice: 'computer', voiceName: 'marin', scenes, status: 'draft', createdAt: new Date().toISOString(),
   };
   return saveProject(p);
 }
@@ -208,7 +209,8 @@ export async function saveRecording(id, sceneId, buf, type) {
 async function speak(text, voice, file) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('No OpenAI key saved (Admin → APIs & More), so the computer voice isn’t available. Record your own voice instead.');
-  const body = (model) => JSON.stringify({ model, voice, input: text.replace(/…/gu, '.'), response_format: 'wav', ...(model === 'gpt-4o-mini-tts' ? { instructions: 'Warm, clear and friendly, like a good teacher explaining money to a friend. Calm, steady pace. Neutral international English.' } : {}) });
+  const TTS1 = ['alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer'];
+  const body = (model) => JSON.stringify({ model, voice: model === 'tts-1' && !TTS1.includes(voice) ? 'coral' : voice, input: text.replace(/…/gu, '.'), response_format: 'wav', ...(model === 'gpt-4o-mini-tts' ? { instructions: 'Warm, clear and friendly, like a good teacher explaining money to a friend. Calm, steady pace. Neutral international English.' } : {}) });
   let r = await fetch('https://api.openai.com/v1/audio/speech', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: body('gpt-4o-mini-tts'), signal: AbortSignal.timeout(90000) });
   if (!r.ok && r.status !== 401 && r.status !== 429) r = await fetch('https://api.openai.com/v1/audio/speech', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: body('tts-1'), signal: AbortSignal.timeout(90000) });
   if (!r.ok) throw new Error(`OpenAI voice said ${r.status}: ${(await r.text().catch(() => '')).slice(0, 160)}`);
@@ -550,6 +552,15 @@ export async function storageReport() {
 
 /** Frees space: leftover video work, older videos, old social pictures, old Gamma files. */
 /** Old "work" folders inside projects are no longer used (work now happens in temporary space): remove them. */
+/** Deletes one video project completely (script, recordings, MP4, thumbnail). */
+export async function deleteProject(id) {
+  if (!validId(id)) throw Object.assign(new Error('Project not found.'), { status: 404 });
+  const p = await getProject(id);
+  if (p?.status === 'rendering' && busy) throw Object.assign(new Error('This video is being made; wait until it finishes.'), { status: 400 });
+  await fs.rm(dirOf(id), { recursive: true, force: true });
+  return { ok: true };
+}
+
 export async function removeOldWorkFolders() {
   let removed = 0;
   for (const id of await fs.readdir(PROJECTS).catch(() => [])) {

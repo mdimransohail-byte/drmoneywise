@@ -353,6 +353,7 @@ export const server = http.createServer(async (request, response) => {
           const body = await parseJsonBody(request);
           if (sub === '/create') { video.cleanOldProjects().catch(() => {}); return sendJson(response, 200, await video.createProject({ url: body.url, format: body.format, origin: getSiteOrigin(request) })); }
           if (sub === '/save') return sendJson(response, 200, await video.updateProject(body.id, body));
+          if (sub === '/delete') return sendJson(response, 200, await video.deleteProject(String(body.id || '')));
           if (sub === '/render') { if (body.save) await video.updateProject(body.id, body.save); return sendJson(response, 200, await video.startRender(body.id)); }
         }
         return sendJson(response, 404, { error: 'Not found' });
