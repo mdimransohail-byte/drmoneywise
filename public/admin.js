@@ -2189,7 +2189,7 @@ function bind_newsletter() {
         showToast(r.done ? `Sent to ${r.sent} people` : r.message || 'Sending started');
         STATE.nlEdit = NL_BLANK(); await redraw(); return;
       }
-      if (act === 'free') { btn.disabled = true; const r = await API.post('/api/admin/video/free-space', {}); showToast(`Space freed: ${r.before ?? '?'} → ${r.after ?? '?'} MB free`); await vmRefresh(); return; }
+      if (act === 'free') { btn.disabled = true; btn.textContent = 'Freeing space…'; const r = await API.post('/api/admin/video/free-space', {}); showToast(`Space freed: ${r.before ?? '?'} → ${r.after ?? '?'} MB free${r.errors?.length ? ` (problem: ${r.errors[0]})` : ''}`); await vmRefresh(); return; }
       if (act === 'open') { const it = STATE.nl.issues.find((x) => x.id === btn.dataset.id); STATE.nlEdit = { ...it }; setMain(render_newsletter()); bind_newsletter(); nlPreview(); return; }
       if (act === 'delete') { if (!window.confirm('Delete this draft?')) { btn.disabled = false; return; } await API.nlPost('delete', { id: btn.dataset.id }); if ((STATE.nlEdit || {}).id === btn.dataset.id) STATE.nlEdit = NL_BLANK(); await redraw(); return; }
       if (act === 'continue') { const r = await API.nlPost('continue'); showToast(r.message); await redraw(); return; }

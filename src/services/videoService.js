@@ -549,9 +549,27 @@ export async function storageReport() {
 }
 
 /** Frees space: leftover video work, older videos, old social pictures, old Gamma files. */
+/** Old "work" folders inside projects are no longer used (work now happens in temporary space): remove them. */
+export async function removeOldWorkFolders() {
+  let removed = 0;
+  for (const id of await fs.readdir(PROJECTS).catch(() => [])) {
+    const w = path.join(PROJECTS, id, 'work');
+    try { await fs.access(w); await fs.rm(w, { recursive: true, force: true }); removed += 1; } catch { /* none */ }
+    // Half-made MP4s of videos that never finished
+    const p = await getProject(id).catch(() => null);
+    if (p && p.status !== 'done' && !(p.status === 'rendering' && busy)) {
+      for (const f of await fs.readdir(path.join(PROJECTS, id)).catch(() => [])) if (/\.mp4$/u.test(f)) { await fs.rm(path.join(PROJECTS, id, f), { force: true }).catch(() => {}); removed += 1; }
+    }
+  }
+  if (removed) console.log(`[video] Cleared ${removed} leftover video item(s) from the saved-data space`);
+  return removed;
+}
+
 export async function freeUpSpace() {
   const DATA = path.join(process.cwd(), 'data');
-  const before = await storageReport();
+  const before = await storageReport().catch(() => ({ freeMb: null }));
+  const errors = [];
+  await removeOldWorkFolders().catch((e) => errors.push(e.message));
   // 1. Video projects: leftover work, half-made MP4s of unfinished videos, older finished videos
   for (const id of await fs.readdir(PROJECTS).catch(() => [])) {
     await fs.rm(path.join(PROJECTS, id, 'work'), { recursive: true, force: true }).catch(() => {});
@@ -581,8 +599,8 @@ export async function freeUpSpace() {
     }
   };
   await sweep(DATA);
-  const after = await storageReport();
-  return { before: before.freeMb, after: after.freeMb, report: after };
+  const after = await storageReport().catch(() => ({ freeMb: null }));
+  return { before: before.freeMb, after: after.freeMb, report: after, errors };
 }
 
 export async function cleanOldProjects() {

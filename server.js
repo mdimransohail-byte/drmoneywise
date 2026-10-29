@@ -336,6 +336,7 @@ export const server = http.createServer(async (request, response) => {
           response.end(buf);
           return true;
         }
+        if (sub === '' && request.method === 'GET') await video.removeOldWorkFolders().catch(() => 0);
         if (sub === '' && request.method === 'GET') return sendJson(response, 200, { projects: await video.listProjects(), voices: video.VOICES, formats: video.FORMATS, computerVoice: Boolean(process.env.OPENAI_API_KEY), storage: await video.storageReport().catch(() => null) });
         if (sub === '/project' && request.method === 'GET') {
           const p = await video.getProject(String(requestUrl.searchParams.get('id') || ''));
@@ -347,9 +348,9 @@ export const server = http.createServer(async (request, response) => {
           for await (const c of request) { size += c.length; if (size > 60 * 1024 * 1024) return sendJson(response, 413, { error: 'Recording too large (60 MB limit).' }); chunks.push(c); }
           return sendJson(response, 200, await video.saveRecording(String(requestUrl.searchParams.get('id') || ''), String(requestUrl.searchParams.get('scene') || ''), Buffer.concat(chunks), String(request.headers['content-type'] || '')));
         }
+        if (sub === '/free-space' && request.method === 'POST') return sendJson(response, 200, await video.freeUpSpace());
         if (request.method === 'POST') {
           const body = await parseJsonBody(request);
-          if (sub === '/free-space') return sendJson(response, 200, await video.freeUpSpace());
           if (sub === '/create') { video.cleanOldProjects().catch(() => {}); return sendJson(response, 200, await video.createProject({ url: body.url, format: body.format, origin: getSiteOrigin(request) })); }
           if (sub === '/save') return sendJson(response, 200, await video.updateProject(body.id, body));
           if (sub === '/render') { if (body.save) await video.updateProject(body.id, body.save); return sendJson(response, 200, await video.startRender(body.id)); }
@@ -885,6 +886,8 @@ export const server = http.createServer(async (request, response) => {
 server.listen(PORT, () => {
   console.log(`${APP_NAME} is running at http://localhost:${PORT}`);
   startDataEngine();
+  // Clear old video work folders from the saved-data space at start-up
+  import('./src/services/videoService.js').then((v) => v.removeOldWorkFolders()).catch(() => {});
 });
 
 /**
