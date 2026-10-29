@@ -203,6 +203,9 @@ export async function refreshEtfs() {
   let ok = 0; const failed = [];
   const { worldEtfTickers } = await import('../data/worldStocks.js');
   for (const t of worldEtfTickers()) { await getEtfData(t, { force: true }).catch(() => null); await pause(300); }
+  // Shariah funds and ETFs (for /shariah)
+  const { SHARIAH_FUNDS } = await import('../data/shariahData.js');
+  for (const f of SHARIAH_FUNDS.filter((x) => x.sec)) { await getEtfData(f.ticker, { force: true }).catch(() => null); await pause(300); }
   for (const e of CURATED_ETFS) {
     if (e.sameAs || ETF_COMMODITY[e.ticker]) continue;
     const d = await getEtfData(e.ticker, { force: true });

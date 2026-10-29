@@ -54,6 +54,7 @@ import { renderReportPage, renderReportsIndex, reportFullHtml } from './src/serv
 import { readReport } from './src/services/reportService.js';
 import { ASK_TOPICS, adminAnswer, adminQuestions, askQuestion, draftAnswer, myQuestions } from './src/services/askService.js';
 import { renderAskPage } from './src/services/askPage.js';
+import { renderShariahHub, renderShariahMarket, renderShariahFunds } from './src/services/shariahPages.js';
 import { renderNewsletterPage, renderNewsletterIssue, renderNewsletterMessage } from './src/services/newsletterPage.js';
 import * as newsletter from './src/services/newsletterService.js';
 import { screenerRows, fundOwners, fundExplorer } from './src/services/screenerService.js';
@@ -347,6 +348,16 @@ export const server = http.createServer(async (request, response) => {
         }
         return sendJson(response, 404, { error: 'Not found' });
       } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
+    }
+
+    // Shariah: each company's ratios and purification share (Premium)
+    if (requestUrl.pathname === '/api/shariah' && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Shariah ratios are for Premium members.' });
+      const { shariahTable } = await import('./src/services/shariahService.js');
+      const market = String(requestUrl.searchParams.get('market') || '');
+      const { rows } = await shariahTable();
+      return sendJson(response, 200, { rows: rows.filter((r) => !market || r.market === market).map((r) => ({ ticker: r.ticker, ratios: r.ratios, purify: r.purify, results: r.results })) });
     }
 
     // Homepage: business news by region (free)
@@ -904,6 +915,15 @@ async function handlePublicPage(requestUrl, request, response) {
   const reportMatch = pathname.match(/^\/reports\/(\d{4}-\d{2})$/u);
   if (reportMatch) {
     const html = await renderReportPage(origin, reportMatch[1]);
+    if (html) return sendHtml(response, 200, html);
+  }
+
+  // Shariah-compliant investing
+  if (pathname === '/shariah') return sendHtml(response, 200, await renderShariahHub(origin));
+  if (pathname === '/shariah/funds') return sendHtml(response, 200, await renderShariahFunds(origin));
+  const shariahMatch = pathname.match(/^\/shariah\/([a-z-]{2,20})$/u);
+  if (shariahMatch) {
+    const html = await renderShariahMarket(origin, shariahMatch[1]);
     if (html) return sendHtml(response, 200, html);
   }
 

@@ -100,7 +100,8 @@ export async function renderMarketsHub(origin) {
   });
   const cards = [
     ['/stocks', 'Stocks', 'Report cards for US companies: sales, profit, debt and dividends from official filings.', 'Top 10 in every sector'],
-    ['/stocks/world', 'Stocks around the world', 'The UK, Japan, China, India, South Korea, Brazil and the Gulf: report cards, prices and news.', '7 regions'],
+    ['/stocks/world', 'Stocks around the world', 'The UK, Europe, Japan, China, India, South Korea, Brazil and the Gulf: report cards, prices and news.', '8 regions'],
+    ['/shariah', 'Shariah-compliant investing', 'Which big companies pass the AAOIFI, Dow Jones, S&P, MSCI and FTSE Shariah checks, plus Shariah funds and ETFs.', '5 standards, 12 countries'],
     ['/etfs', 'ETFs', 'Funds that hold many investments at once: what is inside, the yearly fee and recent returns.', `${CURATED_ETFS.length} popular ETFs, look up any other`],
     ['/bonds', 'Bonds', 'Loans to governments: what they pay, how that has changed, and why it matters for mortgages.', us10 ? `US 10-year: ${us10.v.toFixed(2)}% (${periodWords(us10.p)})` : `${BOND_PLACES.length} countries`],
     ['/commodities', 'Commodities', 'Gold, silver, oil, copper, coffee and more: prices over time and what moves them.', gold ? `Gold: ${usd(gold.latest.v)} an ounce (${periodWords(gold.latest.p)})` : `${COMMODITIES.length} commodities`],

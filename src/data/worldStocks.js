@@ -37,6 +37,28 @@ export const WORLD_REGIONS = [
     ],
   },
   {
+    id: 'europe', name: 'Europe', short: 'Europe', currency: 'EUR', colour: '#6250d6',
+    index: { symbol: 'TVC:SX5E', name: 'Euro Stoxx 50' },
+    exchanges: 'Euronext, Deutsche Börse (Xetra), SIX Swiss Exchange and others',
+    intro: 'Europe’s shares trade on several exchanges: Euronext (Paris, Amsterdam, Milan, Brussels, Dublin, Lisbon and Oslo), Deutsche Börse in Frankfurt, SIX in Zurich, Nasdaq Nordic and more. The Euro Stoxx 50 follows 50 large companies from countries that use the euro. The companies below also report to the US SEC; figures are converted to US dollars.',
+    sec: [
+      ['ASML', 'Technology'], ['SAP', 'Technology'], ['NOK', 'Technology'], ['ERIC', 'Technology'], ['LOGI', 'Technology'],
+      ['NVO', 'Health care'], ['NVS', 'Health care'], ['SNY', 'Health care'], ['PHG', 'Health care'], ['ALC', 'Health care'],
+      ['TTE', 'Energy'], ['EQNR', 'Energy'], ['E', 'Energy'],
+      ['STLA', 'Shopping & leisure'], ['RACE', 'Shopping & leisure'], ['BUD', 'Everyday essentials'],
+      ['TEF', 'Communication'], ['SPOT', 'Communication'],
+      ['ING', 'Banks & finance'], ['UBS', 'Banks & finance'], ['SAN', 'Banks & finance'],
+    ],
+    local: [
+      { slug: 'lvmh', name: 'LVMH', symbol: 'EURONEXT:MC', sector: 'Shopping & leisure' },
+      { slug: 'siemens', name: 'Siemens', symbol: 'XETR:SIE', sector: 'Industry & transport' },
+      { slug: 'nestle', name: 'Nestlé', symbol: 'SIX:NESN', sector: 'Everyday essentials' },
+      { slug: 'loreal', name: 'L’Oréal', symbol: 'EURONEXT:OR', sector: 'Everyday essentials' },
+      { slug: 'airbus', name: 'Airbus', symbol: 'EURONEXT:AIR', sector: 'Industry & transport' },
+      { slug: 'inditex', name: 'Inditex (Zara)', symbol: 'BME:ITX', sector: 'Shopping & leisure' },
+    ],
+  },
+  {
     id: 'japan', name: 'Japan', short: 'Japan', currency: 'JPY', colour: '#e34948',
     index: { symbol: 'INDEX:NKY', name: 'Nikkei 225' },
     exchanges: 'Tokyo Stock Exchange',

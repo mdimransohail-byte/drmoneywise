@@ -140,6 +140,7 @@ export async function renderToolsHub(origin) {
             ['/screener', 'Stock screener', 'Regular and Premium', 'Filter companies in the US and around the world by growth, profit, debt and dividends. Premium adds what the big funds own.'],
             ['/ideas', 'Ideas that match your rules', 'Premium', 'Save up to 5 sets of rules and see every company that matches, with new matches in your Saturday email.'],
             ['/portfolio-health', 'Portfolio health check', 'Premium', 'A score and colour heat map for every holding and for your whole portfolio.'],
+            ['/shariah', 'Shariah-compliant investing', 'Free', 'Which big companies pass the five main Shariah standards, with Shariah funds and ETFs. Members can also filter the screener by standard.'],
             ['/insiders', 'Company bosses’ trades', 'Premium', 'When directors and top managers buy or sell their own company’s shares.'],
             ['/reports', 'Monthly research report', 'Premium', 'The month in figures: economy, markets, results, and what bosses and big funds did.'],
             ['/ask', 'Ask Dr MoneyWise', 'Regular and Premium', 'Send us your money questions; read the answers to other readers’ questions.'],

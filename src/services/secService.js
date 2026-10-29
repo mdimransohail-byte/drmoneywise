@@ -219,6 +219,13 @@ export function summariseCompanyFacts(ticker, factsJson, fx = null) {
   const longTermDebt = latestInstant(facts, ['LongTermDebt', 'LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations', 'LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities', 'DebtInstrumentCarryingAmount', 'SeniorLongTermNotes', 'DebtLongtermAndShorttermCombinedAmount', 'LongTermNotesPayable', 'LongtermBorrowings', 'NoncurrentPortionOfNoncurrentBorrowings', 'Borrowings'], M);
   const equity = latestInstant(facts, ['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest', 'EquityAttributableToOwnersOfParent', 'Equity'], M);
   const shares = sharesOutstandingTotal(facts);
+  // For the Shariah checks: borrowing due within a year, money owed by customers,
+  // short-term investments and interest earned (US and international names)
+  const shortBorrowing = latestInstant(facts, ['ShortTermBorrowings', 'CommercialPaper', 'OtherShortTermBorrowings', 'ShorttermBorrowings', 'CurrentBorrowings', 'BankOverdrafts'], M);
+  const debtCurrent = latestInstant(facts, ['LongTermDebtCurrent', 'LongTermDebtAndCapitalLeaseObligationsCurrent', 'CurrentPortionOfLongtermBorrowings', 'DebtCurrent'], M);
+  const receivables = latestInstant(facts, ['AccountsReceivableNetCurrent', 'ReceivablesNetCurrent', 'AccountsNotesAndLoansReceivableNetCurrent', 'TradeAndOtherCurrentReceivables', 'TradeReceivables', 'CurrentTradeReceivables'], M);
+  const shortInvestments = latestInstant(facts, ['ShortTermInvestments', 'MarketableSecuritiesCurrent', 'AvailableForSaleSecuritiesDebtSecuritiesCurrent', 'HeldToMaturitySecuritiesCurrent', 'OtherShortTermInvestments', 'CurrentFinancialAssetsAtFairValueThroughProfitOrLoss', 'ShorttermDepositsNotClassifiedAsCashEquivalents', 'OtherCurrentFinancialAssets'], M);
+  const interestIncome = annualSeries(facts, ['InvestmentIncomeInterest', 'InterestIncomeOther', 'InvestmentIncomeInterestAndDividend', 'InterestAndOtherIncome', 'InterestIncomeOperating', 'FinanceIncome', 'InterestIncome', 'RevenueFromInterest'], M);
 
 
   // Non-dollar filers: convert every money figure at today's rate, so the
@@ -230,7 +237,8 @@ export function summariseCompanyFacts(ticker, factsJson, fx = null) {
     for (const s of [revenue, netIncome, eps, dividendsPerShare, dividendsPaid, operatingCashFlow, capex, grossProfit, operatingIncome]) {
       s.series = s.series.map((row) => ({ ...row, value: row.value * rate }));
     }
-    for (const x of [totalAssets, totalLiabilities, cash, longTermDebt, equity]) if (x.value !== null) x.value *= rate;
+    for (const x of [totalAssets, totalLiabilities, cash, longTermDebt, equity, shortBorrowing, debtCurrent, receivables, shortInvestments]) if (x.value !== null) x.value *= rate;
+    interestIncome.series = interestIncome.series.map((row) => ({ ...row, value: row.value * rate }));
     for (const k of Object.keys(quarters)) quarters[k] = quarters[k].map((row) => ({ ...row, value: row.value * rate }));
   }
   const coverRows = (facts.dei?.EntityCommonStockSharesOutstanding?.units?.shares || []).slice().sort((a, b) => String(a.filed).localeCompare(String(b.filed)));
@@ -268,6 +276,19 @@ export function summariseCompanyFacts(ticker, factsJson, fx = null) {
     longTermDebt: longTermDebt.value,
     equity: equity.value,
     sharesOutstanding: shares.value,
+    // Shariah checks (see shariahService.js). "LongTermDebt" on its own already
+    // includes the part due this year, so that part is only added to the other names.
+    shariah: {
+      shortBorrowing: shortBorrowing.value,
+      debtCurrent: ['LongTermDebtNoncurrent', 'LongTermDebtAndCapitalLeaseObligations', 'NoncurrentPortionOfNoncurrentBorrowings', 'LongTermNotesPayable'].includes(longTermDebt.concept) ? debtCurrent.value : null,
+      // These names already cover all borrowing, short and long
+      debtIsTotal: ['DebtLongtermAndShorttermCombinedAmount', 'Borrowings'].includes(longTermDebt.concept),
+      longDebtConcept: longTermDebt.concept,
+      receivables: receivables.value,
+      shortInvestments: shortInvestments.value,
+      interestIncome: interestIncome.series.at(-1)?.value ?? null,
+      interestIncomeYear: interestIncome.series.at(-1)?.year ?? null,
+    },
     currency: cur,
     fx: rate !== 1 ? { rate, date: fx?.date || null } : null,
     // Files yearly reports as an overseas company (20-F): its US-listed
@@ -382,6 +403,7 @@ export async function fetchOneCompany(ticker, match) {
     await sleep(PAUSE_MS);
     const submissions = await secFetchJson(SUBMISSIONS_URL(match.cik));
     summary.industry = submissions?.sicDescription || '';
+    summary.sic = Number(submissions?.sic) || null;
     summary.exchange = submissions?.exchanges?.[0] || '';
     const where = submissions?.addresses?.business || {};
     summary.country = where.stateOrCountryDescription && !/^[A-Z]{2}$/u.test(where.stateOrCountry || '') ? where.stateOrCountryDescription : (where.stateOrCountry ? 'United States' : '');

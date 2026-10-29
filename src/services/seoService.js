@@ -134,6 +134,8 @@ export async function buildSitemapXml(origin) {
   try {
     const { worldSitemapEntries } = await import('./worldPages.js');
     urls.push(...worldSitemapEntries(origin));
+    const { shariahSitemapEntries } = await import('./shariahPages.js');
+    urls.push(...shariahSitemapEntries(origin, today));
   } catch (error) {
     console.error('[seo] Region pages left out of sitemap:', error.message);
   }
@@ -282,6 +284,7 @@ export async function renderLearnIndex(origin) {
         </div>
         ${deeperHtml}
         <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge">Members</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in plain English. Read other readers’ answers too.</span><em>Ask a question →</em></a>
+        <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge">Free</span><strong>Shariah-compliant investing</strong><span>How Islamic screening works, the five main standards side by side, and Shariah funds and ETFs.</span><em>Read the guide →</em></a>
         <a class="lp-banner" href="/learn/path"><span class="pf-badge">Free</span><strong>Your learning path</strong><span>Short steps from your first savings to running a portfolio. Tick them off as you go.</span><em>Start the path →</em></a>
         ${list}
       </section>`;

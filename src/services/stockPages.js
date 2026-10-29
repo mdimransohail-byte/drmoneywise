@@ -306,6 +306,8 @@ export async function renderStockPage(origin, rawTicker) {
   const world = worldTickerInfo()[ticker] || null;
   const region = world ? worldRegion(world.region) : null;
   const last6 = (series) => (series || []).slice(-6);
+  let shariahBox = '';
+  try { const { shariahBoxHtml } = await import('./shariahPages.js'); shariahBox = await shariahBoxHtml(ticker); } catch { shariahBox = ''; }
 
   const head = buildHeadTags({
     title: `${name} (${ticker}) explained simply: report card, sales and dividends | Dr MoneyWise`,
@@ -395,6 +397,7 @@ export async function renderStockPage(origin, rawTicker) {
         </div>
       </section>
 
+      ${shariahBox}
       ${company.foreignFiler ? '' : insiderBoxHtml(ticker, name)}
 
       ${adSlot('in-content')}

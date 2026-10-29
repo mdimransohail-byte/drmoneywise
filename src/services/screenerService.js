@@ -82,6 +82,12 @@ export async function screenerRows({ premium = false } = {}) {
         }),
       });
     }
+    // Which Shariah standards each company passes (see shariahService.js)
+    try {
+      const { shariahTable } = await import('./shariahService.js');
+      const sh = new Map((await shariahTable()).rows.map((x) => [x.ticker, x.passes]));
+      for (const r of rows) r.shariah = sh.get(r.ticker) || [];
+    } catch (error) { console.error('[screener] Shariah checks not added:', error.message); }
     memo = { at: Date.now(), rowsPremium: rows, period: funds.funds?.map((f) => f.period).sort().at(-1) || null, pricesOn: Object.keys(prices.prices || {}).length > 0 };
   }
   const strip = (r) => { const { funds, buyers, sellers, fundsValue, ownedPct, topFund, bigBet, bossBuys, bossSells, ...rest } = r; return rest; };

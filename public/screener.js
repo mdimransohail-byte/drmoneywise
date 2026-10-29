@@ -21,8 +21,8 @@
   }
   var heatInk = function (s) { return s != null && s >= 50 && s < 65 ? '#0a1128' : '#fff'; };
 
-  var S = { data: null, premium: false, preview: false, preset: 'all', sort: 'score', dir: -1, tab: 'screen', f: { region: '', sector: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false } };
-  try { var qp = new URLSearchParams(location.search); if (qp.get('region')) S.f.region = qp.get('region'); if (qp.get('sector')) S.f.sector = qp.get('sector'); } catch (e) { /* old browser */ }
+  var S = { data: null, premium: false, preview: false, preset: 'all', sort: 'score', dir: -1, tab: 'screen', f: { region: '', sector: '', shariah: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false } };
+  try { var qp = new URLSearchParams(location.search); if (qp.get('region')) S.f.region = qp.get('region'); if (qp.get('sector')) S.f.sector = qp.get('sector'); if (qp.get('shariah')) S.f.shariah = qp.get('shariah'); } catch (e) { /* old browser */ }
 
   /* ── Charts ── */
   function donut(slices, opts) {
@@ -106,6 +106,7 @@
       if (p && !p[2](r)) return false;
       if (f.region === 'abroad' ? r.region === 'us' : f.region && r.region !== f.region) return false;
       if (f.sector && r.sector !== f.sector) return false;
+      if (f.shariah) { var sh = r.shariah || []; if (f.shariah === 'any' ? !sh.length : f.shariah === 'all' ? sh.length < 5 : sh.indexOf(f.shariah) < 0) return false; }
       if (num(f.growth) != null && !(r.salesGrowth >= num(f.growth))) return false;
       if (num(f.margin) != null && !(r.margin >= num(f.margin))) return false;
       if (num(f.score) != null && !(r.score >= num(f.score))) return false;
@@ -146,6 +147,7 @@
     html += '<div class="sc-filters' + (locked ? ' locked' : '') + '">' +
       field('Region', '<select data-f="region"' + (locked ? ' disabled' : '') + '><option value="">Every region</option><option value="abroad"' + (S.f.region === 'abroad' ? ' selected' : '') + '>Outside the US</option>' + (S.data.regions || []).map(function (g) { return '<option value="' + esc(g.id) + '"' + (S.f.region === g.id ? ' selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select>') +
       field('Area', '<select data-f="sector"' + (locked ? ' disabled' : '') + '><option value="">All areas</option>' + sectors.map(function (s) { return '<option' + (S.f.sector === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>') +
+      field('Shariah check', '<select data-f="shariah"' + (locked ? ' disabled' : '') + '>' + [['', 'Not used'], ['any', 'Passes at least one standard'], ['all', 'Passes all five'], ['aaoifi', 'AAOIFI'], ['djim', 'Dow Jones Islamic'], ['sp', 'S&P Shariah'], ['msci', 'MSCI Islamic'], ['ftse', 'FTSE Shariah']].map(function (o) { return '<option value="' + o[0] + '"' + (S.f.shariah === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>') +
       field('Sales growth at least (%)', inp('growth', 'e.g. 5')) + field('Profit margin at least (%)', inp('margin', 'e.g. 15')) + field('Score at least', inp('score', 'e.g. 70')) +
       field('Dividend raises at least (years)', inp('divYears', 'e.g. 10')) + field('Debt at most (years)', inp('debt', 'e.g. 3')) +
       (S.premium ? field('Held by at least (big funds)', inp('funds', 'e.g. 3')) + '<label class="sc-check"><input type="checkbox" data-f="buying"' + (S.f.buying ? ' checked' : '') + '> More funds buying than selling</label>' : '') +
@@ -252,7 +254,7 @@
       }).catch(function () { msg('Could not save. Please try again.'); });
     });
     var reset = app.querySelector('[data-reset]');
-    if (reset) reset.addEventListener('click', function () { S.f = { region: '', sector: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false }; S.preset = 'all'; draw(); });
+    if (reset) reset.addEventListener('click', function () { S.f = { region: '', sector: '', shariah: '', growth: '', margin: '', score: '', divYears: '', debt: '', funds: '', buying: false }; S.preset = 'all'; draw(); });
     if (S.premium) app.querySelectorAll('tr.sc-click').forEach(function (tr) { tr.addEventListener('click', function (e) { if (e.target.closest('a')) return; openOwners(tr.dataset.ticker); }); });
   }
 

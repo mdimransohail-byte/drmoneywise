@@ -125,8 +125,8 @@ export async function renderWorldHub(origin) {
   const us = rows.filter((x) => x.region === 'us');
   const withUs = [{ r: { id: '', name: 'United States', short: 'US' }, n: us.length, growth: avg(us.map((x) => x.salesGrowth)), margin: avg(us.map((x) => x.margin)) }, ...stats].filter((s) => s.n >= 3);
   const head = buildHeadTags({
-    title: 'Stocks around the world: UK, Japan, China, India, Korea, Brazil and the Gulf | Dr MoneyWise',
-    description: 'Big companies in the UK, Japan, China, India, South Korea, Brazil and the Gulf, explained simply, with report cards from their official yearly reports.',
+    title: 'Stocks around the world: UK, Europe, Japan, China, India, Korea, Brazil and the Gulf | Dr MoneyWise',
+    description: 'Big companies in the UK, Europe, Japan, China, India, South Korea, Brazil and the Gulf, explained simply, with report cards from their official yearly reports.',
     canonical: `${origin}/stocks/world`,
   });
   const cards = stats.map(({ r, n, score }) => `
@@ -140,7 +140,7 @@ export async function renderWorldHub(origin) {
   const body = `
       <section class="block pr-page">
         <p class="crumbs"><a href="/stocks">Stocks</a> › Around the world</p>
-        <div class="wd-hero"><div><h1>Stocks around the world</h1><p>The biggest companies in seven regions, explained simply. Companies that also report to the US regulator get a full report card from their official yearly report. For the others, we show exchange data and the latest news.</p></div>
+        <div class="wd-hero"><div><h1>Stocks around the world</h1><p>The biggest companies in eight regions, explained simply. Companies that also report to the US regulator get a full report card from their official yearly report. For the others, we show exchange data and the latest news.</p></div>
           <a class="pf-btn gold" href="/screener">Open the screener</a></div>
         <div class="mk-cards wd-cards">${cards}</div>
         <div class="pf-panel"><h2>Main share indexes, last 12 months</h2><p class="pf-sub">Live prices from TradingView. Click a tab to compare markets.</p>

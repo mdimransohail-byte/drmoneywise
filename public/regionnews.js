@@ -13,7 +13,7 @@
   var win = document.getElementById('rnWindow');
   var more = document.getElementById('rnMore');
   var KEY = 'dmw-news-region';
-  var PAGES = { uk: '/stocks/world/uk', india: '/stocks/world/india', china: '/stocks/world/china', japan: '/stocks/world/japan', 'south-korea': '/stocks/world/south-korea', brazil: '/stocks/world/brazil', gulf: '/stocks/world/gulf', us: '/stocks', europe: '/stocks/world' };
+  var PAGES = { uk: '/stocks/world/uk', india: '/stocks/world/india', china: '/stocks/world/china', japan: '/stocks/world/japan', 'south-korea': '/stocks/world/south-korea', brazil: '/stocks/world/brazil', gulf: '/stocks/world/gulf', us: '/stocks', europe: '/stocks/world/europe' };
   var esc = function (v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
   var ago = function (iso) {
     if (!iso) return '';
