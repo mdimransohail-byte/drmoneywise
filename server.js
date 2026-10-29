@@ -372,11 +372,21 @@ export const server = http.createServer(async (request, response) => {
         }
         if (sub === '/recent' && request.method === 'GET') return sendJson(response, 200, { files: await social.recentCards(), sizes: social.SIZES });
         if (sub === '/gamma' && request.method === 'GET') return sendJson(response, 200, social.gammaJob(String(requestUrl.searchParams.get('job') || '')));
+        if (sub === '/gamma-themes' && request.method === 'GET') {
+          const { listGammaThemes } = await import('./src/services/visualsService.js');
+          const { readStore } = await import('./src/services/storeService.js');
+          return sendJson(response, 200, { themes: await listGammaThemes(), chosen: (await readStore()).settings?.gammaThemeId || '' });
+        }
         if (request.method === 'POST') {
           const body = await parseJsonBody(request);
           const origin = getSiteOrigin(request);
           if (sub === '/cards') return sendJson(response, 200, await social.makeCards({ ...body, origin }));
           if (sub === '/gamma') return sendJson(response, 200, social.startGamma({ ...body, origin }));
+          if (sub === '/gamma-theme') {
+            const { updateStore } = await import('./src/services/storeService.js');
+            await updateStore((st) => { st.settings = { ...(st.settings || {}), gammaThemeId: String(body.themeId || '').slice(0, 80) }; return st; });
+            return sendJson(response, 200, { ok: true });
+          }
         }
         return sendJson(response, 404, { error: 'Not found' });
       } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }

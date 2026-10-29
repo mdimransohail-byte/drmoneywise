@@ -71,7 +71,8 @@ function wrap(font, text, size, maxW, maxLines) {
 function fit(font, text, maxSize, minSize, maxW, maxLines) {
   for (let s = maxSize; s >= minSize; s -= 2) {
     const r = wrap(font, text, s, maxW, maxLines);
-    if (!r.cut) return { size: s, lines: r.lines };
+    // A single long word (like a web address) can't wrap: it must also fit the width
+    if (!r.cut && r.lines.every((l) => width(font, l, s) <= maxW)) return { size: s, lines: r.lines };
   }
   return { size: minSize, lines: wrap(font, text, minSize, maxW, maxLines).lines };
 }
@@ -295,13 +296,18 @@ async function drawFramed(content, sizeKey, { title = '' } = {}) {
   const { w: W, h: H } = SIZES[sizeKey];
   const s = content.site;
   const fh = Math.round(H * (H > W ? 0.085 : 0.11));
-  let top = 0; let svg = `<rect width="${W}" height="${H}" fill="${C.navy}"/>`;
+  let top = 0;
+  // Behind the picture: the same picture, enlarged and blurred, so there are no plain bands
+  let svg = `<defs><filter id="blur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="40"/></filter></defs>
+    <rect width="${W}" height="${H}" fill="${C.navy}"/>
+    <image href="${content.image}" x="-60" y="-60" width="${W + 120}" height="${H - fh + 120}" preserveAspectRatio="xMidYMid slice" filter="url(#blur)" opacity="0.85"/>
+    <rect width="${W}" height="${H - fh}" fill="#0a1128" opacity="0.35"/>`;
   if (title) {
     const t = fit(f.serif, title, W > H ? 44 : 56, 30, W - 112, 2);
     top = Math.round(t.lines.length * t.size * 1.2) + 70;
     svg += textLines(t.lines, { x0: 56, y0: 34, size: t.size, kind: 'serif', fill: '#fff', lh: 1.2 });
   }
-  svg += `<image href="${content.image}" x="24" y="${top + 12}" width="${W - 48}" height="${H - fh - top - 36}" preserveAspectRatio="xMidYMid meet"/>`;
+  svg += `<image href="${content.image}" x="20" y="${top + 16}" width="${W - 40}" height="${H - fh - top - 32}" preserveAspectRatio="xMidYMid meet"/>`;
   svg += footer(W, H, s, content.link, f);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${svg}</svg>`;
 }

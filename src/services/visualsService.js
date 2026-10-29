@@ -75,7 +75,7 @@ export async function generateGammaInfographic({ headline, infographic, summary 
   // Full design request first; if Gamma rejects an option, try again with the basics only
   const full = {
     ...base,
-    ...(process.env.GAMMA_THEME_ID ? { themeId: process.env.GAMMA_THEME_ID } : {}),
+    ...(await gammaThemeId() ? { themeId: await gammaThemeId() } : {}),
     additionalInstructions: GAMMA_STYLE,
     textOptions: { amount: 'brief', tone: 'clear, friendly, plain English', audience: 'everyday savers and new investors', language: 'en-gb' },
     imageOptions: { source: 'noImages' },
@@ -101,6 +101,28 @@ export async function generateGammaInfographic({ headline, infographic, summary 
   const exportUrl = await pollGammaGeneration(generationId);
   const { buffer, extension } = await extractFirstImageFromZip(exportUrl);
   return saveGeneratedImage(buffer, extension);
+}
+
+async function gammaThemeId() {
+  try {
+    const { readStore } = await import('./storeService.js');
+    return (await readStore()).settings?.gammaThemeId || process.env.GAMMA_THEME_ID || '';
+  } catch { return process.env.GAMMA_THEME_ID || ''; }
+}
+
+/** Gamma's themes (standard and your own), for Admin → Social studio. */
+export async function listGammaThemes() {
+  if (!process.env.GAMMA_API_KEY) return [];
+  const out = []; let after = '';
+  for (let page = 0; page < 5; page += 1) {
+    const r = await fetch(`${GAMMA_BASE_URL}/themes?limit=50${after ? `&after=${encodeURIComponent(after)}` : ''}`, { headers: { 'X-API-KEY': process.env.GAMMA_API_KEY } });
+    if (!r.ok) throw new Error(`Gamma said ${r.status} when listing themes`);
+    const d = await r.json();
+    const list = Array.isArray(d) ? d : d.data || d.themes || [];
+    for (const t of list) if (t.id) out.push({ id: t.id, name: t.name || t.id, type: t.type || '', colors: t.colorKeywords || t.colors || [] });
+    after = d.nextCursor || ''; if (!d.hasMore || !after) break;
+  }
+  return out;
 }
 
 function gammaCreate(body) {

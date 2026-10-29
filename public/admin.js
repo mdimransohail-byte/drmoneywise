@@ -2262,6 +2262,7 @@ function render_social() {
           <button class="btn" data-so="gamma" title="Explainers only; takes 1–3 minutes">Make a Gamma infographic</button>
           <span id="soMsg" style="font-size:.76rem"></span>
         </div>
+        <div style="display:flex;gap:8px;align-items:end;margin-top:12px"><label style="flex:1"><span class="field">Gamma theme (colours and fonts Gamma uses)</span><select id="soTheme"><option value="">Loading themes…</option></select></label><button class="btn" data-so="theme">Save theme</button></div>
         <p style="font-size:.7rem;color:#9eb3cc;margin-top:10px">Works with: explainers (/learn/…), companies (/stock/…), results (/results or a result’s link), Shariah pages, research reports and any other page (uses its title and description). For picture links, only use pictures you’re allowed to post: your own, or free ones such as Pexels.</p>
       </div>
       <div class="card">
@@ -2308,7 +2309,14 @@ async function soRecent() {
   } catch (e) { box.textContent = e.message; }
 }
 
-async function load_social() { setMain(render_social()); bind_social(); soRecent(); if (STATE.social?.result) soShow(STATE.social.result.items); }
+async function soThemes() {
+  const sel = qs('#soTheme'); if (!sel) return;
+  try {
+    const r = await API.get('/api/admin/social/gamma-themes');
+    sel.innerHTML = '<option value="">Gamma’s default theme</option>' + r.themes.map((t) => `<option value="${h(t.id)}" ${t.id === r.chosen ? 'selected' : ''}>${h(t.name)}${t.type === 'custom' ? ' (yours)' : ''}${(t.colors || []).length ? ` · ${h(t.colors.slice(0, 3).join(', '))}` : ''}</option>`).join('');
+  } catch (e) { sel.innerHTML = `<option value="">Themes not available (${h(e.message)})</option>`; }
+}
+async function load_social() { setMain(render_social()); bind_social(); soRecent(); soThemes(); if (STATE.social?.result) soShow(STATE.social.result.items); }
 
 function bind_social() {
   const msg = qs('#soMsg');
@@ -2319,6 +2327,7 @@ function bind_social() {
   };
   qsa('[data-so]').forEach((btn) => btn.addEventListener('click', async () => {
     const act = btn.dataset.so;
+    if (act === 'theme') { try { await API.post('/api/admin/social/gamma-theme', { themeId: qs('#soTheme').value }); say('Gamma theme saved: new infographics will use it.'); } catch (e) { say(e.message, true); } return; }
     if (act === 'copy') { const t = qs('#soCaption'); t.select(); try { await navigator.clipboard.writeText(t.value); say('Caption copied.'); } catch { document.execCommand('copy'); say('Caption copied.'); } return; }
     const body = read();
     if (!body.url) { say('Paste a link first.', true); return; }
