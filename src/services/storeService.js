@@ -41,14 +41,15 @@ export async function ensureStore() {
       const raw = await fs.readFile(storePath, 'utf8');
       if (!raw.trim()) throw new Error('empty');
       JSON.parse(raw); // validate JSON is readable
-    } catch {
-      // File missing, empty, or corrupted — create fresh
-      console.log('Creating fresh platform store...');
-      await fs.writeFile(
-        storePath,
-        JSON.stringify(makeDefaultStore(), null, 2),
-        'utf8'
-      );
+    } catch (error) {
+      // Only a MISSING file is created fresh. An unreadable one is left alone
+      // (readStore falls back to the backup copy) so no data is ever wiped.
+      if (error.code === 'ENOENT') {
+        console.log('Creating fresh platform store...');
+        await atomicWrite(storePath, JSON.stringify(makeDefaultStore(), null, 2));
+      } else {
+        console.error('[store] platform-store.json could not be read at start-up; it was not overwritten.');
+      }
     }
   } catch (err) {
     console.error('ensureStore error:', err.message);
@@ -56,29 +57,78 @@ export async function ensureStore() {
 }
 
 // ── Read store — always returns a valid object ────────────────────────────
+// SAFETY (Oct 2026): the store is never replaced with an empty one just
+// because a read failed. Writes are atomic (temporary file, then rename),
+// so a read can't catch a half-written file; if a read still fails, we
+// retry, then use the last good copy (memory, then the hourly backup).
+let lastGood = null;
+const pause = (ms) => new Promise((r) => { setTimeout(r, ms); });
+const backupPath = path.join(dataDir, 'platform-store.backup.json');
+
 export async function readStore() {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const raw = await fs.readFile(storePath, 'utf8');
+      if (!raw.trim()) throw new Error('empty');
+      const data = JSON.parse(raw);
+      lastGood = raw;
+      return data;
+    } catch (error) {
+      if (error.code === 'ENOENT') break; // really missing: see below
+      await pause(40 * (attempt + 1));
+    }
+  }
+  // Never overwrite an existing store with an empty one
+  if (lastGood) { console.error('[store] Could not read the store; using the last good copy.'); return JSON.parse(lastGood); }
   try {
-    const raw = await fs.readFile(storePath, 'utf8');
-    if (!raw.trim()) throw new Error('empty');
-    return JSON.parse(raw);
-  } catch {
-    // Auto-heal: recreate the store
-    const fresh = makeDefaultStore();
+    const raw = await fs.readFile(backupPath, 'utf8');
+    const data = JSON.parse(raw);
+    console.error('[store] Could not read the store; restored from the backup copy.');
+    return data;
+  } catch { /* no backup either */ }
+  let exists = false;
+  try { await fs.access(storePath); exists = true; } catch { exists = false; }
+  const fresh = makeDefaultStore();
+  if (!exists) {
     try {
       await fs.mkdir(dataDir, { recursive: true });
-      await fs.writeFile(storePath, JSON.stringify(fresh, null, 2), 'utf8');
+      await atomicWrite(storePath, JSON.stringify(fresh, null, 2));
     } catch (writeErr) {
       console.error('Could not write store:', writeErr.message);
     }
-    return fresh;
+  } else {
+    console.error('[store] The store file is unreadable and there is no backup; it was NOT overwritten. Check data/platform-store.json.');
   }
+  return fresh;
+}
+
+async function atomicWrite(file, text) {
+  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  await fs.writeFile(tmp, text, 'utf8');
+  await fs.rename(tmp, file);
 }
 
 // ── Write store ───────────────────────────────────────────────────────────
+let lastBackup = 0;
 export async function writeStore(data) {
   try {
     await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(storePath, JSON.stringify(data, null, 2), 'utf8');
+    const text = JSON.stringify(data, null, 2);
+    // Refuse to replace a store that has members or explainers with one that has none
+    if (lastGood && !(data?.users?.length) && !(data?.articles?.length)) {
+      const prev = JSON.parse(lastGood);
+      if ((prev.users || []).length || (prev.articles || []).length) {
+        console.error('[store] Blocked a write that would have emptied the store.');
+        return data;
+      }
+    }
+    await atomicWrite(storePath, text);
+    lastGood = text;
+    // Hourly backup copy of the last good store
+    if (Date.now() - lastBackup > 60 * 60 * 1000) {
+      lastBackup = Date.now();
+      await atomicWrite(backupPath, text).catch(() => {});
+    }
   } catch (err) {
     console.error('writeStore error:', err.message);
   }
@@ -86,11 +136,18 @@ export async function writeStore(data) {
 }
 
 // ── Update store with a mutator function ─────────────────────────────────
-export async function updateStore(mutator) {
-  const current = await readStore();
-  const next = await mutator(structuredClone(current));
-  await writeStore(next);
-  return next;
+// One change at a time, so two changes made at the same moment can't
+// overwrite each other.
+let queue = Promise.resolve();
+export function updateStore(mutator) {
+  const run = queue.then(async () => {
+    const current = await readStore();
+    const next = await mutator(structuredClone(current));
+    await writeStore(next);
+    return next;
+  });
+  queue = run.catch(() => {});
+  return run;
 }
 
 export function getStorePath() {

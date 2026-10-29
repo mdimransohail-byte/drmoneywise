@@ -2229,6 +2229,307 @@ function bind_newsletter() {
   nlPreview();
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE L: SOCIAL STUDIO
+// ─────────────────
+// Paste a link to a page on the site (explainer, company, results, Shariah
+// list, report…) or to a picture, choose sizes, and get JPEG pictures with
+// our name, the page address, website and email, plus a caption to copy.
+// ════════════════════════════════════════════════════════════════════════════
+
+const SOCIAL_SIZES = [['square', 'Square 1080×1080', 'Instagram, Facebook, LinkedIn'], ['portrait', 'Portrait 1080×1350', 'Instagram and Facebook feed'], ['story', 'Story 1080×1920', 'Stories, Reels, Shorts covers'], ['landscape', 'Landscape 1200×675', 'X, LinkedIn, YouTube community']];
+
+function render_social() {
+  const st = STATE.social || {};
+  const res = st.result;
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:#e87ba4">Marketing</div>
+      <h1>Social studio</h1>
+      <p>Paste a link to any page on the site, or a direct link to a picture, and get ready-to-post JPEG pictures with our name, website and email.</p>
+    </div>
+    <div class="card-grid two-col">
+      <div class="card" id="soForm">
+        <label style="display:block;margin:0 0 10px"><span class="field">Link</span><input class="input" name="url" value="${h(st.url || '')}" placeholder="https://drmoneywise.com/learn/... or /stock/KO or /results or a picture link"></label>
+        <span class="field">Sizes</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 10px">${SOCIAL_SIZES.map(([k, l, d]) => `<label style="display:flex;gap:8px;align-items:flex-start;font-size:.76rem;color:#dbe6f3;background:rgba(255,255,255,.04);border-radius:10px;padding:8px"><input type="checkbox" name="size" value="${k}" ${(st.sizes || ['square', 'story']).includes(k) ? 'checked' : ''} style="width:auto;margin-top:2px"><span><b>${l}</b><br><span style="color:#9eb3cc">${d}</span></span></label>`).join('')}</div>
+        <label style="display:block;margin:0 0 10px"><span class="field">Look</span><select name="style"><option value="auto" ${st.style !== 'brand' ? 'selected' : ''}>With a photo when the page has one (Pexels)</option><option value="brand" ${st.style === 'brand' ? 'selected' : ''}>Plain navy and gold</option></select></label>
+        <label style="display:block;margin:0 0 10px"><span class="field">Headline (optional: replaces the page’s own)</span><input class="input" name="title" value="${h(st.title || '')}" maxlength="200"></label>
+        <label style="display:block;margin:0 0 10px"><span class="field">Short text (optional)</span><textarea name="sub" rows="2" maxlength="400">${h(st.sub || '')}</textarea></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-gold" data-so="make">Make pictures</button>
+          <button class="btn" data-so="gamma" title="Explainers only; takes 1–3 minutes">Make a Gamma infographic</button>
+          <span id="soMsg" style="font-size:.76rem"></span>
+        </div>
+        <p style="font-size:.7rem;color:#9eb3cc;margin-top:10px">Works with: explainers (/learn/…), companies (/stock/…), results (/results or a result’s link), Shariah pages, research reports and any other page (uses its title and description). For picture links, only use pictures you’re allowed to post: your own, or free ones such as Pexels.</p>
+      </div>
+      <div class="card">
+        <h2 style="margin-top:0">Caption</h2>
+        <textarea id="soCaption" rows="12" placeholder="The caption appears here">${h(res?.caption || '')}</textarea>
+        <p style="margin-top:8px"><button class="btn" data-so="copy">Copy caption</button></p>
+      </div>
+    </div>
+    <div class="card"><h2 style="margin-top:0">Pictures</h2><div id="soPics" style="display:flex;flex-wrap:wrap;gap:14px">${res ? '' : '<p style="color:#9eb3cc;font-size:.8rem">Your pictures will appear here.</p>'}</div></div>
+    <div class="card"><h2 style="margin-top:0">Made in the last 30 days</h2><div id="soRecent" style="display:flex;flex-wrap:wrap;gap:8px"><span style="color:#9eb3cc;font-size:.8rem">Loading…</span></div></div>`;
+}
+
+async function soBlob(file) {
+  const r = await fetch('/api/admin/social/file/' + encodeURIComponent(file), { headers: { 'x-session-token': STATE.token } });
+  if (!r.ok) throw new Error('Picture not available');
+  return URL.createObjectURL(await r.blob());
+}
+async function soShow(items) {
+  const box = qs('#soPics');
+  if (!box) return;
+  box.innerHTML = '';
+  for (const it of items) {
+    const url = await soBlob(it.file).catch(() => '');
+    const d = document.createElement('div');
+    d.style.cssText = 'width:240px';
+    d.innerHTML = `<img src="${url}" alt="" style="width:100%;border-radius:10px;display:block;background:#111">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.72rem;color:#9eb3cc"><span>${h(it.size)} · ${it.w}×${it.h}</span><a class="btn" href="${url}" download="drmoneywise-${h(it.file)}" style="padding:4px 10px">Download</a></div>`;
+    box.appendChild(d);
+  }
+}
+async function soRecent() {
+  const box = qs('#soRecent');
+  if (!box) return;
+  try {
+    const r = await API.get('/api/admin/social/recent');
+    box.innerHTML = r.files.length ? '' : '<span style="color:#9eb3cc;font-size:.8rem">None yet.</span>';
+    for (const f of r.files) {
+      const url = await soBlob(f).catch(() => '');
+      const a = document.createElement('a');
+      a.href = url; a.download = 'drmoneywise-' + f; a.title = f;
+      a.innerHTML = `<img src="${url}" alt="" style="height:90px;border-radius:6px;display:block">`;
+      box.appendChild(a);
+    }
+  } catch (e) { box.textContent = e.message; }
+}
+
+async function load_social() { setMain(render_social()); bind_social(); soRecent(); if (STATE.social?.result) soShow(STATE.social.result.items); }
+
+function bind_social() {
+  const msg = qs('#soMsg');
+  const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? '#f26a6a' : '#2bc48a'; };
+  const read = () => {
+    const f = qs('#soForm');
+    return { url: f.querySelector('[name=url]').value.trim(), sizes: qsa('#soForm [name=size]:checked').map((x) => x.value), style: f.querySelector('[name=style]').value, title: f.querySelector('[name=title]').value.trim(), sub: f.querySelector('[name=sub]').value.trim() };
+  };
+  qsa('[data-so]').forEach((btn) => btn.addEventListener('click', async () => {
+    const act = btn.dataset.so;
+    if (act === 'copy') { const t = qs('#soCaption'); t.select(); try { await navigator.clipboard.writeText(t.value); say('Caption copied.'); } catch { document.execCommand('copy'); say('Caption copied.'); } return; }
+    const body = read();
+    if (!body.url) { say('Paste a link first.', true); return; }
+    if (!body.sizes.length) { say('Tick at least one size.', true); return; }
+    STATE.social = { ...body };
+    btn.disabled = true;
+    try {
+      if (act === 'make') {
+        say('Making pictures…');
+        const r = await API.post('/api/admin/social/cards', body);
+        STATE.social.result = r;
+        qs('#soCaption').value = r.caption;
+        await soShow(r.items);
+        say(`${r.items.length} picture${r.items.length === 1 ? '' : 's'} ready.`);
+        soRecent();
+      } else {
+        say('Gamma is designing an infographic: this takes 1–3 minutes…');
+        const { job } = await API.post('/api/admin/social/gamma', body);
+        for (let i = 0; i < 60; i += 1) {
+          await new Promise((r) => setTimeout(r, 5000));
+          const j = await API.get('/api/admin/social/gamma?job=' + job);
+          if (j.status === 'done') { STATE.social.result = j.result; qs('#soCaption').value = j.result.caption; await soShow(j.result.items); say('Infographic ready.'); soRecent(); break; }
+          if (j.status === 'failed' || j.status === 'missing') { say(j.error || 'Gamma didn’t finish.', true); break; }
+        }
+      }
+    } catch (e) { say(e.message, true); }
+    btn.disabled = false;
+  }));
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE M: VIDEO MAKER
+// ─────────────────
+// 1. Paste a link and choose Short or Video → a script appears (edit freely).
+// 2. Choose the voice: computer voice, or your own (record each scene here,
+//    or upload one recording of the whole script).
+// 3. Make the video → progress → watch, download, copy title/description.
+// Every video gets the same 3-second opening and closing, with our own music.
+// ════════════════════════════════════════════════════════════════════════════
+
+const VM = { rec: null, chunks: [], recScene: null, poll: null };
+
+function render_video() {
+  const d = STATE.video || { projects: [], voices: [] };
+  const p = STATE.vp;
+  const busy = p && p.status === 'rendering';
+  const sceneCard = (s, i) => `
+      <div class="card" data-sc="${h(s.id)}" style="background:rgba(255,255,255,.03);margin:0 0 10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <strong style="font-size:.78rem;color:#c9a227">Scene ${i + 1} · ${h({ title: 'Title', point: 'Point', stats: 'Numbers', list: 'Summary', cta: 'Closing' }[s.kind] || s.kind)}</strong>
+          <span style="font-size:.7rem;color:#9eb3cc">about ${Math.max(2, Math.round(s.text.split(/\s+/).filter(Boolean).length / 2.5))} seconds</span>
+        </div>
+        <label style="display:block;margin:6px 0"><span class="field">Heading on screen (optional)</span><input class="input" name="heading" value="${h(s.heading || '')}" maxlength="70"></label>
+        <label style="display:block;margin:6px 0"><span class="field">What is said</span><textarea name="text" rows="3" maxlength="1200">${h(s.text)}</textarea></label>
+        ${s.kind === 'point' ? '' : ''}
+        <div class="vm-own" style="display:${p.voice === 'own' ? 'flex' : 'none'};gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn" data-vm="rec" data-id="${h(s.id)}">● Record</button>
+          ${s.voiceFile ? `<button class="btn" data-vm="play" data-file="${h(s.voiceFile)}">▶ Play (${(s.voiceSeconds || 0).toFixed(1)} s)</button>` : '<span style="font-size:.72rem;color:#9eb3cc">Not recorded yet</span>'}
+          <label class="btn" style="cursor:pointer">Upload file<input type="file" accept="audio/*" data-vm="file" data-id="${h(s.id)}" style="display:none"></label>
+        </div>
+      </div>`;
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:#e87ba4">Marketing</div>
+      <h1>Video maker</h1>
+      <p>Turn a page into a YouTube Short (vertical, up to about a minute) or a longer landscape video. Every video gets the same 3-second Dr MoneyWise opening and closing, with our own music (composed for us, so no copyright worries) and free Pexels photos.</p>
+    </div>
+    <div class="card" id="vmNew">
+      <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end">
+        <label><span class="field">Link to a page on the site</span><input class="input" name="url" placeholder="/learn/... or /stock/KO or /results or /shariah/uk" value="${h(p?.url || '')}"></label>
+        <label><span class="field">Type</span><select name="format"><option value="short">Short: vertical, 30–60 s</option><option value="long">Video: landscape, a few minutes</option></select></label>
+        <button class="btn btn-gold" data-vm="create">Write the script</button>
+      </div>
+      <p id="vmMsg" style="font-size:.76rem;margin:8px 0 0"></p>
+    </div>
+    ${p ? `
+    <div class="card-grid two-col">
+      <div class="card" id="vmScript">
+        <h2 style="margin-top:0">${h(p.title)}</h2>
+        <p style="font-size:.74rem;color:#9eb3cc">${h(d.formats?.[p.format]?.label || p.format)} · ${p.scenes.length} scenes · about ${Math.round(p.scenes.reduce((a, s) => a + Math.max(2.5, s.text.split(/\s+/).filter(Boolean).length / 2.5 + 0.5), 0) + 6)} seconds. Edit the words as you like; keep figures as they are.</p>
+        ${p.scenes.map(sceneCard).join('')}
+      </div>
+      <div>
+        <div class="card">
+          <h2 style="margin-top:0">Voice</h2>
+          <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#dbe6f3"><input type="radio" name="voice" value="computer" ${p.voice === 'computer' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>Computer voice</b>: quickest. ${d.computerVoice ? '' : '<span style="color:#f26a6a">Needs the OpenAI key (APIs & More).</span>'}<br><span style="color:#9eb3cc">The description will say “Narration voice is computer-generated”, as OpenAI’s rules ask.</span></span></label>
+          <label style="display:block;margin:4px 0 10px 26px"><span class="field">Which voice</span><select name="voiceName">${(d.voices || []).map((v) => `<option ${p.voiceName === v ? 'selected' : ''}>${h(v)}</option>`).join('')}</select></label>
+          <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#dbe6f3"><input type="radio" name="voice" value="own" ${p.voice === 'own' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>My own voice</b>: record each scene with the ● Record buttons (allow the microphone), or upload one recording of the whole script below.</span></label>
+          <div class="vm-own" style="display:${p.voice === 'own' ? 'block' : 'none'};margin:8px 0 0 26px">
+            <label class="btn" style="cursor:pointer">Upload the whole script as one file<input type="file" accept="audio/*" data-vm="file" data-id="all" style="display:none"></label>
+            ${p.voiceAll ? `<p style="font-size:.72rem;color:#2bc48a">Whole recording saved (${p.voiceAll.seconds.toFixed(1)} s). Scenes are timed by their number of words.</p>` : ''}
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center">
+            <button class="btn" data-vm="save" ${busy ? 'disabled' : ''}>Save script</button>
+            <button class="btn btn-gold" data-vm="render" ${busy ? 'disabled' : ''}>Make the video</button>
+          </div>
+          ${p.status === 'rendering' ? `<div style="margin-top:12px"><div style="height:10px;background:rgba(255,255,255,.08);border-radius:6px"><div style="height:10px;width:${p.progress?.pct || 2}%;background:#c9a227;border-radius:6px"></div></div><p style="font-size:.74rem;color:#dbe6f3">${h(p.progress?.step || 'Working')}… (a Short takes about a minute; a long video several minutes)</p></div>` : ''}
+          ${p.status === 'failed' ? `<p style="font-size:.76rem;color:#f26a6a">Couldn’t make the video: ${h(p.error || '')}</p>` : ''}
+        </div>
+        ${p.status === 'done' ? `<div class="card" id="vmDone">
+          <h2 style="margin-top:0">Your video (${p.seconds} s)</h2>
+          <video id="vmPlayer" controls style="width:100%;max-height:520px;border-radius:10px;background:#000"></video>
+          <div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap"><button class="btn btn-gold" data-vm="dl" data-file="${h(p.output)}">Download MP4</button>${p.thumbnail ? `<button class="btn" data-vm="dl" data-file="${h(p.thumbnail)}">Download thumbnail</button>` : ''}</div>
+          <label style="display:block;margin:6px 0"><span class="field">YouTube title</span><input class="input" id="vmTitle" value="${h(p.meta?.title || '')}"></label>
+          <label style="display:block;margin:6px 0"><span class="field">Description</span><textarea id="vmDesc" rows="10">${h(p.meta?.description || '')}</textarea></label>
+          <label style="display:block;margin:6px 0"><span class="field">Tags</span><input class="input" id="vmTags" value="${h((p.meta?.tags || []).join(', '))}"></label>
+          <button class="btn" data-vm="copy">Copy title, description and tags</button>
+        </div>` : ''}
+      </div>
+    </div>` : ''}
+    <div class="card"><h2 style="margin-top:0">Your videos</h2>
+      ${d.projects.length ? d.projects.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.08);padding:8px 0;font-size:.8rem"><span style="color:#fff">${h(x.title)}<br><span style="color:#9eb3cc;font-size:.7rem">${x.format === 'short' ? 'Short' : 'Video'} · ${h(x.status)}${x.seconds ? ` · ${x.seconds} s` : ''} · ${fmtDate(x.createdAt)}</span></span><button class="btn" data-vm="open" data-id="${h(x.id)}" style="padding:4px 10px;align-self:center">Open</button></div>`).join('') : '<p style="color:#9eb3cc;font-size:.8rem">None yet.</p>'}
+    </div>`;
+}
+
+async function load_video() {
+  try { STATE.video = await API.get('/api/admin/video'); } catch (e) { STATE.video = { projects: [], voices: [] }; }
+  setMain(render_video()); bind_video();
+}
+function vmRead() {
+  const p = STATE.vp;
+  return {
+    id: p.id,
+    scenes: qsa('#vmScript [data-sc]').map((el) => ({ id: el.dataset.sc, heading: el.querySelector('[name=heading]').value, text: el.querySelector('[name=text]').value })),
+    voice: (qs('[name=voice]:checked') || {}).value || p.voice,
+    voiceName: (qs('[name=voiceName]') || {}).value || p.voiceName,
+  };
+}
+async function vmRefresh() { STATE.video = await API.get('/api/admin/video'); setMain(render_video()); bind_video(); }
+async function vmUpload(sceneId, blob) {
+  const r = await fetch(`/api/admin/video/audio?id=${STATE.vp.id}&scene=${encodeURIComponent(sceneId)}`, { method: 'POST', headers: { 'x-session-token': STATE.token, 'Content-Type': blob.type || 'audio/webm' }, body: blob });
+  const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Upload failed');
+  return d;
+}
+function vmPoll() {
+  clearInterval(VM.poll);
+  VM.poll = setInterval(async () => {
+    if (STATE.currentPage !== 'video' || !STATE.vp) { clearInterval(VM.poll); return; }
+    const p = await API.get('/api/admin/video/project?id=' + STATE.vp.id).catch(() => null);
+    if (!p) return;
+    STATE.vp = p;
+    if (p.status !== 'rendering') { clearInterval(VM.poll); await vmRefresh(); return; }
+    setMain(render_video()); bind_video();
+  }, 3000);
+}
+
+function bind_video() {
+  const msg = qs('#vmMsg');
+  const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? '#f26a6a' : '#2bc48a'; } };
+  qsa('[name=voice]').forEach((r) => r.addEventListener('change', () => qsa('.vm-own').forEach((el) => { el.style.display = r.value === 'own' && r.checked ? (el.tagName === 'DIV' && el.closest('[data-sc]') ? 'flex' : 'block') : 'none'; })));
+  if (STATE.vp?.status === 'done') {
+    soVideo();
+  }
+  if (STATE.vp?.status === 'rendering') vmPoll();
+  async function soVideo() {
+    try { const r = await fetch(`/api/admin/video/file/${STATE.vp.id}/${STATE.vp.output}`, { headers: { 'x-session-token': STATE.token } }); const u = URL.createObjectURL(await r.blob()); const v = qs('#vmPlayer'); if (v) v.src = u; VM.videoUrl = u; } catch { /* player stays empty */ }
+  }
+  qsa('[data-vm=file]').forEach((inp) => inp.addEventListener('change', async () => {
+    const file = inp.files[0]; if (!file) return;
+    try { await API.post('/api/admin/video/save', vmRead()); const r = await vmUpload(inp.dataset.id, file); showToast(`Recording saved (${r.seconds} s)`); STATE.vp = await API.get('/api/admin/video/project?id=' + STATE.vp.id); await vmRefresh(); } catch (e) { showToast(e.message); }
+  }));
+  qsa('[data-vm]').forEach((btn) => { if (btn.tagName !== 'BUTTON') return; btn.addEventListener('click', async () => {
+    const act = btn.dataset.vm;
+    try {
+      if (act === 'create') {
+        const url = qs('#vmNew [name=url]').value.trim(); const format = qs('#vmNew [name=format]').value;
+        if (!url) { say('Paste a link first.', true); return; }
+        btn.disabled = true; say('Writing the script…');
+        STATE.vp = await API.post('/api/admin/video/create', { url, format });
+        await vmRefresh(); return;
+      }
+      if (act === 'open') { STATE.vp = await API.get('/api/admin/video/project?id=' + btn.dataset.id); await vmRefresh(); window.scrollTo(0, 0); return; }
+      if (act === 'save') { STATE.vp = await API.post('/api/admin/video/save', vmRead()); showToast('Script saved'); await vmRefresh(); return; }
+      if (act === 'render') {
+        btn.disabled = true;
+        await API.post('/api/admin/video/render', { id: STATE.vp.id, save: vmRead() });
+        STATE.vp = await API.get('/api/admin/video/project?id=' + STATE.vp.id);
+        await vmRefresh(); return;
+      }
+      if (act === 'play') {
+        const r = await fetch(`/api/admin/video/file/${STATE.vp.id}/${btn.dataset.file}`, { headers: { 'x-session-token': STATE.token } });
+        new Audio(URL.createObjectURL(await r.blob())).play(); return;
+      }
+      if (act === 'rec') {
+        if (VM.rec && VM.rec.state === 'recording') { VM.rec.stop(); return; }
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        VM.chunks = []; VM.recScene = btn.dataset.id;
+        VM.rec = new MediaRecorder(stream);
+        VM.rec.ondataavailable = (e) => { if (e.data.size) VM.chunks.push(e.data); };
+        VM.rec.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const blob = new Blob(VM.chunks, { type: VM.rec.mimeType || 'audio/webm' });
+          try { await API.post('/api/admin/video/save', vmRead()); const r = await vmUpload(VM.recScene, blob); showToast(`Scene recorded (${r.seconds} s)`); STATE.vp = await API.get('/api/admin/video/project?id=' + STATE.vp.id); await vmRefresh(); } catch (e) { showToast(e.message); }
+        };
+        VM.rec.start(); btn.textContent = '■ Stop'; btn.style.background = '#f26a6a'; btn.style.color = '#fff';
+        return;
+      }
+      if (act === 'dl') {
+        const r = await fetch(`/api/admin/video/file/${STATE.vp.id}/${btn.dataset.file}`, { headers: { 'x-session-token': STATE.token } });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(await r.blob()); a.download = 'drmoneywise-' + btn.dataset.file; a.click(); return;
+      }
+      if (act === 'copy') {
+        const t = `${qs('#vmTitle').value}\n\n${qs('#vmDesc').value}\n\nTags: ${qs('#vmTags').value}`;
+        try { await navigator.clipboard.writeText(t); } catch { /* ignore */ }
+        showToast('Copied'); return;
+      }
+    } catch (e) { say(e.message, true); showToast(e.message); btn.disabled = false; }
+  }); });
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // SECTION 6: ROUTER
 // To add a new page: add an entry to the PAGES map
@@ -2246,6 +2547,8 @@ const PAGES = {
   ads:       { load: load_ads,        render: render_ads,       bind: bind_ads        },
   ask:       { load: load_ask,        render: render_ask,       bind: bind_ask        },
   newsletter:{ load: load_newsletter, render: render_newsletter, bind: bind_newsletter },
+  social:    { load: load_social,     render: render_social,     bind: bind_social     },
+  video:     { load: load_video,      render: render_video,      bind: bind_video      },
 };
 
 const ROUTER = {

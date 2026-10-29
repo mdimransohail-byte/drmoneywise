@@ -321,6 +321,66 @@ export const server = http.createServer(async (request, response) => {
         return sendJson(response, 200, await newsletter.subscribe(body.email, { ip, source: String(body.source || 'site').replace(/[^a-z0-9-]/giu, '').slice(0, 30) }));
       } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
     }
+    // Video maker (Admin): Shorts and longer videos
+    if (requestUrl.pathname.startsWith('/api/admin/video')) {
+      await requireAdminUser(token);
+      const video = await import('./src/services/videoService.js');
+      const sub = requestUrl.pathname.slice('/api/admin/video'.length);
+      try {
+        const fileMatch = sub.match(/^\/file\/([a-f0-9]{10})\/([\w.-]+)$/u);
+        if (fileMatch && request.method === 'GET') {
+          const buf = await video.projectFile(fileMatch[1], fileMatch[2]);
+          if (!buf) return sendJson(response, 404, { error: 'File not found' });
+          const type = fileMatch[2].endsWith('.mp4') ? 'video/mp4' : fileMatch[2].endsWith('.jpg') ? 'image/jpeg' : 'application/octet-stream';
+          response.writeHead(200, { 'Content-Type': type, 'Content-Length': buf.length, 'Content-Disposition': `attachment; filename="drmoneywise-${fileMatch[2]}"` });
+          response.end(buf);
+          return true;
+        }
+        if (sub === '' && request.method === 'GET') return sendJson(response, 200, { projects: await video.listProjects(), voices: video.VOICES, formats: video.FORMATS, computerVoice: Boolean(process.env.OPENAI_API_KEY) });
+        if (sub === '/project' && request.method === 'GET') {
+          const p = await video.getProject(String(requestUrl.searchParams.get('id') || ''));
+          return sendJson(response, p ? 200 : 404, p || { error: 'Project not found' });
+        }
+        if (sub === '/audio' && request.method === 'POST') {
+          // Raw audio upload: your own voice for one scene, or the whole script
+          const chunks = []; let size = 0;
+          for await (const c of request) { size += c.length; if (size > 60 * 1024 * 1024) return sendJson(response, 413, { error: 'Recording too large (60 MB limit).' }); chunks.push(c); }
+          return sendJson(response, 200, await video.saveRecording(String(requestUrl.searchParams.get('id') || ''), String(requestUrl.searchParams.get('scene') || ''), Buffer.concat(chunks), String(request.headers['content-type'] || '')));
+        }
+        if (request.method === 'POST') {
+          const body = await parseJsonBody(request);
+          if (sub === '/create') { video.cleanOldProjects().catch(() => {}); return sendJson(response, 200, await video.createProject({ url: body.url, format: body.format, origin: getSiteOrigin(request) })); }
+          if (sub === '/save') return sendJson(response, 200, await video.updateProject(body.id, body));
+          if (sub === '/render') { if (body.save) await video.updateProject(body.id, body.save); return sendJson(response, 200, await video.startRender(body.id)); }
+        }
+        return sendJson(response, 404, { error: 'Not found' });
+      } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
+    }
+    // Social studio: branded pictures for social media (Admin)
+    if (requestUrl.pathname.startsWith('/api/admin/social')) {
+      await requireAdminUser(token);
+      const social = await import('./src/services/socialCardService.js');
+      const sub = requestUrl.pathname.slice('/api/admin/social'.length);
+      try {
+        const fileMatch = sub.match(/^\/file\/([\w-]+\.jpg)$/u);
+        if (fileMatch && request.method === 'GET') {
+          const buf = await social.socialFile(fileMatch[1]);
+          if (!buf) return sendJson(response, 404, { error: 'Picture not found' });
+          response.writeHead(200, { 'Content-Type': 'image/jpeg', 'Content-Disposition': `attachment; filename="drmoneywise-${fileMatch[1]}"`, 'Cache-Control': 'private, max-age=86400' });
+          response.end(buf);
+          return true;
+        }
+        if (sub === '/recent' && request.method === 'GET') return sendJson(response, 200, { files: await social.recentCards(), sizes: social.SIZES });
+        if (sub === '/gamma' && request.method === 'GET') return sendJson(response, 200, social.gammaJob(String(requestUrl.searchParams.get('job') || '')));
+        if (request.method === 'POST') {
+          const body = await parseJsonBody(request);
+          const origin = getSiteOrigin(request);
+          if (sub === '/cards') return sendJson(response, 200, await social.makeCards({ ...body, origin }));
+          if (sub === '/gamma') return sendJson(response, 200, social.startGamma({ ...body, origin }));
+        }
+        return sendJson(response, 404, { error: 'Not found' });
+      } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
+    }
     // Newsletter: Admin
     if (requestUrl.pathname.startsWith('/api/admin/newsletter')) {
       const admin = await requireAdminUser(token);
