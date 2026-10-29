@@ -535,25 +535,52 @@ export async function storageReport() {
     const size = e.isDirectory() ? await folderSize(full) : (await fs.stat(full).catch(() => ({ size: 0 }))).size;
     market.push({ name: `market/${e.name}`, mb: Math.round((size / 1048576) * 10) / 10 });
   }
-  return { freeMb, totalMb, parts: [...parts, ...market].filter((x) => x.mb >= 0.5).sort((a, b) => b.mb - a.mb).slice(0, 15) };
+  const files = [];
+  const walk = async (dir, rel) => {
+    for (const e of await fs.readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      const full = path.join(dir, e.name); const r = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) await walk(full, r);
+      else { const st = await fs.stat(full).catch(() => null); if (st) files.push({ name: r, mb: Math.round((st.size / 1048576) * 10) / 10 }); }
+    }
+  };
+  await walk(DATA, '');
+  const biggest = files.sort((a, b) => b.mb - a.mb).slice(0, 12);
+  return { freeMb, totalMb, parts: [...parts, ...market].filter((x) => x.mb >= 0.1).sort((a, b) => b.mb - a.mb).slice(0, 15), biggest };
 }
 
 /** Frees space: leftover video work, older videos, old social pictures, old Gamma files. */
 export async function freeUpSpace() {
   const DATA = path.join(process.cwd(), 'data');
   const before = await storageReport();
-  for (const id of await fs.readdir(PROJECTS).catch(() => [])) await fs.rm(path.join(PROJECTS, id, 'work'), { recursive: true, force: true }).catch(() => {});
-  await keepNewestVideos(3);
-  const week = Date.now() - 7 * 86400000;
-  for (const sub of ['social', 'generated-media']) {
-    for (const f of await fs.readdir(path.join(DATA, sub)).catch(() => [])) {
-      if (sub === 'generated-media' && (f.startsWith('theme-') || f === 'gamma-previews.json')) continue; // keep theme samples
-      const full = path.join(DATA, sub, f);
-      const st = await fs.stat(full).catch(() => null);
-      if (st && st.isFile() && st.mtimeMs < week) await fs.rm(full, { force: true });
+  // 1. Video projects: leftover work, half-made MP4s of unfinished videos, older finished videos
+  for (const id of await fs.readdir(PROJECTS).catch(() => [])) {
+    await fs.rm(path.join(PROJECTS, id, 'work'), { recursive: true, force: true }).catch(() => {});
+    const p = await getProject(id);
+    if (!p || p.status !== 'done') {
+      for (const f of await fs.readdir(path.join(PROJECTS, id)).catch(() => [])) if (/\.(mp4|png|jpg)$/u.test(f)) await fs.rm(path.join(PROJECTS, id, f), { force: true });
+      if (p && p.status === 'rendering' && !busy) { p.status = 'failed'; p.error = 'Stopped to free up space. Make the video again.'; await saveProject(p).catch(() => {}); }
     }
   }
-  for (const f of await fs.readdir(DATA).catch(() => [])) if (/\.tmp$/u.test(f)) await fs.rm(path.join(DATA, f), { force: true }).catch(() => {});
+  await keepNewestVideos(3).catch(() => {});
+  // 2. Social pictures and Gamma files older than a day (theme samples are kept)
+  const day = Date.now() - 86400000;
+  for (const sub of ['social', 'generated-media']) {
+    for (const f of await fs.readdir(path.join(DATA, sub)).catch(() => [])) {
+      if (sub === 'generated-media' && (f.startsWith('theme-') || f === 'gamma-previews.json')) continue;
+      const full = path.join(DATA, sub, f);
+      const st = await fs.stat(full).catch(() => null);
+      if (st && st.isFile() && st.mtimeMs < day) await fs.rm(full, { force: true });
+    }
+  }
+  // 3. Half-written temporary files anywhere in the saved data (left when the space ran out)
+  const sweep = async (dir) => {
+    for (const e of await fs.readdir(dir, { withFileTypes: true }).catch(() => [])) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) await sweep(full);
+      else if (/\.tmp$/u.test(e.name)) await fs.rm(full, { force: true }).catch(() => {});
+    }
+  };
+  await sweep(DATA);
   const after = await storageReport();
   return { before: before.freeMb, after: after.freeMb, report: after };
 }
