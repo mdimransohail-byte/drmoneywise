@@ -35,8 +35,23 @@ const FORMATS = {
   short: { w: 1080, h: 1920, fps: 30, label: 'Short (vertical, 30–60 seconds)' },
   long: { w: 1920, h: 1080, fps: 25, label: 'Video (landscape, a few minutes)' },
 };
-// marin and cedar are OpenAI's best-sounding voices (recommended in their guide, Oct 2026)
-export const VOICES = ['marin', 'cedar', 'coral', 'sage', 'nova', 'ballad', 'verse', 'alloy', 'ash', 'onyx', 'shimmer', 'echo', 'fable'];
+// Computer voices. Google Gemini's voices sound the most natural and the
+// Gemini key has a free allowance; OpenAI's are the alternative (marin and
+// cedar are OpenAI's best, per their guide, Oct 2026).
+const GEMINI_VOICES = [
+  ['Sulafat', 'warm'], ['Achird', 'friendly'], ['Sadaltager', 'knowledgeable'], ['Charon', 'informative'], ['Rasalgethi', 'informative'],
+  ['Iapetus', 'clear'], ['Erinome', 'clear'], ['Kore', 'firm'], ['Orus', 'firm'], ['Alnilam', 'firm'], ['Schedar', 'even'],
+  ['Algieba', 'smooth'], ['Despina', 'smooth'], ['Vindemiatrix', 'gentle'], ['Achernar', 'soft'], ['Umbriel', 'easy-going'], ['Callirrhoe', 'easy-going'],
+  ['Zubenelgenubi', 'casual'], ['Aoede', 'breezy'], ['Puck', 'upbeat'], ['Laomedeia', 'upbeat'], ['Sadachbia', 'lively'], ['Zephyr', 'bright'], ['Autonoe', 'bright'],
+  ['Leda', 'youthful'], ['Fenrir', 'excitable'], ['Gacrux', 'mature'], ['Pulcherrima', 'forward'], ['Algenib', 'gravelly'], ['Enceladus', 'breathy'],
+];
+const OPENAI_VOICES = ['marin', 'cedar', 'coral', 'sage', 'nova', 'ballad', 'verse', 'alloy', 'ash', 'onyx', 'shimmer', 'echo', 'fable'];
+export const VOICES = [
+  ...GEMINI_VOICES.map(([n, d]) => ({ id: `gemini:${n}`, label: `${n} (Google, ${d})`, provider: 'gemini' })),
+  ...OPENAI_VOICES.map((n) => ({ id: `openai:${n}`, label: `${n[0].toUpperCase()}${n.slice(1)} (OpenAI)`, provider: 'openai' })),
+];
+const defaultVoice = () => (process.env.GEMINI_API_KEY ? 'gemini:Sulafat' : 'openai:marin');
+const providerOf = (v) => (String(v || '').startsWith('gemini:') ? 'gemini' : 'openai');
 const WORDS_PER_SECOND = 2.5;
 
 let ffmpegPath = null;
@@ -167,7 +182,7 @@ export async function createProject({ url, format = 'short', origin = '' }) {
   const id = crypto.randomBytes(5).toString('hex');
   const p = {
     id, url, format, kind: c.kind, title: c.title, badge: c.badge, link: c.link, tags: c.tags || [], heroPhoto: c.photo || null, ticker: c.ticker || null,
-    voice: 'computer', voiceName: 'marin', scenes, status: 'draft', createdAt: new Date().toISOString(),
+    voice: 'computer', voiceName: defaultVoice(), scenes, status: 'draft', createdAt: new Date().toISOString(),
   };
   return saveProject(p);
 }
@@ -181,7 +196,7 @@ export async function updateProject(id, body) {
     p.scenes = body.scenes.slice(0, 80).map((s) => ({ ...(old.get(s.id) || scene('point', '', '')), id: old.has(s.id) ? s.id : crypto.randomBytes(3).toString('hex'), heading: clip(s.heading, 70), text: String(s.text || '').slice(0, 1200), screen: s.screen !== undefined ? String(s.screen).slice(0, 200) : old.get(s.id)?.screen })).filter((s) => s.text || s.kind === 'cta');
   }
   if (body.voice === 'computer' || body.voice === 'own') p.voice = body.voice;
-  if (VOICES.includes(body.voiceName)) p.voiceName = body.voiceName;
+  if (VOICES.some((v) => v.id === body.voiceName)) p.voiceName = body.voiceName;
   if (typeof body.title === 'string' && body.title.trim()) p.title = body.title.trim().slice(0, 200);
   if (p.status !== 'draft') p.status = 'draft';
   return saveProject(p);
@@ -205,8 +220,60 @@ export async function saveRecording(id, sceneId, buf, type) {
   return { ok: true, seconds: Math.round(secs * 10) / 10 };
 }
 
-/* ── Computer voice (OpenAI) ──────────────────────────────────────── */
-async function speak(text, voice, file) {
+/* ── Computer voices ──────────────────────────────────────────────── */
+const sleep = (ms) => new Promise((r) => { setTimeout(r, ms); });
+function pcmToWav(pcm, rate = 24000) {
+  const h = Buffer.alloc(44);
+  h.write('RIFF', 0); h.writeUInt32LE(36 + pcm.length, 4); h.write('WAVE', 8); h.write('fmt ', 12);
+  h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(rate, 24); h.writeUInt32LE(rate * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34);
+  h.write('data', 36); h.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([h, pcm]);
+}
+/** Google Gemini speech: newest model first, older one if it isn't available. */
+async function speakGemini(text, voice, file) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error('No Gemini key saved (Admin → APIs & More), so the Google voices aren’t available. Choose an OpenAI voice or record your own.');
+  const prompt = `Read this aloud in a warm, natural, conversational way, like a friendly teacher explaining money to a friend. Calm, steady pace, clear British English:\n\n${text.replace(/…/gu, '.')}`;
+  let lastErr = '';
+  for (const model of ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts']) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(120000),
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } } }),
+      }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
+      if (r.ok) {
+        const d = await r.json();
+        const part = d.candidates?.[0]?.content?.parts?.find((x) => x.inlineData?.data);
+        if (!part) { lastErr = 'Google returned no audio'; break; }
+        const rate = Number((part.inlineData.mimeType || '').match(/rate=(\d+)/u)?.[1]) || 24000;
+        await fs.writeFile(file, pcmToWav(Buffer.from(part.inlineData.data, 'base64'), rate));
+        return;
+      }
+      const body = await r.text().catch(() => '');
+      lastErr = `Google voice said ${r.status}: ${body.slice(0, 160)}`;
+      if (r.status === 429) { await sleep(Number(body.match(/"retryDelay":\s*"(\d+)s"/u)?.[1] || 20) * 1000 + 1000); continue; } // free allowance: wait and retry
+      break; // other errors: try the older model
+    }
+  }
+  throw new Error(lastErr || 'Google voice failed');
+}
+
+export async function speak(text, voiceId, file) {
+  const [provider, voice] = String(voiceId || defaultVoice()).includes(':') ? String(voiceId).split(':') : ['openai', voiceId];
+  if (provider === 'gemini') return speakGemini(text, voice, file);
+  return speakOpenAI(text, voice, file);
+}
+
+/** A 5-second sample of a voice (kept in temporary space, so each is made once). */
+export async function voiceSample(voiceId) {
+  if (!VOICES.some((v) => v.id === voiceId)) throw Object.assign(new Error('Unknown voice.'), { status: 400 });
+  const file = path.join(os.tmpdir(), `dmw-voice-${voiceId.replace(/[^\w-]/gu, '_')}.wav`);
+  try { return await fs.readFile(file); } catch { /* make it */ }
+  await speak('Hello, and welcome to Dr MoneyWise, where money is explained simply. Here is what you need to know.', voiceId, file);
+  return fs.readFile(file);
+}
+
+async function speakOpenAI(text, voice, file) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('No OpenAI key saved (Admin → APIs & More), so the computer voice isn’t available. Record your own voice instead.');
   const TTS1 = ['alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer'];
@@ -340,7 +407,9 @@ export async function startRender(id) {
   const p = await getProject(id);
   if (!p) throw Object.assign(new Error('Project not found.'), { status: 404 });
   if (busy) throw Object.assign(new Error('Another video is being made. Please wait for it to finish.'), { status: 409 });
-  if (p.voice === 'computer' && !process.env.OPENAI_API_KEY) throw Object.assign(new Error('The computer voice needs the OpenAI key (Admin → APIs & More). Or choose your own voice.'), { status: 400 });
+  if (p.voice === 'computer' && !String(p.voiceName || '').includes(':')) p.voiceName = `openai:${p.voiceName || 'marin'}`; // older projects
+  if (p.voice === 'computer' && providerOf(p.voiceName) === 'openai' && !process.env.OPENAI_API_KEY) throw Object.assign(new Error('OpenAI voices need the OpenAI key (Admin → APIs & More). Choose a Google voice or record your own.'), { status: 400 });
+  if (p.voice === 'computer' && providerOf(p.voiceName) === 'gemini' && !process.env.GEMINI_API_KEY) throw Object.assign(new Error('Google voices need the Gemini key (Admin → APIs & More). Choose an OpenAI voice or record your own.'), { status: 400 });
   if (p.voice === 'own' && !p.voiceAll && !p.scenes.some((s) => s.voiceFile)) throw Object.assign(new Error('Record at least one scene, or upload a recording of the whole script, first.'), { status: 400 });
   const st = await storageReport().catch(() => null);
   if (st?.freeMb !== null && st?.freeMb !== undefined && st.freeMb < 150) throw Object.assign(new Error(`The saved-data space is nearly full (${st.freeMb} MB free). Click “Free up space” on this page first.`), { status: 507 });

@@ -2189,13 +2189,6 @@ function bind_newsletter() {
         showToast(r.done ? `Sent to ${r.sent} people` : r.message || 'Sending started');
         STATE.nlEdit = NL_BLANK(); await redraw(); return;
       }
-      if (act === 'free') { btn.disabled = true; btn.textContent = 'Freeing space…'; const r = await API.post('/api/admin/video/free-space', {}); showToast(`Space freed: ${r.before ?? '?'} → ${r.after ?? '?'} MB free${r.errors?.length ? ` (problem: ${r.errors[0]})` : ''}`); await vmRefresh(); return; }
-      if (act === 'del') {
-        if (!window.confirm('Delete this video for good (script, recordings and MP4)?')) return;
-        await API.post('/api/admin/video/delete', { id: btn.dataset.id });
-        if (STATE.vp?.id === btn.dataset.id) STATE.vp = null;
-        showToast('Video deleted'); await vmRefresh(); return;
-      }
       if (act === 'open') { const it = STATE.nl.issues.find((x) => x.id === btn.dataset.id); STATE.nlEdit = { ...it }; setMain(render_newsletter()); bind_newsletter(); nlPreview(); return; }
       if (act === 'delete') { if (!window.confirm('Delete this draft?')) { btn.disabled = false; return; } await API.nlPost('delete', { id: btn.dataset.id }); if ((STATE.nlEdit || {}).id === btn.dataset.id) STATE.nlEdit = NL_BLANK(); await redraw(); return; }
       if (act === 'continue') { const r = await API.nlPost('continue'); showToast(r.message); await redraw(); return; }
@@ -2451,8 +2444,11 @@ function render_video() {
       <div>
         <div class="card">
           <h2 style="margin-top:0">Voice</h2>
-          <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#dbe6f3"><input type="radio" name="voice" value="computer" ${p.voice === 'computer' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>Computer voice</b>: quickest. ${d.computerVoice ? '' : '<span style="color:#f26a6a">Needs the OpenAI key (APIs & More).</span>'}<br><span style="color:#9eb3cc">The description will say “Narration voice is computer-generated”, as OpenAI’s rules ask.</span></span></label>
-          <label style="display:block;margin:4px 0 10px 26px"><span class="field">Which voice</span><select name="voiceName">${(d.voices || []).map((v) => `<option ${p.voiceName === v ? 'selected' : ''}>${h(v)}</option>`).join('')}</select></label>
+          <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#dbe6f3"><input type="radio" name="voice" value="computer" ${p.voice === 'computer' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>Computer voice</b>: quickest. Google’s voices sound the most natural and use your Gemini key (it has a free allowance).${d.computerVoice ? '' : ' <span style="color:#f26a6a">Needs the Gemini or OpenAI key (APIs & More).</span>'}<br><span style="color:#9eb3cc">The description will say “Narration voice is computer-generated”, as the voice providers’ rules ask.</span></span></label>
+          <div style="display:flex;gap:8px;align-items:end;margin:4px 0 10px 26px"><label style="flex:1"><span class="field">Which voice</span><select name="voiceName">
+            <optgroup label="Google (most natural)${d.voiceKeys?.gemini ? '' : ': needs the Gemini key'}">${(d.voices || []).filter((v) => v.provider === 'gemini').map((v) => `<option value="${h(v.id)}" ${p.voiceName === v.id ? 'selected' : ''}>${h(v.label)}</option>`).join('')}</optgroup>
+            <optgroup label="OpenAI${d.voiceKeys?.openai ? '' : ': needs the OpenAI key'}">${(d.voices || []).filter((v) => v.provider === 'openai').map((v) => `<option value="${h(v.id)}" ${p.voiceName === v.id || p.voiceName === v.id.split(':')[1] ? 'selected' : ''}>${h(v.label)}</option>`).join('')}</optgroup>
+          </select></label><button class="btn" data-vm="listen">▶ Listen</button></div>
           <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#dbe6f3"><input type="radio" name="voice" value="own" ${p.voice === 'own' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>My own voice</b>: record each scene with the ● Record buttons (allow the microphone), or upload one recording of the whole script below.</span></label>
           <div class="vm-own" style="display:${p.voice === 'own' ? 'block' : 'none'};margin:8px 0 0 26px">
             <label class="btn" style="cursor:pointer">Upload the whole script as one file<input type="file" accept="audio/*" data-vm="file" data-id="all" style="display:none"></label>
@@ -2543,6 +2539,22 @@ function bind_video() {
         btn.disabled = true; say('Writing the script…');
         STATE.vp = await API.post('/api/admin/video/create', { url, format });
         await vmRefresh(); return;
+      }
+      if (act === 'listen') {
+        const v = qs('[name=voiceName]').value; btn.disabled = true; btn.textContent = '…';
+        try {
+          const r = await fetch('/api/admin/video/voice-sample?voice=' + encodeURIComponent(v), { headers: { 'x-session-token': STATE.token } });
+          if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Sample not available'); }
+          new Audio(URL.createObjectURL(await r.blob())).play();
+        } finally { btn.disabled = false; btn.textContent = '▶ Listen'; }
+        return;
+      }
+      if (act === 'free') { btn.disabled = true; btn.textContent = 'Freeing space…'; const r = await API.post('/api/admin/video/free-space', {}); showToast(`Space freed: ${r.before ?? '?'} → ${r.after ?? '?'} MB free${r.errors?.length ? ` (problem: ${r.errors[0]})` : ''}`); await vmRefresh(); return; }
+      if (act === 'del') {
+        if (!window.confirm('Delete this video for good (script, recordings and MP4)?')) return;
+        await API.post('/api/admin/video/delete', { id: btn.dataset.id });
+        if (STATE.vp?.id === btn.dataset.id) STATE.vp = null;
+        showToast('Video deleted'); await vmRefresh(); return;
       }
       if (act === 'open') { STATE.vp = await API.get('/api/admin/video/project?id=' + btn.dataset.id); await vmRefresh(); window.scrollTo(0, 0); return; }
       if (act === 'save') { STATE.vp = await API.post('/api/admin/video/save', vmRead()); showToast('Script saved'); await vmRefresh(); return; }

@@ -368,6 +368,7 @@ export function startGamma({ url, sizes = ['square'], origin = '' }) {
       const media = await generateGammaInfographic({ ...content.gamma, summary: content.sub, points: content.points || [], stats: content.stats || [], dimensions: dims });
       if (!media) throw new Error('No Gamma key saved in Admin → APIs.');
       const buf = await fs.readFile(path.join(getMediaDir(), path.basename(media)));
+      await fs.rm(path.join(getMediaDir(), path.basename(media)), { force: true }).catch(() => {}); // only the framed JPEGs are kept, to save space
       const type = /\.png$/iu.test(media) ? 'image/png' : 'image/jpeg';
       const framed = { ...content, kind: 'picture', image: `data:${type};base64,${buf.toString('base64')}` };
       await fs.mkdir(OUT_DIR, { recursive: true });
