@@ -197,7 +197,10 @@ function footer(W, H, s, link, f) {
   const top = y + (fh - block) / 2 - 4;
   const emailLine = `${s.email}  ·  For education only, not financial advice`;
   const showBrand = Math.max(width(f.bold, link, size), width(f.regular, emailLine, small)) + width(f.serif, s.name, brandSize) + 140 < W;
-  const linkFit = fit(f.bold, link, size, 20, W - 96 - (showBrand ? width(f.serif, s.name, brandSize) + 40 : 0), 1);
+  const room = W - 96 - (showBrand ? width(f.serif, s.name, brandSize) + 40 : 0);
+  let shown = link;
+  while (shown.length > 12 && width(f.bold, shown, 24) > room) shown = `${shown.slice(0, -2).replace(/…$/u, '')}…`;
+  const linkFit = fit(f.bold, shown, size, 24, room, 1);
   return `<rect x="0" y="${y}" width="${W}" height="${fh}" fill="${C.navy}"/>
     <rect x="0" y="${y}" width="${W}" height="6" fill="${C.gold}"/>
     ${textLines(linkFit.lines, { x0: 48, y0: top, size: linkFit.size, kind: 'bold', fill: C.gold2 })}
@@ -349,7 +352,8 @@ export function startGamma({ url, sizes = ['square'], origin = '' }) {
       const content = await contentFor(url, { origin });
       if (!content.gamma) throw new Error('Infographics can be made for explainers only.');
       const { generateGammaInfographic, getMediaDir } = await import('./visualsService.js');
-      const media = await generateGammaInfographic(content.gamma);
+      const dims = { square: '1x1', portrait: '4x5', story: '9x16', landscape: '16x9' }[sizes[0]] || '1x1';
+      const media = await generateGammaInfographic({ ...content.gamma, summary: content.sub, points: content.points || [], stats: content.stats || [], dimensions: dims });
       if (!media) throw new Error('No Gamma key saved in Admin → APIs.');
       const buf = await fs.readFile(path.join(getMediaDir(), path.basename(media)));
       const type = /\.png$/iu.test(media) ? 'image/png' : 'image/jpeg';

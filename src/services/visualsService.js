@@ -64,28 +64,28 @@ const GAMMA_BASE_URL = 'https://public-api.gamma.app/v1.0';
 const GAMMA_POLL_INTERVAL_MS = 5000;
 const GAMMA_MAX_POLL_ATTEMPTS = 30; // ~2.5 minutes total
 
-export async function generateGammaInfographic({ headline, infographic }) {
+export async function generateGammaInfographic({ headline, infographic, summary = '', points = [], stats = [], dimensions = '1x1' }) {
   if (!process.env.GAMMA_API_KEY) {
     console.warn('[visualsService] Skipping Gamma — GAMMA_API_KEY is not set.');
     return null;
   }
 
-  const inputText = buildGammaInfographicPrompt({ headline, infographic });
-
-  const createResponse = await fetch(`${GAMMA_BASE_URL}/generations`, {
-    method: 'POST',
-    headers: {
-      'X-API-KEY': process.env.GAMMA_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      inputText,
-      textMode: 'generate',
-      format: 'social',
-      numCards: 1,
-      exportAs: 'png',
-    }),
-  });
+  const inputText = buildGammaInfographicPrompt({ headline, infographic, summary, points, stats });
+  const base = { inputText, textMode: 'condense', format: 'social', numCards: 1, exportAs: 'png' };
+  // Full design request first; if Gamma rejects an option, try again with the basics only
+  const full = {
+    ...base,
+    ...(process.env.GAMMA_THEME_ID ? { themeId: process.env.GAMMA_THEME_ID } : {}),
+    additionalInstructions: GAMMA_STYLE,
+    textOptions: { amount: 'brief', tone: 'clear, friendly, plain English', audience: 'everyday savers and new investors', language: 'en-gb' },
+    imageOptions: { source: 'noImages' },
+    cardOptions: { dimensions },
+  };
+  let createResponse = await gammaCreate(full);
+  if (createResponse.status === 400 || createResponse.status === 422) {
+    console.warn('[visualsService] Gamma rejected the design options; retrying with the basics.');
+    createResponse = await gammaCreate({ ...base, inputText: `${inputText}\n\n${GAMMA_STYLE}` });
+  }
 
   if (!createResponse.ok) {
     const errorBody = await createResponse.text().catch(() => '');
@@ -103,18 +103,33 @@ export async function generateGammaInfographic({ headline, infographic }) {
   return saveGeneratedImage(buffer, extension);
 }
 
-function buildGammaInfographicPrompt({ headline, infographic }) {
-  const items = infographic?.items || [];
-  const itemLines = items.map((item) => `- ${item.label}: ${item.value} (${item.context})`).join('\n');
+function gammaCreate(body) {
+  return fetch(`${GAMMA_BASE_URL}/generations`, {
+    method: 'POST',
+    headers: { 'X-API-KEY': process.env.GAMMA_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
 
-  return [
-    `Create a single-card visual infographic summarizing: ${headline}`,
-    infographic?.title ? `Title: ${infographic.title}` : '',
-    itemLines ? `Key points to visualize:\n${itemLines}` : '',
-    'Style: clean, modern financial infographic. Dark navy background with a gold accent color. Minimal text, clear icons or simple charts. A designed infographic card, not a stock photo.',
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+const GAMMA_STYLE = [
+  'Design ONE infographic card that fills the whole card edge to edge, with no empty areas and no small picture inset in a corner.',
+  'Colours: deep navy background (#0a1128), gold accents (#c9a227), white and light text. Bold, modern, high contrast, easy to read on a phone.',
+  'Layout: a large bold headline at the top; under it the key points as 3 or 4 numbered or icon boxes in a grid that uses the full width; any figures shown big, as stat boxes.',
+  'Use simple flat icons or simple shapes only; no photos, no people.',
+  'Use ONLY the facts and numbers given here. Do not add new facts, figures, names or claims. British English.',
+  'Do not add any logo, website or footer: those are added afterwards.',
+].join(' ');
+
+function buildGammaInfographicPrompt({ headline, infographic, summary = '', points = [], stats = [] }) {
+  const items = (infographic?.items || []).filter((item) => item.label && item.value);
+  const lines = [
+    `Headline: ${headline}`,
+    summary ? `In one line: ${summary}` : '',
+    stats.length ? `Key figures:\n${stats.map((x) => `- ${x.label}: ${x.value}${x.note ? ` (${x.note})` : ''}`).join('\n')}` : '',
+    items.length ? `Key figures:\n${items.map((item) => `- ${item.label}: ${item.value}${item.context ? ` (${item.context})` : ''}`).join('\n')}` : '',
+    points.length ? `Key points:\n${points.slice(0, 4).map((x, i) => `${i + 1}. ${x}`).join('\n')}` : '',
+  ];
+  return lines.filter(Boolean).join('\n\n');
 }
 
 async function pollGammaGeneration(generationId) {
