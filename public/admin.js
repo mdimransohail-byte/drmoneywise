@@ -2262,7 +2262,6 @@ function render_social() {
           <button class="btn" data-so="gamma" title="Explainers only; takes 1–3 minutes">Make a Gamma infographic</button>
           <span id="soMsg" style="font-size:.76rem"></span>
         </div>
-        <div style="display:flex;gap:8px;align-items:end;margin-top:12px"><label style="flex:1"><span class="field">Gamma theme (colours and fonts Gamma uses)</span><select id="soTheme"><option value="">Loading themes…</option></select></label><button class="btn" data-so="theme">Save theme</button></div>
         <p style="font-size:.7rem;color:#9eb3cc;margin-top:10px">Works with: explainers (/learn/…), companies (/stock/…), results (/results or a result’s link), Shariah pages, research reports and any other page (uses its title and description). For picture links, only use pictures you’re allowed to post: your own, or free ones such as Pexels.</p>
       </div>
       <div class="card">
@@ -2272,6 +2271,10 @@ function render_social() {
       </div>
     </div>
     <div class="card"><h2 style="margin-top:0">Pictures</h2><div id="soPics" style="display:flex;flex-wrap:wrap;gap:14px">${res ? '' : '<p style="color:#9eb3cc;font-size:.8rem">Your pictures will appear here.</p>'}</div></div>
+    <div class="card"><h2 style="margin-top:0">Gamma themes</h2>
+      <p style="font-size:.76rem;color:#9eb3cc">Choose the look Gamma uses for infographics. “Make 2 samples” creates two example pictures in that theme (it uses one Gamma generation, so a little of your Gamma credit), and they are kept here so you only make them once.</p>
+      <div id="soThemes" style="display:flex;flex-wrap:wrap;gap:12px"><span style="color:#9eb3cc;font-size:.8rem">Loading themes…</span></div>
+    </div>
     <div class="card"><h2 style="margin-top:0">Made in the last 30 days</h2><div id="soRecent" style="display:flex;flex-wrap:wrap;gap:8px"><span style="color:#9eb3cc;font-size:.8rem">Loading…</span></div></div>`;
 }
 
@@ -2310,11 +2313,39 @@ async function soRecent() {
 }
 
 async function soThemes() {
-  const sel = qs('#soTheme'); if (!sel) return;
-  try {
-    const r = await API.get('/api/admin/social/gamma-themes');
-    sel.innerHTML = '<option value="">Gamma’s default theme</option>' + r.themes.map((t) => `<option value="${h(t.id)}" ${t.id === r.chosen ? 'selected' : ''}>${h(t.name)}${t.type === 'custom' ? ' (yours)' : ''}${(t.colors || []).length ? ` · ${h(t.colors.slice(0, 3).join(', '))}` : ''}</option>`).join('');
-  } catch (e) { sel.innerHTML = `<option value="">Themes not available (${h(e.message)})</option>`; }
+  const box = qs('#soThemes'); if (!box) return;
+  let r;
+  try { r = await API.get('/api/admin/social/gamma-themes'); } catch (e) { box.innerHTML = `<span style="color:#f26a6a;font-size:.8rem">Themes not available: ${h(e.message)}</span>`; return; }
+  if (!r.themes.length) { box.innerHTML = '<span style="color:#9eb3cc;font-size:.8rem">No themes found. Check the Gamma key in APIs & More.</span>'; return; }
+  const list = [{ id: '', name: 'Gamma’s default', type: '' }, ...r.themes.sort((a, b) => (b.type === 'custom') - (a.type === 'custom') || a.name.localeCompare(b.name))];
+  box.innerHTML = list.map((t) => {
+    const pv = r.previews?.[t.id]?.urls || [];
+    const on = (r.chosen || '') === t.id;
+    return `<div class="card" style="width:250px;margin:0;padding:10px;border:2px solid ${on ? '#c9a227' : 'rgba(255,255,255,.08)'}">
+      <div style="display:flex;gap:4px;margin-bottom:6px;min-height:118px">${pv.length ? pv.map((u) => `<a href="${h(u)}" target="_blank" rel="noopener"><img src="${h(u)}" alt="" style="width:113px;height:113px;object-fit:cover;border-radius:6px"></a>`).join('') : '<div style="flex:1;display:grid;place-items:center;background:rgba(255,255,255,.04);border-radius:6px;color:#9eb3cc;font-size:.7rem">No samples yet</div>'}</div>
+      <strong style="color:#fff;font-size:.82rem">${h(t.name)}</strong>${t.type === 'custom' ? ' <span style="color:#c9a227;font-size:.68rem">yours</span>' : ''}
+      ${(t.colors || []).length ? `<div style="font-size:.68rem;color:#9eb3cc">${h(t.colors.slice(0, 4).join(', '))}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        ${t.id ? `<button class="btn" data-th="sample" data-id="${h(t.id)}" style="padding:4px 10px">${pv.length ? 'Make new samples' : 'Make 2 samples'}</button>` : ''}
+        <button class="btn ${on ? 'btn-gold' : ''}" data-th="use" data-id="${h(t.id)}" style="padding:4px 10px">${on ? 'In use' : 'Use this theme'}</button>
+      </div><div class="th-msg" style="font-size:.68rem;margin-top:4px"></div></div>`;
+  }).join('');
+  qsa('[data-th]').forEach((btn) => btn.addEventListener('click', async () => {
+    const msg = btn.closest('.card').querySelector('.th-msg');
+    btn.disabled = true;
+    try {
+      if (btn.dataset.th === 'use') { await API.post('/api/admin/social/gamma-theme', { themeId: btn.dataset.id }); showToast('Gamma theme saved'); await soThemes(); return; }
+      msg.style.color = '#2bc48a'; msg.textContent = 'Gamma is making 2 samples (1–3 minutes)…';
+      const { job } = await API.post('/api/admin/social/theme-preview', { themeId: btn.dataset.id });
+      for (let i = 0; i < 60; i += 1) {
+        await new Promise((res) => setTimeout(res, 5000));
+        const j = await API.get('/api/admin/social/gamma?job=' + job);
+        if (j.status === 'done') { await soThemes(); return; }
+        if (j.status !== 'working') { msg.style.color = '#f26a6a'; msg.textContent = j.error || 'Didn’t finish.'; break; }
+      }
+    } catch (e) { msg.style.color = '#f26a6a'; msg.textContent = e.message; }
+    btn.disabled = false;
+  }));
 }
 async function load_social() { setMain(render_social()); bind_social(); soRecent(); soThemes(); if (STATE.social?.result) soShow(STATE.social.result.items); }
 
@@ -2327,7 +2358,6 @@ function bind_social() {
   };
   qsa('[data-so]').forEach((btn) => btn.addEventListener('click', async () => {
     const act = btn.dataset.so;
-    if (act === 'theme') { try { await API.post('/api/admin/social/gamma-theme', { themeId: qs('#soTheme').value }); say('Gamma theme saved: new infographics will use it.'); } catch (e) { say(e.message, true); } return; }
     if (act === 'copy') { const t = qs('#soCaption'); t.select(); try { await navigator.clipboard.writeText(t.value); say('Caption copied.'); } catch { document.execCommand('copy'); say('Caption copied.'); } return; }
     const body = read();
     if (!body.url) { say('Paste a link first.', true); return; }

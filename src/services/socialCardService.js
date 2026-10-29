@@ -188,25 +188,23 @@ export async function contentFor(rawUrl, { origin = '' } = {}) {
 }
 
 /* ── Drawing ──────────────────────────────────────────────────────── */
+// The same footer on every picture: name and tagline on the left, website
+// and email on the right. Short, fixed wording, so it always fits neatly
+// (the full page link goes in the caption, where people can tap it).
 function footer(W, H, s, link, f) {
   const fh = Math.round(H * (H > W ? 0.085 : 0.11));
   const y = H - fh;
-  const size = Math.min(36, Math.round(fh * 0.3));
-  const small = Math.min(26, Math.round(fh * 0.22));
-  const brandSize = Math.round(size * 1.1);
-  const block = size + small * 1.35;
-  const top = y + (fh - block) / 2 - 4;
-  const emailLine = `${s.email}  ·  For education only, not financial advice`;
-  const showBrand = Math.max(width(f.bold, link, size), width(f.regular, emailLine, small)) + width(f.serif, s.name, brandSize) + 140 < W;
-  const room = W - 96 - (showBrand ? width(f.serif, s.name, brandSize) + 40 : 0);
-  let shown = link;
-  while (shown.length > 12 && width(f.bold, shown, 24) > room) shown = `${shown.slice(0, -2).replace(/…$/u, '')}…`;
-  const linkFit = fit(f.bold, shown, size, 24, room, 1);
+  const big = Math.round(Math.min(40, fh * 0.34));
+  const small = Math.round(Math.min(24, fh * 0.2));
+  const gap = Math.round(small * 0.55);
+  const top = y + (fh - (big + gap + small)) / 2 - 2;
+  const right = `${s.email}  ·  Education only, not advice`;
   return `<rect x="0" y="${y}" width="${W}" height="${fh}" fill="${C.navy}"/>
     <rect x="0" y="${y}" width="${W}" height="6" fill="${C.gold}"/>
-    ${textLines(linkFit.lines, { x0: 48, y0: top, size: linkFit.size, kind: 'bold', fill: C.gold2 })}
-    ${textLines([emailLine], { x0: 48, y0: top + size * 1.3, size: small, fill: C.grey })}
-    ${showBrand ? textLines([s.name], { x0: W - 48, y0: y + (fh - brandSize) / 2 - 6, size: brandSize, kind: 'serif', fill: C.gold, anchor: 'end' }) : ''}`;
+    ${textLines([s.name], { x0: 48, y0: top - 4, size: big, kind: 'serif', fill: C.gold })}
+    ${textLines(['Money, explained simply'], { x0: 48, y0: top + big + gap, size: small, fill: C.grey })}
+    ${textLines([s.domain], { x0: W - 48, y0: top - 4, size: big, kind: 'black', fill: C.gold2, anchor: 'end' })}
+    ${textLines([right], { x0: W - 48, y0: top + big + gap, size: small, fill: C.grey, anchor: 'end' })}`;
 }
 
 async function drawCard(content, sizeKey, { style = 'auto', photoData = null } = {}) {
@@ -380,6 +378,16 @@ export function startGamma({ url, sizes = ['square'], origin = '' }) {
   return { job: id };
 }
 export const gammaJob = (id) => jobs.get(id) || { status: 'missing' };
+
+/** Two sample pictures for a Gamma theme (runs in the background). */
+export function startThemePreview(themeId) {
+  const id = crypto.randomBytes(5).toString('hex');
+  jobs.set(id, { status: 'working' });
+  import('./visualsService.js').then((v) => v.makeThemePreview(themeId))
+    .then((urls) => jobs.set(id, { status: 'done', urls }))
+    .catch((error) => jobs.set(id, { status: 'failed', error: error.message }));
+  return { job: id };
+}
 
 export async function socialFile(name) {
   if (!/^[\w-]+\.jpg$/u.test(name)) return null;

@@ -375,13 +375,15 @@ export const server = http.createServer(async (request, response) => {
         if (sub === '/gamma-themes' && request.method === 'GET') {
           const { listGammaThemes } = await import('./src/services/visualsService.js');
           const { readStore } = await import('./src/services/storeService.js');
-          return sendJson(response, 200, { themes: await listGammaThemes(), chosen: (await readStore()).settings?.gammaThemeId || '' });
+          const { themePreviews } = await import('./src/services/visualsService.js');
+          return sendJson(response, 200, { themes: await listGammaThemes(), chosen: (await readStore()).settings?.gammaThemeId || '', previews: await themePreviews() });
         }
         if (request.method === 'POST') {
           const body = await parseJsonBody(request);
           const origin = getSiteOrigin(request);
           if (sub === '/cards') return sendJson(response, 200, await social.makeCards({ ...body, origin }));
           if (sub === '/gamma') return sendJson(response, 200, social.startGamma({ ...body, origin }));
+          if (sub === '/theme-preview') return sendJson(response, 200, social.startThemePreview(String(body.themeId || '')));
           if (sub === '/gamma-theme') {
             const { updateStore } = await import('./src/services/storeService.js');
             await updateStore((st) => { st.settings = { ...(st.settings || {}), gammaThemeId: String(body.themeId || '').slice(0, 80) }; return st; });

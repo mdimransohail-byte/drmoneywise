@@ -115,14 +115,59 @@ export async function listGammaThemes() {
   if (!process.env.GAMMA_API_KEY) return [];
   const out = []; let after = '';
   for (let page = 0; page < 5; page += 1) {
-    const r = await fetch(`${GAMMA_BASE_URL}/themes?limit=50${after ? `&after=${encodeURIComponent(after)}` : ''}`, { headers: { 'X-API-KEY': process.env.GAMMA_API_KEY } });
-    if (!r.ok) throw new Error(`Gamma said ${r.status} when listing themes`);
+    const r = await fetch(`${GAMMA_BASE_URL}/themes${after ? `?after=${encodeURIComponent(after)}` : ''}`, { headers: { 'X-API-KEY': process.env.GAMMA_API_KEY } });
+    if (!r.ok) throw new Error(`Gamma said ${r.status} when listing themes: ${(await r.text().catch(() => '')).slice(0, 120)}`);
     const d = await r.json();
     const list = Array.isArray(d) ? d : d.data || d.themes || [];
-    for (const t of list) if (t.id) out.push({ id: t.id, name: t.name || t.id, type: t.type || '', colors: t.colorKeywords || t.colors || [] });
+    for (const t of list) if (t.id) out.push({ id: t.id, name: t.name || t.id, type: t.type || '', colors: t.colorKeywords || t.colors || [], tone: t.toneKeywords || [] });
     after = d.nextCursor || ''; if (!d.hasMore || !after) break;
   }
   return out;
+}
+
+/* ── Theme previews: 2 sample pictures per theme, made once and kept ── */
+const PREVIEW_FILE = path.join(process.cwd(), 'data', 'generated-media', 'gamma-previews.json');
+export async function themePreviews() {
+  try { return JSON.parse(await fs.readFile(PREVIEW_FILE, 'utf8')); } catch { return {}; }
+}
+const PREVIEW_TEXT = [
+  'Card 1. Headline: Why an emergency fund matters',
+  'Key points: 1. It covers surprise bills without borrowing. 2. It keeps you from selling investments at a bad time. 3. A separate savings account makes it easy to leave alone.',
+  '---',
+  'Card 2. Headline: The 50/30/20 budget rule',
+  'Key figures: 50% of take-home pay for needs. 30% for wants. 20% for saving and paying off debt.',
+].join('\n');
+export async function makeThemePreview(themeId) {
+  if (!process.env.GAMMA_API_KEY) throw new Error('No Gamma key saved in Admin → APIs & More.');
+  const body = {
+    inputText: PREVIEW_TEXT, textMode: 'condense', format: 'social', numCards: 2, exportAs: 'png', themeId,
+    additionalInstructions: GAMMA_STYLE.replace('Colours: deep navy background (#0a1128), gold accents (#c9a227), white and light text. ', ''),
+    textOptions: { amount: 'brief', language: 'en-gb' }, imageOptions: { source: 'noImages' }, cardOptions: { dimensions: '1x1' },
+  };
+  let r = await gammaCreate(body);
+  if (r.status === 400 || r.status === 422) r = await gammaCreate({ inputText: PREVIEW_TEXT, textMode: 'condense', format: 'social', numCards: 2, exportAs: 'png', themeId });
+  if (!r.ok) throw new Error(`Gamma said ${r.status}: ${(await r.text().catch(() => '')).slice(0, 200)}`);
+  const { generationId } = await r.json();
+  const url = await pollGammaGeneration(generationId);
+  const dl = await fetch(url);
+  const buffer = Buffer.from(await dl.arrayBuffer());
+  let images = [];
+  if (buffer.slice(0, 2).toString() === 'PK') images = new AdmZip(buffer).getEntries().filter((e) => /\.(png|jpe?g)$/iu.test(e.entryName)).sort((a, b) => a.entryName.localeCompare(b.entryName)).map((e) => ({ buffer: e.getData(), ext: e.entryName.split('.').pop().toLowerCase() }));
+  else if (buffer[0] === 0x89) images = [{ buffer, ext: 'png' }];
+  else if (buffer[0] === 0xff) images = [{ buffer, ext: 'jpg' }];
+  if (!images.length) throw new Error('Gamma didn’t send any pictures.');
+  const safe = String(themeId).replace(/[^\w-]/gu, '').slice(0, 60);
+  await fs.mkdir(MEDIA_DIR, { recursive: true });
+  const urls = [];
+  for (const [i, im] of images.slice(0, 2).entries()) {
+    const name = `theme-${safe}-${i + 1}.${im.ext}`;
+    await fs.writeFile(path.join(MEDIA_DIR, name), im.buffer);
+    urls.push(`/media/${name}`);
+  }
+  const all = await themePreviews();
+  all[themeId] = { urls, at: new Date().toISOString() };
+  await fs.writeFile(PREVIEW_FILE, JSON.stringify(all), 'utf8');
+  return urls;
 }
 
 function gammaCreate(body) {
