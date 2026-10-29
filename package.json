@@ -9,10 +9,12 @@
   "description": "Dr MoneyWise commercial starter for market news, learning points, memberships, watchlists, portfolios, and admin analytics.",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@napi-rs/canvas": "^1.0.13",
     "@resvg/resvg-js": "^2.6.2",
     "adm-zip": "^0.5.10",
     "jpeg-js": "^0.4.4",
-    "opentype.js": "^2.0.0"
+    "opentype.js": "^2.0.0",
+    "pdfjs-dist": "^4.10.38"
   },
   "scripts": {
     "start": "node server.js"

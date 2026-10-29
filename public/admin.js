@@ -2189,6 +2189,7 @@ function bind_newsletter() {
         showToast(r.done ? `Sent to ${r.sent} people` : r.message || 'Sending started');
         STATE.nlEdit = NL_BLANK(); await redraw(); return;
       }
+      if (act === 'free') { btn.disabled = true; const r = await API.post('/api/admin/video/free-space', {}); showToast(`Space freed: ${r.before ?? '?'} → ${r.after ?? '?'} MB free`); await vmRefresh(); return; }
       if (act === 'open') { const it = STATE.nl.issues.find((x) => x.id === btn.dataset.id); STATE.nlEdit = { ...it }; setMain(render_newsletter()); bind_newsletter(); nlPreview(); return; }
       if (act === 'delete') { if (!window.confirm('Delete this draft?')) { btn.disabled = false; return; } await API.nlPost('delete', { id: btn.dataset.id }); if ((STATE.nlEdit || {}).id === btn.dataset.id) STATE.nlEdit = NL_BLANK(); await redraw(); return; }
       if (act === 'continue') { const r = await API.nlPost('continue'); showToast(r.message); await redraw(); return; }
@@ -2469,6 +2470,11 @@ function render_video() {
         </div>` : ''}
       </div>
     </div>` : ''}
+    ${d.storage ? `<div class="card"><h2 style="margin-top:0">Saved-data space</h2>
+      ${d.storage.freeMb !== null ? `<p style="font-size:.8rem;color:${d.storage.freeMb < 300 ? '#f26a6a' : '#dbe6f3'}"><b>${d.storage.freeMb} MB free</b> of ${d.storage.totalMb} MB. Videos are made in temporary space; only the finished MP4s are kept (the newest 10).</p>
+      <div style="height:10px;background:rgba(255,255,255,.08);border-radius:6px;margin:6px 0 10px"><div style="height:10px;width:${Math.min(100, Math.round(100 - (d.storage.freeMb / Math.max(1, d.storage.totalMb)) * 100))}%;background:${d.storage.freeMb < 300 ? '#f26a6a' : '#c9a227'};border-radius:6px"></div></div>` : ''}
+      <details><summary style="cursor:pointer;font-size:.76rem;color:#9eb3cc">What uses the space</summary>${d.storage.parts.map((x) => `<div style="display:flex;justify-content:space-between;font-size:.74rem;color:#dbe6f3;padding:2px 0"><span>${h(x.name)}</span><span>${x.mb} MB</span></div>`).join('')}</details>
+      <p style="margin-top:10px"><button class="btn" data-vm="free">Free up space</button> <span style="font-size:.7rem;color:#9eb3cc">Removes leftover video work, all but the newest 3 videos, and social pictures older than a week.</span></p></div>` : ''}
     <div class="card"><h2 style="margin-top:0">Your videos</h2>
       ${d.projects.length ? d.projects.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.08);padding:8px 0;font-size:.8rem"><span style="color:#fff">${h(x.title)}<br><span style="color:#9eb3cc;font-size:.7rem">${x.format === 'short' ? 'Short' : 'Video'} · ${h(x.status)}${x.seconds ? ` · ${x.seconds} s` : ''} · ${fmtDate(x.createdAt)}</span></span><button class="btn" data-vm="open" data-id="${h(x.id)}" style="padding:4px 10px;align-self:center">Open</button></div>`).join('') : '<p style="color:#9eb3cc;font-size:.8rem">None yet.</p>'}
     </div>`;

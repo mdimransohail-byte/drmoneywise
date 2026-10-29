@@ -188,23 +188,22 @@ export async function contentFor(rawUrl, { origin = '' } = {}) {
 }
 
 /* ── Drawing ──────────────────────────────────────────────────────── */
-// The same footer on every picture: name and tagline on the left, website
-// and email on the right. Short, fixed wording, so it always fits neatly
-// (the full page link goes in the caption, where people can tap it).
+// The same footer on every picture: the website on the left and the email
+// on the right (the name sits at the top of the picture). Short, fixed
+// wording, so it always fits; the full page link goes in the caption.
 function footer(W, H, s, link, f) {
   const fh = Math.round(H * (H > W ? 0.085 : 0.11));
   const y = H - fh;
-  const big = Math.round(Math.min(40, fh * 0.34));
-  const small = Math.round(Math.min(24, fh * 0.2));
+  const big = Math.round(Math.min(38, fh * 0.33));
+  const small = Math.round(Math.min(22, fh * 0.19));
   const gap = Math.round(small * 0.55);
-  const top = y + (fh - (big + gap + small)) / 2 - 2;
-  const right = `${s.email}  ·  Education only, not advice`;
+  const top = y + (fh - (big + gap + small)) / 2;
   return `<rect x="0" y="${y}" width="${W}" height="${fh}" fill="${C.navy}"/>
     <rect x="0" y="${y}" width="${W}" height="6" fill="${C.gold}"/>
-    ${textLines([s.name], { x0: 48, y0: top - 4, size: big, kind: 'serif', fill: C.gold })}
-    ${textLines(['Money, explained simply'], { x0: 48, y0: top + big + gap, size: small, fill: C.grey })}
-    ${textLines([s.domain], { x0: W - 48, y0: top - 4, size: big, kind: 'black', fill: C.gold2, anchor: 'end' })}
-    ${textLines([right], { x0: W - 48, y0: top + big + gap, size: small, fill: C.grey, anchor: 'end' })}`;
+    ${textLines([s.domain], { x0: 48, y0: top - 4, size: big, kind: 'black', fill: C.gold2 })}
+    ${textLines(['For education only, not financial advice'], { x0: 48, y0: top + big + gap, size: small, fill: C.grey })}
+    ${textLines([s.email], { x0: W - 48, y0: top - 4, size: Math.round(big * 0.82), kind: 'bold', fill: '#ffffff', anchor: 'end' })}
+    ${textLines(['Money, explained simply'], { x0: W - 48, y0: top + big + gap, size: small, fill: C.grey, anchor: 'end' })}`;
 }
 
 async function drawCard(content, sizeKey, { style = 'auto', photoData = null } = {}) {
@@ -300,12 +299,16 @@ async function drawFramed(content, sizeKey, { title = '' } = {}) {
     <rect width="${W}" height="${H}" fill="${C.navy}"/>
     <image href="${content.image}" x="-60" y="-60" width="${W + 120}" height="${H - fh + 120}" preserveAspectRatio="xMidYMid slice" filter="url(#blur)" opacity="0.85"/>
     <rect width="${W}" height="${H - fh}" fill="#0a1128" opacity="0.35"/>`;
+  // Name at the top left (and an optional title under it)
+  const hb = Math.round(H * (H > W ? 0.06 : 0.09));
+  svg += `<rect width="${W}" height="${hb}" fill="${C.navy}" opacity="0.92"/>` + textLines([s.name], { x0: 40, y0: (hb - Math.round(hb * 0.5)) / 2 - 4, size: Math.round(hb * 0.5), kind: 'serif', fill: C.gold });
+  top = hb;
   if (title) {
     const t = fit(f.serif, title, W > H ? 44 : 56, 30, W - 112, 2);
-    top = Math.round(t.lines.length * t.size * 1.2) + 70;
-    svg += textLines(t.lines, { x0: 56, y0: 34, size: t.size, kind: 'serif', fill: '#fff', lh: 1.2 });
+    svg += textLines(t.lines, { x0: 56, y0: top + 20, size: t.size, kind: 'serif', fill: '#fff', lh: 1.2 });
+    top += Math.round(t.lines.length * t.size * 1.2) + 50;
   }
-  svg += `<image href="${content.image}" x="20" y="${top + 16}" width="${W - 40}" height="${H - fh - top - 32}" preserveAspectRatio="xMidYMid meet"/>`;
+  svg += `<image href="${content.image}" x="16" y="${top + 12}" width="${W - 32}" height="${H - fh - top - 24}" preserveAspectRatio="xMidYMid meet"/>`;
   svg += footer(W, H, s, content.link, f);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${svg}</svg>`;
 }
@@ -313,7 +316,12 @@ async function drawFramed(content, sizeKey, { title = '' } = {}) {
 function toJpeg(svg) {
   const r = new Resvg(svg, { font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: 'Lato' }, fitTo: { mode: 'original' } });
   const img = r.render();
-  return jpeg.encode({ data: img.pixels, width: img.width, height: img.height }, 90).data;
+  // Sharp, but kept under 500 KB so every platform takes it quickly
+  for (const q of [92, 88, 84, 80, 75, 70]) {
+    const out = jpeg.encode({ data: img.pixels, width: img.width, height: img.height }, q).data;
+    if (out.length <= 500 * 1024 || q === 70) return out;
+  }
+  return null;
 }
 
 function captionFor(c) {

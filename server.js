@@ -336,7 +336,7 @@ export const server = http.createServer(async (request, response) => {
           response.end(buf);
           return true;
         }
-        if (sub === '' && request.method === 'GET') return sendJson(response, 200, { projects: await video.listProjects(), voices: video.VOICES, formats: video.FORMATS, computerVoice: Boolean(process.env.OPENAI_API_KEY) });
+        if (sub === '' && request.method === 'GET') return sendJson(response, 200, { projects: await video.listProjects(), voices: video.VOICES, formats: video.FORMATS, computerVoice: Boolean(process.env.OPENAI_API_KEY), storage: await video.storageReport().catch(() => null) });
         if (sub === '/project' && request.method === 'GET') {
           const p = await video.getProject(String(requestUrl.searchParams.get('id') || ''));
           return sendJson(response, p ? 200 : 404, p || { error: 'Project not found' });
@@ -349,6 +349,7 @@ export const server = http.createServer(async (request, response) => {
         }
         if (request.method === 'POST') {
           const body = await parseJsonBody(request);
+          if (sub === '/free-space') return sendJson(response, 200, await video.freeUpSpace());
           if (sub === '/create') { video.cleanOldProjects().catch(() => {}); return sendJson(response, 200, await video.createProject({ url: body.url, format: body.format, origin: getSiteOrigin(request) })); }
           if (sub === '/save') return sendJson(response, 200, await video.updateProject(body.id, body));
           if (sub === '/render') { if (body.save) await video.updateProject(body.id, body.save); return sendJson(response, 200, await video.startRender(body.id)); }

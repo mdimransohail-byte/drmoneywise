@@ -23,6 +23,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
+import os from 'node:os';
 
 import { contentFor, loadFonts, fit, wrap, textLines, width, BRAND as C, TILE_COLOURS, fetchImage, svgToPng, siteDetails } from './socialCardService.js';
 import { ensureBrandAudio } from './brandMusic.js';
@@ -339,11 +340,14 @@ export async function startRender(id) {
   if (busy) throw Object.assign(new Error('Another video is being made. Please wait for it to finish.'), { status: 409 });
   if (p.voice === 'computer' && !process.env.OPENAI_API_KEY) throw Object.assign(new Error('The computer voice needs the OpenAI key (Admin → APIs & More). Or choose your own voice.'), { status: 400 });
   if (p.voice === 'own' && !p.voiceAll && !p.scenes.some((s) => s.voiceFile)) throw Object.assign(new Error('Record at least one scene, or upload a recording of the whole script, first.'), { status: 400 });
+  const st = await storageReport().catch(() => null);
+  if (st?.freeMb !== null && st?.freeMb !== undefined && st.freeMb < 150) throw Object.assign(new Error(`The saved-data space is nearly full (${st.freeMb} MB free). Click “Free up space” on this page first.`), { status: 507 });
   busy = true;
   p.status = 'rendering'; p.progress = { step: 'Starting', pct: 2 }; p.error = null;
   await saveProject(p);
   render(p).catch(async (error) => {
     console.error(`[video] ${p.id} failed: ${error.message}`);
+    await fs.rm(path.join(os.tmpdir(), `dmw-video-${p.id}`), { recursive: true, force: true }).catch(() => {});
     const q = (await getProject(p.id)) || p;
     q.status = 'failed'; q.error = error.message; await saveProject(q);
   }).finally(() => { busy = false; });
@@ -353,7 +357,10 @@ export async function startRender(id) {
 async function render(p) {
   const { w: W, h: H, fps } = FORMATS[p.format];
   const dir = dirOf(p.id);
-  const work = path.join(dir, 'work');
+  // Working files go in the server's own temporary space, NOT the saved-data
+  // volume (which is small); only the finished MP4 and thumbnail are kept.
+  const work = path.join(os.tmpdir(), `dmw-video-${p.id}`);
+  await fs.rm(path.join(dir, 'work'), { recursive: true, force: true });
   await fs.rm(work, { recursive: true, force: true });
   await fs.mkdir(work, { recursive: true });
   const step = async (text, pct) => { p.progress = { step: text, pct }; await saveProject(p); };
@@ -403,7 +410,6 @@ async function render(p) {
     await step(`Drawing scene ${i + 1} of ${sc.length}`, 35 + Math.round((i / sc.length) * 45));
     const png = path.join(work, `s${i}.png`);
     await fs.writeFile(png, svgToPng(await drawScene(p, s, i, sc.length, W, H, await photoFor(i))));
-    if (i === 0) await fs.writeFile(path.join(dir, 'thumbnail-src.png'), await fs.readFile(png));
     const clipFile = path.join(work, `c${i}.mp4`);
     await stillToClip(png, clipFile, lens[i], W, H, fps, { zoomIn: i % 2 === 0, fade: 0.25 });
     clips.push(clipFile);
@@ -459,6 +465,7 @@ async function render(p) {
   Object.assign(q, { status: 'done', progress: { step: 'Done', pct: 100 }, output: outName, thumbnail: thumb, seconds: Math.round(total), photosUsed: used, madeAt: new Date().toISOString(), meta: await metaFor(q, used) });
   await saveProject(q);
   console.log(`[video] ${q.id}: ${outName} (${Math.round(total)} s)`);
+  await keepNewestVideos(10).catch(() => {});
 }
 
 async function metaFor(p, photos) {
@@ -483,6 +490,72 @@ async function metaFor(p, photos) {
     description: lines.join('\n').trim(),
     tags: [...new Set([...(p.tags || []).map((t) => t.replace(/^#/u, '')), 'personal finance', 'investing', 'money explained', 'Dr MoneyWise'])].slice(0, 15),
   };
+}
+
+/** Keeps the finished files of the newest `n` videos; older ones keep only their script. */
+async function keepNewestVideos(n) {
+  const list = await listProjects();
+  for (const x of list.filter((y) => y.status === 'done').slice(n)) {
+    const p = await getProject(x.id);
+    if (!p) continue;
+    for (const f of await fs.readdir(dirOf(x.id))) if (/\.(mp4|jpg|png|wav|webm|ogg|m4a|mp3)$/u.test(f)) await fs.rm(path.join(dirOf(x.id), f), { force: true });
+    p.status = 'draft'; p.output = null; p.thumbnail = null; p.note = 'Older video removed to save space; make it again any time.';
+    for (const sc of p.scenes) { delete sc.voiceFile; delete sc.voiceSeconds; }
+    delete p.voiceAll;
+    await saveProject(p);
+  }
+}
+
+async function folderSize(dir) {
+  let total = 0;
+  let entries = [];
+  try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return 0; }
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) total += await folderSize(full);
+    else { try { total += (await fs.stat(full)).size; } catch { /* gone */ } }
+  }
+  return total;
+}
+
+/** How full the saved-data space is, and what uses it. */
+export async function storageReport() {
+  const DATA = path.join(process.cwd(), 'data');
+  let freeMb = null; let totalMb = null;
+  try { const s = await fs.statfs(DATA); freeMb = Math.round((s.bavail * s.bsize) / 1048576); totalMb = Math.round((s.blocks * s.bsize) / 1048576); } catch { /* older Node */ }
+  const parts = [];
+  for (const e of await fs.readdir(DATA, { withFileTypes: true }).catch(() => [])) {
+    const full = path.join(DATA, e.name);
+    const size = e.isDirectory() ? await folderSize(full) : (await fs.stat(full).catch(() => ({ size: 0 }))).size;
+    parts.push({ name: e.name, mb: Math.round((size / 1048576) * 10) / 10 });
+  }
+  const market = [];
+  for (const e of await fs.readdir(path.join(DATA, 'market'), { withFileTypes: true }).catch(() => [])) {
+    const full = path.join(DATA, 'market', e.name);
+    const size = e.isDirectory() ? await folderSize(full) : (await fs.stat(full).catch(() => ({ size: 0 }))).size;
+    market.push({ name: `market/${e.name}`, mb: Math.round((size / 1048576) * 10) / 10 });
+  }
+  return { freeMb, totalMb, parts: [...parts, ...market].filter((x) => x.mb >= 0.5).sort((a, b) => b.mb - a.mb).slice(0, 15) };
+}
+
+/** Frees space: leftover video work, older videos, old social pictures, old Gamma files. */
+export async function freeUpSpace() {
+  const DATA = path.join(process.cwd(), 'data');
+  const before = await storageReport();
+  for (const id of await fs.readdir(PROJECTS).catch(() => [])) await fs.rm(path.join(PROJECTS, id, 'work'), { recursive: true, force: true }).catch(() => {});
+  await keepNewestVideos(3);
+  const week = Date.now() - 7 * 86400000;
+  for (const sub of ['social', 'generated-media']) {
+    for (const f of await fs.readdir(path.join(DATA, sub)).catch(() => [])) {
+      if (sub === 'generated-media' && (f.startsWith('theme-') || f === 'gamma-previews.json')) continue; // keep theme samples
+      const full = path.join(DATA, sub, f);
+      const st = await fs.stat(full).catch(() => null);
+      if (st && st.isFile() && st.mtimeMs < week) await fs.rm(full, { force: true });
+    }
+  }
+  for (const f of await fs.readdir(DATA).catch(() => [])) if (/\.tmp$/u.test(f)) await fs.rm(path.join(DATA, f), { force: true }).catch(() => {});
+  const after = await storageReport();
+  return { before: before.freeMb, after: after.freeMb, report: after };
 }
 
 export async function cleanOldProjects() {

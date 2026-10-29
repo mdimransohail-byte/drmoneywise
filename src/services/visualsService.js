@@ -71,7 +71,8 @@ export async function generateGammaInfographic({ headline, infographic, summary 
   }
 
   const inputText = buildGammaInfographicPrompt({ headline, infographic, summary, points, stats });
-  const base = { inputText, textMode: 'condense', format: 'social', numCards: 1, exportAs: 'png' };
+  // PDF keeps text sharp; we draw it at full size ourselves (pdfImage.js)
+  const base = { inputText, textMode: 'condense', format: 'social', numCards: 1, exportAs: 'pdf' };
   // Full design request first; if Gamma rejects an option, try again with the basics only
   const full = {
     ...base,
@@ -99,8 +100,21 @@ export async function generateGammaInfographic({ headline, infographic, summary 
 
   console.warn(`[visualsService] Gamma generation ${generationId} started — polling for up to ~2.5 minutes.`);
   const exportUrl = await pollGammaGeneration(generationId);
-  const { buffer, extension } = await extractFirstImageFromZip(exportUrl);
+  const { buffer, extension } = await downloadGammaImage(exportUrl);
   return saveGeneratedImage(buffer, extension);
+}
+
+/** Gamma's download → a sharp PNG (PDF drawn at 2000 px wide; PNG or ZIP used as they are). */
+async function downloadGammaImage(url, width = 2000) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to download Gamma export: status ${response.status}`);
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.slice(0, 4).toString() === '%PDF') {
+    const { pdfFirstPageToPng } = await import('./pdfImage.js');
+    const png = await pdfFirstPageToPng(buffer, width);
+    return { buffer: png.buffer, extension: 'png' };
+  }
+  return pictureFromBuffer(buffer);
 }
 
 async function gammaThemeId() {
@@ -140,19 +154,22 @@ const PREVIEW_TEXT = [
 export async function makeThemePreview(themeId) {
   if (!process.env.GAMMA_API_KEY) throw new Error('No Gamma key saved in Admin → APIs & More.');
   const body = {
-    inputText: PREVIEW_TEXT, textMode: 'condense', format: 'social', numCards: 2, exportAs: 'png', themeId,
+    inputText: PREVIEW_TEXT, textMode: 'condense', format: 'social', numCards: 2, exportAs: 'pdf', themeId,
     additionalInstructions: GAMMA_STYLE.replace('Colours: deep navy background (#0a1128), gold accents (#c9a227), white and light text. ', ''),
     textOptions: { amount: 'brief', language: 'en-gb' }, imageOptions: { source: 'noImages' }, cardOptions: { dimensions: '1x1' },
   };
   let r = await gammaCreate(body);
-  if (r.status === 400 || r.status === 422) r = await gammaCreate({ inputText: PREVIEW_TEXT, textMode: 'condense', format: 'social', numCards: 2, exportAs: 'png', themeId });
+  if (r.status === 400 || r.status === 422) r = await gammaCreate({ inputText: PREVIEW_TEXT, textMode: 'condense', format: 'social', numCards: 2, exportAs: 'pdf', themeId });
   if (!r.ok) throw new Error(`Gamma said ${r.status}: ${(await r.text().catch(() => '')).slice(0, 200)}`);
   const { generationId } = await r.json();
   const url = await pollGammaGeneration(generationId);
   const dl = await fetch(url);
   const buffer = Buffer.from(await dl.arrayBuffer());
   let images = [];
-  if (buffer.slice(0, 2).toString() === 'PK') images = new AdmZip(buffer).getEntries().filter((e) => /\.(png|jpe?g)$/iu.test(e.entryName)).sort((a, b) => a.entryName.localeCompare(b.entryName)).map((e) => ({ buffer: e.getData(), ext: e.entryName.split('.').pop().toLowerCase() }));
+  if (buffer.slice(0, 4).toString() === '%PDF') {
+    const { pdfPagesToPng } = await import('./pdfImage.js');
+    images = (await pdfPagesToPng(buffer, 800, 2)).map((p) => ({ buffer: p.buffer, ext: 'png' }));
+  } else if (buffer.slice(0, 2).toString() === 'PK') images = new AdmZip(buffer).getEntries().filter((e) => /\.(png|jpe?g)$/iu.test(e.entryName)).sort((a, b) => a.entryName.localeCompare(b.entryName)).map((e) => ({ buffer: e.getData(), ext: e.entryName.split('.').pop().toLowerCase() }));
   else if (buffer[0] === 0x89) images = [{ buffer, ext: 'png' }];
   else if (buffer[0] === 0xff) images = [{ buffer, ext: 'jpg' }];
   if (!images.length) throw new Error('Gamma didn’t send any pictures.');
@@ -232,13 +249,7 @@ async function pollGammaGeneration(generationId) {
   throw new Error('Gamma generation timed out after ~2.5 minutes.');
 }
 
-async function extractFirstImageFromZip(zipUrl) {
-  const response = await fetch(zipUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to download Gamma export ZIP: status ${response.status}`);
-  }
-
-  const buffer = Buffer.from(await response.arrayBuffer());
+function pictureFromBuffer(buffer) {
   // Gamma now sends a single PNG for one card (it used to send a ZIP): accept both
   if (buffer[0] === 0x89 && buffer.slice(1, 4).toString() === 'PNG') return { buffer, extension: 'png' };
   if (buffer[0] === 0xff && buffer[1] === 0xd8) return { buffer, extension: 'jpg' };
