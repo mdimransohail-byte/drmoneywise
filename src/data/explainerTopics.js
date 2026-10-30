@@ -124,6 +124,10 @@ export async function pickEvergreenTopic({ excludeTopics = [] } = {}) {
       const changed = fig.previous == null || Math.abs(fig.value - fig.previous) >= 0.05;
       if (ageDays > 10 || !changed) continue;
       const [label, fact] = ECONOMY_TOPIC[key](fig);
+      // The same figure (say inflation) at most once in the last 8 explainers,
+      // so the list doesn't fill up with near-identical pieces.
+      const stem = label.split(/\d/u)[0].trim().toLowerCase();
+      if (excludeTopics.slice(-8).some((t) => String(t).toLowerCase().startsWith(stem))) continue;
       if (!used.has(label.toLowerCase())) return { label, sampleHeadline: fact, score: 1 };
     }
   } catch { /* no economy file yet */ }

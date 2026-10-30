@@ -48,7 +48,7 @@ export async function summarizeNewsItem(item) {
   };
 }
 
-export async function createLearningArticleFromTopic(topic, accessTier = 'free', region = 'global', interest = 'equities', forceProvider = '', context = '') {
+export async function createLearningArticleFromTopic(topic, accessTier = 'free', region = 'global', interest = 'equities', forceProvider = '', context = '', level = '') {
   const writer = await getNextWriter(forceProvider);
   const sourceNotes = [
     `Region: ${region}`,
@@ -57,13 +57,13 @@ export async function createLearningArticleFromTopic(topic, accessTier = 'free',
     'This is an original explainer topic with no external news source — write it as a standalone piece on this topic.',
   ].join(' ');
 
-  const prompt = buildArticlePrompt({
-    accessTier,
-    headline: topic,
-    sourceNotes,
-  });
+  const isPaid = accessTier === 'regular' || accessTier === 'premium';
+  const prompt = isPaid
+    ? buildArticlePrompt({ accessTier, headline: topic, sourceNotes })
+    : buildLearnPrompt({ headline: topic, sourceNotes, level: level || 'beginner' });
 
   const { sanitized, used } = await writeWithFallback(writer, prompt, Boolean(forceProvider));
+  if (sanitized && !isPaid) fromSections(sanitized);
   return {
     writerSlot: sanitized ? used.slot : 'local-fallback',
     provider: sanitized ? used.provider : 'local-fallback',
@@ -78,6 +78,63 @@ export async function createLearningArticleFromTopic(topic, accessTier = 'free',
    ════════════════════════════════════════════════════════════════════════ */
 const RESPONSE_JSON_SCHEMA =
   '{"headline":"string","summary":"string","plainEnglish":"string","whyItMatters":"string","everydayExample":"string","takeaways":["string"],"jargonBuster":[{"term":"string","meaning":"string"}],"infographic":{"title":"string","items":[{"label":"string","value":"string","context":"string"}]},"visualSuggestion":"string"}';
+
+/* ════════════════════════════════════════════════════════════════════════
+   FREE EXPLAINERS (Learn) — longer, sectioned, no repetition
+   Six sections with different jobs, about 950-1300 words, plus a figures
+   infographic, an optional bar chart and a 3-question check. Written for
+   one of two levels (src/data/learnLevels.js): beginner or intermediate.
+   ════════════════════════════════════════════════════════════════════════ */
+const LEARN_JSON_SCHEMA =
+  '{"headline":"string","summary":"string","sections":[{"heading":"string","body":"string"}],"takeaways":["string"],"jargonBuster":[{"term":"string","meaning":"string"}],"infographic":{"title":"string","items":[{"label":"string","value":"string","context":"string"}]},"chart":{"title":"string","unit":"string","points":[{"label":"string","value":0}]},"quiz":[{"question":"string","options":["string"],"answer":0,"why":"string"}],"visualSuggestion":"string"}';
+
+function buildLearnPrompt({ headline, sourceNotes, level }) {
+  const reader = level === 'intermediate'
+    ? 'Reader: a mid-level investor. They already know what a share, a fund, a bond, a dividend and an interest rate are, so do not explain those from scratch. Go one level deeper: show how professionals think about the idea, work through one or two useful ratios or calculations with real numbers, and point out second-order effects.'
+    : 'Reader: a complete beginner. Assume they know nothing about investing. Use everyday comparisons (shopping, a salary, a savings jar), explain every money word the first time it appears, and keep sentences short.';
+  return [
+    'You write clear, detailed money explainers for a plain-English education website. British spelling.',
+    reader,
+    'Write SIX sections, each with its own short, specific heading (not generic headings like "Introduction" or "Conclusion"). Each section has a different job:',
+    '1. The short answer: what it is, in plain words (120-170 words).',
+    '2. How it works, step by step (200-260 words). Walk through the mechanism in order.',
+    '3. A worked example with real numbers (180-240 words). Use a named everyday person and actual figures, and show the sums.',
+    '4. Why it matters for your money (150-200 words): the effect on saving, borrowing or investing.',
+    '5. Common mistakes and myths (150-200 words): two or three, each with why it goes wrong.',
+    '6. What to check next (100-150 words): practical things the reader can look at or work out themselves. Describe, never recommend buying or selling anything.',
+    'Total about 950-1300 words. Separate paragraphs inside a section with a blank line (\\n\\n). Keep paragraphs to 2-4 sentences.',
+    'NO REPETITION: every section must add new information. Never restate a point already made in an earlier section or in the summary. Do not open sections by summarising what came before. Do not end with a recap.',
+    'summary: 1-2 sentences (25-40 words), a teaser for preview cards. Do not reuse its sentences in the sections.',
+    'takeaways: exactly 3 short, practical points (12-20 words each) that are useful on their own, not copies of section sentences.',
+    'jargonBuster: 3 terms used in the article, each with a one-sentence meaning.',
+    'infographic: a title and exactly 4 items. Each "value" is a short figure or fact of at most 14 characters (for example "7% a year", "£10,000", "30 years", "3 to 6 months"); "label" is 2-4 words; "context" is one short sentence.',
+    'chart: if the topic has numbers that compare well (growth over years, costs of different choices, before and after), give 3-6 points with numeric values and a unit such as "%", "£" or "$". Otherwise give an empty points list. The figures must be correct sums from your worked example or widely published facts, never invented statistics.',
+    'quiz: exactly 3 multiple-choice questions on this article, each with 3 options, "answer" as the index (0, 1 or 2) of the right option, and "why" as one sentence explaining the answer.',
+    'Facts must be accurate. If you mention a statistic, make it a widely published one, with its year. If unsure, explain the idea without the statistic.',
+    'NEVER use these words or ideas: "AI", "artificial intelligence", the name of any writing tool or model; "guaranteed" (about returns, profits or income), "risk-free", "can\'t lose", "get rich", "double your money"; "buy now", "you should buy", "you should sell", "strong buy". This is education, not advice: describe, never promise or recommend.',
+    'Keep the headline under 90 characters.',
+    'CRITICAL FORMATTING RULE: every string value must be plain text only. No HTML, no Markdown, no bullet dashes inside strings.',
+    `Headline idea: ${headline}`,
+    `Source Notes: ${sourceNotes}`,
+    'Return strict JSON only, with keys:',
+    LEARN_JSON_SCHEMA,
+  ].join('\n');
+}
+
+/* Fills the older fields from the six sections, so every other part of
+   the site (quality checks, previews, newsletter, videos) keeps working. */
+function fromSections(g) {
+  const secs = (Array.isArray(g.sections) ? g.sections : [])
+    .map((s) => ({ heading: String(s?.heading || '').trim(), body: String(s?.body || '').trim() }))
+    .filter((s) => s.body);
+  if (secs.length < 3) return g;
+  g.sections = secs;
+  g.plainEnglish = secs[0].body;
+  g.whyItMatters = (secs[3] || secs[1]).body;
+  g.everydayExample = (secs[2] || secs[1]).body;
+  g.format = 2;
+  return g;
+}
 
 function buildArticlePrompt({ accessTier, headline, sourceNotes }) {
   const isPaidTier = accessTier === 'regular' || accessTier === 'premium';
@@ -219,6 +276,32 @@ function sanitizeGeneratedContent(generated) {
       term: stripHtmlTags(entry?.term || ''),
       meaning: stripHtmlTags(entry?.meaning || ''),
     }));
+  }
+
+  if (Array.isArray(sanitized.sections)) {
+    sanitized.sections = sanitized.sections.slice(0, 8).map((sec) => ({
+      heading: stripHtmlTags(sec?.heading || '').replace(/^#+\s*/u, ''),
+      body: stripHtmlTags(sec?.body || ''),
+    }));
+  }
+
+  if (Array.isArray(sanitized.quiz)) {
+    sanitized.quiz = sanitized.quiz.slice(0, 3).map((q) => ({
+      question: stripHtmlTags(q?.question || ''),
+      options: (Array.isArray(q?.options) ? q.options : []).slice(0, 4).map((o) => stripHtmlTags(String(o))),
+      answer: Math.max(0, Math.min(3, Number(q?.answer) || 0)),
+      why: stripHtmlTags(q?.why || ''),
+    })).filter((q) => q.question && q.options.length >= 2);
+  }
+
+  if (sanitized.chart && typeof sanitized.chart === 'object') {
+    sanitized.chart = {
+      title: stripHtmlTags(sanitized.chart.title || ''),
+      unit: stripHtmlTags(sanitized.chart.unit || '').slice(0, 6),
+      points: (Array.isArray(sanitized.chart.points) ? sanitized.chart.points : []).slice(0, 8)
+        .map((p) => ({ label: stripHtmlTags(String(p?.label || '')), value: Number(String(p?.value).replace(/[^0-9.-]/gu, '')) }))
+        .filter((p) => p.label && Number.isFinite(p.value)),
+    };
   }
 
   if (sanitized.infographic) {
@@ -436,7 +519,7 @@ async function callClaude(model, prompt) {
       model: model || 'claude-sonnet-5',
       // 1200 was too small: long explainers were cut off mid-JSON
       // ("Provider did not return valid JSON" in the logs).
-      max_tokens: 4000,
+      max_tokens: 7000,
       messages: [{ role: 'user', content: prompt }],
     }),
   });

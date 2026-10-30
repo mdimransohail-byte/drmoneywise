@@ -18,6 +18,8 @@ import { AD_SCRIPT, adSlot } from './adService.js';
 import { getArticleBySlug, publishDueArticles } from './articleService.js';
 import { INFO_PAGES, LEGAL_UPDATED } from '../data/legalPages.js';
 import { getDividendTop10, getEtfTop10 } from './top10Service.js';
+import { LEVELS, levelEmblem, levelNames, levelOf } from '../data/learnLevels.js';
+import { paragraphsHtml } from './learnVisuals.js';
 
 const TOPIC_LABELS = {
   equities: 'Stocks',
@@ -127,7 +129,7 @@ export async function buildSitemapXml(origin) {
   urls.push({ loc: `${origin}/insiders`, lastmod: today, priority: '0.6' });
   try {
     const { reportSitemapEntries } = await import('./reportPages.js');
-    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' });
+    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' });
   } catch (error) {
     console.error('[seo] Reports left out of sitemap:', error.message);
   }
@@ -242,8 +244,9 @@ export async function renderHomePage(template, origin) {
   return html;
 }
 
-function renderExplainItem(article) {
+function renderExplainItem(article, names = null) {
   const free = (article.accessTier || 'free') === 'free';
+  const lv = names ? levelOf(article) : '';
   const badge = article.heroImage?.url
     ? `<img src="${escapeAttr(article.heroImage.url)}" alt="" loading="lazy" />`
     : escapeHtml(TOPIC_LABELS[article.interest] || 'Money');
@@ -251,6 +254,7 @@ function renderExplainItem(article) {
         <a class="explain-item" href="/learn/${encodeURIComponent(article.slug)}">
           <span class="topic">${badge}</span>
           <div>
+            ${lv ? `<span class="lvl-mini" style="--c:${LEVELS[lv].colour}">${escapeHtml(names[lv])}</span>` : ''}
             <h3>${escapeHtml(article.headline)}</h3>
             ${free ? `<p>${escapeHtml(article.summary || '')}</p>` : '<p class="lock-label">Members</p>'}
           </div>
@@ -268,11 +272,14 @@ export async function renderLearnIndex(origin) {
   const deeper = articles.filter((a) => (a.tags || []).includes('deeper'));
   const everyday = articles.filter((a) => !(a.tags || []).includes('deeper'));
   const deeperHtml = `
-        <div class="dp-box"><div class="dp-head"><div><span class="sc-prem">Premium</span><h2>Deeper explainers</h2><p>For confident investors: how things really work, what professionals watch and the common mistakes. A new one every few days.</p></div></div>
+        <div class="dp-box" id="deeper"><div class="dp-head"><div><span class="sc-prem">Premium</span><h2>Deeper explainers</h2><p>For confident investors: how things really work, what professionals watch and the common mistakes. A new one every few days.</p></div></div>
           ${deeper.length ? `<div class="dp-cards">${deeper.slice(0, 9).map((a) => `<a class="dp-card" href="/learn/${escapeAttr(a.slug)}"><strong>${escapeHtml(a.headline)}</strong><span>${escapeHtml(String(a.summary || '').slice(0, 140))}${String(a.summary || '').length > 140 ? '…' : ''}</span><em>${escapeHtml(a.readingTime || '7 min read')} · Premium</em></a>`).join('')}</div>` : '<p class="dp-soon">The first deeper explainers are being written. Topics include reading a cash flow statement, return on invested capital, the yield curve and what big-fund reports really show.</p>'}
         </div>`;
+  const names = await levelNames();
+  const { levelChooserHtml } = await import('./learnLevelPages.js');
+  const chooser = await levelChooserHtml();
   const list = everyday.length
-    ? `<div class="explain">${everyday.map(renderExplainItem).join('')}</div>`
+    ? `<h2 class="lvp-h">Latest lessons</h2><div class="explain">${everyday.map((a) => renderExplainItem(a, names)).join('')}</div>`
     : '<p class="empty-note">New explainers are on their way. Check back soon.</p>';
   const { getPhoto, photoFigure, PAGE_PHOTO_QUERIES } = await import('./imageService.js');
   const photo = await getPhoto('page:learn', PAGE_PHOTO_QUERIES.learn);
@@ -280,15 +287,44 @@ export async function renderLearnIndex(origin) {
       <section class="block">
         ${photoFigure(photo, 'Reading and learning about money', 'page-photo wide')}
         <div class="block-head">
-          <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with real-life examples. ${articles.length} explainer${articles.length === 1 ? '' : 's'} so far.</p></div>
+          <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with worked examples, infographics and a quick check at the end. ${articles.length} lesson${articles.length === 1 ? '' : 's'} so far, free for ${escapeHtml(names.beginner)} and ${escapeHtml(names.intermediate)}.</p></div>
         </div>
+        ${chooser}
+        ${list}
         ${deeperHtml}
         <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge">Members</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in plain English. Read other readers’ answers too.</span><em>Ask a question →</em></a>
         <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge">Free</span><strong>Shariah-compliant investing</strong><span>How Islamic screening works, the five main standards side by side, and Shariah funds and ETFs.</span><em>Read the guide →</em></a>
         <a class="lp-banner" href="/learn/path"><span class="pf-badge">Free</span><strong>Your learning path</strong><span>Short steps from your first savings to running a portfolio. Tick them off as you go.</span><em>Start the path →</em></a>
-        ${list}
-      </section>`;
+        ${(await import('./newsletterPage.js')).newsletterSignupBox('learn')}
+      </section>
+      <script src="/newsletter.js" defer></script>`;
   return pageShell({ head, body, active: 'learn' });
+}
+
+/* ── Level chip, and the "keep going" block under every explainer ───── */
+export function levelChip(level, names) {
+  const L = LEVELS[level] || LEVELS.beginner;
+  return `<a class="lvl-chip" href="/learn/${L.slug}" style="--c:${L.colour}">${levelEmblem(level, 22)}<span>${escapeHtml(names[level] || L.defaultName)}</span><em>${escapeHtml(L.who)}</em></a>`;
+}
+
+async function articleExtras(current, level, names) {
+  const all = await getPublishedLearningArticles();
+  const isDeeper = (a) => (a.tags || []).includes('deeper');
+  const same = all.filter((a) => a.slug !== current.slug && !isDeeper(a) && levelOf(a) === level).slice(0, 3);
+  const deeper = all.filter(isDeeper)[0];
+  const L = LEVELS[level] || LEVELS.beginner;
+  const next = level === 'beginner' ? LEVELS.intermediate : null;
+  const card = (a) => `<a class="ax-card" href="/learn/${escapeAttr(a.slug)}">${a.heroImage?.url ? `<img src="${escapeAttr(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="ax-ph" style="--c:${L.colour}">${levelEmblem(level, 34)}</span>`}<strong>${escapeHtml(a.headline)}</strong><em>${escapeHtml(a.readingTime || '5 min read')}</em></a>`;
+  const { newsletterSignupBox } = await import('./newsletterPage.js');
+  return `<section class="ax-wrap">
+          ${same.length ? `<div class="ax-head" style="--c:${L.colour}">${levelEmblem(level, 30)}<h2>More for ${escapeHtml(names[level])}</h2><a href="/learn/${L.slug}">See all →</a></div><div class="ax-cards">${same.map(card).join('')}</div>` : ''}
+          <div class="ax-row">
+            ${next ? `<a class="ax-promo" href="/learn/${next.slug}" style="--c:${next.colour}">${levelEmblem('intermediate', 44)}<span><b>Ready for the next level?</b>Join the ${escapeHtml(names.intermediate)}: ratios, the economy and the habits of steady investors. Free.</span></a>` : ''}
+            <a class="ax-promo prem" href="${deeper ? `/learn/${escapeAttr(deeper.slug)}` : '/membership'}"><span class="ax-crown" aria-hidden="true"><svg viewBox="0 0 24 24" width="60%" height="60%" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#0a1128"/></svg></span><span><b>Go deeper with Premium</b>${deeper ? `Next up: ${escapeHtml(deeper.headline)}. ` : ''}Deeper explainers, the weekly portfolio newsletter, Shariah ratios and full company data.</span></a>
+          </div>
+          ${newsletterSignupBox('article')}
+        </section>
+        <script src="/newsletter.js" defer></script>`;
 }
 
 /* ── /learn/<slug>: one explainer with its text in the page ─────────── */
@@ -321,24 +357,28 @@ export async function renderArticlePage(template, slug, origin) {
     },
   });
 
+  const names = await levelNames();
+  const level = article.level || levelOf(article);
   const sections = (article.visibleSections || [])
-    .map((section) =>
-      section.heading === 'Everyday example'
-        ? `<p>${escapeHtml(section.body || '')}</p>`
-        : `<h2 style="font-size:24px;margin:28px 0 8px">${escapeHtml(section.heading || '')}</h2><p>${escapeHtml(section.body || '')}</p>`,
-    )
+    .map((section) => `<h2 class="ab-h">${escapeHtml(section.heading || '')}</h2>${paragraphsHtml(section.body)}`)
     .join('');
+  const jargon = (article.visibleJargon || []).length
+    ? `<section class="article-block"><h3>Money words in this lesson</h3><ul>${article.visibleJargon.map((j) => `<li><strong>${escapeHtml(j.term)}:</strong> ${escapeHtml(j.meaning)}</li>`).join('')}</ul></section>` : '';
+  const takeaways = (article.visibleTakeaways || []).length
+    ? `<section class="article-block ab-take"><h3>Key takeaways</h3><ul>${article.visibleTakeaways.map((t) => `<li>${escapeHtml(t)}</li>`).join('')}</ul></section>` : '';
   const prerendered = `
           <header class="article-header">
+            ${levelChip(level, names)}
             <h1 class="article-title">${escapeHtml(article.headline)}</h1>
-            <div class="article-meta"><span>Dr MoneyWise Team</span><span>${formatDate(article.publishAt)}</span></div>
+            <div class="article-meta"><span>Dr MoneyWise Team</span><span>${formatDate(article.publishAt)}</span><span>${escapeHtml(article.readingTime || '')}</span></div>
             <p>${escapeHtml(article.summary || '')}</p>
           </header>
           ${article.heroImage?.url ? `<figure class="article-hero-image"><img src="${escapeAttr(article.heroImage.url)}" alt="${escapeAttr(article.headline)}" />${article.heroImage.photographer ? `<figcaption>Photo by ${escapeHtml(article.heroImage.photographer)} on Pexels</figcaption>` : ''}</figure>` : ''}
-          <div class="article-body-stack"><div class="article-body">${sections}</div></div>`;
+          <div class="article-body-stack">${takeaways}${article.visualHtml || ''}<div class="article-body">${sections}</div>${jargon}${article.quizHtml || ''}</div>`;
 
   const articleHtml = `<article id="articleContainer" class="article-layout" data-slug="${escapeAttr(slug)}">${prerendered}
-        </article>`;
+        </article>
+        ${await articleExtras(stored, level, names)}`;
   const html = stripForumLinks(injectHead(template, head)).replace(
     /<article id="articleContainer" class="article-layout">[\s\S]*?<\/article>/u,
     () => articleHtml,

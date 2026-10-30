@@ -96,9 +96,10 @@ function renderArticle() {
         </div>
         <span class="subtle-chip">${escapeHtml(article.readingTime || '4 min read')}</span>
       </div>
+      ${article.levelInfo ? `<a class="lvl-chip" href="/learn/${escapeAttribute(article.levelInfo.slug)}" style="--c:${escapeAttribute(article.levelInfo.colour)}"><span>${escapeHtml(article.levelInfo.name)}</span><em>${escapeHtml(article.levelInfo.who)}</em></a>` : ''}
       <h1 class="article-title">${escapeHtml(article.headline)}</h1>
       <div class="article-meta">
-        <span>${escapeHtml(article.source || 'Dr MoneyWise')}</span>
+        <span>${escapeHtml(/auto$|Learning Point/u.test(article.source || '') || !article.source ? 'Dr MoneyWise Team' : article.source)}</span>
         <span>${formatDate(article.publishAt)}</span>
       </div>
       <p>${escapeHtml(article.summary)}</p>
@@ -121,9 +122,11 @@ function renderArticle() {
     ${renderHeroImage(article)}
 
     <div class="article-body-stack">
-      ${renderBriefRow(article)}
+      ${renderTakeaways(article)}
+      ${article.visualHtml || renderInfographic(article)}
       ${renderArticleBody(article)}
-      ${renderInfographic(article)}
+      ${renderJargon(article)}
+      ${article.quizHtml || ''}
       ${article.accessible ? '' : renderLockedPanel(article)}
     </div>
   `;
@@ -156,42 +159,30 @@ function renderHeroImage(article) {
   `;
 }
 
-function renderBriefRow(article) {
+function renderTakeaways(article) {
   const takeaways = article.visibleTakeaways || [];
+  if (!takeaways.length) return '';
+  return `<section class="article-block ab-take"><h3>Key takeaways</h3><ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>`;
+}
+
+function renderJargon(article) {
   const jargon = article.visibleJargon || [];
+  if (!jargon.length) return '';
+  return `<section class="article-block"><h3>Money words in this lesson</h3><ul>${jargon
+    .map((item) => `<li><strong>${escapeHtml(item.term)}:</strong> ${escapeHtml(item.meaning)}</li>`)
+    .join('')}</ul></section>`;
+}
 
-  if (!takeaways.length && !jargon.length) {
-    return '';
+/** Splits a section into paragraphs (blank lines, or every 3 sentences of a long block). */
+function paragraphs(text) {
+  const blocks = String(text || '').split(/\n\s*\n|\n/u).map((p) => p.trim()).filter(Boolean);
+  const out = [];
+  for (const b of blocks) {
+    const s = b.match(/[^.!?]+(?:[.!?]+["”’)]*|$)/gu)?.map((x) => x.trim()).filter(Boolean) || [b];
+    if (s.length <= 4 || b.length < 520) { out.push(b); continue; }
+    for (let i = 0; i < s.length; i += 3) out.push(s.slice(i, i + 3).join(' '));
   }
-
-  return `
-    <div class="article-brief-row">
-      ${
-        takeaways.length
-          ? `
-            <section class="article-block">
-              <h3>Key takeaways</h3>
-              <ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
-            </section>
-          `
-          : ''
-      }
-      ${
-        jargon.length
-          ? `
-            <section class="article-block">
-              <h3>Jargon made simple</h3>
-              <ul>
-                ${jargon
-                  .map((item) => `<li><strong>${escapeHtml(item.term)}:</strong> ${escapeHtml(item.meaning)}</li>`)
-                  .join('')}
-              </ul>
-            </section>
-          `
-          : ''
-      }
-    </div>
-  `;
+  return out.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
 }
 
 /**
@@ -219,13 +210,7 @@ function renderArticleBody(article) {
           // "Everyday example" reads as a natural continuation of the
           // article rather than its own labeled section — no heading,
           // just the paragraph, right after "Why this matters."
-          if (section.heading === 'Everyday example') {
-            return `<p>${escapeHtml(section.body || '')}</p>`;
-          }
-          return `
-            <h3>${escapeHtml(section.heading || 'Section')}</h3>
-            <p>${escapeHtml(section.body || '')}</p>
-          `;
+          return `<h2 class="ab-h">${escapeHtml(section.heading || 'Section')}</h2>${paragraphs(section.body)}`;
         })
         .join('')}
     </div>
@@ -379,6 +364,11 @@ function renderMessage(message) {
 }
 
 async function handleArticleClick(event) {
+  const opt = event.target.closest('.lv-opt');
+  if (opt) {
+    answerQuiz(opt);
+    return;
+  }
   const button = event.target.closest('[data-save-article]');
   if (!button || !state.user) {
     return;
@@ -390,6 +380,31 @@ async function handleArticleClick(event) {
 
   state.user.savedArticleSlugs = response.savedArticleSlugs;
   renderArticle();
+}
+
+/* "Check yourself" quiz: one try per question, then the explanation and a score. */
+function answerQuiz(opt) {
+  const q = opt.closest('.lv-q');
+  if (!q || q.dataset.done) return;
+  q.dataset.done = '1';
+  const right = Number(q.dataset.answer);
+  q.querySelectorAll('.lv-opt').forEach((b) => {
+    b.disabled = true;
+    if (Number(b.dataset.opt) === right) b.classList.add('ok');
+  });
+  if (Number(opt.dataset.opt) !== right) opt.classList.add('no');
+  else q.dataset.right = '1';
+  const why = q.querySelector('.lv-why');
+  if (why && why.textContent.trim()) why.hidden = false;
+  const box = q.closest('.lv-quiz');
+  const all = box.querySelectorAll('.lv-q');
+  const done = box.querySelectorAll('.lv-q[data-done]');
+  if (done.length === all.length) {
+    const score = box.querySelectorAll('.lv-q[data-right]').length;
+    const msg = box.querySelector('.lv-score');
+    msg.textContent = score === all.length ? `Full marks: ${score} out of ${all.length}. Nicely done!` : `You scored ${score} out of ${all.length}. Read the explanations above, then try the next lesson.`;
+    msg.hidden = false;
+  }
 }
 
 async function handleSignOut() {

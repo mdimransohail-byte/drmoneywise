@@ -1235,6 +1235,16 @@ const apiRows = [
           <div id="apiKeysMsg" style="font-size:.72rem;color:#2bc48a;margin-top:7px;min-height:16px"></div>
         </div>
 
+        <!-- LEARN LEVEL NAMES -->
+        <div class="card">
+          <div class="card-title">Learn level names</div>
+          <p class="api-hint" style="margin:0 0 8px">The two free reading levels on /learn. Change the names any time; the web addresses (/learn/beginners and /learn/intermediate) stay the same.</p>
+          <div class="api-row"><div class="api-dot" style="background:#1baf7a"></div><div class="api-label">Beginners<div class="api-hint">default: Young Turks</div></div><div class="api-val"><input id="lvlBeginner" maxlength="30" placeholder="Young Turks"/></div></div>
+          <div class="api-row"><div class="api-dot" style="background:#2a78d6"></div><div class="api-label">Mid-level<div class="api-hint">default: Knights</div></div><div class="api-val"><input id="lvlIntermediate" maxlength="30" placeholder="Knights"/></div></div>
+          <button class="btn btn-rose btn-sm" id="saveLvlBtn" style="margin-top:10px">Save names</button>
+          <div id="lvlMsg" style="font-size:.72rem;color:#2bc48a;margin-top:7px;min-height:16px"></div>
+        </div>
+
         <!-- PAYMENTS (STRIPE) -->
         <div class="card">
           <div class="card-title">Payments (Stripe)</div>
@@ -1375,6 +1385,18 @@ async function load_settings() {
 }
 
 function bind_settings() {
+  // Learn level names
+  API.get('/api/admin/learn-levels').then((r) => {
+    const b = qs('#lvlBeginner'); const m = qs('#lvlIntermediate');
+    if (b) b.value = r.names?.beginner || ''; if (m) m.value = r.names?.intermediate || '';
+  }).catch(() => {});
+  qs('#saveLvlBtn')?.addEventListener('click', async () => {
+    try {
+      const r = await API.post('/api/admin/learn-levels', { beginner: qs('#lvlBeginner').value, intermediate: qs('#lvlIntermediate').value });
+      qs('#lvlMsg').textContent = `Saved: ${r.names.beginner} and ${r.names.intermediate}`;
+    } catch (e) { qs('#lvlMsg').textContent = e.message; }
+  });
+
   // Data engine: Run now
   qs('#dataEngineCard')?.addEventListener('click', async (event) => {
     const btn = event.target.closest('[data-run-job]');

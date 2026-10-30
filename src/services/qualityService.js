@@ -34,6 +34,7 @@ function articleText(article) {
     article.everydayExample,
     ...(article.takeaways || []),
     ...(article.bodySections || []).flatMap((s) => [s.heading, s.body]),
+    ...(article.sections || []).flatMap((s) => [s.heading, s.body]),
     ...(article.jargonBuster || []).flatMap((j) => (typeof j === 'string' ? [j] : [j.term, j.meaning, j.definition])),
   ];
   return parts.filter(Boolean).map(String).join('\n');

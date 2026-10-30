@@ -8,6 +8,8 @@ import { generateGammaInfographic, searchPexelsImage } from './visualsService.js
 import { pickTrendingLearningTopic } from './trendingService.js';
 import { matchesRegion, sortByNewsPriority } from '../utils/filters.js';
 import { checkArticle } from './qualityService.js';
+import { cleanSections, infographicHtml, quizHtml } from './learnVisuals.js';
+import { levelOf } from '../data/learnLevels.js';
 
 /* ════════════════════════════════════════════════════════════════════════
    LEARNING POINTS — homepage rotation (5×2 grid, 2-day cycle)
@@ -407,7 +409,13 @@ export async function getArticleBySlug({ slug, plan = 'free' }) {
     return null;
   }
 
-  return toFullArticle(article, getPlanConfig(plan));
+  const full = toFullArticle(article, getPlanConfig(plan));
+  if (full.level) {
+    const { levelNames, LEVELS } = await import('../data/learnLevels.js');
+    const L = LEVELS[full.level];
+    full.levelInfo = { name: (await levelNames())[full.level], slug: L.slug, colour: L.colour, who: L.who };
+  }
+  return full;
 }
 
 export async function getAdminArticles() {
@@ -439,6 +447,7 @@ export async function saveAdminArticle(payload) {
     jargonBuster: payload.jargonBuster || [],
     infographic: payload.infographic || { title: 'Quick breakdown', items: [] },
     bodySections: payload.bodySections || [],
+    ...Object.fromEntries(['level', 'quiz', 'chart', 'format'].filter((k) => payload[k] !== undefined).map((k) => [k, payload[k]])),
     tags: payload.tags || [],
     readingTime: payload.readingTime || '4 min read',
     engineSlot: payload.engineSlot || 'writerA',
@@ -464,12 +473,15 @@ export async function saveAdminArticle(payload) {
 }
 
 export async function generateLearningPointDraft(payload) {
+  const level = payload.level === 'intermediate' || payload.level === 'beginner' ? payload.level : levelOf(String(payload.topic || ''));
   const generated = await createLearningArticleFromTopic(
     payload.topic,
     payload.accessTier || 'free',
     payload.region || 'global',
     payload.interest || 'equities',
     payload.model || '',
+    '',
+    level,
   );
 
   return saveAdminArticle({
@@ -488,13 +500,8 @@ export async function generateLearningPointDraft(payload) {
     takeaways: generated.takeaways,
     jargonBuster: generated.jargonBuster,
     infographic: generated.infographic,
-    bodySections: [
-      { heading: 'The simple version', body: generated.plainEnglish },
-      { heading: 'Why this matters', body: generated.whyItMatters },
-      { heading: 'Everyday example', body: generated.everydayExample },
-    ],
+    ...learnFields(generated, level),
     tags: ['learning', payload.interest || 'equities'],
-    readingTime: '5 min read',
     engineSlot: generated.writerSlot,
     heroMood: payload.interest || 'equities',
   });
@@ -536,6 +543,7 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
   }
 
   const interest = guessInterestFromTopic(topic.label);
+  const level = levelOf(topic.label);
 
   // Give the writer the real headline for context, not just the bare phrase.
   // The topic is the headline idea; the latest figure goes in as context
@@ -548,6 +556,7 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
     interest,
     '',
     context,
+    level,
   );
   // Belt and braces: drop any instruction text a writer copied into the headline.
   generated.headline = String(generated.headline || topic.label).replace(/\s+[—-]\s+explain for everyday savers.*$/iu, '').trim();
@@ -582,13 +591,8 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
     takeaways: generated.takeaways,
     jargonBuster: generated.jargonBuster,
     infographic: generated.infographic,
-    bodySections: [
-      { heading: 'The simple version', body: generated.plainEnglish },
-      { heading: 'Why this matters', body: generated.whyItMatters },
-      { heading: 'Everyday example', body: generated.everydayExample },
-    ],
+    ...learnFields(generated, level),
     tags: ['learning', 'trending', interest],
-    readingTime: '5 min read',
     engineSlot: generated.writerSlot,
     heroMood: interest,
   });
@@ -723,8 +727,31 @@ function toPublicArticle(article, plan) {
   };
 }
 
+/* The new six-section explainers (writerService buildLearnPrompt) go in
+   as they are; older three-field ones keep their three sections. */
+function learnFields(generated, level) {
+  const sections = generated.format === 2 && Array.isArray(generated.sections) ? generated.sections : null;
+  const body = sections || [
+    { heading: 'The simple version', body: generated.plainEnglish },
+    { heading: 'Why this matters', body: generated.whyItMatters },
+    { heading: 'Everyday example', body: generated.everydayExample },
+  ];
+  const wordsCount = body.reduce((n, s) => n + String(s.body || '').split(/\s+/u).length, 0);
+  return {
+    bodySections: body,
+    level,
+    quiz: generated.quiz || [],
+    chart: generated.chart || { points: [] },
+    format: sections ? 2 : 1,
+    readingTime: `${Math.max(3, Math.round(wordsCount / 200))} min read`,
+  };
+}
+
 function toFullArticle(article, plan) {
   const accessible = canAccess(plan, article.accessTier || 'free');
+  const sections = cleanSections(article, article.bodySections || []);
+  const visibleTakeaways = accessible ? article.takeaways || [] : (article.takeaways || []).slice(0, 1);
+  const visual = { ...article, visibleTakeaways };
   return {
     ...article,
     accessible,
@@ -733,9 +760,12 @@ function toFullArticle(article, plan) {
       : article.accessTier === 'premium'
         ? 'Upgrade to Premium to read the full article, visual breakdown, and learning extras.'
         : 'Upgrade to Regular or Premium to read the full article and member extras.',
-    visibleSections: accessible ? article.bodySections : article.bodySections.slice(0, 1),
-    visibleTakeaways: accessible ? article.takeaways : article.takeaways.slice(0, 1),
-    visibleJargon: accessible ? article.jargonBuster : article.jargonBuster.slice(0, 1),
+    visibleSections: accessible ? sections : sections.slice(0, 1),
+    visibleTakeaways,
+    visibleJargon: accessible ? article.jargonBuster || [] : (article.jargonBuster || []).slice(0, 1),
+    level: article.contentType === 'learning' ? levelOf(article) : '',
+    visualHtml: accessible && !article.infographicImageUrl ? infographicHtml(visual) : '',
+    quizHtml: accessible ? quizHtml(article) : '',
   };
 }
 
@@ -777,6 +807,11 @@ export async function runLearningAutopilot() {
   } catch (error) {
     console.error('[articleService] Autopilot top-up failed:', error.message);
   }
+  // Then rewrite one older, short explainer in the new longer format.
+  let upgraded = null;
+  if (!(topUp.wanted > 0 && topUp.written === 0)) {
+    try { upgraded = await upgradeOldLearningArticle(); } catch (error) { console.error('[articleService] Upgrading an older explainer failed:', error.message); }
+  }
   const store = await readStore();
   const learning = store.articles.filter((a) => a.contentType === 'learning');
   const waiting = learning.filter((a) => a.status === 'scheduled').length;
@@ -787,8 +822,41 @@ export async function runLearningAutopilot() {
   const writeFailed = topUp.wanted > 0 && topUp.written === 0;
   return {
     ok: active.length > 0 && !writeFailed,
-    message: `${writeFailed ? 'Could not write new explainers — check the writing-service keys (Railway log lines starting [writerService] say why). ' : topUp.written ? `Wrote ${topUp.written} new. ` : ''}${active.length} explainers on the homepage, ${waiting} waiting for the next change${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
+    message: `${writeFailed ? 'Could not write new explainers — check the writing-service keys (Railway log lines starting [writerService] say why). ' : topUp.written ? `Wrote ${topUp.written} new. ` : ''}${upgraded ? `Rewrote “${upgraded}” in the longer format. ` : ''}${active.length} explainers on the homepage, ${waiting} waiting for the next change${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
   };
+}
+
+/* ── Older explainers → the longer six-section format ──────────────────
+   One per autopilot run: the oldest free explainer still in the short
+   three-part format is written again (same web address, same headline,
+   same photo). If the rewrite fails the checks, the old text stays. */
+export async function upgradeOldLearningArticle() {
+  const store = await readStore();
+  const weekAgo = Date.now() - 7 * 86400000;
+  const old = (store.articles || [])
+    .filter((a) => a.contentType === 'learning' && a.status === 'published' && (a.accessTier || 'free') === 'free'
+      && a.format !== 2 && !(a.tags || []).includes('deeper') && new Date(a.upgradeTriedAt || 0).getTime() < weekAgo)
+    .sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt))[0];
+  if (!old) return null;
+  const level = levelOf(old);
+  const generated = await createLearningArticleFromTopic(old.trendingTopic || old.headline, 'free', old.region || 'global', old.interest || 'equities', '', '', level);
+  const quality = generated.provider === 'local-fallback' || generated.format !== 2 ? { ok: false } : checkArticle(generated);
+  const fields = quality.ok ? learnFields(generated, level) : null;
+  await updateStore((s) => {
+    const a = s.articles.find((x) => x.id === old.id);
+    if (!a) return s;
+    a.upgradeTriedAt = new Date().toISOString();
+    if (fields) {
+      Object.assign(a, fields, {
+        summary: generated.summary || a.summary,
+        plainEnglish: generated.plainEnglish, whyItMatters: generated.whyItMatters, everydayExample: generated.everydayExample,
+        takeaways: generated.takeaways || a.takeaways, jargonBuster: generated.jargonBuster || a.jargonBuster,
+        infographic: generated.infographic || a.infographic, updatedAt: new Date().toISOString(),
+      });
+    }
+    return s;
+  });
+  return fields ? old.headline : null;
 }
 
 /* ── Deeper explainers (Premium) — data engine job "deeper" ──────────────

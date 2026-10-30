@@ -714,6 +714,18 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, await toggleCouponStatus(body.id));
     }
 
+    if (requestUrl.pathname === '/api/admin/learn-levels') {
+      await requireAdminUser(token);
+      const { levelNames } = await import('./src/data/learnLevels.js');
+      if (request.method === 'POST') {
+        const body = await parseJsonBody(request);
+        const clean = (v) => String(v || '').replace(/[<>]/gu, '').trim().slice(0, 30);
+        const { updateStore } = await import('./src/services/storeService.js');
+        await updateStore((st) => { st.settings = { ...(st.settings || {}), learnLevelNames: { beginner: clean(body.beginner), intermediate: clean(body.intermediate) } }; return st; });
+      }
+      return sendJson(response, 200, { names: await levelNames() });
+    }
+
     if (requestUrl.pathname === '/api/admin/settings' && request.method === 'POST') {
       await requireAdminUser(token);
       return sendJson(response, 200, await saveAdminSettings(await parseJsonBody(request)));
@@ -1134,6 +1146,10 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, await renderLearnIndex(origin));
   }
   if (pathname === '/learn/path') return sendHtml(response, 200, await renderLearningPath(origin));
+  if (pathname === '/learn/beginners' || pathname === '/learn/intermediate') {
+    const { renderLevelPage } = await import('./src/services/learnLevelPages.js');
+    return sendHtml(response, 200, await renderLevelPage(pathname.slice(7), origin));
+  }
 
   const learnMatch = pathname.match(/^\/learn\/([^/]+)$/u);
   if (learnMatch) {
