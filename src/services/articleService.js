@@ -412,8 +412,10 @@ export async function getArticleBySlug({ slug, plan = 'free' }) {
   const full = toFullArticle(article, getPlanConfig(plan));
   if (full.level) {
     const { levelNames, LEVELS } = await import('../data/learnLevels.js');
+    const { lessonForArticle } = await import('../data/learnCourse.js');
     const L = LEVELS[full.level];
-    full.levelInfo = { name: (await levelNames())[full.level], slug: L.slug, colour: L.colour, who: L.who };
+    const lesson = lessonForArticle(article);
+    full.levelInfo = { name: (await levelNames())[full.level], slug: L.slug, colour: L.colour, who: lesson ? `Week ${lesson.week} · Lesson ${lesson.n}` : L.who, week: lesson?.week || null };
   }
   return full;
 }
@@ -447,7 +449,7 @@ export async function saveAdminArticle(payload) {
     jargonBuster: payload.jargonBuster || [],
     infographic: payload.infographic || { title: 'Quick breakdown', items: [] },
     bodySections: payload.bodySections || [],
-    ...Object.fromEntries(['level', 'quiz', 'chart', 'format'].filter((k) => payload[k] !== undefined).map((k) => [k, payload[k]])),
+    ...Object.fromEntries(['level', 'quiz', 'chart', 'format', 'courseId'].filter((k) => payload[k] !== undefined).map((k) => [k, payload[k]])),
     tags: payload.tags || [],
     readingTime: payload.readingTime || '4 min read',
     engineSlot: payload.engineSlot || 'writerA',
@@ -542,15 +544,15 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
     return null;
   }
 
-  const interest = guessInterestFromTopic(topic.label);
-  const level = levelOf(topic.label);
+  const interest = guessInterestFromTopic(topic.writerTopic || topic.label);
+  const level = topic.level || levelOf(topic.label);
 
   // Give the writer the real headline for context, not just the bare phrase.
   // The topic is the headline idea; the latest figure goes in as context
   // (passing both as the headline made writers copy the instructions into it).
   const context = topic.sampleHeadline && topic.sampleHeadline !== topic.label ? topic.sampleHeadline : '';
   const generated = await createLearningArticleFromTopic(
-    topic.label,
+    topic.writerTopic || topic.label,
     'free', // forces the simple-language prompt — see note above
     region,
     interest,
@@ -560,6 +562,8 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
   );
   // Belt and braces: drop any instruction text a writer copied into the headline.
   generated.headline = String(generated.headline || topic.label).replace(/\s+[—-]\s+explain for everyday savers.*$/iu, '').trim();
+  // Course lessons keep their planned headline
+  if (topic.courseId) generated.headline = topic.label;
 
   // If no writing service answered, the writer returns a basic placeholder.
   // Never save those — try again next run.
@@ -604,6 +608,7 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
     const target = storeToPatch.articles.find((article) => article.id === saved.id);
     if (target) {
       target.trendingTopic = topic.label;
+      if (topic.courseId) target.courseId = topic.courseId;
       target.qualityIssues = quality.issues;
       target.qualityCheckedAt = new Date().toISOString();
     }
@@ -834,12 +839,15 @@ export async function upgradeOldLearningArticle() {
   const store = await readStore();
   const weekAgo = Date.now() - 7 * 86400000;
   const old = (store.articles || [])
-    .filter((a) => a.contentType === 'learning' && a.status === 'published' && (a.accessTier || 'free') === 'free'
-      && a.format !== 2 && !(a.tags || []).includes('deeper') && new Date(a.upgradeTriedAt || 0).getTime() < weekAgo)
+    .filter((a) => a.contentType === 'learning' && a.status === 'published'
+      && ((a.accessTier || 'free') === 'free' || (a.tags || []).includes('deeper'))
+      && a.format !== 2 && new Date(a.upgradeTriedAt || 0).getTime() < weekAgo)
     .sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt))[0];
   if (!old) return null;
   const level = levelOf(old);
-  const generated = await createLearningArticleFromTopic(old.trendingTopic || old.headline, 'free', old.region || 'global', old.interest || 'equities', '', '', level);
+  const { lessonForArticle } = await import('../data/learnCourse.js');
+  const lesson = lessonForArticle(old);
+  const generated = await createLearningArticleFromTopic(lesson ? `${lesson.headline}. The lesson covers: ${lesson.match}` : (old.trendingTopic || old.headline), level === 'lords' ? 'premium' : 'free', old.region || 'global', old.interest || 'equities', '', '', level);
   const quality = generated.provider === 'local-fallback' || generated.format !== 2 ? { ok: false } : checkArticle(generated);
   const fields = quality.ok ? learnFields(generated, level) : null;
   await updateStore((s) => {
@@ -852,6 +860,8 @@ export async function upgradeOldLearningArticle() {
         plainEnglish: generated.plainEnglish, whyItMatters: generated.whyItMatters, everydayExample: generated.everydayExample,
         takeaways: generated.takeaways || a.takeaways, jargonBuster: generated.jargonBuster || a.jargonBuster,
         infographic: generated.infographic || a.infographic, updatedAt: new Date().toISOString(),
+        // Same web address; the course's attention-grabbing headline
+        ...(lesson ? { headline: lesson.headline, courseId: lesson.id } : {}),
       });
     }
     return s;
@@ -865,15 +875,18 @@ export async function upgradeOldLearningArticle() {
    checks decide whether it goes live or waits as a draft. */
 export async function writeDeeperExplainer() {
   const { DEEPER_TOPICS } = await import('../data/explainerTopics.js');
+  const { lessonsInOrder, lessonForArticle } = await import('../data/learnCourse.js');
   const store = await readStore();
+  // Next Lords lesson in course order that hasn't been written yet
+  const done = new Set(store.articles.map((a) => lessonForArticle(a)?.id).filter(Boolean));
+  const lesson = lessonsInOrder().find((l) => l.level === 'lords' && !done.has(l.id)) || null;
   const used = store.articles.filter((a) => a.source === 'deeper-auto' && a.trendingTopic).map((a) => a.trendingTopic);
   const unused = DEEPER_TOPICS.filter((t) => !used.includes(t));
-  const topic = (unused.length ? unused : DEEPER_TOPICS)[0];
-  const interest = guessInterestFromTopic(topic);
-  const generated = await createLearningArticleFromTopic(topic, 'premium', 'global', interest, '',
-    'Deeper explainer for confident investors: go beyond the basics, explain the mechanics, what professionals watch, the common mistakes and one worked example with round numbers. Do not give personal advice.');
+  const topic = lesson ? lesson.headline : (unused.length ? unused : DEEPER_TOPICS)[0];
+  const interest = guessInterestFromTopic(lesson ? lesson.match : topic);
+  const generated = await createLearningArticleFromTopic(lesson ? `${lesson.headline}. The lesson covers: ${lesson.match}` : topic, 'premium', 'global', interest, '', '', 'lords');
   if (generated.provider === 'local-fallback') return { ok: false, message: `No writing service answered for "${topic}"; will try again next run` };
-  generated.headline = String(generated.headline || topic).trim();
+  generated.headline = lesson ? lesson.headline : String(generated.headline || topic).trim();
   const quality = checkArticle(generated);
   const saved = await saveAdminArticle({
     headline: generated.headline,
@@ -891,19 +904,15 @@ export async function writeDeeperExplainer() {
     takeaways: generated.takeaways,
     jargonBuster: generated.jargonBuster,
     infographic: generated.infographic,
-    bodySections: [
-      { heading: 'How it works', body: generated.plainEnglish },
-      { heading: 'What professionals watch', body: generated.whyItMatters },
-      { heading: 'Everyday example', body: generated.everydayExample },
-    ],
+    ...learnFields(generated, 'lords'),
+    ...(lesson ? { courseId: lesson.id } : {}),
     tags: ['learning', 'deeper', interest],
-    readingTime: '7 min read',
     engineSlot: generated.writerSlot,
     heroMood: interest,
   });
   await updateStore((s2) => {
     const target = s2.articles.find((a) => a.id === saved.id);
-    if (target) { target.trendingTopic = topic; target.qualityIssues = quality.issues; target.qualityCheckedAt = new Date().toISOString(); }
+    if (target) { target.trendingTopic = lesson ? lesson.match : topic; target.qualityIssues = quality.issues; target.qualityCheckedAt = new Date().toISOString(); }
     return s2;
   });
   try { await attachPexelsImage(saved.id, generated.headline); } catch (error) { console.error('[articleService] Photo for deeper explainer failed:', error.message); }

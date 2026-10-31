@@ -57,13 +57,15 @@ export async function createLearningArticleFromTopic(topic, accessTier = 'free',
     'This is an original explainer topic with no external news source — write it as a standalone piece on this topic.',
   ].join(' ');
 
-  const isPaid = accessTier === 'regular' || accessTier === 'premium';
-  const prompt = isPaid
-    ? buildArticlePrompt({ accessTier, headline: topic, sourceNotes })
-    : buildLearnPrompt({ headline: topic, sourceNotes, level: level || 'beginner' });
+  // Course lessons (all three levels) use the six-section lesson format;
+  // other paid pieces keep the professional prompt.
+  const useLearn = !(accessTier === 'regular' || accessTier === 'premium') || level === 'lords';
+  const prompt = useLearn
+    ? buildLearnPrompt({ headline: topic, sourceNotes, level: level || 'beginner' })
+    : buildArticlePrompt({ accessTier, headline: topic, sourceNotes });
 
   const { sanitized, used } = await writeWithFallback(writer, prompt, Boolean(forceProvider));
-  if (sanitized && !isPaid) fromSections(sanitized);
+  if (sanitized && useLearn) fromSections(sanitized);
   return {
     writerSlot: sanitized ? used.slot : 'local-fallback',
     provider: sanitized ? used.provider : 'local-fallback',
@@ -89,7 +91,9 @@ const LEARN_JSON_SCHEMA =
   '{"headline":"string","summary":"string","sections":[{"heading":"string","body":"string"}],"takeaways":["string"],"jargonBuster":[{"term":"string","meaning":"string"}],"infographic":{"title":"string","items":[{"label":"string","value":"string","context":"string"}]},"chart":{"title":"string","unit":"string","points":[{"label":"string","value":0}]},"quiz":[{"question":"string","options":["string"],"answer":0,"why":"string"}],"visualSuggestion":"string"}';
 
 function buildLearnPrompt({ headline, sourceNotes, level }) {
-  const reader = level === 'intermediate'
+  const reader = level === 'lords'
+    ? 'Reader: a confident investor who knows the basics and common ratios well. Explain the mechanics properly, show what professional investors look at and why, work through a full example with real figures, and cover the limits and traps of the method. Still plain English: explain every technical term the first time.'
+    : level === 'intermediate'
     ? 'Reader: a mid-level investor. They already know what a share, a fund, a bond, a dividend and an interest rate are, so do not explain those from scratch. Go one level deeper: show how professionals think about the idea, work through one or two useful ratios or calculations with real numbers, and point out second-order effects.'
     : 'Reader: a complete beginner. Assume they know nothing about investing. Use everyday comparisons (shopping, a salary, a savings jar), explain every money word the first time it appears, and keep sentences short.';
   return [

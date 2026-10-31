@@ -4,7 +4,11 @@
 export const BUSINESS_SETTINGS = {
   // Raise this number when you change any plan's features or tagline below,
   // so the live site picks up the new wording.
-  featuresVersion: 8,
+  featuresVersion: 9,
+  // Raise this number when you change a price below, so the live site
+  // shows the new price even if prices were saved earlier in Admin.
+  // (Stripe charges whatever its payment links say: make new links too.)
+  priceVersion: 2,
   plans: {
     free: {
       id: 'free',
@@ -78,9 +82,9 @@ export const BUSINESS_SETTINGS = {
       id: 'premium',
       name: 'Paid Premium',
       shortName: 'Premium',
-      priceLabel: '$25',
-      billingLabel: '/month or $249/year',
-      tagline: 'What the results mean, research and no adverts',
+      priceLabel: '$19.99',
+      billingLabel: '/month or $179/year (save 25%)',
+      tagline: 'The full toolkit: Lords lessons, health scores, portfolio check, research and no adverts',
       articleLimit: 60,
       learningLimit: 60,
       smartReview: true,
@@ -90,18 +94,22 @@ export const BUSINESS_SETTINGS = {
         {
           id: 'premium-monthly',
           label: 'Monthly',
-          priceText: '$25',
+          priceText: '$19.99',
           checkoutEnv: 'STRIPE_PREMIUM_MONTHLY_URL',
         },
         {
           id: 'premium-annual',
           label: 'Yearly',
-          priceText: '$249',
+          priceText: '$179',
           checkoutEnv: 'STRIPE_PREMIUM_ANNUAL_URL',
         },
       ],
       features: [
         'Everything in Regular',
+        'Lords: the deeper lessons for confident investors, a new one every few days',
+        'Financial Health Check in full: how each company compares with others in its industry',
+        'Portfolio health check: a score and heat map for every holding and your whole portfolio',
+        'The Premium weekly newsletter: your portfolio’s week, results and dividends coming up',
         'What each company’s results mean: what changed, what it expects next and what to watch',
         'No adverts anywhere on the site',
         'Big-fund alerts: when famous investors buy or sell your companies',
@@ -109,8 +117,7 @@ export const BUSINESS_SETTINGS = {
         'Company bosses buying or selling their own shares, from their official reports',
         'A monthly research report: the month in figures, with charts',
         'Ideas that match the rules you choose, with new matches in your Saturday email',
-        'Portfolio health check: a score and heat map for every holding and your whole portfolio',
-        'Deeper explainers for confident readers',
+        'Shariah screening ratios for every company, under all five standards',
         'Ask Dr MoneyWise: up to 10 questions a month',
       ],
     },

@@ -67,16 +67,12 @@ function barChart(chart) {
     const n = Math.abs(v) >= 1000 ? v.toLocaleString('en-GB', { maximumFractionDigits: 0 }) : String(+v.toFixed(2));
     return /^[£$€₹]/u.test(unit) ? `${unit}${n}` : `${n}${unit}`;
   };
-  const rowH = 38; const top = 8; const labelW = 150; const W = 640; const barW = W - labelW - 90;
   const rows = pts.map((p, i) => {
-    const y = top + i * rowH; const w = Math.max(4, (Math.abs(p.value) / max) * barW); const c = PALETTE[i % PALETTE.length];
-    return `<text x="${labelW - 10}" y="${y + 21}" text-anchor="end" font-size="14" fill="currentColor">${esc(p.label)}</text>
-      <rect x="${labelW}" y="${y + 5}" width="${barW}" height="24" rx="6" fill="${c}" opacity=".12"/>
-      <rect x="${labelW}" y="${y + 5}" width="${w.toFixed(1)}" height="24" rx="6" fill="${c}"/>
-      <text x="${labelW + w + 8}" y="${y + 22}" font-size="14" font-weight="700" fill="${c}">${esc(fmt(p.value))}</text>`;
+    const c = PALETTE[i % PALETTE.length];
+    const w = Math.max(3, (Math.abs(p.value) / max) * 100);
+    return `<div class="lv-bar" style="--c:${c}"><span class="lv-bl">${esc(p.label)}</span><span class="lv-bt"><i style="width:${w.toFixed(1)}%"></i></span><b>${esc(fmt(p.value))}</b></div>`;
   }).join('');
-  return `<figure class="lv-chart"><figcaption>${esc(chart.title || 'In numbers')}</figcaption>
-      <svg viewBox="0 0 ${W} ${top * 2 + pts.length * rowH}" role="img" aria-label="${esc(chart.title || 'Chart')}">${rows}</svg></figure>`;
+  return `<figure class="lv-chart"><figcaption>${esc(chart.title || 'In numbers')}</figcaption><div class="lv-bars" role="img" aria-label="${esc(chart.title || 'Chart')}">${rows}</div></figure>`;
 }
 
 export function infographicHtml(article) {

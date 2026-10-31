@@ -74,6 +74,16 @@ export function getBusinessSettings() {
       }
       merged.featuresVersion = BUSINESS_SETTINGS.featuresVersion;
     }
+    // Same for prices: a newer priceVersion in src/businessSettings.js wins.
+    if ((savedSettings.priceVersion || 0) < (BUSINESS_SETTINGS.priceVersion || 0)) {
+      for (const [id, plan] of Object.entries(BUSINESS_SETTINGS.plans)) {
+        if (!merged.plans?.[id]) continue;
+        merged.plans[id].priceLabel = plan.priceLabel;
+        merged.plans[id].billingLabel = plan.billingLabel;
+        merged.plans[id].billingOptions = (merged.plans[id].billingOptions || []).map((o) => ({ ...o, priceText: plan.billingOptions.find((b) => b.id === o.id)?.priceText ?? o.priceText }));
+      }
+      merged.priceVersion = BUSINESS_SETTINGS.priceVersion;
+    }
     return merged;
   } catch {
     return BUSINESS_SETTINGS;

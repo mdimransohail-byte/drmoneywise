@@ -1,9 +1,10 @@
 /* ════════════════════════════════════════════════════════════════════════
    LEARN LEVELS — the two free reading levels on /learn
    ───────────────────────────────────────────────────────────────────────
-     beginner      /learn/beginners     default name "Young Turks"
-     intermediate  /learn/intermediate  default name "Knights"
-   (Premium "Deeper explainers" sit above both.)
+     beginner      /learn/beginners     default name "Young Guns"   free
+     intermediate  /learn/intermediate  default name "Knights"      free
+     lords         /learn/advanced      default name "Lords"        Premium
+   Each level is taught week by week (src/data/learnCourse.js).
    The names can be changed in Admin → APIs & More → "Learn level names"
    without breaking any links, because the web addresses stay the same.
    Every explainer gets a level: the writer is told which one, and older
@@ -11,10 +12,11 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 import { readStore } from '../services/storeService.js';
+import { lessonForArticle } from './learnCourse.js';
 
 export const LEVELS = {
   beginner: {
-    id: 'beginner', slug: 'beginners', defaultName: 'Young Turks', who: 'Beginners',
+    id: 'beginner', slug: 'beginners', defaultName: 'Young Guns', who: 'Beginners',
     colour: '#1baf7a', colour2: '#7be0b8', pathLevel: 'start',
     tagline: 'Brand new to money and investing? Start here.',
     intro: 'Short, friendly explainers that assume you know nothing yet: what a share is, how saving and investing differ, why time matters more than timing. Every idea comes with an everyday example and real numbers.',
@@ -26,6 +28,13 @@ export const LEVELS = {
     tagline: 'Know the basics? Sharpen your judgement.',
     intro: 'For readers who already know what a share, a fund and an interest rate are. We go one level deeper: the ratios worth checking, how the economy feeds into prices, and the habits that separate steady investors from busy ones.',
     promise: ['One or two useful ratios per lesson, worked through', 'How professionals think about the same idea', 'Common mistakes and how to avoid them'],
+  },
+  lords: {
+    id: 'lords', slug: 'advanced', defaultName: 'Lords', who: 'Confident investors', premium: true,
+    colour: '#b8891a', colour2: '#f7d07c', pathLevel: 'confident',
+    tagline: 'Read the accounts and the economy like a professional.',
+    intro: 'The deeper lessons, for Premium members: cash flow statements, what a share is really worth, the economy’s warning lights and the habits of experienced portfolio builders. Every lesson works through real figures.',
+    promise: ['How professionals value a company', 'The warning signs in a company’s figures', 'Advanced portfolio and retirement planning'],
   },
 };
 
@@ -79,6 +88,9 @@ const KNIGHT_WORDS = /\b(ratio|yield|valuation|cash flow|margin|leverage|rebalan
 /** 'beginner' | 'intermediate' for any article (or topic label). */
 export function levelOf(article) {
   if (typeof article === 'string') article = { trendingTopic: article, headline: article };
+  if ((article.tags || []).includes('deeper') || article.level === 'lords') return 'lords';
+  const lesson = lessonForArticle(article);
+  if (lesson) return lesson.level;
   if (article.level === 'beginner' || article.level === 'intermediate') return article.level;
   const topic = article.trendingTopic || '';
   if (BEGINNER_TOPICS.has(topic)) return 'beginner';
@@ -88,18 +100,23 @@ export function levelOf(article) {
   return topic ? 'intermediate' : 'beginner';
 }
 
-/** The names currently in use, e.g. { beginner: 'Young Turks', intermediate: 'Knights' }. */
+/** The names currently in use, e.g. { beginner: 'Young Guns', intermediate: 'Knights', lords: 'Lords' }. */
 export async function levelNames() {
   let saved = {};
   try { saved = (await readStore()).settings?.learnLevelNames || {}; } catch { /* defaults */ }
   return {
     beginner: String(saved.beginner || '').trim() || LEVELS.beginner.defaultName,
     intermediate: String(saved.intermediate || '').trim() || LEVELS.intermediate.defaultName,
+    lords: String(saved.lords || '').trim() || LEVELS.lords.defaultName,
   };
 }
 
 /** Small emblem for each level (inline SVG, no outside images). */
 export function levelEmblem(level, size = 56) {
+  if (level === 'lords') {
+    // Crown on a gold medallion
+    return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="emL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7d07c"/><stop offset="1" stop-color="#b8891a"/></linearGradient></defs><circle cx="32" cy="32" r="28" fill="#0a1128" stroke="url(#emL)" stroke-width="4"/><path d="M15 25l8.5 7L32 18l8.5 14L49 25l-4 20H19z" fill="url(#emL)"/><rect x="19" y="47" width="26" height="4" rx="2" fill="#f7d07c"/></svg>`;
+  }
   if (level === 'intermediate') {
     // Shield with a star
     return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="emK" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fc1ff"/><stop offset="1" stop-color="#2a78d6"/></linearGradient></defs><path d="M32 4 56 12v18c0 15-10 25-24 30C18 55 8 45 8 30V12z" fill="url(#emK)" stroke="#f7d07c" stroke-width="3"/><path d="m32 18 4.3 8.8 9.7 1.4-7 6.8 1.7 9.6L32 40l-8.7 4.6 1.7-9.6-7-6.8 9.7-1.4z" fill="#f7d07c"/></svg>`;

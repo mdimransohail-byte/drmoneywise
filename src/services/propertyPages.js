@@ -94,8 +94,8 @@ export async function renderPropertyHub(origin) {
   const facts = PROPERTY_PLACES.map((place) => ({ place, f: placeFacts(place, data.places?.[place.slug]) }));
   const withData = facts.filter((x) => x.f);
   const head = buildHeadTags({
-    title: 'Property prices around the world: US, UK, Dubai, India and more | Dr MoneyWise',
-    description: 'How home prices and rents are changing in the US, UK, Dubai, India, Thailand and more, in plain English, from official figures.',
+    title: 'Property prices around the world: US, UK, India and more | Dr MoneyWise',
+    description: 'How home prices and rents are changing in the US, UK, India, Thailand and more, in plain English, from official figures.',
     canonical: `${origin}/property`,
   });
 

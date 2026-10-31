@@ -1238,9 +1238,10 @@ const apiRows = [
         <!-- LEARN LEVEL NAMES -->
         <div class="card">
           <div class="card-title">Learn level names</div>
-          <p class="api-hint" style="margin:0 0 8px">The two free reading levels on /learn. Change the names any time; the web addresses (/learn/beginners and /learn/intermediate) stay the same.</p>
-          <div class="api-row"><div class="api-dot" style="background:#1baf7a"></div><div class="api-label">Beginners<div class="api-hint">default: Young Turks</div></div><div class="api-val"><input id="lvlBeginner" maxlength="30" placeholder="Young Turks"/></div></div>
-          <div class="api-row"><div class="api-dot" style="background:#2a78d6"></div><div class="api-label">Mid-level<div class="api-hint">default: Knights</div></div><div class="api-val"><input id="lvlIntermediate" maxlength="30" placeholder="Knights"/></div></div>
+          <p class="api-hint" style="margin:0 0 8px">The three course levels on /learn. Change the names any time; the web addresses (/learn/beginners, /learn/intermediate, /learn/advanced) stay the same.</p>
+          <div class="api-row"><div class="api-dot" style="background:#1baf7a"></div><div class="api-label">Beginners (free)<div class="api-hint">default: Young Guns</div></div><div class="api-val"><input id="lvlBeginner" maxlength="30" placeholder="Young Guns"/></div></div>
+          <div class="api-row"><div class="api-dot" style="background:#2a78d6"></div><div class="api-label">Mid-level (free)<div class="api-hint">default: Knights</div></div><div class="api-val"><input id="lvlIntermediate" maxlength="30" placeholder="Knights"/></div></div>
+          <div class="api-row"><div class="api-dot" style="background:#c9a227"></div><div class="api-label">Advanced (Premium)<div class="api-hint">default: Lords</div></div><div class="api-val"><input id="lvlLords" maxlength="30" placeholder="Lords"/></div></div>
           <button class="btn btn-rose btn-sm" id="saveLvlBtn" style="margin-top:10px">Save names</button>
           <div id="lvlMsg" style="font-size:.72rem;color:#2bc48a;margin-top:7px;min-height:16px"></div>
         </div>
@@ -1389,11 +1390,12 @@ function bind_settings() {
   API.get('/api/admin/learn-levels').then((r) => {
     const b = qs('#lvlBeginner'); const m = qs('#lvlIntermediate');
     if (b) b.value = r.names?.beginner || ''; if (m) m.value = r.names?.intermediate || '';
+    if (qs('#lvlLords')) qs('#lvlLords').value = r.names?.lords || '';
   }).catch(() => {});
   qs('#saveLvlBtn')?.addEventListener('click', async () => {
     try {
-      const r = await API.post('/api/admin/learn-levels', { beginner: qs('#lvlBeginner').value, intermediate: qs('#lvlIntermediate').value });
-      qs('#lvlMsg').textContent = `Saved: ${r.names.beginner} and ${r.names.intermediate}`;
+      const r = await API.post('/api/admin/learn-levels', { beginner: qs('#lvlBeginner').value, intermediate: qs('#lvlIntermediate').value, lords: qs('#lvlLords').value });
+      qs('#lvlMsg').textContent = `Saved: ${r.names.beginner}, ${r.names.intermediate} and ${r.names.lords}`;
     } catch (e) { qs('#lvlMsg').textContent = e.message; }
   });
 

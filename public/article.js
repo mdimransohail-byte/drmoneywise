@@ -96,7 +96,7 @@ function renderArticle() {
         </div>
         <span class="subtle-chip">${escapeHtml(article.readingTime || '4 min read')}</span>
       </div>
-      ${article.levelInfo ? `<a class="lvl-chip" href="/learn/${escapeAttribute(article.levelInfo.slug)}" style="--c:${escapeAttribute(article.levelInfo.colour)}"><span>${escapeHtml(article.levelInfo.name)}</span><em>${escapeHtml(article.levelInfo.who)}</em></a>` : ''}
+      ${article.levelInfo ? `<a class="lvl-chip" href="/learn/${escapeAttribute(article.levelInfo.slug)}${article.levelInfo.week ? `#week-${article.levelInfo.week}` : ''}" style="--c:${escapeAttribute(article.levelInfo.colour)}"><span>${escapeHtml(article.levelInfo.name)}</span><em>${escapeHtml(article.levelInfo.who)}</em></a>` : ''}
       <h1 class="article-title">${escapeHtml(article.headline)}</h1>
       <div class="article-meta">
         <span>${escapeHtml(/auto$|Learning Point/u.test(article.source || '') || !article.source ? 'Dr MoneyWise Team' : article.source)}</span>

@@ -14,7 +14,7 @@
            the totals it announces publicly, with a link to each source)
    ════════════════════════════════════════════════════════════════════════ */
 
-export const PROPERTY_PLACES = [
+const ALL_PLACES = [
   {
     slug: 'united-states', name: 'United States', called: 'the United States', short: 'US', bis: 'US', oecd: 'USA', currency: 'USD',
     extras: ['bls-rent', 'us-mortgage'],
@@ -26,7 +26,7 @@ export const PROPERTY_PLACES = [
     intro: 'Home prices across the UK, the average price in pounds, and London compared with the whole country.',
   },
   {
-    slug: 'dubai', name: 'Dubai', short: 'Dubai', bis: null, oecd: null, currency: 'AED', manual: true,
+    slug: 'dubai', name: 'Dubai', short: 'Dubai', bis: null, oecd: null, currency: 'AED', manual: true, hidden: true,
     extras: [],
     intro: 'Sales across Dubai each quarter: how many homes changed hands and their total value, from the Dubai Land Department’s announcements.',
   },
@@ -61,6 +61,10 @@ export const PROPERTY_PLACES = [
     intro: 'Home prices across Spain, plus rents and how prices compare with incomes.',
   },
 ];
+
+/* Places shown on the site. Dubai is hidden for now (hidden: true above);
+   remove that flag to bring it back. */
+export const PROPERTY_PLACES = ALL_PLACES.filter((p) => !p.hidden);
 
 export const getPlace = (slug) => PROPERTY_PLACES.find((p) => p.slug === slug) || null;
 

@@ -33,6 +33,52 @@ function chips(name, label, options, hint = '', other = '') {
           </fieldset>`;
 }
 
+/* ── What Premium gets you: visible, with a working example for each ── */
+const PREMIUM_PERKS = [
+  ['♛', '#c9a227', 'Lords lessons', 'Deeper lessons for confident investors: cash flow, valuation, what professionals watch.', '/learn/advanced', 'See the Lords lessons'],
+  ['❤', '#e5566f', 'Financial Health Check in full', 'Every company scored, plus how it ranks against others in its industry.', '/health-check', 'See the health check'],
+  ['◎', '#1baf7a', 'Portfolio health check', 'A score and heat map for each of your holdings and your whole portfolio.', '/portfolio-health', 'Try the example'],
+  ['✉', '#2a78d6', 'Premium weekly newsletter', 'Your portfolio’s week, results and dividends coming up, in one email.', '/newsletter', 'See past issues'],
+  ['☪', '#0fa3b1', 'Shariah ratios', 'Screening ratios for every company under all five standards.', '/shariah', 'Open Shariah investing'],
+  ['◆', '#6250d6', 'Big-fund and insider moves', 'What famous funds and company bosses are buying and selling.', '/insiders', 'See insider trades'],
+  ['▤', '#e8a33d', 'Monthly research report', 'The month in figures, with charts.', '/reports', 'Read a report'],
+  ['⊘', '#4a5170', 'No adverts', 'A clean site, on every page.', '', ''],
+];
+
+export function premiumPerksHtml({ compact = false } = {}) {
+  const perks = compact ? PREMIUM_PERKS.slice(0, 4) : PREMIUM_PERKS;
+  return `<div class="pp-grid">${perks.map(([ico, c, t, d, href, link]) => `
+          <div class="pp-tile" style="--c:${c}"><span class="pp-ico" aria-hidden="true">${ico}</span><strong>${esc(t)}</strong><span>${esc(d)}</span>${href ? `<a href="${href}">${esc(link)} →</a>` : ''}</div>`).join('')}
+        </div>`;
+}
+
+/** "$179 a year works out at 49 cents a day: $60.88 less than paying monthly." */
+function premiumValueLine(plans) {
+  const p = plans.find((x) => x.id === 'premium');
+  const num = (t) => Number(String(t || '').replace(/[^0-9.]/gu, ''));
+  const m = num(p?.billingOptions?.find((o) => o.id.includes('monthly'))?.priceText);
+  const y = num(p?.billingOptions?.find((o) => o.id.includes('annual'))?.priceText);
+  if (!m || !y) return 'Everything on the site, with the tools confident investors use.';
+  const save = m * 12 - y;
+  return `Yearly Premium works out at ${Math.round((y / 365) * 100)} cents a day${save > 0 ? `: $${save.toFixed(2)} less than paying monthly` : ''}. Each benefit below links to a real example.`;
+}
+
+const COMPARE = [
+  ['Plain-English lessons for Young Guns and Knights', 1, 1, 1],
+  ['Company report cards and Financial Health Check score', 1, 1, 1],
+  ['Calculators, glossary, Top 10 lists', 1, 1, 1],
+  ['The deeper look on companies, ETFs and bonds', 0, 1, 1],
+  ['Stock screener and watchlist review', 0, 1, 1],
+  ['Weekly members’ email and dividend alerts', 0, 1, 1],
+  ['Lords lessons (deeper explainers)', 0, 0, 1],
+  ['Health Check in full, with industry ranking', 0, 0, 1],
+  ['Portfolio health check', 0, 0, 1],
+  ['Premium weekly newsletter with your portfolio', 0, 0, 1],
+  ['Shariah ratios, big-fund and insider moves', 0, 0, 1],
+  ['Monthly research report', 0, 0, 1],
+  ['No adverts', 0, 0, 1],
+];
+
 export function renderMembershipPage(origin) {
   const plans = getPlanCatalog();
   const head = buildHeadTags({
@@ -114,6 +160,15 @@ export function renderMembershipPage(origin) {
       <section class="mb-pane" data-pane="plans">
         <div class="mb-grid">${cards}
         </div>
+        <div class="pp-box">
+          <div class="pp-head"><span class="ax-crown big" aria-hidden="true"><svg viewBox="0 0 24 24" width="60%" height="60%"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#0a1128"/></svg></span>
+            <div><h2>What Premium gets you</h2><p>${esc(premiumValueLine(plans))}</p></div></div>
+          ${premiumPerksHtml()}
+        </div>
+        <div class="table-scroll"><table class="pp-table">
+          <thead><tr><th>What’s included</th>${plans.map((p) => `<th${p.id === 'premium' ? ' class="pp-prem"' : ''}>${esc(p.shortName || p.name)}<small>${esc(p.priceLabel)}</small></th>`).join('')}</tr></thead>
+          <tbody>${COMPARE.map(([t, ...v]) => `<tr><td>${esc(t)}</td>${v.map((x, i) => `<td class="${i === 2 ? 'pp-prem' : ''}">${x ? '<span class="pp-yes" aria-label="Included">✓</span>' : '<span class="pp-no" aria-label="Not included">–</span>'}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table></div>
         <div class="mb-under">
           <div class="mb-coupon">
             <label for="mbCoupon">Coupon code</label>

@@ -203,6 +203,34 @@ export async function deleteIssue(id) {
 }
 
 /** A first draft built from what the site published in the last week. */
+/* One week of the Learn course for the newsletter, for each level. The week
+   moves on by one with every issue sent, and starts again after the last. */
+async function courseWeekItems(site) {
+  const { COURSE, courseArticleMap } = await import('../data/learnCourse.js');
+  const { LEVELS, levelNames, levelOf } = await import('../data/learnLevels.js');
+  const { getPublishedLearningArticles } = await import('./seoService.js');
+  const store = await readStore();
+  const sent = (store.newsletters || []).filter((x) => x.status === 'sent' || x.sentAt).length;
+  const names = await levelNames();
+  const all = await getPublishedLearningArticles();
+  const out = [];
+  for (const level of ['beginner', 'intermediate', 'lords']) {
+    const weeks = COURSE[level] || [];
+    if (!weeks.length) continue;
+    const week = weeks[sent % weeks.length];
+    const map = courseArticleMap(all.filter((a) => levelOf(a) === level));
+    const ready = week.lessons.map((l) => map.get(l.id)).filter(Boolean);
+    if (!ready.length) continue;
+    out.push({
+      heading: `${names[level]}, Week ${week.week}: ${week.title}`,
+      text: `${LEVELS[level].premium ? 'For Premium members. ' : ''}${ready.map((a) => `• ${a.headline}`).join('\n')}`,
+      url: `${site}/learn/${LEVELS[level].slug}#week-${week.week}`,
+      button: `Start Week ${week.week}`,
+    });
+  }
+  return out;
+}
+
 export async function draftFromSite() {
   const site = await siteUrl();
   const { getPublishedLearningArticles } = await import('./seoService.js');
@@ -210,11 +238,14 @@ export async function draftFromSite() {
   const { biggestTickers } = await import('./resultsPages.js');
   const { listReports } = await import('./reportService.js');
   const week = Date.now() - 8 * 86400000;
-  const explainers = (await getPublishedLearningArticles()).filter((a) => new Date(a.publishAt).getTime() > week && !(a.tags || []).includes('deeper')).slice(0, 3);
+  const explainers = (await getPublishedLearningArticles()).filter((a) => new Date(a.publishAt).getTime() > week && !(a.tags || []).includes('deeper')).slice(0, 2);
   const big = await biggestTickers();
   const results = latestResults(300, 8).filter((r) => r.simple && big.has(r.ticker)).slice(0, 3);
   const report = (await listReports())[0];
+  // The course, one week per issue: Week 1 in the first issue, Week 2 in the next…
+  const course = await courseWeekItems(site);
   const items = [
+    ...course,
     ...explainers.map((a) => ({ heading: a.headline, text: a.summary || '', url: `${site}/learn/${a.slug}`, button: 'Read the explainer' })),
     ...(results.length ? [{ heading: 'This week’s biggest results, in plain English', text: results.map((r) => `${r.name}: ${r.headline}.`).join('\n'), url: `${site}/results`, button: 'See all results' }] : []),
     ...(report ? [{ heading: `Research report: ${report.text.headline}`, text: String((report.text.summary || [])[0] || ''), url: `${site}/reports/${report.id}`, button: 'Read the report (Premium)' }] : []),
@@ -224,7 +255,7 @@ export async function draftFromSite() {
   return {
     subject: `Your week in money: ${date}`,
     preheader: explainers[0]?.headline || 'The week’s money news, explained simply',
-    intro: 'Here’s what we explained this week, in plain English, plus the biggest company results and what’s new on the site.',
+    intro: 'This week’s lessons from our course, from the basics up, plus the newest explainers, the biggest company results and what’s new on the site.',
     closing: 'Have a good week,\nThe Dr MoneyWise team',
     audience: 'everyone',
     items,

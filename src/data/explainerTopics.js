@@ -132,7 +132,17 @@ export async function pickEvergreenTopic({ excludeTopics = [] } = {}) {
     }
   } catch { /* no economy file yet */ }
 
-  // 2. Next unused evergreen topic (cycle again once all are used)
+  // 2. The next free course lesson not written yet (Week 1 of Young Guns and
+  //    Knights first, then Week 2…; src/data/learnCourse.js)
+  try {
+    const { lessonsInOrder, lessonForArticle } = await import('./learnCourse.js');
+    const { readStore } = await import('../services/storeService.js');
+    const done = new Set(((await readStore()).articles || []).map((a) => lessonForArticle(a)?.id).filter(Boolean));
+    const lesson = lessonsInOrder().find((l) => l.level !== 'lords' && !done.has(l.id));
+    if (lesson) return { label: lesson.headline, writerTopic: `${lesson.headline}. The lesson covers: ${lesson.match}`, sampleHeadline: lesson.headline, courseId: lesson.id, level: lesson.level, score: 1 };
+  } catch (error) { console.error('[explainerTopics] Course lesson pick failed:', error.message); }
+
+  // 3. Next unused evergreen topic (cycle again once all are used)
   const fresh = EVERGREEN_TOPICS.find((t) => !used.has(t.toLowerCase()));
   const label = fresh || EVERGREEN_TOPICS[Math.floor(Math.random() * EVERGREEN_TOPICS.length)];
   return { label, sampleHeadline: label, score: 1 };

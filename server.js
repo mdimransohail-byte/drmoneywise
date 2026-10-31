@@ -721,7 +721,7 @@ export const server = http.createServer(async (request, response) => {
         const body = await parseJsonBody(request);
         const clean = (v) => String(v || '').replace(/[<>]/gu, '').trim().slice(0, 30);
         const { updateStore } = await import('./src/services/storeService.js');
-        await updateStore((st) => { st.settings = { ...(st.settings || {}), learnLevelNames: { beginner: clean(body.beginner), intermediate: clean(body.intermediate) } }; return st; });
+        await updateStore((st) => { st.settings = { ...(st.settings || {}), learnLevelNames: { beginner: clean(body.beginner), intermediate: clean(body.intermediate), lords: clean(body.lords) } }; return st; });
       }
       return sendJson(response, 200, { names: await levelNames() });
     }
@@ -1146,7 +1146,7 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, await renderLearnIndex(origin));
   }
   if (pathname === '/learn/path') return sendHtml(response, 200, await renderLearningPath(origin));
-  if (pathname === '/learn/beginners' || pathname === '/learn/intermediate') {
+  if (pathname === '/learn/beginners' || pathname === '/learn/intermediate' || pathname === '/learn/advanced') {
     const { renderLevelPage } = await import('./src/services/learnLevelPages.js');
     return sendHtml(response, 200, await renderLevelPage(pathname.slice(7), origin));
   }

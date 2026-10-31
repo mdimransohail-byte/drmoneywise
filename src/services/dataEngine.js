@@ -52,7 +52,7 @@ const JOBS = {
   photos: { label: 'Photos for explainers (Pexels)', every: 20 * HOUR },
   funds: { label: 'Big-fund holdings (SEC 13F)', every: 7 * 24 * HOUR },
   learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
-  deeper: { label: 'Deeper explainers for Premium (one every 3 days)', every: 3 * 24 * HOUR },
+  deeper: { label: 'Lords lessons for Premium (one every 2 days)', every: 2 * 24 * HOUR },
   report: { label: 'Monthly research report (built on the 1st)', every: 20 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
   property: { label: 'Property prices and rents (BIS, OECD, BLS, Land Registry)', every: 7 * 24 * HOUR },
