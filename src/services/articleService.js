@@ -10,6 +10,8 @@ import { matchesRegion, sortByNewsPriority } from '../utils/filters.js';
 import { checkArticle } from './qualityService.js';
 import { cleanSections, infographicHtml, quizHtml } from './learnVisuals.js';
 import { levelOf } from '../data/learnLevels.js';
+import { lessonForArticle } from '../data/learnCourse.js';
+import { taDiagramHtml } from './taDiagrams.js';
 
 /* ════════════════════════════════════════════════════════════════════════
    LEARNING POINTS — homepage rotation (5×2 grid, 2-day cycle)
@@ -553,7 +555,7 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
   const context = topic.sampleHeadline && topic.sampleHeadline !== topic.label ? topic.sampleHeadline : '';
   const generated = await createLearningArticleFromTopic(
     topic.writerTopic || topic.label,
-    'free', // forces the simple-language prompt — see note above
+    level === 'technical' ? 'regular' : 'free', // simple-language lesson prompt either way (writerService)
     region,
     interest,
     '',
@@ -582,7 +584,7 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
   const saved = await saveAdminArticle({
     headline: generated.headline,
     contentType: 'learning',
-    accessTier,
+    accessTier: level === 'technical' ? 'regular' : accessTier, // Chart Readers lessons are for members
     region,
     interest,
     status: quality.ok ? 'scheduled' : 'draft',
@@ -752,6 +754,12 @@ function learnFields(generated, level) {
   };
 }
 
+/* Chart Readers lessons get a drawn diagram (src/services/taDiagrams.js) */
+function diagramFor(article) {
+  const lesson = lessonForArticle(article);
+  return lesson?.level === 'technical' ? taDiagramHtml(lesson.id) : '';
+}
+
 function toFullArticle(article, plan) {
   const accessible = canAccess(plan, article.accessTier || 'free');
   const sections = cleanSections(article, article.bodySections || []);
@@ -771,6 +779,7 @@ function toFullArticle(article, plan) {
     level: article.contentType === 'learning' ? levelOf(article) : '',
     visualHtml: accessible && !article.infographicImageUrl ? infographicHtml(visual) : '',
     quizHtml: accessible ? quizHtml(article) : '',
+    diagramHtml: diagramFor(article),
   };
 }
 
@@ -847,7 +856,7 @@ export async function upgradeOldLearningArticle() {
   const level = levelOf(old);
   const { lessonForArticle } = await import('../data/learnCourse.js');
   const lesson = lessonForArticle(old);
-  const generated = await createLearningArticleFromTopic(lesson ? `${lesson.headline}. The lesson covers: ${lesson.match}` : (old.trendingTopic || old.headline), level === 'lords' ? 'premium' : 'free', old.region || 'global', old.interest || 'equities', '', '', level);
+  const generated = await createLearningArticleFromTopic(lesson ? `${lesson.headline}. The lesson covers: ${lesson.match}` : (old.trendingTopic || old.headline), level === 'lords' ? 'premium' : level === 'technical' ? 'regular' : 'free', old.region || 'global', old.interest || 'equities', '', '', level);
   const quality = generated.provider === 'local-fallback' || generated.format !== 2 ? { ok: false } : checkArticle(generated);
   const fields = quality.ok ? learnFields(generated, level) : null;
   await updateStore((s) => {

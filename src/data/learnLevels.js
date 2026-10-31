@@ -29,6 +29,13 @@ export const LEVELS = {
     intro: 'For readers who already know what a share, a fund and an interest rate are. We go one level deeper: the ratios worth checking, how the economy feeds into prices, and the habits that separate steady investors from busy ones.',
     promise: ['One or two useful ratios per lesson, worked through', 'How professionals think about the same idea', 'Common mistakes and how to avoid them'],
   },
+  technical: {
+    id: 'technical', slug: 'technical', defaultName: 'Chart Readers', who: 'Regular and Premium members', paid: true,
+    colour: '#e8730c', colour2: '#ffb066', pathLevel: 'build',
+    tagline: 'Learn to read a share price chart, step by step.',
+    intro: 'Technical analysis, explained with pictures: candlesticks, trends, support and resistance, moving averages, RSI, MACD, chart patterns, and how to manage risk. Each lesson has worked examples and a chart, and you can try every idea on any company with our Chart check.',
+    promise: ['A clear picture in every lesson', 'Try each idea on a real company', 'The limits, not just the hype'],
+  },
   lords: {
     id: 'lords', slug: 'advanced', defaultName: 'Lords', who: 'Confident investors', premium: true,
     colour: '#5b2a9e', colour2: '#8a4fd8', pathLevel: 'confident',
@@ -107,12 +114,17 @@ export async function levelNames() {
   return {
     beginner: String(saved.beginner || '').trim() || LEVELS.beginner.defaultName,
     intermediate: String(saved.intermediate || '').trim() || LEVELS.intermediate.defaultName,
+    technical: String(saved.technical || '').trim() || LEVELS.technical.defaultName,
     lords: String(saved.lords || '').trim() || LEVELS.lords.defaultName,
   };
 }
 
 /** Small emblem for each level (inline SVG, no outside images). */
 export function levelEmblem(level, size = 56) {
+  if (level === 'technical') {
+    // Candlesticks on a round badge
+    return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="emT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb066"/><stop offset="1" stop-color="#e8730c"/></linearGradient></defs><circle cx="32" cy="32" r="28" fill="url(#emT)" stroke="#f7d07c" stroke-width="3"/><line x1="20" y1="18" x2="20" y2="44" stroke="#fff" stroke-width="2"/><rect x="16" y="24" width="8" height="14" rx="1.5" fill="#fff"/><line x1="32" y1="14" x2="32" y2="40" stroke="#0a1128" stroke-width="2"/><rect x="28" y="18" width="8" height="16" rx="1.5" fill="#0a1128"/><line x1="44" y1="20" x2="44" y2="50" stroke="#fff" stroke-width="2"/><rect x="40" y="26" width="8" height="18" rx="1.5" fill="#fff"/></svg>`;
+  }
   if (level === 'lords') {
     // Crown on a gold medallion
     return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="emL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7d07c"/><stop offset="1" stop-color="#b8891a"/></linearGradient></defs><circle cx="32" cy="32" r="28" fill="#0a1128" stroke="url(#emL)" stroke-width="4"/><path d="M15 25l8.5 7L32 18l8.5 14L49 25l-4 20H19z" fill="url(#emL)"/><rect x="19" y="47" width="26" height="4" rx="2" fill="#f7d07c"/></svg>`;

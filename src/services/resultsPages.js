@@ -15,6 +15,8 @@ import { adSlot } from './adService.js';
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 const day = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '');
 
+const resultPathOf = (r) => `/results/${String(r.ticker).toLowerCase()}-results-${r.filed}`;
+
 export function resultCardHtml(r, { showCompany = true } = {}) {
   const numbers = (r.numbers || []).length ? `<div class="rs-numbers">${r.numbers.map((n) => `<div><span>${esc(n.label)}</span><strong>${esc(n.value)}</strong>${n.change ? `<em class="${/\bdown\b|fell|lower|loss/iu.test(n.change) ? 'down' : /\bup\b|rose|higher|grew/iu.test(n.change) ? 'up' : ''}">${esc(n.change)}</em>` : ''}</div>`).join('')}</div>` : '';
   return `
@@ -23,7 +25,7 @@ export function resultCardHtml(r, { showCompany = true } = {}) {
             ${showCompany ? `<a class="rs-co" href="/stock/${esc(r.ticker)}"><span class="pick-ticker">${esc(r.ticker)}</span> ${esc(r.name)}</a>` : ''}
             <span class="rs-date">Results filed ${esc(day(r.filed))}${r.period ? ` · ${esc(r.period)}` : ''}</span>
           </header>
-          <h3>${esc(r.headline)}</h3>
+          <h3>${r.simple ? `<a href="${resultPathOf(r)}">${esc(r.headline)}</a>` : esc(r.headline)}</h3>
           ${r.simple ? `<p class="rs-simple"><strong>In simple words:</strong> ${esc(r.simple)}</p>` : '<p class="rs-simple">A plain-English explanation is on its way. Meanwhile, read the company’s own announcement below.</p>'}
           ${numbers}
           ${r.simple ? `<div class="rs-impact" data-impact-for="${esc(r.id)}"><h4>What it means <span class="members-badge prem">Premium</span></h4><p>Premium members see what changed, what the company expects next, and what to keep an eye on. <a href="/membership">See Premium</a></p></div>` : ''}

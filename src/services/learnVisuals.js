@@ -88,10 +88,9 @@ export function infographicHtml(article) {
         </div>`).join('');
     return `<section class="lv-box"><h2 class="lv-title"><span class="lv-ico" aria-hidden="true">▤</span>${esc(article.infographic.title || 'The key numbers')}</h2><div class="lv-tiles">${tiles}</div>${chart}</section>`;
   }
-  const take = (article?.visibleTakeaways || article?.takeaways || []).filter(Boolean).slice(0, 4);
-  if (!take.length && !chart) return '';
-  return `<section class="lv-box"><h2 class="lv-title"><span class="lv-ico" aria-hidden="true">▤</span>At a glance</h2>
-      <div class="lv-tiles lv-glance">${take.map((t, i) => `<div class="lv-tile" style="--c:${PALETTE[i % PALETTE.length]}"><span class="lv-num">${i + 1}</span><span class="lv-ctx lv-big">${esc(t)}</span></div>`).join('')}</div>${chart}</section>`;
+  // No figures: show the chart if there is one. (The takeaways already have
+  // their own box, so repeating them here would be repetition.)
+  return chart ? `<section class="lv-box">${chart}</section>` : '';
 }
 
 /* ── Quiz ──────────────────────────────────────────────────────────── */

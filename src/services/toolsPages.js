@@ -207,6 +207,8 @@ export async function renderToolsHub(origin) {
           <p>Research tools built from companies’ and funds’ official reports.</p></div></div>
         <div class="tens">
           ${[
+            ['/technical', 'Chart check', 'Free; full check for members', 'Type any company to see what its price chart shows: trend, RSI, MACD, moving averages, support and resistance, explained simply.'],
+            ['/compare', 'Compare two companies', 'Free', 'Any two US-listed companies side by side: health scores, sales, profit, debt and dividends.'],
             ['/screener', 'Stock screener', 'Regular and Premium', 'Filter companies in the US and around the world by growth, profit, debt and dividends. Premium adds what the big funds own.'],
             ['/ideas', 'Ideas that match your rules', 'Premium', 'Save up to 5 sets of rules and see every company that matches, with new matches in your Saturday email.'],
             ['/portfolio-health', 'Portfolio health check', 'Premium', 'A score and colour heat map for every holding and for your whole portfolio.'],
@@ -277,6 +279,7 @@ export async function renderCalculator(origin, slug) {
           <ul id="taxNotes">${TAX_PRESETS.us.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
           <p class="calc-hint">Tax rules checked ${esc(TAX_CHECKED_ON)} and simplified to the common case. Your own tax depends on your income and situation. This is for learning, not tax or financial advice. Read our <a href="/disclaimer">disclaimer</a>.</p>
         </div>
+        ${embedBoxHtml(origin, slug)}
         <div class="surface">
           <h2 style="margin-top:0">Other calculators</h2>
           <ul class="calc-others">${others}</ul>
@@ -331,6 +334,7 @@ async function renderExtraCalculator(origin, slug) {
         </div>
         ${c.currency ? `<p class="calc-hint">Reference rates from the European Central Bank${fx?.date ? `, ${esc(fx.date)}` : ''}; dirham, riyal and other fixed rates from their official pegs. Real rates from banks and exchange shops include their margin.</p>` : ''}
         <p class="calc-hint">These are rough estimates to help you think, not financial advice. Read our <a href="/disclaimer">disclaimer</a>.</p>
+        ${embedBoxHtml(origin, slug)}
         <div class="surface"><h2 style="margin-top:0">Other calculators</h2><ul class="calc-others">${others}</ul></div>
       </section>
       <noscript><p class="note-box">Turn on JavaScript in your browser to use this calculator.</p></noscript>
@@ -468,4 +472,50 @@ export function toolsSitemapEntries(origin) {
     { loc: `${origin}/glossary`, lastmod: today, priority: '0.6' },
     ...GLOSSARY.map((g) => ({ loc: `${origin}/glossary/${slugify(g.term)}`, lastmod: today, priority: '0.4' })),
   ];
+}
+
+/* ── /embed/<calculator>: the calculator alone, for other websites ─────
+   Other sites paste an <iframe> (code shown on each calculator page). The
+   embed carries a "Free calculator by Dr MoneyWise" link back to the full
+   page, which helps people find the site. Not indexed by search engines. */
+export async function renderCalculatorEmbed(origin, slug) {
+  const full = await renderCalculator(origin, slug);
+  if (!full) return null;
+  const start = full.indexOf('<section class="block calc-page"');
+  const endScript = Math.max(full.lastIndexOf('<script src="/calculators.js" defer></script>'), full.lastIndexOf('<script src="/morecalc.js" defer></script>'));
+  if (start < 0 || endScript < 0) return null;
+  let core = full.slice(start, full.indexOf('</script>', endScript) + 9);
+  core = core
+    .replace(/<p class="crumbs">[\s\S]*?<\/p>/u, '')
+    .replace(/<details class="surface embed-box">[\s\S]*?<\/details>/u, '')
+    .replace(/<figure class="page-photo calc-photo"[\s\S]*?<\/figure>/u, '')
+    .replace(/<div class="surface"><h2 style="margin-top:0">Other calculators<\/h2>[\s\S]*?<\/div>/u, '')
+    .replace(/<div class="surface">\s*<h2 style="margin-top:0">Other calculators<\/h2>[\s\S]*?<\/ul>\s*<\/div>/u, '')
+    .replace(/<script src="\/(calculators|morecalc)\.js" defer><\/script>/u, (m, n) => `<script src="${origin}/${n}.js" defer></script>`);
+  const title = (EXTRA_CALCS[slug] || CALCULATORS[slug]).title;
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>${esc(title)} calculator | Dr MoneyWise</title>
+    <link rel="canonical" href="${origin}/tools/${slug}" />
+    <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="${origin}/styles.css" />
+    <style>body{background:#fbf7ef;margin:0}.embed-wrap{padding:12px}.embed-wrap .calc-page{margin:0;padding:0}.embed-wrap .calc-top h1{font-size:26px!important}.embed-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:#0a1128;color:#c9d0e6;font:600 13px 'Public Sans',sans-serif}.embed-foot a{color:#f7d07c;font-weight:800;text-decoration:none}</style>
+  </head>
+  <body>
+    <div class="embed-wrap">${core}</div>
+    <div class="embed-foot"><span>For learning, not financial advice.</span><a href="${origin}/tools/${slug}?ref=embed" target="_blank" rel="noopener">Free calculator by Dr MoneyWise →</a></div>
+  </body>
+</html>`;
+}
+
+/** The "Add this calculator to your website" box on each calculator page. */
+export function embedBoxHtml(origin, slug) {
+  const code = `<iframe src="${origin}/embed/${slug}" width="100%" height="900" style="border:0;border-radius:12px;max-width:760px" loading="lazy" title="Calculator by Dr MoneyWise"></iframe>`;
+  return `<details class="surface embed-box"><summary>Add this calculator to your website or blog (free)</summary>
+          <p>Copy this code into your page. It shows the calculator with a small “by Dr MoneyWise” link.</p>
+          <textarea readonly rows="3" onclick="this.select()">${esc(code)}</textarea></details>`;
 }

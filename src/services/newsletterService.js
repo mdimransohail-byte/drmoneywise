@@ -218,7 +218,7 @@ async function courseWeekItems(site) {
   const names = await levelNames();
   const all = await getPublishedLearningArticles();
   const out = [];
-  for (const level of ['beginner', 'intermediate', 'lords']) {
+  for (const level of ['beginner', 'intermediate', 'technical', 'lords']) {
     const weeks = COURSE[level] || [];
     if (!weeks.length) continue;
     const week = weeks[sent % weeks.length];
@@ -227,7 +227,7 @@ async function courseWeekItems(site) {
     if (!ready.length) continue;
     out.push({
       heading: `${names[level]}, Week ${week.week}: ${week.title}`,
-      text: `${LEVELS[level].premium ? 'For Premium members. ' : ''}${ready.map((a) => `• ${a.headline}`).join('\n')}`,
+      text: `${LEVELS[level].premium ? 'For Premium members. ' : LEVELS[level].paid ? 'For Regular and Premium members. ' : ''}${ready.map((a) => `• ${a.headline}`).join('\n')}`,
       url: `${site}/learn/${LEVELS[level].slug}#week-${week.week}`,
       button: `Start Week ${week.week}`,
     });

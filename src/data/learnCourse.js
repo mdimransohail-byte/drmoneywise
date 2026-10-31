@@ -3,6 +3,7 @@
    ───────────────────────────────────────────────────────────────────────
      beginner      Young Guns   free     6 weeks
      intermediate  Knights      free     6 weeks
+     technical     Chart Readers Regular and Premium (technical analysis) 4 weeks
      lords         Lords        Premium  5 weeks
    Week 1 has 5 lessons, later weeks 4. Each lesson:
      id        stays the same forever (it is saved on the article)
@@ -96,6 +97,33 @@ export const COURSE = {
       { id: 'kn-6-4', headline: 'Last year’s winner, next year’s loser? Past performance explained', match: 'Why past performance does not guarantee future returns' },
     ] },
   ],
+  technical: [
+    { week: 1, title: 'Reading a price chart', lessons: [
+      { id: 'ta-1-1', headline: 'What a price chart is really telling you', match: 'How to read a share price chart: price, time and volume' },
+      { id: 'ta-1-2', headline: 'Candlesticks: four prices in one little bar', match: 'Candlestick charts explained: open, high, low and close' },
+      { id: 'ta-1-3', headline: 'Is it going up? Spotting a trend, and when it breaks', match: 'Trends and trendlines: higher highs, higher lows' },
+      { id: 'ta-1-4', headline: 'Support and resistance: the floors and ceilings on a chart', match: 'Support and resistance levels explained' },
+      { id: 'ta-1-5', headline: 'Volume: why the crowd behind a move matters', match: 'Trading volume and what it tells you about a price move' },
+    ] },
+    { week: 2, title: 'The four most-used indicators', lessons: [
+      { id: 'ta-2-1', headline: 'Moving averages: smoothing out the noise', match: 'Simple and exponential moving averages: 20, 50 and 200 days' },
+      { id: 'ta-2-2', headline: 'Golden cross, death cross: what they mean and how often they fail', match: 'The golden cross and death cross explained' },
+      { id: 'ta-2-3', headline: 'RSI: is a share overbought or oversold?', match: 'The relative strength index (RSI) explained' },
+      { id: 'ta-2-4', headline: 'MACD: catching momentum as it turns', match: 'MACD: the moving average convergence divergence indicator' },
+    ] },
+    { week: 3, title: 'Patterns and breakouts', lessons: [
+      { id: 'ta-3-1', headline: 'Bollinger bands: when a quiet share is about to move', match: 'Bollinger bands and volatility squeezes' },
+      { id: 'ta-3-2', headline: 'Head and shoulders, double tops: the famous chart patterns', match: 'Classic chart patterns: head and shoulders, double tops and bottoms' },
+      { id: 'ta-3-3', headline: 'Breakouts and fakeouts: telling them apart', match: 'Breakouts and false breakouts' },
+      { id: 'ta-3-4', headline: 'Daily, weekly, monthly: why the timeframe changes the story', match: 'Chart timeframes: daily, weekly and monthly charts' },
+    ] },
+    { week: 4, title: 'Using charts sensibly', lessons: [
+      { id: 'ta-4-1', headline: 'Stop-losses and position size: limiting the damage', match: 'Risk management for traders: stop-loss orders and position sizing' },
+      { id: 'ta-4-2', headline: 'Charts plus company health: getting the best of both', match: 'Combining technical analysis with company fundamentals' },
+      { id: 'ta-4-3', headline: 'Does technical analysis work? What the evidence says', match: 'The evidence on technical analysis: what works and what does not' },
+      { id: 'ta-4-4', headline: 'Your five-minute chart checklist', match: 'A simple checklist for reading any share price chart' },
+    ] },
+  ],
   lords: [
     { week: 1, title: 'Reading the accounts like a professional', lessons: [
       { id: 'lo-1-1', headline: 'Follow the cash: reading a cash flow statement', match: 'Reading a cash flow statement: where a company’s money really goes' },
@@ -131,7 +159,7 @@ export const COURSE = {
   ],
 };
 
-export const COURSE_LEVELS = ['beginner', 'intermediate', 'lords'];
+export const COURSE_LEVELS = ['beginner', 'intermediate', 'technical', 'lords'];
 
 /** Every lesson, with its level and week, in teaching order (Week 1 of each level, then Week 2…). */
 export function lessonsInOrder() {

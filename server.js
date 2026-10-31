@@ -745,7 +745,7 @@ export const server = http.createServer(async (request, response) => {
         const body = await parseJsonBody(request);
         const clean = (v) => String(v || '').replace(/[<>]/gu, '').trim().slice(0, 30);
         const { updateStore } = await import('./src/services/storeService.js');
-        await updateStore((st) => { st.settings = { ...(st.settings || {}), learnLevelNames: { beginner: clean(body.beginner), intermediate: clean(body.intermediate), lords: clean(body.lords) } }; return st; });
+        await updateStore((st) => { st.settings = { ...(st.settings || {}), learnLevelNames: { beginner: clean(body.beginner), intermediate: clean(body.intermediate), technical: clean(body.technical), lords: clean(body.lords) } }; return st; });
       }
       return sendJson(response, 200, { names: await levelNames() });
     }
@@ -871,6 +871,17 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { html });
     }
 
+    // Chart check (technical analysis): headline signals for everyone, all for members
+    if (requestUrl.pathname === '/api/technical' && request.method === 'GET') {
+      const { getPriceHistory } = await import('./src/services/marketstackClient.js');
+      const { analyse, chartSvg } = await import('./src/services/technicalService.js');
+      const hist = await getPriceHistory(requestUrl.searchParams.get('t'));
+      if (!hist.ok) return sendJson(response, 200, { ok: false, reason: hist.reason });
+      const a = analyse(hist.rows);
+      const full = Boolean(sessionUser && (sessionUser.role === 'admin' || canAccess(sessionUser.plan || 'free', 'regular')));
+      return sendJson(response, 200, { ok: true, full, ticker: hist.ticker, date: a.date, price: a.price, picture: full ? a.picture : null, good: a.good, weak: a.weak, levels: full ? a.levels : null, signals: full ? a.signals : a.signals.filter((x) => x.free), hidden: full ? 0 : a.signals.filter((x) => !x.free).length, chart: full ? chartSvg(a) : '' });
+    }
+
     // Property: city scorecard (Premium)
     if (requestUrl.pathname === '/api/property/cities-premium' && request.method === 'GET') {
       const user = sessionUser;
@@ -968,6 +979,19 @@ async function handlePublicPage(requestUrl, request, response) {
     response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
     response.end(buildRobotsTxt(origin));
     return true;
+  }
+
+  if (pathname === '/sitemap-news.xml') {
+    const { buildNewsSitemap } = await import('./src/services/newsPages.js');
+    response.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=900' });
+    response.end(await buildNewsSitemap(origin));
+    return true;
+  }
+  const resultArticle = pathname.match(/^\/results\/([a-z0-9-]{4,40})$/u);
+  if (resultArticle) {
+    const { renderResultArticle } = await import('./src/services/newsPages.js');
+    const html = await renderResultArticle(origin, resultArticle[1]);
+    return sendHtml(response, html ? 200 : 404, html || renderNotFound());
   }
 
   if (pathname === '/sitemap.xml') {
@@ -1132,6 +1156,30 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, await renderPropertyHub(origin));
   }
 
+  const embedMatch = pathname.match(/^\/embed\/([a-z-]{1,40})$/u);
+  if (embedMatch) {
+    const { renderCalculatorEmbed } = await import('./src/services/toolsPages.js');
+    const html = await renderCalculatorEmbed(origin, embedMatch[1]);
+    if (!html) return sendHtml(response, 404, renderNotFound());
+    response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+    response.end(html);
+    return true;
+  }
+  if (pathname === '/technical' || /^\/technical\/[A-Za-z0-9.-]{1,10}$/u.test(pathname)) {
+    const { renderTechnical } = await import('./src/services/technicalPage.js');
+    return sendHtml(response, 200, await renderTechnical(origin, pathname.split('/')[2] || ''));
+  }
+  if (pathname === '/compare') {
+    const { renderCompareIndex } = await import('./src/services/comparePages.js');
+    return sendHtml(response, 200, await renderCompareIndex(origin));
+  }
+  const compareMatch = pathname.match(/^\/compare\/([A-Za-z0-9.-]{1,10}-vs-[A-Za-z0-9.-]{1,10})$/u);
+  if (compareMatch) {
+    const { renderCompare } = await import('./src/services/comparePages.js');
+    const r = await renderCompare(origin, compareMatch[1]);
+    if (r.redirect) { response.writeHead(301, { Location: r.redirect }); response.end(); return true; }
+    return sendHtml(response, r.status, r.html || renderNotFound());
+  }
   if (pathname === '/property/cities') {
     const { renderPropertyCities } = await import('./src/services/propertyCityPages.js');
     return sendHtml(response, 200, await renderPropertyCities(origin));
@@ -1205,7 +1253,7 @@ async function handlePublicPage(requestUrl, request, response) {
     const { renderHealthCheckIndex } = await import('./src/services/financialHealthPages.js');
     return sendHtml(response, 200, await renderHealthCheckIndex(origin));
   }
-  if (pathname === '/learn/beginners' || pathname === '/learn/intermediate' || pathname === '/learn/advanced') {
+  if (pathname === '/learn/beginners' || pathname === '/learn/intermediate' || pathname === '/learn/advanced' || pathname === '/learn/technical') {
     const { renderLevelPage } = await import('./src/services/learnLevelPages.js');
     return sendHtml(response, 200, await renderLevelPage(pathname.slice(7), origin));
   }

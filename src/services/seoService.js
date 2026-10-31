@@ -83,6 +83,7 @@ export function buildRobotsTxt(origin) {
     'Disallow: /api/',
     '',
     `Sitemap: ${origin}/sitemap.xml`,
+    `Sitemap: ${origin}/sitemap-news.xml`,
     '',
   ].join('\n');
 }
@@ -129,7 +130,7 @@ export async function buildSitemapXml(origin) {
   urls.push({ loc: `${origin}/insiders`, lastmod: today, priority: '0.6' });
   try {
     const { reportSitemapEntries } = await import('./reportPages.js');
-    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/advanced`, lastmod: today, priority: '0.7' }, { loc: `${origin}/health-check`, lastmod: today, priority: '0.8' }, { loc: `${origin}/guides`, lastmod: today, priority: '0.8' }, { loc: `${origin}/property/cities`, lastmod: today, priority: '0.8' }, ...(await import('./topicHubPages.js')).hubSitemapEntries(origin));
+    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/advanced`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/technical`, lastmod: today, priority: '0.7' }, { loc: `${origin}/technical`, lastmod: today, priority: '0.7' }, { loc: `${origin}/health-check`, lastmod: today, priority: '0.8' }, { loc: `${origin}/guides`, lastmod: today, priority: '0.8' }, { loc: `${origin}/property/cities`, lastmod: today, priority: '0.8' }, ...(await import('./comparePages.js')).compareSitemapEntries(origin), ...(await import('./newsPages.js')).resultSitemapEntries(origin), ...(await import('./topicHubPages.js')).hubSitemapEntries(origin));
   } catch (error) {
     console.error('[seo] Reports left out of sitemap:', error.message);
   }
@@ -348,7 +349,7 @@ async function articleExtras(current, level, names) {
     if (n) nextLesson = { ...n, article: map.get(n.id) };
   }
   const more = same.filter((a) => a.slug !== current.slug && a.slug !== nextLesson?.article.slug).slice(0, 3);
-  const order = ['beginner', 'intermediate', 'lords'];
+  const order = ['beginner', 'intermediate', 'technical', 'lords'];
   const up = LEVELS[order[order.indexOf(level) + 1]] || null;
   const crown = '<svg viewBox="0 0 24 24" width="60%" height="60%" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#0a1128"/></svg>';
   const card = (a) => `<a class="ax-card" href="/learn/${escapeAttr(a.slug)}">${a.heroImage?.url ? `<img src="${escapeAttr(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="ax-ph" style="--c:${L.colour}">${levelEmblem(level, 34)}</span>`}<strong>${escapeHtml(a.headline)}</strong><em>${escapeHtml(a.readingTime || '5 min read')}</em></a>`;
@@ -357,7 +358,7 @@ async function articleExtras(current, level, names) {
           ${nextLesson ? `<a class="ax-next" href="/learn/${escapeAttr(nextLesson.article.slug)}" style="--c:${L.colour}"><span>Next lesson · Week ${nextLesson.week}</span><strong>${escapeHtml(nextLesson.article.headline)}</strong><em>→</em></a>` : ''}
           ${more.length ? `<div class="ax-head" style="--c:${L.colour}">${levelEmblem(level, 30)}<h2>More for ${escapeHtml(names[level])}</h2><a href="/learn/${L.slug}">See the whole course →</a></div><div class="ax-cards">${more.map(card).join('')}</div>` : ''}
           <div class="ax-row">
-            ${up && !up.premium ? `<a class="ax-promo" href="/learn/${up.slug}" style="--c:${up.colour}">${levelEmblem(up.id, 44)}<span><b>Ready for the next level?</b>Join the ${escapeHtml(names[up.id])}: ratios, the economy and the habits of steady investors. Free.</span></a>` : ''}
+            ${up && !up.premium ? `<a class="ax-promo" href="/learn/${up.slug}" style="--c:${up.colour}">${levelEmblem(up.id, 44)}<span><b>Ready for the next level?</b>Join the ${escapeHtml(names[up.id])}: ${escapeHtml(up.tagline.charAt(0).toLowerCase() + up.tagline.slice(1))} ${up.paid ? 'For members.' : 'Free.'}</span></a>` : ''}
             ${level === 'lords' ? `<a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Premium: $19.99 a month or $179 a year</b>Every ${escapeHtml(names.lords)} lesson, the Financial Health Check in full, the portfolio check and no adverts.</span></a>`
               : `<a class="ax-promo prem" href="/learn/advanced"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Join the ${escapeHtml(names.lords)}</b>Premium lessons that go deeper: valuing a company, the economy’s warning lights and advanced portfolio craft.</span></a>`}
           </div>
@@ -413,7 +414,7 @@ export async function renderArticlePage(template, slug, origin) {
             <p>${escapeHtml(article.summary || '')}</p>
           </header>
           ${article.heroImage?.url ? `<figure class="article-hero-image"><img src="${escapeAttr(article.heroImage.url)}" alt="${escapeAttr(article.headline)}" />${article.heroImage.photographer ? `<figcaption>Photo by ${escapeHtml(article.heroImage.photographer)} on Pexels</figcaption>` : ''}</figure>` : ''}
-          <div class="article-body-stack">${takeaways}${article.visualHtml || ''}<div class="article-body">${sections}</div>${jargon}${article.quizHtml || ''}</div>`;
+          <div class="article-body-stack">${article.diagramHtml || ''}${takeaways}${article.visualHtml || ''}<div class="article-body">${sections}</div>${jargon}${article.quizHtml || ''}</div>`;
 
   const articleHtml = `<article id="articleContainer" class="article-layout" data-slug="${escapeAttr(slug)}">${prerendered}
         </article>

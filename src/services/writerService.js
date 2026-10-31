@@ -59,7 +59,7 @@ export async function createLearningArticleFromTopic(topic, accessTier = 'free',
 
   // Course lessons (all three levels) use the six-section lesson format;
   // other paid pieces keep the professional prompt.
-  const useLearn = !(accessTier === 'regular' || accessTier === 'premium') || level === 'lords';
+  const useLearn = !(accessTier === 'regular' || accessTier === 'premium') || level === 'lords' || level === 'technical';
   const prompt = useLearn
     ? buildLearnPrompt({ headline: topic, sourceNotes, level: level || 'beginner' })
     : buildArticlePrompt({ accessTier, headline: topic, sourceNotes });
@@ -91,7 +91,9 @@ const LEARN_JSON_SCHEMA =
   '{"headline":"string","summary":"string","sections":[{"heading":"string","body":"string"}],"takeaways":["string"],"jargonBuster":[{"term":"string","meaning":"string"}],"infographic":{"title":"string","items":[{"label":"string","value":"string","context":"string"}]},"chart":{"title":"string","unit":"string","points":[{"label":"string","value":0}]},"quiz":[{"question":"string","options":["string"],"answer":0,"why":"string"}],"visualSuggestion":"string"}';
 
 function buildLearnPrompt({ headline, sourceNotes, level }) {
-  const reader = level === 'lords'
+  const reader = level === 'technical'
+    ? 'Reader: an investor learning technical analysis (reading price charts). Assume they know what a share is but have never studied charts. Explain each chart idea with a concrete example using real-looking but clearly hypothetical prices (for example a share at $50 rising to $60), describe what it would look like on a chart, how traders use it, and how often it fails. Be balanced: chart signals are probabilities, not certainties, and costs and discipline matter.'
+    : level === 'lords'
     ? 'Reader: a confident investor who knows the basics and common ratios well. Explain the mechanics properly, show what professional investors look at and why, work through a full example with real figures, and cover the limits and traps of the method. Still plain English: explain every technical term the first time.'
     : level === 'intermediate'
     ? 'Reader: a mid-level investor. They already know what a share, a fund, a bond, a dividend and an interest rate are, so do not explain those from scratch. Go one level deeper: show how professionals think about the idea, work through one or two useful ratios or calculations with real numbers, and point out second-order effects.'

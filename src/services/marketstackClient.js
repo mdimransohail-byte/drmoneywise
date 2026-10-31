@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 // Shared Marketstack integration used by watchlistService.js and portfolioService.js.
 //
 // Marketstack's Free Plan allows 100 requests/month, end-of-day data only, and
@@ -246,5 +248,46 @@ async function latestPricesInner(tickers, { fresh = false } = {}) {
       error: error instanceof Error ? error.message : String(error),
       missing: [...affordableTickers, ...skippedTickers],
     };
+  }
+}
+
+/* ── Price history for the chart check (technical analysis) ─────────────
+   About 300 trading days of daily prices for one ticker, saved to
+   data/market/history/<TICKER>.json and reused for 20 hours, so popular
+   companies cost one request a day. At most 30 new look-ups a day, to
+   protect the monthly allowance for watchlists and portfolios. */
+const HISTORY_DIR = path.join(process.cwd(), 'data', 'market', 'history');
+const historyDay = { key: '', count: 0 };
+export async function getPriceHistory(rawTicker) {
+  const ticker = String(rawTicker || '').toUpperCase().replace(/[^A-Z0-9.-]/gu, '').slice(0, 10);
+  if (!ticker) return { ok: false, reason: 'ticker' };
+  const file = path.join(HISTORY_DIR, `${ticker}.json`);
+  let saved = null;
+  try { saved = JSON.parse(await fs.readFile(file, 'utf8')); } catch { saved = null; }
+  if (saved && Date.now() - new Date(saved.fetchedAt).getTime() < 20 * 60 * 60 * 1000) return { ok: true, ...saved };
+  if (!isPaidTier() || !process.env.MARKETSTACK_API_KEY) return saved ? { ok: true, ...saved, stale: true } : { ok: false, reason: 'prices-off' };
+  const today = new Date().toISOString().slice(0, 10);
+  if (historyDay.key !== today) { historyDay.key = today; historyDay.count = 0; }
+  if (historyDay.count >= 30 || getQuotaStatus().remaining <= 0) return saved ? { ok: true, ...saved, stale: true } : { ok: false, reason: 'busy' };
+  historyDay.count += 1;
+  try {
+    const url = new URL(`${MARKETSTACK_BASE_URL}/eod`);
+    url.searchParams.set('access_key', process.env.MARKETSTACK_API_KEY);
+    url.searchParams.set('symbols', ticker.replace('-', '.'));
+    url.searchParams.set('limit', '300');
+    const response = await fetch(url);
+    const payload = await response.json().catch(() => null);
+    recordUsage(1);
+    if (!response.ok || !payload || payload.error) throw new Error(payload?.error?.message || `HTTP ${response.status}`);
+    const rows = (payload.data || []).map((r) => ({ d: String(r.date).slice(0, 10), o: r.open, h: r.high, l: r.low, c: r.close, v: r.volume }))
+      .filter((r) => Number.isFinite(r.c)).sort((a, b) => a.d.localeCompare(b.d));
+    if (rows.length < 30) throw new Error('not enough daily prices');
+    const data = { ticker, fetchedAt: new Date().toISOString(), rows };
+    await fs.mkdir(HISTORY_DIR, { recursive: true });
+    await fs.writeFile(file, JSON.stringify(data));
+    return { ok: true, ...data };
+  } catch (error) {
+    console.error(`[marketstack] history ${ticker}: ${error.message}`);
+    return saved ? { ok: true, ...saved, stale: true } : { ok: false, reason: 'error' };
   }
 }

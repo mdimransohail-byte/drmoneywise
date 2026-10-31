@@ -363,7 +363,7 @@ export async function lessonProgress(user) {
   const all = await getPublishedLearningArticles();
   const readSet = new Set(read.map((x) => x.slug));
   const levels = {};
-  for (const id of ['beginner', 'intermediate', 'lords']) {
+  for (const id of ['beginner', 'intermediate', 'technical', 'lords']) {
     const mine = all.filter((a) => levelOf(a) === id);
     levels[id] = { read: mine.filter((a) => readSet.has(a.slug)).length, total: mine.length, planned: (COURSE[id] || []).reduce((n, w) => n + w.lessons.length, 0) };
   }

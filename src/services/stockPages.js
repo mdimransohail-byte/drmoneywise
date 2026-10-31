@@ -17,6 +17,7 @@
 import { readCompanies, readPrices } from './dataEngine.js';
 import { buildReportCard, formatMoney, formatPercent, RATING_RULES } from './reportCardService.js';
 import { financialHealth, healthBoxHtml } from './financialHealthService.js';
+import { compareLinksHtml } from './comparePages.js';
 import { reportCardHtml, yearBarsHtml } from './infographicService.js';
 import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
 import { cleanName } from './secService.js';
@@ -48,7 +49,7 @@ function stockRow(c) {
 }
 const short = (v) => formatMoney(v).replace(' billion', 'bn').replace(' trillion', 'tn').replace(' million', 'm');
 
-function tvSymbol(company) {
+export function tvSymbol(company) {
   const exchange = String(company.exchange || '').toUpperCase();
   const ticker = company.ticker.replace('-', '.');
   if (exchange === 'NASDAQ' || exchange === 'NYSE' || exchange === 'AMEX' || exchange === 'CBOE') {
@@ -349,6 +350,7 @@ export async function renderStockPage(origin, rawTicker) {
               <h2>In plain English</h2>
               <p>${esc(plainEnglishSummary(company))}</p>
             </div>
+            ${compareLinksHtml(ticker)}
             <p class="st-links"><a class="pf-btn ghost" href="/screener?${region ? `region=${encodeURIComponent(region.id)}` : `sector=${encodeURIComponent(sector?.name || '')}`}">Find similar companies in the screener</a>${company.foreignFiler ? '' : ' <a class="pf-btn ghost" href="#insidersBox">Company bosses’ trades</a>'}</p>
             ${dividendRank >= 0 ? `<p class="note-box" style="margin-top:12px">Number ${dividendRank + 1} on this month's <a href="/top-10/dividend-stocks">Top 10 dividend stocks</a>.</p>` : ''}
           </div>

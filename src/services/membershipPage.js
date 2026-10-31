@@ -69,6 +69,7 @@ const COMPARE = [
   ['Calculators, glossary, Top 10 lists', 1, 1, 1],
   ['The deeper look on companies, ETFs and bonds', 0, 1, 1],
   ['Stock screener and watchlist review', 0, 1, 1],
+  ['Chart Readers course and the full Chart check (technical analysis)', 0, 1, 1],
   ['Weekly members’ email and dividend alerts', 0, 1, 1],
   ['Lords lessons (deeper explainers)', 0, 0, 1],
   ['Health Check in full, with industry ranking', 0, 0, 1],

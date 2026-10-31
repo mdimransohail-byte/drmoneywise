@@ -122,6 +122,7 @@ function renderArticle() {
     ${renderHeroImage(article)}
 
     <div class="article-body-stack">
+      ${article.diagramHtml || ''}
       ${renderTakeaways(article)}
       ${article.visualHtml || renderInfographic(article)}
       ${renderArticleBody(article)}

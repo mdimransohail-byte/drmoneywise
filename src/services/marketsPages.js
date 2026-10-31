@@ -101,6 +101,7 @@ export async function renderMarketsHub(origin) {
   const cards = [
     ['/stocks', 'Stocks', 'Report cards for US companies: sales, profit, debt and dividends from official filings.', 'Top 10 in every sector'],
     ['/today', 'The economy today', 'Inflation, interest rates, bond yields, mortgage rates and jobs, what each means for you, and this week’s announcements.', 'Updated daily'],
+    ['/compare', 'Compare two companies', 'Any two US-listed companies side by side: health scores, sales, profit, debt and dividends.', 'Free'],
     ['/health-check', 'Financial Health Check', 'Every company we cover scored out of 100 on growth, profit, debt, spare cash and dividends, with stars and a simple rating.', 'Free'],
     ['/stocks/world', 'Stocks around the world', 'The UK, Europe, Japan, China, India, South Korea, Brazil and the Gulf: report cards, prices and news.', '8 regions'],
     ['/shariah', 'Shariah-compliant investing', 'Which big companies pass the AAOIFI, Dow Jones, S&P, MSCI and FTSE Shariah checks, plus Shariah funds and ETFs.', '5 standards, 12 countries'],
