@@ -178,6 +178,10 @@ export const HOME_NEWS_REGIONS = [
 ];
 
 
+// Topic guides (/personal-finance etc.): searches live in src/data/topicHubs.js
+let TOPIC_Q = {};
+import('../data/topicHubs.js').then((m) => { TOPIC_Q = m.HUB_NEWS_QUERIES; }).catch(() => {});
+
 export function newsQueries(kind, id, extra = {}) {
   // Third try: two plain words, the simplest search GDELT accepts
   const plain = String(extra.plain || id).replace(/-/gu, ' ');
@@ -186,6 +190,7 @@ export function newsQueries(kind, id, extra = {}) {
   if (kind === 'property') return [[PROPERTY_Q[id], 14], [PROPERTY_WIDE[id], 30], [`${plain} property`, 30]].filter(([q]) => q);
   if (kind === 'etf') return [[ETF_Q[id] || `"${id} ETF"`, 14], [ETF_Q[id] || `"${id}" ETF`, 30]];
   if (kind === 'region') return REGION_Q[id] || [];
+  if (kind === 'topic') return TOPIC_Q[id] || [];
   if (kind === 'stock' || kind === 'localstock') {
     const name = shortCompanyName(extra.name || id).replace(/"/gu, '');
     if (!name || name.length < 3) return [];
@@ -339,6 +344,7 @@ export async function refreshAllNews() {
     ...PROPERTY_PLACES.map((p) => ['property', p.slug, { subject: `the ${p.name} property market` }]),
     ...CURATED_ETFS.map((e) => ['etf', e.ticker, { subject: `${e.name} (${e.ticker}) and ${e.kind.toLowerCase()}` }]),
     ...HOME_NEWS_REGIONS.map(([id, name]) => ['region', id, { subject: `business news from ${name}` }]),
+    ...Object.keys(TOPIC_Q).map((id) => ['topic', id, { subject: id.replace(/-/gu, ' ') }]),
     ...WORLD_REGIONS.flatMap((r) => r.local.map((x) => ['localstock', `${r.id}--${x.slug}`, { name: x.name, subject: x.name }])),
     ...getUniverse().map((t) => {
       const c = companies?.[t];

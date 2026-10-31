@@ -129,7 +129,7 @@ export async function buildSitemapXml(origin) {
   urls.push({ loc: `${origin}/insiders`, lastmod: today, priority: '0.6' });
   try {
     const { reportSitemapEntries } = await import('./reportPages.js');
-    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' });
+    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/advanced`, lastmod: today, priority: '0.7' }, { loc: `${origin}/health-check`, lastmod: today, priority: '0.8' }, { loc: `${origin}/guides`, lastmod: today, priority: '0.8' }, ...(await import('./topicHubPages.js')).hubSitemapEntries(origin));
   } catch (error) {
     console.error('[seo] Reports left out of sitemap:', error.message);
   }
@@ -173,20 +173,38 @@ export async function buildSitemapXml(origin) {
 }
 
 /* ── Page head: title, description, canonical, social preview ───────── */
-export function buildHeadTags({ title, description, canonical, image, jsonLd, type = 'website' }) {
+export function buildHeadTags({ title: rawTitle, description, canonical, image, jsonLd, type = 'website' }) {
+  // Search results show about 60 characters: drop the brand from long titles
+  const title = String(rawTitle || '').length > 65 ? String(rawTitle).replace(/ \| Dr MoneyWise$/u, '') : String(rawTitle || '');
+  // Search engines show about 155 characters: cut at a word, not mid-word
+  const desc = (() => {
+    const d = String(description || '').replace(/\s+/gu, ' ').trim();
+    if (d.length <= 158) return d;
+    const cut = d.slice(0, 155);
+    return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 120)).replace(/[,;:.\s]+$/u, '')}…`;
+  })();
+  let site = '';
+  try { site = new URL(canonical).origin; } catch { site = ''; }
+  const img = image || (site ? `${site}/og-default.png` : '');
   const tags = [
     `<title>${escapeHtml(title)}</title>`,
-    `<meta name="description" content="${escapeAttr(description)}" />`,
+    `<meta name="description" content="${escapeAttr(desc)}" />`,
     `<link rel="canonical" href="${escapeAttr(canonical)}" />`,
+    '<link rel="icon" href="/favicon.svg" type="image/svg+xml" />',
+    '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
     `<meta property="og:type" content="${type}" />`,
     `<meta property="og:site_name" content="Dr MoneyWise" />`,
-    `<meta property="og:title" content="${escapeAttr(title)}" />`,
-    `<meta property="og:description" content="${escapeAttr(description)}" />`,
+    '<meta property="og:locale" content="en_GB" />',
+    `<meta property="og:title" content="${escapeAttr(title.replace(/ \| Dr MoneyWise$/u, ''))}" />`,
+    `<meta property="og:description" content="${escapeAttr(desc)}" />`,
     `<meta property="og:url" content="${escapeAttr(canonical)}" />`,
-    `<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}" />`,
+    `<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary_large_image'}" />`,
+    `<meta name="twitter:title" content="${escapeAttr(title.replace(/ \| Dr MoneyWise$/u, ''))}" />`,
+    `<meta name="twitter:description" content="${escapeAttr(desc)}" />`,
   ];
-  if (image) {
-    tags.push(`<meta property="og:image" content="${escapeAttr(image)}" />`);
+  if (img) {
+    tags.push(`<meta property="og:image" content="${escapeAttr(img)}" />`);
+    if (!image) tags.push('<meta property="og:image:width" content="1200" />', '<meta property="og:image:height" content="630" />');
   }
   if (!isSearchVisible()) {
     tags.push('<meta name="robots" content="noindex, nofollow" />');
@@ -237,10 +255,17 @@ export async function renderHomePage(template, origin) {
   html = await injectTopTenPanels(html);
   html = await injectPulse(html);
   html = await injectNewsWidget(html);
-  if (articles.length) {
-    const listHtml = `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>`;
-    html = html.replace('<div id="learningPoints" class="explain"></div>', () => listHtml);
-  }
+  const guides = `
+          <div class="home-guides">
+            <a href="/learn/beginners" style="--c:#1baf7a"><b>Young Guns</b><span>Free course for beginners</span></a>
+            <a href="/learn/intermediate" style="--c:#2a78d6"><b>Knights</b><span>Free course, next level</span></a>
+            <a href="/health-check" style="--c:#e5566f"><b>Health Check</b><span>Every company scored</span></a>
+            <a href="/personal-finance" style="--c:#0f8a76"><b>Personal finance</b><span>Budget, save, clear debt</span></a>
+            <a href="/retirement" style="--c:#6250d6"><b>Retirement</b><span>How much you need</span></a>
+            <a href="/currencies" style="--c:#0fa3b1"><b>Currencies</b><span>Today’s rates explained</span></a>
+          </div>`;
+  const listHtml = `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>${guides}`;
+  html = html.replace('<div id="learningPoints" class="explain"></div>', () => listHtml);
   return html;
 }
 
@@ -507,6 +532,7 @@ export function pageShell({ head, body, active }) {
   const nav = [
     ['today', '/today', 'Today'],
     ['learn', '/learn', 'Learn'],
+    ['guides', '/guides', 'Guides'],
     ['top10', '/top-10', 'Top 10s'],
     ['markets', '/markets', 'Markets'],
     ['property', '/property', 'Property'],
@@ -559,6 +585,7 @@ export function pageShell({ head, body, active }) {
             <a href="/terms">Terms</a>
           </div>
         </div>
+        <nav class="foot-topics" aria-label="Guides"><a href="/learn/beginners">Young Guns course</a><a href="/learn/intermediate">Knights course</a><a href="/health-check">Financial Health Check</a><a href="/personal-finance">Personal finance</a><a href="/retirement">Retirement</a><a href="/child-education">Child’s education</a><a href="/insurance">Insurance</a><a href="/currencies">Currencies</a><a href="/commodities">Commodities</a><a href="/shariah">Shariah investing</a><a href="/tools">Calculators</a><a href="/glossary">Money words</a></nav>
         <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
         <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the World Bank, the BIS, the OECD, HM Land Registry and the European Central Bank (exchange rates). Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
       </div>

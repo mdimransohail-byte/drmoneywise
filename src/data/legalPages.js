@@ -50,7 +50,7 @@ export const INFO_PAGES = {
 
   contact: {
     title: 'Contact us',
-    description: 'How to reach the Dr MoneyWise team.',
+    description: 'How to reach the Dr MoneyWise team: email us with questions about your membership, our explainers or the site, and we aim to reply within two working days.',
     intro: `The quickest way to reach us is by email at ${CONTACT_EMAIL}. We aim to reply within two working days.`,
     sections: [
       {

@@ -132,7 +132,7 @@ export async function renderShariahMarket(origin, id) {
   const rows = allRows.filter((r) => r.market === id);
   if (mk.fundsOnly) return renderFundCountry(origin, mk, fundData);
   const head = buildHeadTags({
-    title: `Shariah-compliant ${mk.name} stocks: AAOIFI, Dow Jones, S&P, MSCI and FTSE checks | Dr MoneyWise`,
+    title: `Shariah-compliant ${mk.name} stocks: halal checks under 5 standards | Dr MoneyWise`,
     description: `Which big ${mk.name} companies pass each Shariah standard, which Shariah funds hold them, and the local Shariah funds and ETFs. Updated from the companies' own filings.`,
     canonical: `${origin}/shariah/${id}`,
   });
@@ -246,7 +246,7 @@ function fundCard(f) {
 function renderFundCountry(origin, mk, fundData) {
   const id = mk.id;
   const head = buildHeadTags({
-    title: `Shariah-compliant investing in ${mk.name}: official Shariah list, Islamic ETFs and funds | Dr MoneyWise`,
+    title: `Shariah-compliant investing in ${mk.name}: Islamic funds and ETFs | Dr MoneyWise`,
     description: `How Shariah-compliant shares are chosen in ${mk.name}, the official list or index, and the Shariah ETFs and funds you can buy there.`,
     canonical: `${origin}/shariah/${id}`,
   });

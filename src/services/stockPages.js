@@ -16,6 +16,7 @@
 
 import { readCompanies, readPrices } from './dataEngine.js';
 import { buildReportCard, formatMoney, formatPercent, RATING_RULES } from './reportCardService.js';
+import { financialHealth, healthBoxHtml } from './financialHealthService.js';
 import { reportCardHtml, yearBarsHtml } from './infographicService.js';
 import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
 import { cleanName } from './secService.js';
@@ -310,8 +311,8 @@ export async function renderStockPage(origin, rawTicker) {
   try { const { shariahBoxHtml } = await import('./shariahPages.js'); shariahBox = await shariahBoxHtml(ticker); } catch { shariahBox = ''; }
 
   const head = buildHeadTags({
-    title: `${name} (${ticker}) explained simply: report card, sales and dividends | Dr MoneyWise`,
-    description: `${plainEnglishSummary(company).slice(0, 155)}`,
+    title: `${name} (${ticker}): financial health score and report card | Dr MoneyWise`,
+    description: (() => { const fh = financialHealth(company); return `${fh?.score !== null && fh ? `${name} financial health: ${fh.score}/100 (${fh.band.label}). ` : ''}${plainEnglishSummary(company)}`.slice(0, 158); })(),
     canonical: `${origin}/stock/${encodeURIComponent(ticker)}`,
     image: logoUrl(company, 400) || '',
   });
@@ -354,6 +355,8 @@ export async function renderStockPage(origin, rawTicker) {
           ${logoCard(company, name)}
         </div>
       </section>
+
+      ${healthBoxHtml(company, name)}
 
       ${companyResultsHtml(ticker, name)}
 
@@ -399,6 +402,7 @@ export async function renderStockPage(origin, rawTicker) {
 
       ${shariahBox}
       ${company.foreignFiler ? '' : insiderBoxHtml(ticker, name)}
+      <script src="/healthrank.js" defer></script>
 
       ${adSlot('in-content')}
 

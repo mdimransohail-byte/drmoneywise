@@ -100,11 +100,13 @@ export async function renderMarketsHub(origin) {
   });
   const cards = [
     ['/stocks', 'Stocks', 'Report cards for US companies: sales, profit, debt and dividends from official filings.', 'Top 10 in every sector'],
+    ['/health-check', 'Financial Health Check', 'Every company we cover scored out of 100 on growth, profit, debt, spare cash and dividends, with stars and a simple rating.', 'Free'],
     ['/stocks/world', 'Stocks around the world', 'The UK, Europe, Japan, China, India, South Korea, Brazil and the Gulf: report cards, prices and news.', '8 regions'],
     ['/shariah', 'Shariah-compliant investing', 'Which big companies pass the AAOIFI, Dow Jones, S&P, MSCI and FTSE Shariah checks, plus Shariah funds and ETFs.', '5 standards, 12 countries'],
     ['/etfs', 'ETFs', 'Funds that hold many investments at once: what is inside, the yearly fee and recent returns.', `${CURATED_ETFS.length} popular ETFs, look up any other`],
     ['/bonds', 'Bonds', 'Loans to governments: what they pay, how that has changed, and why it matters for mortgages.', us10 ? `US 10-year: ${us10.v.toFixed(2)}% (${periodWords(us10.p)})` : `${BOND_PLACES.length} countries`],
-    ['/commodities', 'Commodities', 'Gold, silver, oil, copper, coffee and more: prices over time and what moves them.', gold ? `Gold: ${usd(gold.latest.v)} an ounce (${periodWords(gold.latest.p)})` : `${COMMODITIES.length} commodities`],
+    ['/currencies', 'Currencies', 'Exchange rates for the main currencies, how currency trading works and its risks, and a converter.', 'Updated every working day'],
+    ['/commodities', 'Commodities', 'Gold, silver, oil, copper, coffee and more: prices, how commodity trading works and the companies behind them.', gold ? `Gold: ${usd(gold.latest.v)} an ounce (${periodWords(gold.latest.p)})` : `${COMMODITIES.length} commodities`],
     ['/top-10/crypto', 'Crypto', 'The ten biggest cryptocurrencies, explained simply, with live prices.', 'Top 10 by size'],
     ['/property', 'Property', 'Home prices and rents in the US, UK, India and more.', 'Updated weekly'],
     ['/results', 'Company results', 'What big companies reported, explained simply the day it came out.', 'Checked every hour'],
@@ -128,9 +130,10 @@ export async function renderMarketsHub(origin) {
 export async function renderCommoditiesHub(origin) {
   const data = await readCommodities();
   const head = buildHeadTags({
-    title: 'Commodity prices: gold, silver, oil, copper, coffee and more | Dr MoneyWise',
-    description: 'Monthly prices for gold, silver, oil, gas, copper, nickel, coffee, cocoa, wheat and more, with ten-year charts and what moves each price.',
+    title: 'Commodity prices and commodity trading explained: gold, oil, copper and more | Dr MoneyWise',
+    description: 'Prices for gold, silver, oil, gas, copper, coffee, wheat and more, how commodity trading works (futures, funds, producers), its risks, and the companies behind them.',
     canonical: `${origin}/commodities`,
+    jsonLd: (await import('./topicHubPages.js')).hubFaqJsonLd('commodities'),
   });
   const rows = COMMODITIES.map((c) => ({ c, f: commodityFacts(data.items?.[c.slug]?.series), unit: unitWords(data.items?.[c.slug]?.unit) }));
   const groups = COMMODITY_GROUPS.map((g) => {
@@ -156,6 +159,7 @@ export async function renderCommoditiesHub(origin) {
           <li>Prices move with supply (mines, harvests, weather, wars) and demand (factories, building, how fast economies grow).</li>
           <li>Most people invest in commodities through funds rather than buying barrels or sacks. Commodity prices can swing a lot, even within a single month.</li>
         </ul></details>
+        ${await (await import('./topicHubPages.js')).hubSectionsHtml('commodities')}
         ${adSlot('partner-box')}
         ${sources([COMMODITY_CREDIT])}
       </section>`;

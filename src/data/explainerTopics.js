@@ -99,6 +99,15 @@ export const EVERGREEN_TOPICS = [
   'How to read financial news without panicking',
   'Earnings season explained: why share prices jump on results day',
   'IPOs explained: buying a company on its first day',
+  // Insurance, education, currencies and commodities (topic guides)
+  'Life insurance explained: term or whole-of-life, and how much cover',
+  'Income protection: insuring your ability to earn',
+  'How insurers set your premium, and how to pay less',
+  'Saving for university: what it costs and the accounts that help',
+  'How currency trading works, and why most traders lose money',
+  'What moves exchange rates: interest rates, inflation and trade',
+  'How commodity trading works: futures, funds and producers',
+  'Gold miners or gold itself: how they differ',
 ];
 
 const ECONOMY_FILE = path.join(process.cwd(), 'data', 'market', 'economy.json');

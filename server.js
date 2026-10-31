@@ -847,6 +847,17 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { html });
     }
 
+    // Financial Health Check: industry ranking (Premium)
+    if (requestUrl.pathname === '/api/health/rank' && request.method === 'GET') {
+      const user = sessionUser;
+      if (!user || (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium'))) return sendJson(response, 403, { error: 'Premium only.' });
+      const { industryRank } = await import('./src/services/financialHealthService.js');
+      const { readCompanies } = await import('./src/services/dataEngine.js');
+      const ticker = String(requestUrl.searchParams.get('ticker') || '').toUpperCase().slice(0, 10);
+      const rank = industryRank(ticker, (await readCompanies()).companies);
+      return sendJson(response, 200, { rank });
+    }
+
     if (requestUrl.pathname === '/api/stock/details' && request.method === 'GET') {
       const user = sessionUser;
       if (!user) return sendJson(response, 401, { error: 'Sign in to see full results.' });
@@ -1146,6 +1157,18 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, await renderLearnIndex(origin));
   }
   if (pathname === '/learn/path') return sendHtml(response, 200, await renderLearningPath(origin));
+  if (['/personal-finance', '/retirement', '/child-education', '/insurance', '/currencies'].includes(pathname)) {
+    const { renderHub } = await import('./src/services/topicHubPages.js');
+    return sendHtml(response, 200, await renderHub(pathname.slice(1), origin));
+  }
+  if (pathname === '/guides') {
+    const { renderGuidesIndex } = await import('./src/services/guidesPage.js');
+    return sendHtml(response, 200, await renderGuidesIndex(origin));
+  }
+  if (pathname === '/health-check') {
+    const { renderHealthCheckIndex } = await import('./src/services/financialHealthPages.js');
+    return sendHtml(response, 200, await renderHealthCheckIndex(origin));
+  }
   if (pathname === '/learn/beginners' || pathname === '/learn/intermediate' || pathname === '/learn/advanced') {
     const { renderLevelPage } = await import('./src/services/learnLevelPages.js');
     return sendHtml(response, 200, await renderLevelPage(pathname.slice(7), origin));

@@ -1,0 +1,195 @@
+/* ════════════════════════════════════════════════════════════════════════
+   TOPIC HUBS — one page per money topic, linking everything on the site
+   about it: lessons, calculators, companies (with health scores), money
+   words, latest news and common questions.
+     /personal-finance   /retirement   /child-education   /insurance
+     /currencies         (and the trading section on /commodities)
+   Written here in plain English: general, long-standing facts only; no
+   product names, no advice. Country examples cover the UK, US, India and
+   the UAE, where most of our readers are.
+   lessons: course lesson ids (src/data/learnCourse.js) shown in this order,
+            plus any explainer whose headline matches `match`.
+   ════════════════════════════════════════════════════════════════════════ */
+
+export const HUBS = {
+  'personal-finance': {
+    name: 'Personal finance', icon: '◈', colour: '#1baf7a', colour2: '#7be0b8',
+    seoTitle: 'Personal finance made simple: budgeting, saving, debt and credit scores',
+    description: 'Plain-English personal finance: how to budget, build an emergency fund, beat inflation, clear debt and improve your credit score, with free calculators.',
+    intro: 'Getting your everyday money in order comes before any investing. Here is how to budget, build a safety net, keep up with rising prices and get on top of debt.',
+    ideas: [
+      ['Spend less than you earn', 'It sounds obvious, but everything else depends on it. A simple split such as 50% needs, 30% wants and 20% saving gives you a starting point you can adjust.'],
+      ['Build a safety net first', 'Keep money you can reach quickly for surprises: many people aim for three to six months of essential spending in an easy-access savings account.'],
+      ['Inflation is a silent cost', 'If prices rise 3% a year and your savings earn 1%, your money buys about 2% less each year. Compare what your savings earn with inflation.'],
+      ['Expensive debt first', 'Credit card and payday debt often costs 20% a year or more. Clearing it usually beats any return you could expect from investing.'],
+      ['Your credit score matters', 'Paying on time, keeping card balances low and not applying for lots of credit at once all help you borrow more cheaply later.'],
+      ['Automate the good habits', 'Move savings out on payday, before you can spend them. Small, automatic amounts add up faster than occasional big efforts.'],
+    ],
+    steps: ['Write down a month of spending', 'Set a budget you can keep', 'Build a safety net of 3–6 months', 'Clear expensive debts', 'Start investing for the long term'],
+    lessons: ['yg-1-1', 'yg-1-2', 'yg-1-3', 'yg-1-4', 'yg-1-5', 'yg-2-2', 'yg-2-4', 'yg-6-1'],
+    match: /budget|debt|credit score|emergency|saving|lifestyle|inflation|scam|spend/iu,
+    calcs: ['emergency-fund', 'debt-payoff', 'savings-growth', 'monthly-investing'],
+    companies: { title: 'Companies behind your everyday money', note: 'Banks and card companies earn from the way we pay and borrow. Their health scores show how strong their finances are.', tickers: ['V', 'MA', 'JPM', 'BAC', 'AXP', 'PYPL'] },
+    words: ['Budget', 'Emergency fund', 'Savings account', 'Inflation', 'Real return', 'Debt', 'Credit score', 'Interest rate', 'Net worth', 'Compound interest'],
+    faq: [
+      ['How much should I save each month?', 'A common starting point is 20% of take-home pay, but any regular amount helps. Start with what you can keep up, and raise it when your pay rises.'],
+      ['Should I pay off debt or save first?', 'Most people keep a small safety net first, then clear expensive debt such as credit cards, then build savings and investments. Cheap, long-term debt such as many mortgages can usually run alongside investing.'],
+      ['How big should an emergency fund be?', 'Three to six months of essential spending is a common guide. People with irregular income or dependants often aim for more.'],
+      ['How do I improve my credit score?', 'Pay every bill on time, keep card balances well below their limits, check your report for mistakes and avoid many credit applications in a short time.'],
+    ],
+    related: [['/retirement', 'Retirement planning'], ['/child-education', 'Saving for a child’s education'], ['/insurance', 'Insurance'], ['/learn/beginners', 'The Young Guns course']],
+    news: 'personal-finance',
+  },
+  retirement: {
+    name: 'Retirement planning', icon: '◷', colour: '#2a78d6', colour2: '#8fc1ff',
+    seoTitle: 'Retirement planning explained: how much you need and how to get there',
+    description: 'How much do you need to retire? Pensions, the 4% rule, workplace matching, tax-free accounts and a free retirement calculator, explained simply.',
+    intro: 'Retirement can last 25 years or more, so the earlier you plan the less you need to put away each month. Here is how much you might need, where to save and how to make it last.',
+    ideas: [
+      ['Start early, let time work', 'Money invested at 25 has about 40 years to grow; at 45 it has 20. Starting ten years earlier can roughly double the pot from the same monthly saving.'],
+      ['Take the free money', 'Many employers add to your workplace pension when you pay in. Not paying in enough to get the full match means turning down part of your pay.'],
+      ['Use tax-free accounts', 'Pensions, ISAs, 401(k)s, Roth IRAs, India’s PPF and NPS and similar accounts let your savings grow with less tax. The rules differ by country.'],
+      ['How much is enough?', 'A rough rule: you can take about 4% of your pot in the first year of retirement, then raise it with inflation. So $40,000 a year needs about $1,000,000.'],
+      ['Shift risk as you get closer', 'Shares grow most over long periods but can fall sharply. Many people move some savings into bonds and cash in the years before they retire.'],
+      ['Mind the fees', 'A 1% yearly fee can take about a quarter of your pot over 30 years. Low-cost index funds keep more for you.'],
+    ],
+    steps: ['Find out what you have already', 'Join your workplace pension and get the full match', 'Pick a target income', 'Check you’re on track with the calculator', 'Review once a year'],
+    lessons: ['yg-2-1', 'yg-2-3', 'yg-5-1', 'yg-5-2', 'yg-5-3', 'kn-4-1', 'kn-4-3', 'lo-4-1'],
+    match: /retire|pension|401|annuit|4% rule|roth|isa\b/iu,
+    calcs: ['retirement', 'monthly-investing', 'dividend-income', 'savings-growth'],
+    companies: { title: 'Companies that look after retirement savings', note: 'Fund managers and insurers run much of the world’s pension money.', tickers: ['BLK', 'TROW', 'SCHW', 'PRU', 'MET', 'PFG'] },
+    words: ['Pension', '401(k)', 'Roth IRA', 'ISA', 'PPF', 'Retirement account', 'Annuity', 'Asset allocation', 'Time horizon', 'Compound interest'],
+    faq: [
+      ['How much do I need to retire?', 'Work out the yearly income you want, take away any state or company pension, and multiply the rest by about 25. That is the pot the 4% rule suggests.'],
+      ['Is it too late to start saving at 45 or 50?', 'No. You will need to save more each month, but 15 to 20 years is still long enough for investments to grow, and catch-up allowances in some countries help.'],
+      ['What is the 4% rule?', 'A guide from US research: taking 4% of your savings in the first year of retirement, then raising it with inflation, has lasted about 30 years in most past periods. It is a rule of thumb, not a promise.'],
+      ['Should I pay off my mortgage or put more into my pension?', 'It depends on your mortgage rate, any employer match and tax relief. Many people take the full employer match first, as that is an instant gain.'],
+    ],
+    related: [['/personal-finance', 'Personal finance'], ['/insurance', 'Insurance'], ['/top-10/dividend-stocks', 'Top 10 dividend stocks'], ['/learn/intermediate', 'The Knights course']],
+    news: 'retirement',
+  },
+  'child-education': {
+    name: 'Saving for a child’s education', icon: '✎', colour: '#e8a33d', colour2: '#ffd889',
+    seoTitle: 'Saving for your child’s education: costs, accounts and a free calculator',
+    description: 'How much will school and university cost, and how much to save each month? Education savings accounts in the UK, US, India and the UAE, explained simply.',
+    intro: 'University and private school fees rise faster than most prices, so time is your biggest helper. Here is how to estimate the cost, where to save, and how much to put away each month.',
+    ideas: [
+      ['Start as early as you can', 'Saving from birth gives you around 18 years of growth. The same goal saved over 8 years needs more than twice as much each month.'],
+      ['Education costs rise fast', 'Fees have often gone up faster than general prices. When you plan, allow for yearly rises of 4–6% rather than today’s fees.'],
+      ['Use the right account', 'Examples: Junior ISA (UK), 529 plan (US), Sukanya Samriddhi and PPF (India). Each has its own rules on tax, limits and when the money can be used.'],
+      ['Match risk to the date', 'With 10+ years to go, shares can do the heavy lifting. As the start date gets closer, many parents move money into safer savings.'],
+      ['Family help adds up', 'Birthday and holiday gifts paid into the savings account, rather than spent, can make a real difference over 18 years.'],
+      ['Look at the whole picture', 'Scholarships, grants, student loans and studying in another country can change the cost a lot. Save, but don’t assume you must cover everything.'],
+    ],
+    steps: ['Pick a goal: school, university or both', 'Estimate the cost with the calculator', 'Open a tax-friendly account', 'Save a set amount every month', 'Move to safer savings in the last 3–5 years'],
+    lessons: ['yg-2-1', 'yg-2-3', 'yg-3-3', 'yg-5-2', 'yg-5-4', 'kn-4-1'],
+    match: /child|education|university|college|school|tuition|529|junior isa/iu,
+    calcs: ['education-fund', 'monthly-investing', 'savings-growth'],
+    companies: { title: 'Education companies', note: 'Listed companies in schooling, online learning and publishing.', tickers: ['LOPE', 'STRA', 'GHC', 'DUOL', 'PSO', 'CHGG'] },
+    words: ['Compound interest', 'Tax-free account', '529 plan', 'ISA', 'PPF', 'SIP', 'Time horizon', 'Inflation', 'Index fund', 'Dollar-cost averaging'],
+    faq: [
+      ['How much should I save for my child’s university?', 'Estimate today’s yearly cost, multiply by the years of study, and grow it by 4–6% a year until your child starts. Our education fund calculator does this and tells you the monthly saving needed.'],
+      ['Which account is best for education savings?', 'It depends on your country: Junior ISAs in the UK, 529 plans in the US and Sukanya Samriddhi or PPF in India are common choices. Check limits, tax rules and when the money can be taken out.'],
+      ['Is it better to invest or keep cash for a child?', 'Over 10 years or more, investing has usually grown faster than cash, but it can fall. Many parents invest early and move to cash as the start date gets close.'],
+      ['What if my child doesn’t go to university?', 'Rules differ: some accounts become the child’s money at 18, others charge tax or a penalty if not used for education. Check before you choose.'],
+    ],
+    related: [['/personal-finance', 'Personal finance'], ['/retirement', 'Retirement planning'], ['/tools/monthly-investing', 'Monthly investing calculator'], ['/learn/beginners', 'The Young Guns course']],
+    news: 'child-education',
+  },
+  insurance: {
+    name: 'Insurance', icon: '⛨', colour: '#6250d6', colour2: '#b3a8ff',
+    seoTitle: 'Insurance explained simply: life, health, income and home cover',
+    description: 'Which insurance do you really need? Life, health, income protection, home and car insurance explained in plain English, with a free life cover calculator.',
+    intro: 'Insurance swaps a small, certain cost for protection against a large, uncertain one. Here is which cover matters most, how much you might need and how to avoid paying for cover you don’t need.',
+    ideas: [
+      ['Insure what would hurt most', 'Cover the losses you could not afford: your income, your home, your health and your family’s needs if you died. Small losses are often cheaper to pay yourself.'],
+      ['Life insurance for dependants', 'If someone relies on your income or you have a mortgage, term life insurance can pay a lump sum if you die. It is usually much cheaper than whole-of-life cover.'],
+      ['Protect your income', 'Your ability to earn is often your biggest asset. Income protection pays part of your salary if illness or injury stops you working.'],
+      ['Health cover depends on where you live', 'Some countries rely on public healthcare, others on employer or private cover. Check what your job already gives you before buying more.'],
+      ['Read the excess and exclusions', 'A higher excess (deductible) lowers your premium but means you pay more of each claim. Exclusions list what is never covered.'],
+      ['Insurance is not an investment', 'Policies that mix savings with cover often carry high charges. Many people keep insurance and investing separate.'],
+    ],
+    steps: ['List who depends on you', 'Check the cover you already have through work', 'Work out your life cover with the calculator', 'Compare term policies', 'Review after big life changes'],
+    lessons: [],
+    match: /insur|protection|cover\b|premium/iu,
+    calcs: ['life-cover', 'emergency-fund'],
+    companies: { title: 'Insurance companies', note: 'How strong are the insurers themselves? Their health scores leave out debt and balance-sheet checks, which work differently for insurers.', tickers: ['PGR', 'ALL', 'TRV', 'CB', 'MET', 'AFL'] },
+    words: ['Insurance premium', 'Excess', 'Term life insurance', 'Income protection', 'Emergency fund', 'Annuity', 'Risk'],
+    faq: [
+      ['How much life insurance do I need?', 'A common way: enough to clear debts such as the mortgage, plus several years of the income your family relies on, plus future costs like education, minus savings and cover you already have. Our life cover calculator adds it up.'],
+      ['Term or whole-of-life insurance?', 'Term cover pays out only if you die within a set period and is usually far cheaper. Whole-of-life pays out whenever you die but costs much more.'],
+      ['Do I need income protection?', 'If you would struggle to pay the bills after a few months off work, it is worth looking at. Check first what sick pay your employer gives.'],
+      ['How can I lower my insurance premiums?', 'Compare quotes each year, choose a sensible excess, don’t buy cover twice (for example travel cover already on a bank account), and keep only the cover you need.'],
+    ],
+    related: [['/personal-finance', 'Personal finance'], ['/retirement', 'Retirement planning'], ['/child-education', 'Saving for a child’s education'], ['/health-check', 'Health check of insurance companies']],
+    news: 'insurance',
+  },
+  currencies: {
+    name: 'Currencies', icon: '¤', colour: '#0fa3b1', colour2: '#8be3ea',
+    seoTitle: 'Currency rates today and currency trading explained simply',
+    description: 'Today’s exchange rates for the dollar, pound, euro, rupee, dirham and more, what moves currencies, how forex trading works and its risks, with a free converter.',
+    intro: 'Exchange rates affect your holidays, the prices in the shops, and the value of any shares you own abroad. Here are today’s rates, what moves them, and how currency trading works, including why most traders lose money.',
+    ideas: [
+      ['Why currencies move', 'Interest rates, inflation, how fast an economy grows, trade and worry all play a part. Money tends to flow to countries paying higher interest, which can lift their currency.'],
+      ['How currency trading works', 'Currencies trade in pairs, such as EUR/USD. If you think the euro will rise against the dollar, you buy the pair; if it falls, you lose. Prices are quoted to four decimal places, and one step is a pip.'],
+      ['Leverage cuts both ways', 'Trading accounts often let you control $30 of currency for every $1 you put in. A 1% move against you then wipes out 30% of your money. Most retail traders who use CFDs lose money.'],
+      ['The hidden costs', 'The spread (the gap between buying and selling price), overnight fees and commissions are paid on every trade, win or lose.'],
+      ['Currency risk in your investments', 'If you own US shares and the dollar falls against your home currency, your shares are worth less to you even if their price in dollars hasn’t moved.'],
+      ['Some currencies are pegged', 'The UAE dirham, Saudi riyal and Hong Kong dollar are tied to the US dollar, so they barely move against it.'],
+    ],
+    steps: ['Understand what moves a currency', 'Know the costs: spread and fees', 'Learn how leverage multiplies losses', 'Never risk money you can’t afford to lose', 'For long-term investors: think about currency risk, not trading'],
+    lessons: ['kn-3-1', 'kn-3-4', 'kn-5-4', 'kn-6-2', 'lo-3-4', 'lo-4-4'],
+    match: /currenc|dollar|exchange rate|forex|sterling|euro\b|rupee|yen/iu,
+    calcs: ['currency-converter', 'trade-risk'],
+    companies: { title: 'US companies that earn much of their money abroad', note: 'When the dollar is strong, their sales from other countries are worth fewer dollars. Their results often mention “currency headwinds”.', tickers: ['KO', 'PG', 'MCD', 'V', 'MA', 'WU'] },
+    words: ['Currency', 'Exchange rate', 'Forex', 'Pip', 'Spread', 'Leverage', 'Margin', 'CFD', 'Hedge', 'Central bank'],
+    faq: [
+      ['What moves exchange rates?', 'Mostly interest rates, inflation, economic growth, trade balances and how worried investors are. A surprise interest rate change can move a currency within minutes.'],
+      ['Is forex trading profitable?', 'For most individuals, no. Regulators in the UK and EU require brokers to show the share of their customers who lose money on CFDs, and it is usually well over half. Leverage and costs make it hard to win over time.'],
+      ['What is a pip?', 'The smallest usual move in an exchange rate, normally 0.0001. For the yen it is 0.01.'],
+      ['Why is the dirham always 3.67 to the dollar?', 'The UAE has fixed its currency to the US dollar at about 3.6725 since 1997, and the central bank keeps it there.'],
+    ],
+    related: [['/commodities', 'Commodities'], ['/bonds', 'Bonds and interest rates'], ['/stocks/world', 'Stocks around the world'], ['/learn/intermediate', 'The Knights course']],
+    news: 'currencies',
+    rates: true,
+  },
+  commodities: {
+    name: 'Commodity trading', icon: '⛏', colour: '#b8891a', colour2: '#f7d07c',
+    seoTitle: 'Commodity trading explained',
+    description: '',
+    intro: '',
+    ideas: [
+      ['Three ways in', 'You can own a commodity directly (gold coins and bars), through a fund or ETF that tracks its price, or through shares in companies that produce it, such as miners and oil companies.'],
+      ['How futures work', 'Most commodities trade as futures: agreements to buy or sell at a set price on a set date. Producers and buyers use them to fix prices; traders use them to bet on moves.'],
+      ['Why commodity funds can lag', 'Funds that hold futures must keep swapping into the next contract. When later contracts cost more, each swap loses a little, so the fund can trail the price you see quoted.'],
+      ['Leverage and big swings', 'Oil has fallen more than 50% within a year several times. Trading with borrowed money on top of that can wipe out an account quickly.'],
+      ['Producers are not the same as the metal', 'A gold miner’s shares often move more than gold itself, because its costs stay fixed while its selling price changes. They also carry company risks such as debt and mine problems.'],
+      ['Commodities in a portfolio', 'Some investors hold a small amount of gold or a broad commodity fund to spread risk, because commodities sometimes rise when shares and bonds fall, especially when inflation jumps.'],
+    ],
+    steps: [],
+    lessons: ['kn-5-1', 'kn-6-2', 'yg-1-1', 'lo-3-4'],
+    match: /commodit|gold|oil|copper|silver|futures/iu,
+    calcs: ['trade-risk', 'currency-converter'],
+    companies: { title: 'Companies that produce commodities', note: 'Oil companies and miners: their profits rise and fall with the prices they sell at.', tickers: ['XOM', 'CVX', 'COP', 'NEM', 'FCX', 'ADM'] },
+    words: ['Commodity', 'Futures contract', 'Gold', 'Safe haven', 'Leverage', 'Hedge', 'CFD', 'Inflation'],
+    faq: [
+      ['How can I invest in gold?', 'Through physical gold (coins and bars), gold ETFs that hold metal in vaults, or shares in gold miners. Each has different costs and risks; physical gold has storage and insurance costs.'],
+      ['Why do oil prices change so much?', 'Small changes in supply or demand can move the price a lot, because people can’t quickly use less fuel or pump more oil. Wars, decisions by big producers and the strength of the world economy all play a part.'],
+      ['What is a commodity future?', 'An agreement to buy or sell a set amount of a commodity at a set price on a set date. Most are closed before the date, so traders never take delivery.'],
+      ['Are commodities a good hedge against inflation?', 'Sometimes. Commodity prices rose strongly in some high-inflation periods, but they can also fall when inflation is high. They pay no income.'],
+    ],
+    related: [['/currencies', 'Currencies'], ['/top-10/etfs', 'Top 10 ETFs'], ['/health-check', 'Financial Health Check']],
+    news: '',
+  },
+};
+
+export const HUB_ORDER = ['personal-finance', 'retirement', 'child-education', 'insurance', 'currencies'];
+
+/* GDELT news searches for each hub's "Latest news" box (newsLinksService). */
+export const HUB_NEWS_QUERIES = {
+  'personal-finance': [['("personal finance" OR "cost of living" OR "household budgets" OR "credit card debt")', 14], ['("personal finance" OR "cost of living")', 30]],
+  retirement: [['(pensions OR "retirement savings" OR "state pension" OR 401k)', 14], ['(pension retirement)', 30]],
+  'child-education': [['("tuition fees" OR "student loans" OR "university fees" OR "college savings" OR "school fees")', 14], ['("tuition fees" OR "student loans")', 30]],
+  insurance: [['("life insurance" OR "health insurance" OR "home insurance" OR "insurance premiums")', 14], ['("insurance premiums" OR insurers)', 30]],
+  currencies: [['("exchange rate" OR forex OR "US dollar" OR sterling OR "the euro" OR yen OR rupee)', 7], ['("exchange rate" OR forex)', 30]],
+};
