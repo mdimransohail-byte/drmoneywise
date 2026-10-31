@@ -108,7 +108,7 @@ export async function buildSitemapXml(origin) {
     { loc: `${origin}/top-10/dividend-stocks`, lastmod: today, priority: '0.8' },
     { loc: `${origin}/top-10/etfs`, lastmod: today, priority: '0.8' },
     { loc: `${origin}/top-10/crypto`, lastmod: today, priority: '0.8' },
-    { loc: `${origin}/today`, lastmod: today, priority: '0.9' },
+    { loc: `${origin}/today`, lastmod: today, priority: '0.6' },
     { loc: `${origin}/stocks`, lastmod: today, priority: '0.7' },
     ...Object.keys(INFO_PAGES).map((slug) => ({ loc: `${origin}/${slug}`, lastmod: today, priority: '0.3' })),
     ...articles.map((article) => ({
@@ -129,7 +129,7 @@ export async function buildSitemapXml(origin) {
   urls.push({ loc: `${origin}/insiders`, lastmod: today, priority: '0.6' });
   try {
     const { reportSitemapEntries } = await import('./reportPages.js');
-    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/advanced`, lastmod: today, priority: '0.7' }, { loc: `${origin}/health-check`, lastmod: today, priority: '0.8' }, { loc: `${origin}/guides`, lastmod: today, priority: '0.8' }, ...(await import('./topicHubPages.js')).hubSitemapEntries(origin));
+    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/advanced`, lastmod: today, priority: '0.7' }, { loc: `${origin}/health-check`, lastmod: today, priority: '0.8' }, { loc: `${origin}/guides`, lastmod: today, priority: '0.8' }, { loc: `${origin}/property/cities`, lastmod: today, priority: '0.8' }, ...(await import('./topicHubPages.js')).hubSitemapEntries(origin));
   } catch (error) {
     console.error('[seo] Reports left out of sitemap:', error.message);
   }
@@ -241,8 +241,8 @@ async function injectNewsWidget(html) {
 export async function renderHomePage(template, origin) {
   const articles = (await getPublishedLearningArticles()).slice(0, 10);
   const head = buildHeadTags({
-    title: 'Dr MoneyWise — Money and investing, explained simply',
-    description: 'Market news, stocks, ETFs and money ideas explained in plain English for everyday investors.',
+    title: 'Dr MoneyWise — Money and Investing simplified',
+    description: 'Money and investing simplified: free courses from the basics up, a health score for every company, live market heat maps, calculators and guides for everyday investors.',
     canonical: `${origin}/`,
     jsonLd: {
       '@context': 'https://schema.org',
@@ -256,16 +256,21 @@ export async function renderHomePage(template, origin) {
   html = await injectPulse(html);
   html = await injectNewsWidget(html);
   const guides = `
-          <div class="home-guides">
-            <a href="/learn/beginners" style="--c:#1baf7a"><b>Young Guns</b><span>Free course for beginners</span></a>
-            <a href="/learn/intermediate" style="--c:#2a78d6"><b>Knights</b><span>Free course, next level</span></a>
-            <a href="/health-check" style="--c:#e5566f"><b>Health Check</b><span>Every company scored</span></a>
-            <a href="/personal-finance" style="--c:#0f8a76"><b>Personal finance</b><span>Budget, save, clear debt</span></a>
-            <a href="/retirement" style="--c:#6250d6"><b>Retirement</b><span>How much you need</span></a>
-            <a href="/currencies" style="--c:#0fa3b1"><b>Currencies</b><span>Today’s rates explained</span></a>
-          </div>`;
-  const listHtml = `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>${guides}`;
+          <div class="home-guides">${[
+            ['/learn/beginners', '#1baf7a', '✦', 'Young Guns', 'Free course for beginners'],
+            ['/learn/intermediate', '#2a78d6', '⛨', 'Knights', 'Free course, next level'],
+            ['/health-check', '#e5566f', '❤', 'Health Check', 'Every company scored'],
+            ['/personal-finance', '#0f8a76', '◈', 'Personal finance', 'Budget, save, clear debt'],
+            ['/retirement', '#6250d6', '◷', 'Retirement', 'How much you need'],
+            ['/child-education', '#e8a33d', '✎', 'Child’s education', 'Costs and how to save'],
+            ['/insurance', '#8a4fd8', '☂', 'Insurance', 'The cover that matters'],
+            ['/currencies', '#0fa3b1', '¤', 'Currencies', 'Today’s rates explained'],
+            ['/commodities', '#b8891a', '⛏', 'Commodities', 'Gold, oil and trading'],
+            ['/shariah', '#127a5d', '☪', 'Shariah investing', 'Halal stocks and funds'],
+          ].map(([href, c, ico, name, sub]) => `<a href="${href}" style="--c:${c}"><span class="hg-ico" aria-hidden="true">${ico}</span><b>${name}</b><span>${sub}</span></a>`).join('')}</div>`;
+  const listHtml = `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>`;
   html = html.replace('<div id="learningPoints" class="explain"></div>', () => listHtml);
+  html = html.replace('<!-- GUIDES -->', () => guides);
   return html;
 }
 
@@ -312,11 +317,12 @@ export async function renderLearnIndex(origin) {
         ${chooser}
         ${list}
         <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge">Members</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in plain English. Read other readers’ answers too.</span><em>Ask a question →</em></a>
-        <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge">Free</span><strong>Shariah-compliant investing</strong><span>How Islamic screening works, the five main standards side by side, and Shariah funds and ETFs.</span><em>Read the guide →</em></a>
-        <a class="lp-banner" href="/learn/path"><span class="pf-badge">Free</span><strong>Your learning path</strong><span>Short steps from your first savings to running a portfolio. Tick them off as you go.</span><em>Start the path →</em></a>
+        <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge free">Free</span><strong>Shariah-compliant investing</strong><span>How Islamic screening works, the five main standards side by side, and Shariah funds and ETFs.</span><em>Read the guide →</em></a>
+        <a class="lp-banner" href="/learn/path"><span class="pf-badge free">Free</span><strong>Your learning path</strong><span>Short steps from your first savings to running a portfolio. Tick them off as you go.</span><em>Start the path →</em></a>
         ${(await import('./newsletterPage.js')).newsletterSignupBox('learn')}
       </section>
-      <script src="/newsletter.js" defer></script>`;
+      <script src="/newsletter.js" defer></script>
+      <script src="/learnprogress.js" defer></script>`;
   return pageShell({ head, body, active: 'learn' });
 }
 
@@ -530,7 +536,6 @@ export function renderNotFound() {
 /* ── Shared header + footer for server-built pages ──────────────────── */
 export function pageShell({ head, body, active }) {
   const nav = [
-    ['today', '/today', 'Today'],
     ['learn', '/learn', 'Learn'],
     ['guides', '/guides', 'Guides'],
     ['top10', '/top-10', 'Top 10s'],

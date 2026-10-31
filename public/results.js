@@ -47,7 +47,7 @@
         if (!d || !d.impacts) return;
         boxes.forEach(function (b) {
           var text = d.impacts[b.getAttribute('data-impact-for')];
-          if (text) b.innerHTML = '<h4>What it means <span class="members-badge">Premium</span></h4><p>' + esc(text) + '</p>';
+          if (text) b.innerHTML = '<h4>What it means <span class="members-badge prem">Premium</span></h4><p>' + esc(text) + '</p>';
         });
       }).catch(function () {});
   }

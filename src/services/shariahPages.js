@@ -89,7 +89,7 @@ export async function renderShariahHub(origin) {
   }).join('');
   const body = `
       <section class="block sh-page">
-        <div class="sh-hero"><div><span class="pf-badge">Free guide</span><h1>Shariah-compliant investing</h1>
+        <div class="sh-hero"><div><span class="pf-badge free">Free guide</span><h1>Shariah-compliant investing</h1>
           <p>Islamic investing avoids companies whose main business is forbidden (such as alcohol, gambling or interest-based banking) and companies that borrow or hold too much interest-bearing money. Here’s how the checks work, how the five best-known standards differ, which big companies pass each one, and the Shariah funds and ETFs you can buy.</p></div>
           <div class="sh-mark" aria-hidden="true">⚖</div></div>
 

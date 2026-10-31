@@ -295,6 +295,22 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { done, profile: sessionUser.profile || null });
     }
 
+    // Learn course progress: lessons read and quiz scores
+    if (requestUrl.pathname === '/api/member/lessons' && (request.method === 'GET' || request.method === 'POST')) {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in to track your progress.' });
+      const { saveLessonRead, lessonProgress } = await import('./src/services/memberService.js');
+      let user = sessionUser;
+      if (request.method === 'POST') {
+        const body = await parseJsonBody(request);
+        const read = await saveLessonRead(sessionUser.id, body).catch((error) => {
+          if (sessionUser.role === 'admin' && /Member not found/u.test(error.message)) return sessionUser.lessonsRead || [];
+          throw error;
+        });
+        user = { ...sessionUser, lessonsRead: read };
+      }
+      return sendJson(response, 200, await lessonProgress(user));
+    }
+
     // Ideas that match your rules (Premium)
     if (requestUrl.pathname === '/api/member/ideas' && (request.method === 'GET' || request.method === 'POST')) {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
@@ -624,6 +640,14 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, await getPortfolioSnapshot({ holdings: body.holdings || [] }));
     }
 
+    // Portfolio edge (Premium): health scores, sector mix, yield, Shariah
+    if (requestUrl.pathname === '/api/member/portfolio-edge' && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Premium only.' });
+      const { portfolioEdge } = await import('./src/services/portfolioEdgeService.js');
+      return sendJson(response, 200, await portfolioEdge(sessionUser));
+    }
+
     if (requestUrl.pathname === '/api/member/portfolio-review' && request.method === 'GET') {
       return sendJson(response, 200, await getPortfolioReview(token));
     }
@@ -845,6 +869,14 @@ export const server = http.createServer(async (request, response) => {
       const html = await marketsMembersHtml(kind, id, requestUrl.searchParams.get('other') || '');
       if (!html) return sendJson(response, 404, { error: 'Not found.' });
       return sendJson(response, 200, { html });
+    }
+
+    // Property: city scorecard (Premium)
+    if (requestUrl.pathname === '/api/property/cities-premium' && request.method === 'GET') {
+      const user = sessionUser;
+      if (!user || (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium'))) return sendJson(response, 403, { error: 'Premium only.' });
+      const { premiumCities } = await import('./src/services/propertyCityPages.js');
+      return sendJson(response, 200, { cities: await premiumCities() });
     }
 
     // Financial Health Check: industry ranking (Premium)
@@ -1100,6 +1132,10 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, await renderPropertyHub(origin));
   }
 
+  if (pathname === '/property/cities') {
+    const { renderPropertyCities } = await import('./src/services/propertyCityPages.js');
+    return sendHtml(response, 200, await renderPropertyCities(origin));
+  }
   const propertyMatch = pathname.match(/^\/property\/([a-z-]{2,40})$/u);
   if (propertyMatch) {
     const html = await renderPropertyPlace(origin, propertyMatch[1]);

@@ -49,7 +49,7 @@ function cover(r, full) {
   ].filter(Boolean).join('');
   const paras = full ? r.text.summary : r.text.summary.slice(0, 1);
   return `
-        <div class="rp-cover"><div><span class="pf-badge">★ Premium research</span><p class="rp-month">${esc(r.month)}${r.partial ? ` · so far, to ${esc(day(r.to))}` : ''}</p><h1>${esc(r.text.headline)}</h1></div>
+        <div class="rp-cover"><div><span class="pf-badge prem">★ Premium research</span><p class="rp-month">${esc(r.month)}${r.partial ? ` · so far, to ${esc(day(r.to))}` : ''}</p><h1>${esc(r.text.headline)}</h1></div>
           <div class="rp-stamp"><strong>${esc(r.month.split(' ')[0].slice(0, 3))}</strong><span>${esc(r.id.slice(0, 4))}</span></div></div>
         <div class="pr-tiles">${tiles}</div>
         <div class="pf-panel rp-summary"><h2>Executive summary</h2>${paras.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`;
@@ -120,7 +120,7 @@ export async function renderReportsIndex(origin) {
   const body = `
       <section class="block rp-page">
         <p class="crumbs"><a href="/markets">Markets</a> › Monthly research report</p>
-        <div class="rp-cover"><div><span class="pf-badge">★ Premium research</span><h1>Monthly research report</h1><p class="rp-lede">Each month in figures, explained simply: the economy, commodities, bond yields, company results and dividends, what company bosses and the big funds did, and the strongest report cards. Out on the 1st of every month.</p></div></div>
+        <div class="rp-cover"><div><span class="pf-badge prem">★ Premium research</span><h1>Monthly research report</h1><p class="rp-lede">Each month in figures, explained simply: the economy, commodities, bond yields, company results and dividends, what company bosses and the big funds did, and the strongest report cards. Out on the 1st of every month.</p></div></div>
         ${reports.length ? `<div class="rp-cards">${reports.map((r, i) => `<a class="rp-card" href="/reports/${esc(r.id)}" style="--c:${PALETTE[i % PALETTE.length]}"><span>${esc(r.month)}${r.partial ? ' · so far' : ''}</span><strong>${esc(r.text.headline)}</strong><em>${esc(String(r.text.summary[0] || '').slice(0, 160))}…</em></a>`).join('')}</div>`
           : '<div class="pf-panel"><p>The first report is being prepared and will appear here soon.</p></div>'}
       </section>`;

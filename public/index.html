@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dr MoneyWise — Money and investing, explained simply</title>
+    <title>Dr MoneyWise — Money and Investing simplified</title>
     <meta
       name="description"
-      content="Dr MoneyWise explains market news, stocks, ETFs and money ideas in plain English for everyday investors."
+      content="Money and investing simplified: free courses, a health score for every company, market heat maps, calculators and guides for everyday investors."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,7 +19,6 @@
       <div class="wrap bar">
         <a class="brand" href="/">Dr MoneyWise</a>
         <nav class="main-nav" aria-label="Main">
-          <a href="/today">Today</a>
           <a href="/learn">Learn</a>
           <a href="/guides">Guides</a>
           <a href="/top-10">Top 10s</a>
@@ -41,7 +40,6 @@
         </div>
       </div>
       <nav id="mobileNav" class="mobile-nav" aria-label="Main">
-        <a href="/today">Today</a>
         <a href="/learn">Learn</a>
         <a href="/guides">Guides</a>
           <a href="/top-10">Top 10s</a>
@@ -63,9 +61,9 @@
       <section id="today" class="hero">
         <div class="wrap hero-grid">
           <div>
-            <p id="heroDateline" class="dateline">Today in 60 seconds</p>
-            <h1 id="heroHeadline">Money news and investing, explained in plain English.</h1>
-            <p id="heroLede" class="lede">Every day we turn the noise of the markets into a short, clear read: what happened, why it matters, and what, if anything, it means for you.</p>
+            <p id="heroDateline" class="dateline">Dr MoneyWise</p>
+            <h1 id="heroHeadline">Money and Investing simplified</h1>
+            <p id="heroLede" class="lede">Free courses from the basics up, a health score for every company, live market maps, calculators and guides. Clear, short and jargon-free.</p>
             <dl class="reading-aid">
               <div><dt>What happened</dt><dd id="aidWhat">The day's biggest money stories, in a few lines.</dd></div>
               <div><dt>Why it matters</dt><dd id="aidWhy">How it touches prices, jobs, savings and loans.</dd></div>
@@ -78,7 +76,7 @@
             <a class="hc-row" href="/tools/monthly-investing" style="--c:#2a78d6"><i aria-hidden="true">↗</i><span><strong>Monthly investing</strong><small>Investing a little every month</small></span><b aria-hidden="true">→</b></a>
             <a class="hc-row" href="/tools/retirement" style="--c:#6250d6"><i aria-hidden="true">⌂</i><span><strong>Retirement check</strong><small>Am I on track?</small></span><b aria-hidden="true">→</b></a>
             <a class="hc-row" href="/tools/dividend-income" style="--c:#eda100"><i aria-hidden="true">%</i><span><strong>Dividend income</strong><small>Yearly payout from my shares</small></span><b aria-hidden="true">→</b></a>
-            <div class="hc-foot"><a href="/tools">All calculators and the money glossary</a> · <a href="/today">Today’s markets</a></div>
+            <div class="hc-foot"><a href="/tools">All calculators and the money glossary</a> · <a href="/today">The economy today</a></div>
           </div>
         </div>
       </section>
@@ -88,6 +86,16 @@
         <section id="homeResults" class="block rs-box" hidden></section>
 
         <!-- ═══ BUSINESS NEWS BY REGION (public/regionnews.js) ═══ -->
+        <!-- ═══ STOCK MARKET HEAT MAP (public/heatmap.js) ═══ -->
+        <section class="block hm-box" id="heatmap">
+          <div class="block-head">
+            <div><h2>Stock market heat map</h2><p>Each box is a company: bigger box = bigger company; green = share price up today, red = down. Pick a market.</p></div>
+            <label class="rn-pick"><span>Market</span><select id="hmMarket" aria-label="Choose a stock market"></select></label>
+          </div>
+          <div id="hmWidget" class="hm-widget"></div>
+          <p class="rn-credit">Live heat map by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>; prices may be delayed. <a href="/today">The economy and this week’s announcements →</a></p>
+        </section>
+
         <section class="block rn-box" id="regionNews">
           <div class="rn-head">
             <div><h2>Business news by region</h2><p>The latest headlines from news sites. Choose a region; click a headline to read it on the publisher’s site.</p></div>
@@ -101,17 +109,22 @@
           <p class="rn-credit">Headlines found with <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">the GDELT Project</a>. Articles belong to their publishers; we don’t check or endorse them. <a id="rnMore" href="/stocks/world">More on this region</a></p>
         </section>
 
+        <section class="block home-guides-box">
+          <div class="block-head"><div><h2>Money guides</h2><p>Everything on one topic in one place: lessons, calculators, companies and common questions.</p></div><a class="go-link" href="/guides">All guides →</a></div>
+          <!-- GUIDES -->
+        </section>
+
         <section class="block home-tools">
           <div class="block-head"><div><h2>Research tools</h2><p>Built from companies’ and funds’ official reports.</p></div></div>
           <div class="mk-cards">
             <a class="mk-card" href="/screener"><strong>Stock screener</strong><span>Filter companies by growth, profit, debt and dividends.</span><em>Members</em></a>
             <a class="mk-card" href="/stocks/world"><strong>Stocks around the world</strong><span>The UK, Europe, Japan, China, India, South Korea, Brazil and the Gulf.</span><em>Free</em></a>
-            <a class="mk-card" href="/ideas"><strong>Ideas that match your rules</strong><span>Save your rules and see every company that matches.</span><em>Premium</em></a>
-            <a class="mk-card" href="/portfolio-health"><strong>Portfolio health check</strong><span>A score and heat map for every holding.</span><em>Premium</em></a>
-            <a class="mk-card" href="/insiders"><strong>Company bosses’ trades</strong><span>When directors buy or sell their own company’s shares.</span><em>Premium</em></a>
-            <a class="mk-card" href="/reports"><strong>Monthly research report</strong><span>The month in figures, with charts.</span><em>Premium</em></a>
+            <a class="mk-card" href="/ideas"><strong>Ideas that match your rules</strong><span>Save your rules and see every company that matches.</span><em class="prem">Premium</em></a>
+            <a class="mk-card" href="/portfolio-health"><strong>Portfolio health check</strong><span>A score and heat map for every holding.</span><em class="prem">Premium</em></a>
+            <a class="mk-card" href="/insiders"><strong>Company bosses’ trades</strong><span>When directors buy or sell their own company’s shares.</span><em class="prem">Premium</em></a>
+            <a class="mk-card" href="/reports"><strong>Monthly research report</strong><span>The month in figures, with charts.</span><em class="prem">Premium</em></a>
           </div>
-          <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge">Free</span><strong>Shariah-compliant investing</strong><span>Which big companies pass the five main Shariah standards, and the Shariah funds and ETFs you can buy.</span><em>See the guide →</em></a>
+          <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge free">Free</span><strong>Shariah-compliant investing</strong><span>Which big companies pass the five main Shariah standards, and the Shariah funds and ETFs you can buy.</span><em>See the guide →</em></a>
         </section>
 
         <section id="top10" class="block">
@@ -259,6 +272,7 @@
             <button id="refreshReviewButton" class="button secondary" type="button">Refresh review</button>
           </div>
           <div id="portfolioReview" class="review-board"></div>
+          <div id="portfolioEdge" class="pe-box"></div>
         </section>
 
         <!-- ═══ MEMBERSHIP ════════════════════════════════════════════ -->
@@ -341,5 +355,7 @@
     <script src="/results.js" defer></script>
     <script src="/regionnews.js" defer></script>
     <script src="/newsletter.js" defer></script>
+    <script src="/heatmap.js" defer></script>
+    <script src="/portfolioedge.js" defer></script>
   </body>
 </html>

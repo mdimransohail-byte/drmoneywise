@@ -332,3 +332,40 @@ export async function saveLearningDone(userId, ids) {
   });
   return updated.users.find((u) => u.id === userId)?.learningDone || [];
 }
+
+/* ── Learn course: lessons the member has read (and their quiz score) ──
+   Stored on the member as lessonsRead: [{ slug, at, quiz }]. */
+export async function saveLessonRead(userId, { slug, done = true, quiz = null } = {}) {
+  const clean = String(slug || '').toLowerCase().replace(/[^a-z0-9-]/gu, '').slice(0, 120);
+  if (!clean) throw Object.assign(new Error('Which lesson?'), { status: 400 });
+  const updated = await updateStore((store) => {
+    if (!(store.articles || []).some((a) => a.slug === clean && (a.contentType || 'learning') === 'learning')) throw Object.assign(new Error('Lesson not found.'), { status: 404 });
+    const target = store.users.find((u) => u.id === userId);
+    if (!target) throw new Error('Member not found.');
+    const list = (target.lessonsRead || []).filter((x) => x.slug !== clean);
+    if (done) {
+      const prev = (target.lessonsRead || []).find((x) => x.slug === clean);
+      const q = quiz && Number.isFinite(Number(quiz.score)) ? { score: Number(quiz.score), of: Number(quiz.of) || 3 } : prev?.quiz || null;
+      list.push({ slug: clean, at: prev?.at || new Date().toISOString(), quiz: q });
+    }
+    target.lessonsRead = list.slice(-2000);
+    return store;
+  });
+  return updated.users.find((u) => u.id === userId)?.lessonsRead || [];
+}
+
+/** Progress for each course level: { read: [...], levels: { beginner: { read, total, planned } } } */
+export async function lessonProgress(user) {
+  const read = user?.lessonsRead || [];
+  const { getPublishedLearningArticles } = await import('./seoService.js');
+  const { levelOf } = await import('../data/learnLevels.js');
+  const { COURSE } = await import('../data/learnCourse.js');
+  const all = await getPublishedLearningArticles();
+  const readSet = new Set(read.map((x) => x.slug));
+  const levels = {};
+  for (const id of ['beginner', 'intermediate', 'lords']) {
+    const mine = all.filter((a) => levelOf(a) === id);
+    levels[id] = { read: mine.filter((a) => readSet.has(a.slug)).length, total: mine.length, planned: (COURSE[id] || []).reduce((n, w) => n + w.lessons.length, 0) };
+  }
+  return { read, levels };
+}

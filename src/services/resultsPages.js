@@ -26,7 +26,7 @@ export function resultCardHtml(r, { showCompany = true } = {}) {
           <h3>${esc(r.headline)}</h3>
           ${r.simple ? `<p class="rs-simple"><strong>In simple words:</strong> ${esc(r.simple)}</p>` : '<p class="rs-simple">A plain-English explanation is on its way. Meanwhile, read the company’s own announcement below.</p>'}
           ${numbers}
-          ${r.simple ? `<div class="rs-impact" data-impact-for="${esc(r.id)}"><h4>What it means <span class="members-badge">Premium</span></h4><p>Premium members see what changed, what the company expects next, and what to keep an eye on. <a href="/membership">See Premium</a></p></div>` : ''}
+          ${r.simple ? `<div class="rs-impact" data-impact-for="${esc(r.id)}"><h4>What it means <span class="members-badge prem">Premium</span></h4><p>Premium members see what changed, what the company expects next, and what to keep an eye on. <a href="/membership">See Premium</a></p></div>` : ''}
           <p class="rs-source"><a href="${esc(r.url)}" target="_blank" rel="noopener">Read the company’s announcement</a> (official filing with the US Securities and Exchange Commission). Not advice.</p>
         </article>`;
 }

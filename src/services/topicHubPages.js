@@ -122,7 +122,7 @@ export async function renderHub(slug, origin) {
         <p class="crumbs"><a href="/">Home</a> › ${esc(hub.name)}</p>
         <div class="hb-hero">
           <span class="hb-icon" aria-hidden="true">${hub.icon}</span>
-          <div><span class="pf-badge">Free guide</span><h1>${esc(hub.name)}</h1><p>${esc(hub.intro)}</p></div>
+          <div><span class="pf-badge free">Free guide</span><h1>${esc(hub.name)}</h1><p>${esc(hub.intro)}</p></div>
         </div>
         ${hub.steps?.length ? `<ol class="hb-steps hb-grid"${cols(hub.steps.length, 5)}>${hub.steps.map((s, i) => `<li style="--c:${COLOURS[i % 6]}"><span>${i + 1}</span>${esc(s)}</li>`).join('')}</ol>` : ''}
         ${hub.rates ? await ratesHtml() : ''}

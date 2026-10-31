@@ -106,7 +106,28 @@ function recordUsage(tickerCount) {
  *   error: string (only when source === 'error'),
  * }
  */
-export async function getLatestPrices(tickers) {
+/* Latest prices; anything the live call can't supply falls back to the last
+   price the data engine saved (paid plan only), so watchlists and portfolios
+   always show the most recent close we have, with its date. */
+const isPaidTier = () => getMonthlyLimit() >= 1000;
+
+export async function getLatestPrices(tickers, opts = {}) {
+  const result = await latestPricesInner(tickers, opts);
+  if (opts.fresh || !isPaidTier()) return result;
+  try {
+    const { readPrices } = await import('./dataEngine.js');
+    const saved = (await readPrices()).prices || {};
+    let filled = 0;
+    for (const t of (tickers || []).map((x) => String(x || '').trim().toUpperCase())) {
+      if (!result.prices[t] && saved[t]?.price) { result.prices[t] = { symbol: t, price: saved[t].price, date: saved[t].date }; filled += 1; }
+    }
+    if (filled && !['live'].includes(result.source)) result.source = 'cache';
+    if (filled && result.missing) result.missing = result.missing.filter((t) => !result.prices[t]);
+  } catch { /* keep the live result */ }
+  return result;
+}
+
+async function latestPricesInner(tickers, { fresh = false } = {}) {
   resetUsageIfNewMonth();
 
   const uniqueTickers = Array.from(
@@ -117,10 +138,25 @@ export async function getLatestPrices(tickers) {
     return { prices: {}, quota: getQuotaStatus(), source: 'none' };
   }
 
+  // Prices the data engine saved today (data/market/prices.json): the
+  // "prices" job fetches every company in our lists plus every ticker members
+  // watch or hold, once a day. Using them first saves the monthly allowance.
+  let saved = {};
+  if (!fresh) try {
+    const { readPrices } = await import('./dataEngine.js');
+    saved = (await readPrices()).prices || {};
+  } catch { saved = {}; }
+  const savedFor = (t) => {
+    const p = saved[t];
+    return p && p.price ? { symbol: t, price: p.price, open: p.open ?? null, high: p.high ?? null, low: p.low ?? null, volume: p.volume ?? null, date: p.date } : null;
+  };
+  const freshSaved = (t) => { const p = savedFor(t); return p && Date.now() - new Date(p.date).getTime() < 4 * 24 * 60 * 60 * 1000 ? p : null; };
+
   // Free plan = "Non-Commercial Use" (marketstack.com/pricing, checked
   // 17 Oct 2026). Never call it from the live site until the paid plan is on.
-  if (getMonthlyLimit() < 1000) {
-    return { prices: {}, quota: getQuotaStatus(), source: 'free-plan-off' };
+  if (!isPaidTier()) {
+    const fromFile = Object.fromEntries(uniqueTickers.map((t) => [t, savedFor(t)]).filter(([, p]) => p));
+    return { prices: fromFile, quota: getQuotaStatus(), source: Object.keys(fromFile).length ? 'cache' : 'free-plan-off' };
   }
 
   const now = Date.now();
@@ -131,6 +167,8 @@ export async function getLatestPrices(tickers) {
     const entry = priceCache.get(ticker);
     if (entry && now - entry.fetchedAt < CACHE_TTL_MS) {
       prices[ticker] = entry.data;
+    } else if (freshSaved(ticker)) {
+      prices[ticker] = freshSaved(ticker);
     } else {
       staleTickers.push(ticker);
     }

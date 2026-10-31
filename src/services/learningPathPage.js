@@ -49,7 +49,7 @@ export async function renderLearningPath(origin) {
   const body = `
       <section class="block lp-page">
         <p class="crumbs"><a href="/learn">Learn</a> › Your learning path</p>
-        <div class="lp-hero"><div><span class="pf-badge">Free</span><h1>Your learning path</h1><p>${total} short steps, from your first savings to running a portfolio. Each one takes a few minutes: read the lesson, try it on the site, tick it off.</p></div>
+        <div class="lp-hero"><div><span class="pf-badge free">Free</span><h1>Your learning path</h1><p>${total} short steps, from your first savings to running a portfolio. Each one takes a few minutes: read the lesson, try it on the site, tick it off.</p></div>
           <div class="lp-total"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="12"/><circle id="lpRing" cx="60" cy="60" r="50" fill="none" stroke="url(#lpGold)" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 315" transform="rotate(-90 60 60)"/><defs><linearGradient id="lpGold"><stop offset="0" stop-color="#f7d07c"/><stop offset="1" stop-color="#c9a227"/></linearGradient></defs></svg><div><strong id="lpCount">0</strong><span>of ${total} done</span></div></div></div>
         <div class="lp-tabs" role="tablist">${PATH_LEVELS.map((l, i) => `<button data-tab="${l.id}" style="--c:${l.colour}"><span>${i + 1}</span>${esc(l.name)}</button>`).join('')}</div>
         <p class="lp-note" id="lpNote">Start wherever suits you. Members who fill in their profile start at the level that fits their investing experience, and their ticks are saved to their account.</p>

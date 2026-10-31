@@ -104,7 +104,7 @@ export async function getMarketSnapshot({ region = 'global', asset = 'all' } = {
    credits/day. Falls back to Marketaux if NewsData fails or returns
    nothing, then to a stale cache, then to no headlines (never made-up ones).
    ════════════════════════════════════════════════════════════════════════ */
-const LIVE_HEADLINES_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const LIVE_HEADLINES_CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours (about 12 calls a day, well inside the free news allowance)
 const LIVE_HEADLINES_LIMIT = 20;
 let liveHeadlinesCache = null; // { payload, fetchedAt }
 

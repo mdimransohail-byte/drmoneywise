@@ -28,7 +28,7 @@ export async function renderNewsletterPage(origin) {
   });
   const body = `
       <section class="block nl-page">
-        <div class="ak-hero"><div><span class="pf-badge">Free</span><h1>The Dr MoneyWise newsletter</h1><p>About once a week we send our best plain-English explainers, the biggest company results and what’s new on the site. It’s free, and every email has a one-click unsubscribe link.</p></div><div class="ak-mark" aria-hidden="true">✉</div></div>
+        <div class="ak-hero"><div><span class="pf-badge free">Free</span><h1>The Dr MoneyWise newsletter</h1><p>About once a week we send our best plain-English explainers, the biggest company results and what’s new on the site. It’s free, and every email has a one-click unsubscribe link.</p></div><div class="ak-mark" aria-hidden="true">✉</div></div>
         ${newsletterSignupBox('newsletter-page')}
         <div class="nl-promise">
           <div style="--c:#2a78d6"><b>1</b><span>email about once a week</span></div>

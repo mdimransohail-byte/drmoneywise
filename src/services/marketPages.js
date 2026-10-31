@@ -125,7 +125,8 @@ export async function getEconomyFigures() {
   const order = ['inflation', 'interestRate', 'mortgageRate', 'tenYearYield', 'unemployment'];
   return {
     updatedAt: economy.updatedAt,
-    figures: order.map((key) => economy.figures?.[key]).filter(Boolean),
+    // Never show a figure that can't be a real percentage (see economyService)
+    figures: order.map((key) => economy.figures?.[key]).filter((f) => f && f.value > -30 && f.value < 50),
   };
 }
 
@@ -137,8 +138,8 @@ export async function renderToday(origin) {
   ]);
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const head = buildHeadTags({
-    title: 'Markets today, explained simply | Dr MoneyWise',
-    description: 'Today’s stock market, prices, economy and biggest money stories in plain English: what moved, why, and what it means for you.',
+    title: 'The economy today: inflation, interest rates, jobs and the week ahead | Dr MoneyWise',
+    description: 'Today’s key economy figures (inflation, interest rates, bond yields, mortgage rates and jobs), what each one means for you, and the announcements coming up this week.',
     canonical: `${origin}/today`,
   });
 
@@ -168,8 +169,8 @@ export async function renderToday(origin) {
       <section class="block">
         ${photoFigure(photo, 'Stock market screen', 'page-photo wide')}
         <p class="dateline-dark">${esc(today)}</p>
-        <h1 style="font-size:38px;margin:0 0 10px">Markets today</h1>
-        <p class="lede-dark">The day’s prices, the economy and the biggest money stories, in plain English.</p>
+        <h1 style="font-size:38px;margin:0 0 10px">The economy today</h1>
+        <p class="lede-dark">The figures that shape your savings and loans, what each one means, and what is coming up this week. For the latest news and the market heat map, see the <a href="/">home page</a>.</p>
         ${readingAid(
           'A quick look at how shares, gold, oil and Bitcoin are moving, plus the numbers that shape the economy.',
           'Daily moves feel dramatic but usually even out. The economy figures (prices, interest rates, jobs) matter more for your savings and loans.',
@@ -179,20 +180,9 @@ export async function renderToday(origin) {
       </section>
 
       <section class="block">
-        <div class="block-head"><div><h2>Top stories</h2><p>The biggest money news right now, linked to the original source.</p></div></div>
-        ${news.mode === 'widget' ? newsWidget(560) : stories}
-      </section>
-
-      <section class="block">
         ${economy}
         ${meanings}
         <div id="credits">${figures.length ? credits : ''}</div>
-      </section>
-
-      <section class="block">
-        <div class="block-head"><div><h2>The US stock market map</h2>
-          <p>Each box is a large US company. Bigger box = bigger company. Green = its share price is up today, red = down. Tap a box for details.</p></div></div>
-        ${stockHeatmap()}
       </section>
 
       <section class="block">
@@ -201,7 +191,7 @@ export async function renderToday(origin) {
         ${economicCalendar()}
         <p class="note-box">Prices and charts are provided by TradingView and may be delayed. This page is for learning, not advice. Read our <a href="/disclaimer">disclaimer</a>.</p>
       </section>`;
-  return pageShell({ head, body, active: 'today' });
+  return pageShell({ head, body, active: 'markets' });
 }
 
 /* ── /top-10/crypto ──────────────────────────────────────────────────── */
@@ -269,5 +259,5 @@ export async function renderHomePulse() {
     return `<div class="pulse-row"><span class="pulse-name">${esc(fig.label)}</span><span class="pulse-move flat">${arrow} ${esc(value)}</span><span class="pulse-plain">${esc(ECONOMY_MEANING[fig.key]?.(fig.value) || '')}</span></div>`;
   }).join('');
   return `${rows}
-            <div class="pulse-foot">Sources: BLS, New York Fed, Freddie Mac${updatedAt ? `, retrieved ${esc(updatedAt.slice(0, 10))}` : ''}. <a href="/today#credits">Credits</a> · <a href="/today">See today's markets</a></div>`;
+            <div class="pulse-foot">Sources: BLS, New York Fed, Freddie Mac${updatedAt ? `, retrieved ${esc(updatedAt.slice(0, 10))}` : ''}. <a href="/today#credits">Credits</a> · <a href="/today">The economy today</a></div>`;
 }

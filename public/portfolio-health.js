@@ -47,7 +47,7 @@
     var etfCols = { business: 'fee', trend: 'spread', outlook: 'conc' };
     var html = '';
     html += '<div class="pf-hero">' +
-      '<div class="pf-hero-text"><span class="pf-badge">★ Premium</span><h1>' + (example ? 'Portfolio health check' : 'Your portfolio health check') + '</h1>' +
+      '<div class="pf-hero-text"><span class="pf-badge prem">★ Premium</span><h1>' + (example ? 'Portfolio health check' : 'Your portfolio health check') + '</h1>' +
       '<p>' + (example ? 'Here is a real check of an <strong>example portfolio</strong> (VOO 40%, Apple, JPMorgan, Coca-Cola and ExxonMobil 15% each), worked out from today’s official figures. Premium members get this for their own holdings.' : 'Every holding scored out of 100 from official company figures, and your whole portfolio scored for quality and spread.') + '</p>' +
       '<div class="pf-hero-stats">' +
         stat('Holdings', d.holdingsScore, bandOf(d.holdingsScore)) +

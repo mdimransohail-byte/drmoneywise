@@ -57,7 +57,7 @@ const JOBS = {
   health: { label: 'Daily health check + email', every: 24 * HOUR },
   property: { label: 'Property prices and rents (BIS, OECD, BLS, Land Registry)', every: 7 * 24 * HOUR },
   commodities: { label: 'Commodity prices (World Bank)', every: 7 * 24 * HOUR },
-  bonds: { label: 'Government bond yields (US Treasury, OECD)', every: 7 * 24 * HOUR },
+  bonds: { label: 'Government bond yields (US Treasury daily, OECD monthly)', every: 24 * HOUR },
   etfs: { label: 'ETF holdings (SEC N-PORT)', every: 7 * 24 * HOUR },
   news: { label: 'In the news: headlines for each page (GDELT)', every: 12 * HOUR },
   results: { label: 'Company results (SEC filings, checked hourly)', every: 1 * HOUR },
@@ -185,7 +185,7 @@ async function runPrices({ manual = false } = {}) {
   for (let i = 0; i < tickers.length; i += 50) {
     const chunk = tickers.slice(i, i + 50);
     const symbols = chunk.map(toPriceSymbol);
-    const result = await getLatestPrices(symbols);
+    const result = await getLatestPrices(symbols, { fresh: true });
     chunk.forEach((ticker, index) => {
       const row = result.prices?.[symbols[index]];
       if (row?.price) {

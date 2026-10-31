@@ -127,11 +127,51 @@ function renderArticle() {
       ${renderArticleBody(article)}
       ${renderJargon(article)}
       ${article.quizHtml || ''}
+      ${article.contentType === 'learning' && article.accessible ? '<section class="ls-prog" id="lessonProgress" aria-live="polite"></section>' : ''}
       ${article.accessible ? '' : renderLockedPanel(article)}
     </div>
   `;
 
   setupShareRow(article);
+  setupLessonProgress(article);
+}
+
+/* ── Course progress: "I've read this", saved to the member's account ── */
+function paintLessonProgress(data) {
+  const box = document.querySelector('#lessonProgress');
+  if (!box) return;
+  const article = state.article;
+  if (!state.token || !state.user) {
+    box.innerHTML = `<div><strong>Track your progress</strong><span>Sign in (free) to tick off lessons as you read them and see how far you’ve got in each course, on any device.</span></div><a class="button primary" href="/#join">Sign in or join free</a>`;
+    return;
+  }
+  const mine = (data?.read || []).find((x) => x.slug === article.slug);
+  const lv = data?.levels?.[article.level];
+  const pct = lv && lv.total ? Math.round((lv.read / lv.total) * 100) : 0;
+  box.innerHTML = `
+    <div>
+      <strong>${mine ? 'You’ve read this lesson ✓' : 'Finished reading?'}</strong>
+      <span>${mine ? `Ticked on ${formatDate(mine.at)}${mine.quiz ? ` · quick check ${mine.quiz.score}/${mine.quiz.of}` : ''}.` : 'Tick it off to track your progress. Finishing the quick check above ticks it for you.'}</span>
+      ${lv ? `<div class="ls-bar"><i style="width:${pct}%"></i></div><span class="ls-level">${escapeHtml(article.levelInfo?.name || 'This course')}: ${lv.read} of ${lv.total} lessons read</span>` : ''}
+    </div>
+    <button class="button ${mine ? 'secondary' : 'primary'}" type="button" data-lesson-read="${mine ? 'undo' : 'done'}">${mine ? 'Mark as not read' : 'I’ve read this ✓'}</button>`;
+}
+
+async function setupLessonProgress(article) {
+  if (!document.querySelector('#lessonProgress')) return;
+  if (!state.token) { paintLessonProgress(null); return; }
+  try { state.progress = await apiGet('/api/member/lessons'); } catch { state.progress = null; }
+  paintLessonProgress(state.progress);
+}
+
+async function markLesson(done, quiz = null) {
+  if (!state.token) return;
+  try {
+    state.progress = await apiPost('/api/member/lessons', { slug: state.article.slug, done, quiz });
+    paintLessonProgress(state.progress);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 /**
@@ -369,6 +409,12 @@ async function handleArticleClick(event) {
     answerQuiz(opt);
     return;
   }
+  const mark = event.target.closest('[data-lesson-read]');
+  if (mark) {
+    mark.disabled = true;
+    await markLesson(mark.dataset.lessonRead === 'done');
+    return;
+  }
   const button = event.target.closest('[data-save-article]');
   if (!button || !state.user) {
     return;
@@ -402,6 +448,7 @@ function answerQuiz(opt) {
   if (done.length === all.length) {
     const score = box.querySelectorAll('.lv-q[data-right]').length;
     const msg = box.querySelector('.lv-score');
+    markLesson(true, { score, of: all.length });
     msg.textContent = score === all.length ? `Full marks: ${score} out of ${all.length}. Nicely done!` : `You scored ${score} out of ${all.length}. Read the explanations above, then try the next lesson.`;
     msg.hidden = false;
   }

@@ -262,6 +262,7 @@ export function sanitizeUser(user) {
     profile: user.profile || null,
     emailPrefs: user.emailPrefs || null,
     learningDone: user.learningDone || [],
+    lessonsRead: user.lessonsRead || [],
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt,
   };

@@ -136,7 +136,7 @@
     if (S.premium) cols = cols.concat([['funds', 'Big funds'], ['buyers', 'Bought / sold'], ['ownedPct', 'Owned by funds'], ['bigBet', 'Biggest bet'], ['bossBuys', 'Bosses’ trades (90 days)']]);
     var sectors = Array.from(new Set(S.data.rows.map(function (r) { return r.sector; }))).sort();
     var locked = S.preview;
-    var html = '<div class="sc-hero"><div><span class="pf-badge">' + (S.premium ? '★ Premium' : 'Members') + '</span><h1>Stock screener</h1><p>Find companies by growth, profit, debt and dividends, from their official filings.' + (S.premium ? ' Plus what the big funds own.' : '') + '</p></div>' +
+    var html = '<div class="sc-hero"><div><span class="pf-badge' + (S.premium ? ' prem' : '') + '">' + (S.premium ? '★ Premium' : 'Members') + '</span><h1>Stock screener</h1><p>Find companies by growth, profit, debt and dividends, from their official filings.' + (S.premium ? ' Plus what the big funds own.' : '') + '</p></div>' +
       '<div class="sc-tabs" role="tablist"><button data-tab="screen" class="' + (S.tab === 'screen' ? 'on' : '') + '">Screener</button><button data-tab="funds" class="' + (S.tab === 'funds' ? 'on' : '') + '">Fund explorer <span class="sc-prem">Premium</span></button></div></div>';
     if (locked) html += '<div class="pf-upsell"><strong>' + esc(S.lockText) + '</strong><a class="pf-btn gold" href="/membership#plans">See plans</a></div>';
     if (S.tab === 'funds') { app.innerHTML = html + fundsTab(); bind(); return; }

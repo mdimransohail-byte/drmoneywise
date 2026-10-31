@@ -76,7 +76,7 @@
     var biggest = d.trades.filter(function (x) { return x.side === 'buy' && (!S.mine || mineSet[x.ticker]); }).sort(function (a, b) { return (b.value || 0) - (a.value || 0); }).slice(0, 4);
     var plannedPct = t.sold ? Math.round(t.plannedSold / t.sold * 100) : null;
     page.innerHTML =
-      '<div class="sc-hero"><div><span class="pf-badge">★ Premium</span><h1>Company bosses’ trades</h1><p>When directors and top managers of the companies we cover bought or sold their own company’s shares on the stock market, from their official Form 4 reports.</p></div>' +
+      '<div class="sc-hero"><div><span class="pf-badge prem">★ Premium</span><h1>Company bosses’ trades</h1><p>When directors and top managers of the companies we cover bought or sold their own company’s shares on the stock market, from their official Form 4 reports.</p></div>' +
       '<div class="sc-tabs">' + [30, 90, 180].map(function (n) { return '<button data-days="' + n + '" class="' + (S.days === n ? 'on' : '') + '">' + n + ' days</button>'; }).join('') + '</div></div>' +
       '<div class="pr-tiles">' +
         tileHtml('Bought on the market', big(t.bought), nTrades(t.buys), GREEN) +
@@ -104,7 +104,7 @@
   function previewPage(text) {
     fetch('/api/site/insiders-preview').then(function (r) { return r.json(); }).then(function (d) {
       var t = d.totals || {};
-      page.innerHTML = '<div class="sc-hero"><div><span class="pf-badge">★ Premium</span><h1>Company bosses’ trades</h1><p>When directors and top managers of the companies we cover bought or sold their own company’s shares, from their official Form 4 reports.</p></div></div>' +
+      page.innerHTML = '<div class="sc-hero"><div><span class="pf-badge prem">★ Premium</span><h1>Company bosses’ trades</h1><p>When directors and top managers of the companies we cover bought or sold their own company’s shares, from their official Form 4 reports.</p></div></div>' +
         '<div class="pf-upsell"><strong>' + esc(text) + '</strong><a class="pf-btn gold" href="/membership#plans">See Premium</a></div>' +
         '<div class="pr-tiles">' + tileHtml('Bought on the market', big(t.bought), nTrades(t.buys) + ' in 90 days', GREEN) + tileHtml('Sold on the market', big(t.sold), nTrades(t.sells) + ' in 90 days', ORANGE) + tileHtml('Companies with trades', String(d.companies || 0), 'names shown to Premium members', '#2a78d6') + '</div>' +
         '<div class="pf-panel in-locked"><h2>Premium members see</h2><ul class="plain-list"><li>Every market buy and sale by directors and top managers, with who, what job, how many shares, the price and what they own afterwards</li><li>Which companies’ bosses were buying most, and which were selling, as colour charts</li><li>Which sales were planned months in advance, so you can tell routine selling from a real choice</li><li>A filter for just the companies on your watchlist and in your portfolio</li><li>The same box on every company’s page</li></ul></div>';

@@ -172,6 +172,13 @@ export async function fetchEconomy() {
     try {
       const rows = await FETCHERS[series.id]();
       const summary = summarise(series, rows);
+      // Sense check: every figure here is a percentage between -30 and 50.
+      // Anything outside that means the source changed format: keep the old figure.
+      if (summary && !(summary.value > -30 && summary.value < 50)) {
+        failures.push({ series: series.id, reason: `value ${summary.value} looks wrong for a percentage` });
+        console.error(`[economy] ${series.id}: value ${summary.value} looks wrong; last good figure kept`);
+        continue;
+      }
       if (summary) {
         results[series.key] = summary;
         console.log(`[economy] ${series.label}: ${summary.value}% (as of ${summary.asOf})`);

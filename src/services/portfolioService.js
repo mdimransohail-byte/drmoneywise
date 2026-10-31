@@ -60,7 +60,7 @@ export async function getPortfolioSnapshot({ holdings = [] } = {}) {
       low: priceData.low,
       asOf: priceData.date,
       value,
-      note: holding.note || `Priced from Marketstack as of ${priceData.date || 'last close'}.`,
+      note: holding.note || `Closing price${priceData.date ? ` on ${new Date(priceData.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}` : ''}.`,
     };
   });
 

@@ -160,7 +160,7 @@ export function healthBoxHtml(c, name, { premiumSlot = true } = {}) {
         <div class="fh-top">
           <div class="fh-score">${gaugeSvg(h.score, h.band.colour)}${starsHtml(h.stars, 22)}<strong class="fh-band">${esc(h.band.label)}</strong></div>
           <div class="fh-intro">
-            <span class="pf-badge">Free</span>
+            <span class="pf-badge free">Free</span>
             <h2>Financial Health Check: ${esc(name)}</h2>
             <p class="fh-head">${esc(h.headline)}</p>
             <p>Seven simple checks on ${esc(name)}’s official figures, each scored out of 10. ${h.scored < 7 ? (7 - h.scored === 1 ? 'One check could not be scored, so it is left out rather than counted against the company.' : `${7 - h.scored} checks could not be scored, so they are left out rather than counted against the company.`) : ''}</p>

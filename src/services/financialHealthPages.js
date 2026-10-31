@@ -55,7 +55,7 @@ export async function renderHealthCheckIndex(origin) {
       <section class="block fh-page">
         <div class="fh-hero">
           <div>
-            <span class="pf-badge">Free</span>
+            <span class="pf-badge free">Free</span>
             <h1>Financial Health Check</h1>
             <p>Is a company in good financial shape? We score every company we cover out of 100, using seven simple checks on its official figures: growth, profit, track record, debt, spare cash, balance sheet and dividend. ${rows.length} companies so far${updatedAt ? `, figures checked ${esc(updatedAt.slice(0, 10))}` : ''}.</p>
           </div>

@@ -142,6 +142,7 @@ export async function renderPropertyHub(origin) {
           ${picker()}
         </div>
         <div class="pr-cards">${cards}</div>
+        ${await (await import('./propertyCityPages.js')).citiesTeaserHtml()}
         ${hubSummary}
         ${yoyRows.length ? `<div class="pr-panel"><h2>Home prices vs a year earlier</h2><p class="helper-note">Latest official figures for each place. Click a place for the details.</p>${rankBars({ rows: yoyRows, title: 'Change in home prices on a year earlier, by place' })}</div>` : '<p class="note-box">The first property figures are being collected. Please check back shortly.</p>'}
         ${fiveRows.length ? `<div class="pr-panel"><h2>Change over five years</h2>${rankBars({ rows: fiveRows, title: 'Change in home prices over five years, by place' })}</div>` : ''}

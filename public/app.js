@@ -742,7 +742,7 @@ function renderPricingCards() {
           : '';
 
       return `
-        <article class="pricing-card ${plan.highlight ? 'highlight' : ''}">
+        <article class="pricing-card ${plan.highlight ? 'highlight' : ''}${plan.id === 'premium' ? ' prem' : ''}">
           <div class="feature-story-meta">
             <div>
               <span class="eyebrow">${escapeHtml(plan.shortName || plan.name)}</span>
@@ -754,7 +754,8 @@ function renderPricingCards() {
           <strong>${escapeHtml(plan.priceLabel)}</strong>
           <div class="helper-note">${escapeHtml(plan.billingLabel)}</div>
           ${pricingNote}
-          <ul class="plain-list">${(plan.features || []).map((feature) => `<li>${escapeHtml(feature)}</li>`).join('')}</ul>
+          <ul class="plain-list">${(plan.features || []).slice(0, 5).map((feature) => `<li>${escapeHtml(feature)}</li>`).join('')}</ul>
+          ${(plan.features || []).length > 5 ? `<details class="mb-more"><summary>See everything included</summary><ul class="plain-list">${plan.features.slice(5).map((feature) => `<li>${escapeHtml(feature)}</li>`).join('')}</ul></details>` : ''}
           ${currentPlan && plan.id !== 'free' ? renderPlanStatusNote() : ''}
           <div class="pricing-options">
             ${currentPlan && plan.id !== 'free' && state.user?.hasBillingAccount

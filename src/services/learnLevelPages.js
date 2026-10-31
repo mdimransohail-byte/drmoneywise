@@ -27,10 +27,10 @@ function weekBlock(L, week, map, i) {
   const rows = week.lessons.map((lesson, n) => {
     const a = map.get(lesson.id);
     if (!a) return `<li class="wk-l soon"><span class="wk-n">${n + 1}</span><div><strong>${esc(lesson.headline)}</strong><em>Coming soon</em></div></li>`;
-    return `<li class="wk-l"><a href="/learn/${esc(a.slug)}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="wk-n">${n + 1}</span>`}<div><strong>${esc(a.headline)}</strong><em>${esc(a.readingTime || '5 min read')}${a.format === 2 ? ' · infographic and quiz' : ''}${L.premium ? ' · Premium' : ''}</em></div></a></li>`;
+    return `<li class="wk-l" data-lesson="${esc(a.slug)}"><a href="/learn/${esc(a.slug)}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="wk-n">${n + 1}</span>`}<div><strong>${esc(a.headline)}</strong><em>${esc(a.readingTime || '5 min read')}${a.format === 2 ? ' · infographic and quiz' : ''}${L.premium ? ' · Premium' : ''}</em></div></a></li>`;
   }).join('');
   return `<section class="wk" id="week-${week.week}" style="--c:${c}">
-          <div class="wk-head"><span class="wk-badge">Week ${week.week}</span><h3>${esc(week.title)}</h3><span class="wk-count">${ready} of ${week.lessons.length} ready</span></div>
+          <div class="wk-head"><span class="wk-badge">Week ${week.week}</span><h3>${esc(week.title)}</h3><span class="wk-count">${ready} of ${week.lessons.length} ready</span><span class="wk-mine" hidden></span></div>
           <ol class="wk-list">${rows}</ol>
         </section>`;
 }
@@ -85,7 +85,7 @@ export async function renderLevelPage(slug, origin) {
         <div class="lvp-hero${L.premium ? ' prem' : ''}">
           <div class="lvp-emblem">${levelEmblem(L.id, 96)}</div>
           <div class="lvp-text">
-            <span class="pf-badge">${L.premium ? 'Premium' : 'Free'} · ${esc(L.who)}</span>
+            <span class="pf-badge ${L.premium ? 'prem' : 'free'}">${L.premium ? 'Premium' : 'Free'} · ${esc(L.who)}</span>
             <h1>${esc(name)}</h1>
             <p class="lvp-tag">${esc(L.tagline)}</p>
             <p>${esc(L.intro)}</p>
@@ -98,6 +98,10 @@ export async function renderLevelPage(slug, origin) {
           </div>
         </div>
 
+        <div class="lp-me" data-level-progress="${L.id}">
+          <div class="lp-me-bar"><i style="width:0%"></i></div>
+          <p class="lp-me-text">Sign in (free) to tick off lessons as you read them and track your progress from any device. <a href="/#join">Sign in or join free →</a></p>
+        </div>
         <nav class="wk-jump" aria-label="Weeks">${weeks.map((w, i) => `<a href="#week-${w.week}" style="--c:${WEEK_COLOURS[i % 6]}">Week ${w.week}<span>${esc(w.title)}</span></a>`).join('')}</nav>
         <div class="wk-grid">${weeks.map((w, i) => weekBlock(L, w, map, i)).join('')}</div>
         <p class="lvp-tip">${L.premium ? 'Premium members can read every lesson. Others can read the opening of each one.' : 'One week at a time works well: read a lesson a day, take the quick check at the end, then move on.'} Our free newsletter features one week of the course in every issue.</p>
@@ -108,7 +112,8 @@ export async function renderLevelPage(slug, origin) {
         ${newsletterSignupBox(`level-${L.slug}`)}
         <p class="note-box">These lessons explain how money and investing work in general. They are not personal advice. Read our <a href="/disclaimer">disclaimer</a>.</p>
       </section>
-      <script src="/newsletter.js" defer></script>`;
+      <script src="/newsletter.js" defer></script>
+      <script src="/learnprogress.js" defer></script>`;
   return pageShell({ head, body, active: 'learn' });
 }
 
@@ -120,7 +125,7 @@ export async function levelChooserHtml() {
     const lessons = all.filter((a) => levelOf(a) === L.id).length;
     const weeks = (COURSE[L.id] || []).length;
     return `<a class="lc-card${L.premium ? ' prem' : ''}" href="/learn/${L.slug}" style="--c:${L.colour};--c2:${L.colour2}">
-          ${levelEmblem(L.id, 64)}<span class="lc-free">${L.premium ? 'Premium' : 'Free'}</span><strong>${esc(names[L.id])}</strong><em>${esc(L.who)}</em><span>${esc(L.tagline)}</span><b>${weeks}-week course · ${lessons} lesson${lessons === 1 ? '' : 's'} →</b></a>`;
+          ${levelEmblem(L.id, 64)}<span class="lc-free">${L.premium ? 'Premium' : 'Free'}</span><strong>${esc(names[L.id])}</strong><em>${esc(L.who)}</em><span>${esc(L.tagline)}</span><b>${weeks}-week course · ${lessons} lesson${lessons === 1 ? '' : 's'} →</b><span class="lc-mine" data-level-mine="${L.id}" hidden></span></a>`;
   };
   return `<h2 class="lvp-h">Choose your level</h2>
         <div class="lc-row">${card(LEVELS.beginner)}${card(LEVELS.intermediate)}${card(LEVELS.lords)}</div>`;

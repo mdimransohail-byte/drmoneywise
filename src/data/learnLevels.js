@@ -31,7 +31,7 @@ export const LEVELS = {
   },
   lords: {
     id: 'lords', slug: 'advanced', defaultName: 'Lords', who: 'Confident investors', premium: true,
-    colour: '#b8891a', colour2: '#f7d07c', pathLevel: 'confident',
+    colour: '#5b2a9e', colour2: '#8a4fd8', pathLevel: 'confident',
     tagline: 'Read the accounts and the economy like a professional.',
     intro: 'The deeper lessons, for Premium members: cash flow statements, what a share is really worth, the economy’s warning lights and the habits of experienced portfolio builders. Every lesson works through real figures.',
     promise: ['How professionals value a company', 'The warning signs in a company’s figures', 'Advanced portfolio and retirement planning'],

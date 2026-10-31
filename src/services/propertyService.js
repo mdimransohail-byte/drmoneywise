@@ -29,6 +29,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { PROPERTY_PLACES } from '../data/propertyPlaces.js';
+import { listSheets, readSheet } from '../utils/xlsx.js';
 
 const UA = { 'User-Agent': 'Dr MoneyWise (hello@drmoneywise.com)' };
 const marketDir = path.join(process.cwd(), 'data', 'market');
@@ -227,7 +228,10 @@ export async function refreshProperty() {
   if (!hasAny && !ok.length) {
     return { ok: false, message: `No property figures could be downloaded (${failures.map((f) => `${f.source}: ${f.reason}`).join('; ')})` };
   }
-  await writeJson(FILE, { updatedAt: new Date().toISOString(), places, failures });
+  // Cities: rents, prices and yields (ONS, Land Registry, BLS)
+  const cityRun = await refreshCities(existing.cities).catch((error) => ({ cities: existing.cities || {}, failures: [{ source: 'Cities', reason: error.message }] }));
+  failures.push(...cityRun.failures);
+  await writeJson(FILE, { updatedAt: new Date().toISOString(), places, cities: cityRun.cities, failures });
   const covered = PROPERTY_PLACES.filter((p) => places[p.slug]?.bis?.nominal?.length).length;
   return { ok: true, message: `${ok.length} sources updated; house prices for ${covered} places${failures.length ? `; ${failures.length} failed (${failures.map((f) => f.source).join(', ')})` : ''}` };
 }
@@ -293,4 +297,120 @@ export async function getPropertyStatus() {
     }),
     dubai: manual.dubai?.rows || [],
   };
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   CITIES — rents, prices, yields and five years of history
+   (src/data/propertyCities.js lists the cities and sources)
+   ════════════════════════════════════════════════════════════════════════ */
+const ONS_PAGE = 'https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/priceindexofprivaterentsukmonthlypricestatistics';
+const MONTHS = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+
+/** 'Sep 2026', 'September 2026', '2026-09', '2026 SEP' or an Excel date number → 'YYYY-MM' */
+export function monthOf(v) {
+  if (typeof v === 'number' && v > 20000 && v < 80000) {
+    const d = new Date(Date.UTC(1899, 11, 30) + v * 86400000);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
+  const s = String(v ?? '').trim();
+  let m = s.match(/^(\d{4})[-/ ](\d{1,2})(?:\b|$)/u);
+  if (m) return `${m[1]}-${m[2].padStart(2, '0')}`;
+  m = s.match(/^([A-Za-z]{3})[A-Za-z]*[ -]+(\d{4})$/u) || s.match(/^(\d{4})[ -]+([A-Za-z]{3})[A-Za-z]*$/u);
+  if (m) {
+    const [mon, yr] = /^\d/u.test(m[1]) ? [m[2], m[1]] : [m[1], m[2]];
+    const mm = MONTHS[mon.toLowerCase()];
+    return mm ? `${yr}-${mm}` : null;
+  }
+  return null;
+}
+
+/** Reads the ONS rents workbook into { 'Area name': [{ p, rent }] } for the names wanted. */
+export function parseOnsRents(buffer, wanted) {
+  const want = new Map(wanted.map((n) => [n.toLowerCase(), n]));
+  const out = {};
+  for (const sheet of listSheets(buffer)) {
+    let rows;
+    try { rows = readSheet(buffer, new RegExp(`^${sheet.name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}$`, 'u')); } catch { continue; }
+    for (let h = 0; h < Math.min(rows.length, 40); h += 1) {
+      const head = (rows[h] || []).map((c) => String(c ?? '').toLowerCase());
+      const area = head.findIndex((c) => /area name|^area$|local authority name|region or country name/u.test(c));
+      const rent = head.findIndex((c) => /rental price|average rent|price \(£\)|rent \(£\)/u.test(c) && !/change|index/u.test(c));
+      const time = head.findIndex((c) => /time period|^date$|^month$|^period$/u.test(c));
+      if (area < 0 || rent < 0 || time < 0) continue;
+      for (const r of rows.slice(h + 1)) {
+        const name = want.get(String(r?.[area] ?? '').trim().toLowerCase());
+        if (!name) continue;
+        const p = monthOf(r[time]);
+        const v = Number(String(r[rent] ?? '').replace(/[£,\s]/gu, ''));
+        if (!p || !Number.isFinite(v) || v < 100 || v > 20000) continue;
+        (out[name] ||= new Map()).set(p, v);
+      }
+      if (Object.keys(out).length) break; // first table with the figures (all homes)
+    }
+    if (Object.keys(out).length) break;
+  }
+  return Object.fromEntries(Object.entries(out).map(([k, m]) => [k, [...m.entries()].map(([p, rent]) => ({ p, rent })).sort((a, b) => a.p.localeCompare(b.p))]));
+}
+
+async function fetchOnsRents(names) {
+  let url = null;
+  try {
+    const html = await getText(ONS_PAGE, 'text/html');
+    const href = html.match(/\/file\?uri=[^"'\s<>]*priceindexofprivaterentsukmonthlypricestatistics[^"'\s<>]*\.xlsx/iu)?.[0];
+    if (href) url = `https://www.ons.gov.uk${href.replace(/&amp;/gu, '&')}`;
+  } catch (error) { throw new Error(`could not read the ONS page (${error.message})`); }
+  if (!url) throw new Error('download link not found on the ONS page');
+  const response = await fetch(url, { headers: UA });
+  if (!response.ok) throw new Error(`HTTP ${response.status} downloading the ONS rents file`);
+  const parsed = parseOnsRents(Buffer.from(await response.arrayBuffer()), names);
+  if (!Object.keys(parsed).length) throw new Error('no city rents found in the ONS file (its layout may have changed)');
+  return parsed;
+}
+
+async function fetchUkHpiLong(slugs) {
+  for (const slug of slugs) {
+    try {
+      const url = `https://landregistry.data.gov.uk/data/ukhpi/region/${slug}.json?_pageSize=84&_sort=-refMonth`;
+      const data = JSON.parse(await getText(url, 'application/json'));
+      const list = (data?.result?.items || []).map((it) => ({ p: String(it.refMonth?._value ?? it.refMonth ?? '').slice(0, 7), price: num(it.averagePrice) }))
+        .filter((x) => /^\d{4}-\d{2}$/u.test(x.p) && x.price).sort(byPeriod);
+      if (list.length) return list;
+    } catch { /* try the next name */ }
+  }
+  throw new Error(`no Land Registry figures under ${slugs.join(' / ')}`);
+}
+
+async function fetchBlsSeries(id) {
+  const data = JSON.parse(await getText(`https://api.bls.gov/publicAPI/v1/timeseries/data/${id}`, 'application/json'));
+  if (data.status && data.status !== 'REQUEST_SUCCEEDED') throw new Error(`BLS said ${data.status}`);
+  const results = Array.isArray(data.Results) ? data.Results[0] : data.Results;
+  const list = (results?.series?.[0]?.data || [])
+    .filter((row) => /^M(0[1-9]|1[0-2])$/u.test(row.period) && Number.isFinite(Number(row.value)))
+    .map((row) => ({ p: `${row.year}-${row.period.slice(1)}`, index: Number(row.value) }))
+    .sort(byPeriod);
+  if (!list.length) throw new Error('no monthly values');
+  return list;
+}
+
+/** Weekly: every city in CITY_LIST. Keeps the last good figures for any source that fails. */
+export async function refreshCities(existing = {}) {
+  const { CITY_LIST } = await import('../data/propertyCities.js');
+  const cities = { ...(existing || {}) };
+  const failures = [];
+  const uk = CITY_LIST.filter((c) => c.country === 'uk');
+  let rents = {};
+  try { rents = await fetchOnsRents(uk.flatMap((c) => c.ons)); } catch (error) { failures.push({ source: 'UK city rents (ONS)', reason: error.message }); console.error(`[property] UK city rents (ONS): ${error.message} (last good figures kept)`); }
+  for (const c of CITY_LIST) {
+    const prev = cities[c.slug] || {};
+    const next = { ...prev, name: c.name, country: c.country };
+    if (c.country === 'uk') {
+      const r = c.ons.map((n) => rents[n]).find((x) => x?.length);
+      if (r) next.rents = r.slice(-84);
+      try { next.prices = (await fetchUkHpiLong(c.ukhpi)).slice(-84); } catch (error) { failures.push({ source: `${c.name} prices (Land Registry)`, reason: error.message }); }
+    } else {
+      try { next.rentIndex = (await fetchBlsSeries(c.bls)).slice(-84); } catch (error) { failures.push({ source: `${c.name} rents (BLS)`, reason: error.message }); }
+    }
+    cities[c.slug] = next;
+  }
+  return { cities, failures };
 }
