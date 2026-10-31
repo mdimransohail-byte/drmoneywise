@@ -156,6 +156,24 @@ export const COURSE = {
       { id: 'lo-5-3', headline: 'Before the dividend cut: warning signs in the figures', match: 'Dividend cuts: the warning signs in a company’s figures' },
       { id: 'lo-5-4', headline: 'Buybacks or dividends: which returns more to you?', match: 'Share buybacks versus dividends: which returns more to shareholders, and when' },
     ] },
+    { week: 6, title: 'Advanced chart reading', lessons: [
+      { id: 'lo-6-1', headline: 'When price and momentum disagree: divergences', match: 'RSI and MACD divergences: when momentum disagrees with the price' },
+      { id: 'lo-6-2', headline: 'Beating the market? Relative strength explained', match: 'Relative strength: comparing a share with its market and sector' },
+      { id: 'lo-6-3', headline: 'Fibonacci levels: why traders watch 38% and 62%', match: 'Fibonacci retracements and why traders watch them' },
+      { id: 'lo-6-4', headline: 'Reading three timeframes at once', match: 'Multi-timeframe analysis: weekly trend, daily entry' },
+    ] },
+    { week: 7, title: 'Reading company events like a professional', lessons: [
+      { id: 'lo-7-1', headline: 'Beyond the headline: reading a results announcement', match: 'How to read a quarterly results announcement and the outlook' },
+      { id: 'lo-7-2', headline: 'What bosses say on results calls, and what they avoid', match: 'Earnings calls: guidance, tone and the questions analysts ask' },
+      { id: 'lo-7-3', headline: 'Profit warnings: the early clues', match: 'Profit warnings and guidance cuts: the early signs' },
+      { id: 'lo-7-4', headline: 'Mergers and takeovers: who usually wins', match: 'Mergers and acquisitions: what happens to the buyer’s and the target’s shares' },
+    ] },
+    { week: 8, title: 'Building a lasting income', lessons: [
+      { id: 'lo-8-1', headline: 'The dividend safety score: five checks before you trust a payout', match: 'Dividend safety: payout, cash cover, debt, history and industry' },
+      { id: 'lo-8-2', headline: 'Yield traps: when a high payout is a warning', match: 'Yield traps: high dividends that are about to be cut' },
+      { id: 'lo-8-3', headline: 'Bonds, REITs and dividend shares: mixing income sources', match: 'Building an income portfolio from bonds, REITs and dividend shares' },
+      { id: 'lo-8-4', headline: 'Drawing an income without running out', match: 'Withdrawal strategies in retirement: fixed, flexible and bucket approaches' },
+    ] },
   ],
 };
 

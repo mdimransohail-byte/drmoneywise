@@ -2226,3 +2226,5 @@ body.has-ad-strip { padding-bottom: 52px; }
 .lc-row.lc-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 1000px) { .lc-row.lc-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .lc-row.lc-4 { grid-template-columns: minmax(0, 1fr); } }
+.ta-form.lv-ta { background: linear-gradient(135deg, #0a1128, #13365e); margin: 16px 0 0; }
+@media (min-width: 900px) { .pp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

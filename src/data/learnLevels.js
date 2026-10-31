@@ -40,8 +40,8 @@ export const LEVELS = {
     id: 'lords', slug: 'advanced', defaultName: 'Lords', who: 'Confident investors', premium: true,
     colour: '#5b2a9e', colour2: '#8a4fd8', pathLevel: 'confident',
     tagline: 'Read the accounts and the economy like a professional.',
-    intro: 'The deeper lessons, for Premium members: cash flow statements, what a share is really worth, the economy’s warning lights and the habits of experienced portfolio builders. Every lesson works through real figures.',
-    promise: ['How professionals value a company', 'The warning signs in a company’s figures', 'Advanced portfolio and retirement planning'],
+    intro: 'The deeper lessons, for Premium members: cash flow statements, what a share is really worth, the economy’s warning lights, advanced chart reading, company events and building a lasting income. Every lesson works through real figures, and Premium chart alerts put the ideas to work on your own companies.',
+    promise: ['How professionals value a company', 'Advanced chart reading, with alerts on your own companies', 'Company events and building a lasting income'],
   },
 };
 

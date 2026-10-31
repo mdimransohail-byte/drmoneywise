@@ -8,6 +8,9 @@
                                            results, the economy, new explainers
      Big-fund alerts   Premium             a famous fund bought or sold a company
                                            on your watchlist (each quarter)
+     Chart alerts      Premium             a chart sign (golden cross, RSI above 70,
+                                           new 52-week high...) on a company in your
+                                           watchlist or portfolio, after each close
    Members switch each one on or off on Membership → Your plan, or with the
    one-click unsubscribe link at the bottom of every email.
    Needs in Admin → APIs & More (or Railway variables):
@@ -34,6 +37,7 @@ const SECRET_FILE = path.join(process.cwd(), 'data', '.alerts-secret');
 export const EMAIL_KINDS = {
   dividends: { label: 'Dividend alerts', plan: 'regular', about: 'When a company on your watchlist raises, cuts, starts or stops its dividend.' },
   weekly: { label: 'Weekly email', plan: 'regular', about: 'Saturday morning: your watchlist’s week, the biggest results and the economy.' },
+  charts: { label: 'Chart alerts', plan: 'premium', about: 'When a chart sign appears on a company in your watchlist or portfolio: golden or death cross, crossing the 200-day average, RSI above 70 or below 30, a new 52-week high or low, or a big move on heavy trading.' },
   funds: { label: 'Big-fund alerts', plan: 'premium', about: 'When a famous fund buys or sells a company on your watchlist (each quarter).' },
   report: { label: 'Monthly research report', plan: 'premium', about: 'On the 1st of each month: the month in figures, with a link to the full report.' },
   newsletter: { label: 'Newsletter', plan: 'free', about: 'About once a week: our best explainers, the biggest results and new research. Easy to stop at any time.' },
@@ -197,6 +201,34 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
         'What the big funds did with your companies', `From the funds’ official reports for the quarter to ${esc(period)}. They are filed up to 45 days after the quarter ends, so they show what the funds held then.`, [section('Changes this quarter', items)]);
       if (ok) mark(`funds:${user.id}:${period}`);
     }
+  }
+
+  // 2a. Chart alerts (Premium): signs on the latest trading day for the
+  //     companies each member watches or holds; one email a day at most.
+  if (!testOnly) {
+    try {
+      const { getPriceHistory } = await import('./marketstackClient.js');
+      const { chartEvents } = await import('./technicalService.js');
+      const wanted = users.filter((u) => emailPrefsFor(u).charts.on);
+      const tickers = [...new Set(wanted.flatMap((u) => [...(u.watchlist || []), ...(u.portfolio || []).map((h) => h.ticker)]).map((t) => String(t || '').toUpperCase()).filter(Boolean))];
+      const events = {};
+      for (const t of tickers) {
+        const h = await getPriceHistory(t);
+        if (h.ok) events[t] = chartEvents(h.rows);
+      }
+      const DOT = { good: '#1baf7a', weak: '#e5566f', watch: '#e8a33d' };
+      for (const user of wanted) {
+        const mine = [...new Set([...(user.watchlist || []), ...(user.portfolio || []).map((h) => h.ticker)].map((t) => String(t || '').toUpperCase()))]
+          .flatMap((t) => (events[t] || []).map((e) => ({ t, ...e })))
+          .filter((e) => !log[`chart:${user.id}:${e.t}:${e.key}:${e.date}`]);
+        if (!mine.length) continue;
+        const items = mine.slice(0, 20).map((e) => line(`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${DOT[e.tone] || '#8a8576'};margin-right:6px"></span><strong><a href="${esc(site)}/technical/${esc(e.t)}" style="color:#0a1128">${esc(e.t)}: ${esc(e.title)}</a></strong><br>${esc(e.text)}`)).join('');
+        const ok = await send(user, 'charts', mine.length === 1 ? `Chart alert: ${mine[0].t} ${mine[0].title.toLowerCase()}` : `Chart alerts for ${new Set(mine.map((e) => e.t)).size} of your companies`,
+          'Chart alerts from your watchlist and portfolio', `Signs that appeared on the chart on ${esc(mine[0].date)}, from closing prices. Each one is explained in our Chart Readers course. Chart signs are often wrong: this is information, not advice to buy or sell.`,
+          [section('What appeared', items + line(`<a href="${esc(site)}/learn/technical" style="color:#1a2a9e;font-weight:700">Learn what each sign means</a>`))]);
+        if (ok) for (const e of mine) mark(`chart:${user.id}:${e.t}:${e.key}:${e.date}`);
+      }
+    } catch (error) { console.error(`[alerts] chart alerts: ${error.message}`); }
   }
 
   // 2b. Monthly research report (Premium), once per finished report

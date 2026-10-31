@@ -52,7 +52,7 @@ const JOBS = {
   photos: { label: 'Photos for explainers (Pexels)', every: 20 * HOUR },
   funds: { label: 'Big-fund holdings (SEC 13F)', every: 7 * 24 * HOUR },
   learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
-  deeper: { label: 'Lords lessons for Premium (one every 2 days)', every: 2 * 24 * HOUR },
+  deeper: { label: 'Lords lessons for Premium (one a day until the course is complete)', every: 24 * HOUR },
   report: { label: 'Monthly research report (built on the 1st)', every: 20 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
   property: { label: 'Property and city rents (monthly figures; looks weekly, downloads only when new figures are due)', every: 7 * 24 * HOUR },
@@ -182,6 +182,7 @@ async function runPrices({ manual = false } = {}) {
   const prices = { ...existing.prices };
   let fetched = 0;
   let lastError = '';
+  const full = {};
   for (let i = 0; i < tickers.length; i += 50) {
     const chunk = tickers.slice(i, i + 50);
     const symbols = chunk.map(toPriceSymbol);
@@ -190,6 +191,7 @@ async function runPrices({ manual = false } = {}) {
       const row = result.prices?.[symbols[index]];
       if (row?.price) {
         prices[ticker] = { price: row.price, date: row.date };
+        full[ticker] = row;
         fetched += 1;
       }
     });
@@ -203,6 +205,12 @@ async function runPrices({ manual = false } = {}) {
     return { ok: false, message: `No prices fetched${lastError ? ` — ${lastError}` : ''}` };
   }
   await writeJson(FILES.prices, { updatedAt: new Date().toISOString(), prices });
+  // Add today's close to saved chart histories (Chart check, chart alerts)
+  try {
+    const { appendDailyCloses } = await import('./marketstackClient.js');
+    const n = await appendDailyCloses(full);
+    if (n) console.log(`[data] Prices: ${n} chart histories brought up to date`);
+  } catch (error) { console.error('[data] Chart histories:', error.message); }
   // Keep a short daily history so the Premium newsletter can show the week's change
   try {
     const { savePriceSnapshot } = await import('./premiumWeekService.js');

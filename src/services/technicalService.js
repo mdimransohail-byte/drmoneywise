@@ -147,3 +147,35 @@ export function chartSvg(a, days = 180) {
     </svg>
     <figcaption><i style="--c:#0a1128"></i>Price <i style="--c:#1baf7a"></i>50-day average <i style="--c:#e8730c"></i>200-day average <i style="--c:#2a78d6;opacity:.35"></i>Bollinger bands</figcaption></figure>`;
 }
+
+/* ── Chart alerts (Premium): signs that appeared on the latest trading day ──
+   Compares the last day with the day before, so each sign is reported once. */
+export function chartEvents(rows) {
+  if (!rows || rows.length < 60) return [];
+  const c = rows.map((r) => r.c);
+  const n = c.length - 1; const p = n - 1;
+  const s50 = sma(c, 50); const s200 = sma(c, 200); const r = rsi(c);
+  const vol = rows.map((x) => x.v || 0); const v50 = sma(vol, 50);
+  const ev = [];
+  const money = (v) => `$${v >= 100 ? v.toFixed(0) : v.toFixed(2)}`;
+  if (s50[p] !== null && s200[p] !== null) {
+    if (s50[p] <= s200[p] && s50[n] > s200[n]) ev.push({ key: 'golden', tone: 'good', title: 'Golden cross', text: `The 50-day average (${money(s50[n])}) moved above the 200-day average (${money(s200[n])}). Chart readers often see this as a sign the longer trend is turning up.` });
+    if (s50[p] >= s200[p] && s50[n] < s200[n]) ev.push({ key: 'death', tone: 'weak', title: 'Death cross', text: `The 50-day average (${money(s50[n])}) fell below the 200-day average (${money(s200[n])}). Often read as a sign the longer trend is turning down.` });
+  }
+  if (s200[p] !== null) {
+    if (c[p] <= s200[p] && c[n] > s200[n]) ev.push({ key: 'above200', tone: 'good', title: 'Back above the 200-day average', text: `The price closed at ${money(c[n])}, above its 200-day average of ${money(s200[n])}.` });
+    if (c[p] >= s200[p] && c[n] < s200[n]) ev.push({ key: 'below200', tone: 'weak', title: 'Fell below the 200-day average', text: `The price closed at ${money(c[n])}, below its 200-day average of ${money(s200[n])}.` });
+  }
+  if (r[p] !== null && r[n] !== null) {
+    if (r[p] <= 70 && r[n] > 70) ev.push({ key: 'rsi70', tone: 'watch', title: 'RSI above 70 (“overbought”)', text: `RSI rose to ${r[n].toFixed(0)}: the price has climbed fast. Fast rises sometimes pause or pull back.` });
+    if (r[p] >= 30 && r[n] < 30) ev.push({ key: 'rsi30', tone: 'watch', title: 'RSI below 30 (“oversold”)', text: `RSI fell to ${r[n].toFixed(0)}: the price has dropped fast. Sharp falls sometimes pause or bounce.` });
+  }
+  const year = rows.slice(-253, -1);
+  if (year.length > 200) {
+    const hi = Math.max(...year.map((x) => x.h ?? x.c)); const lo = Math.min(...year.map((x) => x.l ?? x.c));
+    if (c[n] > hi) ev.push({ key: 'high52', tone: 'good', title: 'New 52-week high', text: `The price closed at ${money(c[n])}, its highest in a year (the previous high was ${money(hi)}).` });
+    if (c[n] < lo) ev.push({ key: 'low52', tone: 'weak', title: 'New 52-week low', text: `The price closed at ${money(c[n])}, its lowest in a year (the previous low was ${money(lo)}).` });
+  }
+  if (v50[p] && vol[n] > 2.5 * v50[p] && Math.abs(c[n] / c[p] - 1) >= 0.03) ev.push({ key: 'volume', tone: c[n] > c[p] ? 'good' : 'weak', title: 'Big move on heavy trading', text: `The price ${c[n] > c[p] ? 'rose' : 'fell'} ${(Math.abs(c[n] / c[p] - 1) * 100).toFixed(1)}% with ${(vol[n] / v50[p]).toFixed(1)} times the usual number of shares traded.` });
+  return ev.map((e) => ({ ...e, date: rows[n].d }));
+}

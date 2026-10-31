@@ -102,6 +102,7 @@ export async function renderLevelPage(slug, origin) {
           <div class="lp-me-bar"><i style="width:0%"></i></div>
           <p class="lp-me-text">Sign in (free) to tick off lessons as you read them and track your progress from any device. <a href="/#join">Sign in or join free →</a></p>
         </div>
+        ${L.id === 'technical' ? `<form class="ta-form lv-ta" onsubmit="var t=this.t.value.trim().toUpperCase();if(t){location.href='/technical/'+encodeURIComponent(t)}return false"><label for="lvTa">Try it now: the Chart check for any US-listed company</label><input id="lvTa" name="t" placeholder="e.g. AAPL" maxlength="10" required><button class="pf-btn gold" type="submit">Check the chart</button></form>` : ''}
         <nav class="wk-jump" aria-label="Weeks">${weeks.map((w, i) => `<a href="#week-${w.week}" style="--c:${WEEK_COLOURS[i % 6]}">Week ${w.week}<span>${esc(w.title)}</span></a>`).join('')}</nav>
         <div class="wk-grid">${weeks.map((w, i) => weekBlock(L, w, map, i)).join('')}</div>
         <p class="lvp-tip">${L.premium ? 'Premium members can read every lesson. Others can read the opening of each one.' : L.paid ? 'Regular and Premium members can read every lesson; others can read the opening. Try each idea on a real company with the <a href="/technical">Chart check</a>.' : 'One week at a time works well: read a lesson a day, take the quick check at the end, then move on.'} Our free newsletter features one week of the course in every issue.</p>

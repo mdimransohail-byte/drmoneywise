@@ -889,6 +889,11 @@ export async function writeDeeperExplainer() {
   // Next Lords lesson in course order that hasn't been written yet
   const done = new Set(store.articles.map((a) => lessonForArticle(a)?.id).filter(Boolean));
   const lesson = lessonsInOrder().find((l) => l.level === 'lords' && !done.has(l.id)) || null;
+  // Course complete: back to one extra deeper piece every 3 days
+  if (!lesson) {
+    const lastDeeper = store.articles.filter((x) => x.source === 'deeper-auto').map((x) => new Date(x.createdAt || x.publishAt).getTime()).sort().at(-1) || 0;
+    if (Date.now() - lastDeeper < 3 * 86400000) return { ok: true, skipped: true, message: 'Lords course complete; next extra lesson in a few days' };
+  }
   const used = store.articles.filter((a) => a.source === 'deeper-auto' && a.trendingTopic).map((a) => a.trendingTopic);
   const unused = DEEPER_TOPICS.filter((t) => !used.includes(t));
   const topic = lesson ? lesson.headline : (unused.length ? unused : DEEPER_TOPICS)[0];

@@ -36,6 +36,7 @@ function chips(name, label, options, hint = '', other = '') {
 /* ── What Premium gets you: visible, with a working example for each ── */
 const PREMIUM_PERKS = [
   ['♛', '#c9a227', 'Lords lessons', 'Deeper lessons for confident investors: cash flow, valuation, what professionals watch.', '/learn/advanced', 'See the Lords lessons'],
+  ['⚡', '#e8730c', 'Chart alerts by email', 'Golden crosses, RSI extremes and new highs or lows on your own companies, the day they appear.', '/learn/technical', 'Learn the signs'],
   ['❤', '#e5566f', 'Financial Health Check in full', 'Every company scored, plus how it ranks against others in its industry.', '/health-check', 'See the health check'],
   ['◎', '#1baf7a', 'Portfolio health check', 'A score and heat map for each of your holdings and your whole portfolio.', '/portfolio-health', 'Try the example'],
   ['✉', '#2a78d6', 'Premium weekly newsletter', 'Your portfolio’s week, results and dividends coming up, in one email.', '/newsletter', 'See past issues'],
@@ -71,7 +72,8 @@ const COMPARE = [
   ['Stock screener and watchlist review', 0, 1, 1],
   ['Chart Readers course and the full Chart check (technical analysis)', 0, 1, 1],
   ['Weekly members’ email and dividend alerts', 0, 1, 1],
-  ['Lords lessons (deeper explainers)', 0, 0, 1],
+  ['Lords: 8 weeks of deeper lessons', 0, 0, 1],
+  ['Chart alerts on your watchlist and portfolio', 0, 0, 1],
   ['Health Check in full, with industry ranking', 0, 0, 1],
   ['Portfolio health check', 0, 0, 1],
   ['Premium weekly newsletter with your portfolio', 0, 0, 1],

@@ -291,3 +291,29 @@ export async function getPriceHistory(rawTicker) {
     return saved ? { ok: true, ...saved, stale: true } : { ok: false, reason: 'error' };
   }
 }
+
+/* After the daily prices job: add the newest close to every saved price
+   history, so chart checks and chart alerts stay up to date without extra
+   requests. Returns how many histories were extended. */
+export async function appendDailyCloses(prices = {}) {
+  let n = 0;
+  let files = [];
+  try { files = await fs.readdir(HISTORY_DIR); } catch { return 0; }
+  for (const f of files.filter((x) => x.endsWith('.json'))) {
+    const ticker = f.slice(0, -5);
+    const p = prices[ticker] || prices[ticker.replace('-', '.')];
+    if (!p?.price || !p.date) continue;
+    try {
+      const file = path.join(HISTORY_DIR, f);
+      const data = JSON.parse(await fs.readFile(file, 'utf8'));
+      const d = String(p.date).slice(0, 10);
+      if (data.rows.at(-1)?.d >= d) continue;
+      data.rows.push({ d, o: p.open ?? p.price, h: p.high ?? p.price, l: p.low ?? p.price, c: p.price, v: p.volume ?? 0 });
+      data.rows = data.rows.slice(-320);
+      data.fetchedAt = new Date().toISOString();
+      await fs.writeFile(file, JSON.stringify(data));
+      n += 1;
+    } catch { /* skip this one */ }
+  }
+  return n;
+}

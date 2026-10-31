@@ -10,19 +10,12 @@
     ['US: S&P 500', 'SPX500'],
     ['US: Nasdaq 100', 'NASDAQ100'],
     ['US: Dow Jones 30', 'DJDJI'],
-    ['United Kingdom', 'AllGB'],
-    ['Germany', 'AllDE'],
-    ['France', 'AllFR'],
-    ['India', 'AllIN'],
-    ['Japan', 'AllJP'],
-    ['Hong Kong', 'AllHK'],
-    ['China', 'AllCN'],
-    ['Saudi Arabia', 'AllSA'],
-    ['UAE', 'AllAE'],
-    ['Brazil', 'AllBR'],
   ];
+  // TradingView's free heat map only covers these US lists; other markets
+  // fell back to the S&P 500, so they were taken out (31 Oct 2026).
   var saved = '';
   try { saved = localStorage.getItem('dmw-heatmap') || ''; } catch (e) { saved = ''; }
+  if (!MARKETS.some(function (m) { return m[1] === saved; })) saved = '';
   pick.innerHTML = MARKETS.map(function (m) { return '<option value="' + m[1] + '"' + (m[1] === saved ? ' selected' : '') + '>' + m[0] + '</option>'; }).join('');
   function draw(source) {
     box.innerHTML = '';

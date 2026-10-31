@@ -1165,6 +1165,8 @@ async function handlePublicPage(requestUrl, request, response) {
     response.end(html);
     return true;
   }
+  const learnTa = pathname.match(/^\/learn\/technical\/([A-Za-z0-9.-]{1,10})$/u);
+  if (learnTa) { response.writeHead(301, { Location: `/technical/${learnTa[1].toUpperCase()}` }); response.end(); return true; }
   if (pathname === '/technical' || /^\/technical\/[A-Za-z0-9.-]{1,10}$/u.test(pathname)) {
     const { renderTechnical } = await import('./src/services/technicalPage.js');
     return sendHtml(response, 200, await renderTechnical(origin, pathname.split('/')[2] || ''));
