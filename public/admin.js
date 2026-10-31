@@ -2084,7 +2084,7 @@ function render_newsletter() {
     <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
       ${tile(st.counts.everyone || 0, 'Would get it (everyone)', '#c9a227')}
       ${tile(st.counts.members || 0, 'Members with it switched on', '#2a78d6')}
-      ${tile(st.subscribers.active || 0, 'Confirmed subscribers', '#2bc48a')}
+      ${tile(st.subscribers.active || 0, `Confirmed subscribers${st.subscribers.byPlan ? ` (Free ${st.subscribers.byPlan.free || 0} · Regular ${st.subscribers.byPlan.regular || 0} · Premium ${st.subscribers.byPlan.premium || 0})` : ''}`, '#2bc48a')}
       ${tile(st.subscribers.pending || 0, 'Waiting to confirm', '#e8a33d')}
       ${tile((st.subscribers.unsubscribed || 0) + (st.membersOptedOut || 0), 'Unsubscribed', '#f26a6a')}
       ${tile(st.sentToday || 0, `Sent today (limit ${fmtNum(st.dailyLimit)})`, '#3cb5c4')}
@@ -2118,6 +2118,12 @@ function render_newsletter() {
         <div class="card"><h2 style="margin-top:0">Add people by hand</h2>
           <p style="font-size:.76rem;color:#9eb3cc">Type or paste email addresses (up to 50, separated by commas, spaces or new lines).</p>
           <textarea class="input" id="nlPeople" rows="4" placeholder="friend@example.com, colleague@example.com"></textarea>
+          <div style="margin-top:8px"><span class="field">Which newsletter do they get?</span>
+            <div id="nlPlan" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+              ${[['free', 'Free', '#2bc48a'], ['regular', 'Regular', '#4f9eff'], ['premium', 'Premium', '#c9a227']].map(([v, l, c], i) => `<label style="display:flex;align-items:center;gap:6px;border:1.5px solid ${c};border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.8rem"><input type="radio" name="nlPlan" value="${v}" ${i === 0 ? 'checked' : ''}/> ${l}</label>`).join('')}
+            </div>
+            <p style="font-size:.7rem;color:#9eb3cc;margin:6px 0 0"><b>Free:</b> the normal newsletter. <b>Regular:</b> also included when you send to "Regular and Premium". <b>Premium:</b> also gets the Premium section and is included when you send to "Premium only". This is for the newsletter only; it doesn't give them a website login. Already-subscribed people get the new plan; members keep the plan on their account (change it in Users).</p>
+          </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
             <button class="btn btn-gold" data-nl="once">Send the newsletter on the left once</button>
             <button class="btn" data-nl="invite">Invite to subscribe (they confirm)</button>
@@ -2226,12 +2232,15 @@ function bind_newsletter() {
         if (act === 'once') {
           const cur = nlRead();
           const id = cur.status && cur.status !== 'draft' ? cur.id : (await saveDraft()).id;
-          r = await API.nlPost('send-once', { id, emails });
+          r = await API.nlPost('send-once', { id, emails, plan: (qs('input[name=nlPlan]:checked') || {}).value || 'free' });
           text = `Sent to ${r.sent}.`;
         } else {
-          r = await API.nlPost('add-people', { emails, mode: act });
-          text = act === 'gift' ? `${r.added} added and told about their gift.` : `${r.invited} invited to confirm.`;
-          if (r.already) text += ` ${r.already} already on the list.`;
+          const plan = (qs('input[name=nlPlan]:checked') || {}).value || 'free';
+          r = await API.nlPost('add-people', { emails, mode: act, plan });
+          const planName = { free: 'Free', regular: 'Regular', premium: 'Premium' }[plan];
+          text = act === 'gift' ? `${r.added} added as ${planName} and told about their gift.` : `${r.invited} invited to confirm (as ${planName}).`;
+          if (r.updated) text += ` ${r.updated} already on the list, moved to ${planName}.`;
+          if (r.already) text += ` ${r.already} already on the list as ${planName}.`;
           if (r.members) text += ` ${r.members} already members (they get it through their membership).`;
         }
         if (r.failed?.length) text += ` Failed: ${r.failed.join('; ')}.`;

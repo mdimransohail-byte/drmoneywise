@@ -25,13 +25,15 @@ import { premiumWeekContext, premiumWeekHtml } from './premiumWeekService.js';
 export const AUDIENCES = {
   everyone: 'Everyone (members and newsletter subscribers)',
   members: 'All members (Free, Regular and Premium)',
-  free: 'Free members and newsletter subscribers',
-  paid: 'Paying members (Regular and Premium)',
-  premium: 'Premium members only',
+  free: 'Free members and Free subscribers',
+  paid: 'Regular and Premium (members and subscribers you added as Regular or Premium)',
+  premium: 'Premium only (members and subscribers you added as Premium)',
   subscribers: 'Newsletter subscribers only (not members)',
 };
 const DEFAULT_DAILY = 90;
 const BATCH = 100;
+export const SUB_PLANS = ['free', 'regular', 'premium'];
+const subPlan = (x) => (SUB_PLANS.includes(x?.plan) ? x.plan : 'free');
 const EMAIL_RE = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[a-z]{2,}$/iu;
 const clean = (t, max) => String(t ?? '').replace(/\r/gu, '').trim().slice(0, max);
 
@@ -134,13 +136,15 @@ export function recipientsFor(store, audience) {
   const members = (store.users || []).filter(memberWants);
   const paid = (u) => canAccess(u.plan || 'free', 'regular');
   const prem = (u) => canAccess(u.plan || 'free', 'premium');
-  const subs = (store.subscribers || []).filter((x) => x.status === 'active').map((x) => ({ kind: 'subscriber', id: x.id, email: x.email, token: x.token }));
+  // Subscribers added by hand can be given a plan (Admin → Newsletter); everyone else is Free
+  const allSubs = (store.subscribers || []).filter((x) => x.status === 'active').map((x) => ({ kind: 'subscriber', id: x.id, email: x.email, token: x.token, plan: subPlan(x) }));
+  const subs = allSubs;
   const mem = (list) => list.map((u) => ({ kind: 'member', id: u.id, email: u.email, name: String(u.name || '').split(' ')[0] }));
   let out = [];
   if (audience === 'members') out = mem(members);
-  else if (audience === 'paid') out = mem(members.filter(paid));
-  else if (audience === 'premium') out = mem(members.filter(prem));
-  else if (audience === 'free') out = [...mem(members.filter((u) => !paid(u))), ...subs];
+  else if (audience === 'paid') out = [...mem(members.filter(paid)), ...allSubs.filter((x) => x.plan !== 'free')];
+  else if (audience === 'premium') out = [...mem(members.filter(prem)), ...allSubs.filter((x) => x.plan === 'premium')];
+  else if (audience === 'free') out = [...mem(members.filter((u) => !paid(u))), ...allSubs.filter((x) => x.plan === 'free')];
   else if (audience === 'subscribers') out = subs;
   else out = [...mem(members), ...subs];
   const seen = new Set();
@@ -153,7 +157,7 @@ export async function newsletterStats() {
   const subs = store.subscribers || [];
   return {
     counts,
-    subscribers: { active: subs.filter((x) => x.status === 'active').length, pending: subs.filter((x) => x.status === 'pending').length, unsubscribed: subs.filter((x) => x.status === 'unsubscribed').length },
+    subscribers: { active: subs.filter((x) => x.status === 'active').length, pending: subs.filter((x) => x.status === 'pending').length, unsubscribed: subs.filter((x) => x.status === 'unsubscribed').length, byPlan: Object.fromEntries(SUB_PLANS.map((pl) => [pl, subs.filter((x) => x.status === 'active' && subPlan(x) === pl).length])) },
     membersOptedOut: (store.users || []).filter((u) => u.email && u.role !== 'admin' && (u.emailPrefs || {}).newsletter === false).length,
     dailyLimit: store.settings?.newsletterDailyLimit || DEFAULT_DAILY,
     sentToday: sentToday(store),
@@ -327,9 +331,10 @@ export async function continueSending() {
     for (const r of chunk) {
       const links = await linksFor(r, site, issue.id);
       let extra = '';
-      if (issue.premiumSection !== false && r.kind === 'member' && users.get(r.id)) {
+      const reader = r.kind === 'member' ? users.get(r.id) : r.plan === 'premium' ? { plan: 'premium', email: r.email } : null;
+      if (issue.premiumSection !== false && reader) {
         if (!ctx) ctx = await premiumWeekContext().catch(() => null);
-        if (ctx) extra = await premiumWeekHtml(users.get(r.id), ctx, site).catch((error) => { console.error(`[newsletter] Premium section for ${r.email}: ${error.message}`); return ''; });
+        if (ctx) extra = await premiumWeekHtml(reader, ctx, site).catch((error) => { console.error(`[newsletter] Premium section for ${r.email}: ${error.message}`); return ''; });
       }
       emails.push({
         from, to: [r.email], subject: issue.subject,
@@ -383,7 +388,7 @@ export async function publicIssues() {
 
 export async function subscribersCsv() {
   const store = await readStore();
-  const rows = [['email', 'status', 'signed up', 'confirmed', 'source'], ...(store.subscribers || []).map((x) => [x.email, x.status, x.createdAt, x.confirmedAt || '', x.source || ''])];
+  const rows = [['email', 'plan', 'status', 'signed up', 'confirmed', 'source'], ...(store.subscribers || []).map((x) => [x.email, subPlan(x), x.status, x.createdAt, x.confirmedAt || '', x.source || ''])];
   return rows.map((r) => r.map((v) => `"${String(v).replace(/"/gu, '""')}"`).join(',')).join('\n');
 }
 
@@ -401,7 +406,7 @@ async function countSent(n) {
 }
 
 /** Sends one newsletter (draft or already sent) to a few addresses, once. They are not added to the list. */
-export async function sendOnce(id, text) {
+export async function sendOnce(id, text, plan = 'free') {
   const { good, bad } = emailList(text);
   const store = await readStore();
   const issue = (store.newsletters || []).find((x) => x.id === id);
@@ -409,9 +414,15 @@ export async function sendOnce(id, text) {
   if (!issue.subject) throw Object.assign(new Error('Add a subject line first.'), { status: 400 });
   const site = await siteUrl();
   const html = newsletterHtml({ ...issue, dateLabel: issue.dateLabel || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site, webUrl: issue.status === 'sent' ? `${site}/newsletter/${issue.id}` : '', unsubscribeUrl: `${site}/newsletter` });
+  // Premium: the same email with the Premium section added
+  let premHtml = html;
+  if (plan === 'premium' && issue.premiumSection !== false) {
+    const extra = await premiumWeekHtml({ plan: 'premium' }, await premiumWeekContext(), site).catch(() => '');
+    premHtml = newsletterHtml({ ...issue, dateLabel: issue.dateLabel || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site, extra, webUrl: issue.status === 'sent' ? `${site}/newsletter/${issue.id}` : '', unsubscribeUrl: `${site}/newsletter` });
+  }
   const failed = [];
   for (const to of good) {
-    const r = await sendEmail({ to, subject: issue.subject, html });
+    const r = await sendEmail({ to, subject: issue.subject, html: premHtml });
     if (!r.ok) failed.push(`${to} (${r.message})`);
   }
   await countSent(good.length - failed.length);
@@ -419,17 +430,26 @@ export async function sendOnce(id, text) {
 }
 
 /** Adds people to the newsletter list: "invite" asks them to confirm; "gift" adds them now and tells them, with an unsubscribe link. */
-export async function addSubscribers(text, mode = 'invite') {
+export async function addSubscribers(text, mode = 'invite', rawPlan = 'free') {
+  const plan = SUB_PLANS.includes(rawPlan) ? rawPlan : 'free';
   const { good, bad } = emailList(text);
   const site = await siteUrl();
-  const out = { added: 0, invited: 0, already: 0, members: 0, failed: [], skipped: bad };
+  const out = { added: 0, invited: 0, already: 0, updated: 0, members: 0, failed: [], skipped: bad, plan };
+  // Sets the plan on someone already on the list (returns true if it changed)
+  const setPlan = async (email) => {
+    let changed = false;
+    await updateStore((s) => { const x = (s.subscribers || []).find((y) => y.email === email); if (x && subPlan(x) !== plan) { x.plan = plan; changed = true; } return s; });
+    return changed;
+  };
   const store = await readStore();
   const memberEmails = new Set((store.users || []).map((u) => String(u.email || '').toLowerCase()));
   for (const email of good) {
     if (memberEmails.has(email)) { out.members += 1; continue; }
     if (mode !== 'gift') {
       const r = await subscribe(email, { source: 'admin-invite', admin: true }).catch((e) => ({ error: e.message }));
-      if (r.error) out.failed.push(`${email} (${r.error})`); else if (r.already) out.already += 1; else out.invited += 1;
+      if (r.error) { out.failed.push(`${email} (${r.error})`); continue; }
+      if (await setPlan(email) && r.already) out.updated += 1;
+      else if (r.already) out.already += 1; else out.invited += 1;
       continue;
     }
     let sub = null; let isNew = false;
@@ -438,15 +458,15 @@ export async function addSubscribers(text, mode = 'invite') {
       sub = s.subscribers.find((x) => x.email === email);
       if (sub?.status === 'active') return s;
       if (!sub) { sub = { id: crypto.randomUUID(), email, token: crypto.randomBytes(18).toString('hex'), createdAt: new Date().toISOString() }; s.subscribers.push(sub); }
-      Object.assign(sub, { status: 'active', source: 'admin-gift', confirmedAt: new Date().toISOString() });
+      Object.assign(sub, { status: 'active', source: 'admin-gift', plan, confirmedAt: new Date().toISOString() });
       isNew = true;
       return s;
     });
-    if (!isNew) { out.already += 1; continue; }
+    if (!isNew) { if (await setPlan(email)) out.updated += 1; else out.already += 1; continue; }
     out.added += 1;
     const html = newsletterHtml({
-      subject: 'A free subscription to the Dr MoneyWise newsletter',
-      intro: 'Someone thought you’d enjoy the Dr MoneyWise newsletter, so you now get it for free: our best plain-English explainers on saving and investing, the biggest company results and new research, about once a week.\n\nIf you’d rather not get it, use the unsubscribe link at the bottom of this email and you won’t hear from us again.',
+      subject: plan === 'premium' ? 'A free subscription to the Dr MoneyWise newsletter, Premium edition' : 'A free subscription to the Dr MoneyWise newsletter',
+      intro: (plan === 'premium' ? 'Someone thought you’d enjoy the Premium edition of the Dr MoneyWise newsletter, so you now get it for free, including the extra Premium section each week: ' : 'Someone thought you’d enjoy the Dr MoneyWise newsletter, so you now get it for free: ') + 'our best plain-English explainers on saving and investing, the biggest company results and new research, about once a week.\n\nIf you’d rather not get it, use the unsubscribe link at the bottom of this email and you won’t hear from us again.',
       items: [{ heading: '', text: '', url: `${site}/newsletter`, button: 'See past issues' }],
     }, { site, unsubscribeUrl: `${site}/newsletter/unsubscribe?t=${sub.token}` });
     const r = await sendEmail({ to: email, subject: 'You’ve been given the Dr MoneyWise newsletter', html, unsubscribeUrl: `${site}/newsletter/unsubscribe?t=${sub.token}` });
