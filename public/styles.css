@@ -2228,3 +2228,20 @@ body.has-ad-strip { padding-bottom: 52px; }
 @media (max-width: 560px) { .lc-row.lc-4 { grid-template-columns: minmax(0, 1fr); } }
 .ta-form.lv-ta { background: linear-gradient(135deg, #0a1128, #13365e); margin: 16px 0 0; }
 @media (min-width: 900px) { .pp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Currency picker with flags (/tools/currency-converter) */
+.fxp { position: relative; }
+.fxp-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #cfd6e4; border-radius: 10px; background: #fff; cursor: pointer; font: inherit; text-align: left; }
+.fxp-btn:hover, .fxp-btn[aria-expanded="true"] { border-color: #2a78d6; box-shadow: 0 0 0 3px rgba(42,120,214,.15); }
+.fxp-btn img, .fxp-list img { width: 24px; height: 18px; border-radius: 3px; object-fit: cover; box-shadow: 0 0 0 1px rgba(0,0,0,.08); flex: none; }
+.fxp-btn b, .fxp-list b { min-width: 38px; }
+.fxp-btn span, .fxp-list span { color: #4a5570; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fxp-btn i { font-style: normal; color: #7a849b; }
+.fxp-panel { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid #cfd6e4; border-radius: 12px; box-shadow: 0 14px 36px rgba(10,17,40,.18); padding: 8px; }
+.fxp-q { width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #cfd6e4; border-radius: 8px; font: inherit; margin-bottom: 6px; }
+.fxp-list { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
+.fxp-list li[data-v] { display: flex; align-items: center; gap: 10px; padding: 8px 8px; border-radius: 8px; cursor: pointer; }
+.fxp-list li[data-v]:hover, .fxp-list li[aria-selected="true"] { background: #eef4ff; }
+.fxp-g { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #7a849b; padding: 8px 8px 4px; }
+.fxp-swap { align-self: center; margin: -4px auto 10px; display: block; padding: 6px 14px; border-radius: 999px; border: 1px solid #cfd6e4; background: #f5f8ff; color: #2a78d6; font-weight: 700; cursor: pointer; }
+.fxp-swap:hover { background: #e3eeff; }

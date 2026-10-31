@@ -175,7 +175,7 @@ export function renderMembershipPage(origin) {
         <div class="mb-under">
           <div class="mb-coupon">
             <label for="mbCoupon">Coupon code</label>
-            <input id="mbCoupon" type="text" placeholder="e.g. WELCOME20" autocomplete="off" />
+            <input id="mbCoupon" type="text" placeholder="Enter your code" autocomplete="off" />
             <button type="button" id="mbCouponBtn">Apply</button>
           </div>
           <p class="mb-small">Prices in US dollars. Renews until you cancel. Secure payment by Stripe.</p>

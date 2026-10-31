@@ -51,7 +51,7 @@ const short = (v) => formatMoney(v).replace(' billion', 'bn').replace(' trillion
 
 export function tvSymbol(company) {
   const exchange = String(company.exchange || '').toUpperCase();
-  const ticker = company.ticker.replace('-', '.');
+  const ticker = String(company.ticker || '').replace('-', '.');
   if (exchange === 'NASDAQ' || exchange === 'NYSE' || exchange === 'AMEX' || exchange === 'CBOE') {
     return `${exchange}:${ticker}`;
   }

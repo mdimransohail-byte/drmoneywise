@@ -57,7 +57,7 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
       ${para(issue.intro || '')}
       ${items.map((x, i) => `
       <div style="border-left:5px solid ${colours[i % colours.length]};background:#fff;border-radius:10px;padding:14px 16px;margin:0 0 14px">
-        ${x.heading ? `<h2 style="font:700 18px Georgia,serif;margin:0 0 8px">${esc(x.heading)}</h2>` : ''}
+        ${x.heading ? `<h2 style="font:700 18px Georgia,serif;margin:0 0 8px">${x.url ? `<a href="${esc(x.url.startsWith('/') ? `${site}${x.url}` : x.url)}" style="color:#0a1128;text-decoration:none">${esc(x.heading)}</a>` : esc(x.heading)}</h2>` : ''}
         ${para(x.text || '')}
         ${x.url ? `<p style="margin:0"><a href="${esc(x.url.startsWith('/') ? `${site}${x.url}` : x.url)}" style="display:inline-block;background:#c9a227;color:#0a1128;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:999px">${esc(x.button || 'Read more')}</a></p>` : ''}
       </div>`).join('')}
@@ -235,6 +235,38 @@ async function courseWeekItems(site) {
   return out;
 }
 
+/* Company news for the newsletter when there are few results: headlines
+   about hiring, job cuts, expansion, deals and launches, from the news we
+   already collect for each region (GDELT). Each links to the publisher. */
+async function businessNews(limit = 5) {
+  const { readNews, refreshNews, HOME_NEWS_REGIONS } = await import('./newsLinksService.js');
+  const ids = ['us', 'uk', 'europe', 'gulf', 'india', 'china', 'japan', 'south-korea', 'brazil'];
+  // Make sure the headlines are this week's (each region refreshes at most every 6 hours)
+  const names = Object.fromEntries(HOME_NEWS_REGIONS);
+  await Promise.all(ids.map((id) => Promise.race([
+    refreshNews('region', id, { subject: `business news from ${names[id] || id}` }).catch(() => null),
+    new Promise((r) => setTimeout(r, 20000)),
+  ])));
+  const words = /\b(hir\w*|jobs?|layoff\w*|job cuts?|cuts? \d|redundanc\w*|expan\w*|opens?|opening|new (plant|factory|store|office)|acqui\w*|merger|takeover|buy(s|ing)? |deal|invest\w*|launch\w*|partnership|ipo|listing|contract|order)\b/iu;
+  const seen = new Set();
+  const all = [];
+  for (const id of ids) {
+    const saved = await readNews('region', id);
+    for (const x of saved?.items || []) {
+      const key = String(x.title).toLowerCase().slice(0, 60);
+      if (seen.has(key) || !x.url || !x.title) continue;
+      seen.add(key);
+      all.push({ ...x, region: id, business: words.test(x.title) });
+    }
+  }
+  const week = Date.now() - 9 * 86400000;
+  let recent = all.filter((x) => !x.date || new Date(x.date).getTime() > week);
+  // A quiet week: still give the newest business headlines we have
+  if (recent.length < limit) recent = [...recent, ...all.filter((x) => !recent.includes(x)).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))];
+  const pick = [...recent.filter((x) => x.business), ...recent.filter((x) => !x.business)].slice(0, limit);
+  return pick.map((x) => ({ title: x.title, url: x.url, source: String(x.domain || '').replace(/^www\./u, '') || 'news site', when: x.date ? new Date(x.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '' }));
+}
+
 export async function draftFromSite() {
   const site = await siteUrl();
   const { getPublishedLearningArticles } = await import('./seoService.js');
@@ -244,22 +276,26 @@ export async function draftFromSite() {
   const week = Date.now() - 8 * 86400000;
   const explainers = (await getPublishedLearningArticles()).filter((a) => new Date(a.publishAt).getTime() > week && !(a.tags || []).includes('deeper')).slice(0, 2);
   const big = await biggestTickers();
-  const results = latestResults(300, 8).filter((r) => r.simple && big.has(r.ticker)).slice(0, 3);
+  const results = latestResults(300, 8).filter((r) => r.simple && big.has(r.ticker)).slice(0, 4);
   const report = (await listReports())[0];
+  const { resultPath } = await import('./newsPages.js');
+  const business = await businessNews(results.length ? 3 : 5);
   // The course, one week per issue: Week 1 in the first issue, Week 2 in the next…
   const course = await courseWeekItems(site);
+  // News first (results, then other company news), then learning
   const items = [
+    ...results.map((r) => ({ heading: `${r.name}: ${r.headline}`, text: r.simple || '', url: `${site}${resultPath(r)}`, button: 'Read the results, explained' })),
+    ...business.map((n) => ({ heading: n.title, text: `${n.source}${n.when ? ` · ${n.when}` : ''}`, url: n.url, button: `Read on ${n.source}` })),
+    ...(report ? [{ heading: `Research report: ${report.text.headline}`, text: String((report.text.summary || [])[0] || ''), url: `${site}/reports/${report.id}`, button: 'Read the report (Premium)' }] : []),
     ...course,
     ...explainers.map((a) => ({ heading: a.headline, text: a.summary || '', url: `${site}/learn/${a.slug}`, button: 'Read the explainer' })),
-    ...(results.length ? [{ heading: 'This week’s biggest results, in plain English', text: results.map((r) => `${r.name}: ${r.headline}.`).join('\n'), url: `${site}/results`, button: 'See all results' }] : []),
-    ...(report ? [{ heading: `Research report: ${report.text.headline}`, text: String((report.text.summary || [])[0] || ''), url: `${site}/reports/${report.id}`, button: 'Read the report (Premium)' }] : []),
     { heading: 'Learning something new this week?', text: 'Our free learning path takes you from your first savings to running a portfolio, in short steps.', url: `${site}/learn/path`, button: 'Start the learning path' },
   ];
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
   return {
     subject: `Your week in money: ${date}`,
-    preheader: explainers[0]?.headline || 'The week’s money news, explained simply',
-    intro: 'This week’s lessons from our course, from the basics up, plus the newest explainers, the biggest company results and what’s new on the site.',
+    preheader: results[0] ? `${results[0].name}: ${results[0].headline}` : business[0]?.title || explainers[0]?.headline || 'The week’s money news, explained simply',
+    intro: 'The week’s company news first: results explained simply and what businesses are doing. Then this week’s lessons from our course, from the basics up.',
     closing: 'Have a good week,\nThe Dr MoneyWise team',
     audience: 'everyone',
     items,

@@ -83,7 +83,7 @@
       var rate = fx.usdPer[from] / fx.usdPer[to];
       if (!isFinite(rate)) return sentence('Rates are loading. Please try again shortly.');
       var amt = num('amount'), fair = amt * rate, got = fair * (1 - num('margin') / 100);
-      function f(v, c) { return v.toLocaleString('en-GB', { maximumFractionDigits: v < 100 ? 2 : 0 }) + ' ' + c; }
+      function f(v, c) { var a = Math.abs(v); return (a > 0 && a < 1 ? v.toLocaleString('en-GB', { maximumSignificantDigits: 4 }) : v.toLocaleString('en-GB', { maximumFractionDigits: a < 100 ? 2 : 0 })) + ' ' + c; }
       return sentence(f(amt, from) + ' is <strong>' + f(fair, to) + '</strong> at today’s reference rate. With a ' + num('margin') + '% margin you would get about <strong>' + f(got, to) + '</strong>: the exchange costs you <strong>' + f(fair - got, to) + '</strong>.') +
         tiles([['1 ' + from + ' =', f(rate, to)], ['1 ' + to + ' =', f(1 / rate, from)], ['You would receive', f(got, to)], ['Cost of the margin', f(fair - got, to)]]) +
         bars('What different margins cost you', [0.5, 1, 3, 5, 10].map(function (m, i) { return [m + '% margin', fair * m / 100, f(fair * m / 100, to), COLOURS[i]]; }));
@@ -105,6 +105,42 @@
     root.querySelectorAll('[data-symbol]').forEach(function (el) { el.textContent = s.trim() || '$'; });
     try { out.innerHTML = CALC[kind] ? CALC[kind]() : ''; } catch (e) { out.innerHTML = '<p class="calc-hint">Please check the numbers you typed.</p>'; }
   }
+  /* Currency picker with flags and a search box. The plain <select> stays in
+     the page (hidden) so the sums above keep reading its value. */
+  function flagImg(cc) { return cc ? '<img src="' + ((window.DMW_FX && window.DMW_FX.flagBase) || '/flags/') + cc + '.svg" alt="" width="24" height="18" loading="lazy">' : ''; }
+  function enhance(sel) {
+    var opts = Array.prototype.map.call(sel.options, function (o) { return { v: o.value, t: o.textContent, f: o.dataset.flag, g: o.parentNode.label || '' }; });
+    var box = document.createElement('div'); box.className = 'fxp';
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fxp-btn'; btn.setAttribute('aria-haspopup', 'listbox');
+    var panel = document.createElement('div'); panel.className = 'fxp-panel'; panel.hidden = true;
+    panel.innerHTML = '<input type="search" class="fxp-q" placeholder="Search a country or currency" aria-label="Search currencies"><ul class="fxp-list" role="listbox"></ul>';
+    var q = panel.querySelector('.fxp-q'), ul = panel.querySelector('.fxp-list');
+    function show() { var o = opts.filter(function (x) { return x.v === sel.value; })[0]; btn.innerHTML = o ? flagImg(o.f) + '<b>' + esc(o.v) + '</b><span>' + esc(o.t.split(' · ')[1] || '') + '</span><i aria-hidden="true">▾</i>' : 'Choose'; }
+    function list() {
+      var term = q.value.trim().toLowerCase(), last = '';
+      ul.innerHTML = opts.filter(function (o) { return !term || o.t.toLowerCase().indexOf(term) >= 0; }).map(function (o) {
+        var head = !term && o.g !== last ? '<li class="fxp-g">' + esc(last = o.g) + '</li>' : '';
+        return head + '<li role="option" data-v="' + esc(o.v) + '"' + (o.v === sel.value ? ' aria-selected="true"' : '') + '>' + flagImg(o.f) + '<b>' + esc(o.v) + '</b><span>' + esc(o.t.split(' · ')[1] || '') + '</span></li>';
+      }).join('') || '<li class="fxp-g">No currency matches that</li>';
+    }
+    function close() { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('click', function () { var open = panel.hidden; document.querySelectorAll('.fxp-panel').forEach(function (p) { p.hidden = true; }); if (open) { panel.hidden = false; btn.setAttribute('aria-expanded', 'true'); q.value = ''; list(); q.focus(); } });
+    q.addEventListener('input', function (e) { e.stopPropagation(); list(); });
+    q.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); if (e.key === 'Enter') { e.preventDefault(); var first = ul.querySelector('[data-v]'); if (first) first.click(); } });
+    ul.addEventListener('click', function (e) { var li = e.target.closest('[data-v]'); if (!li) return; sel.value = li.dataset.v; show(); close(); sel.dispatchEvent(new Event('change', { bubbles: true })); });
+    document.addEventListener('click', function (e) { if (!box.contains(e.target)) close(); });
+    sel.addEventListener('change', show);
+    sel.hidden = true; sel.parentNode.insertBefore(box, sel); box.appendChild(btn); box.appendChild(panel); box.appendChild(sel);
+    show();
+  }
+  root.querySelectorAll('select.fxp-sel').forEach(enhance);
+  var swap = root.querySelector('.fxp-swap');
+  if (swap) swap.addEventListener('click', function () {
+    var a = document.getElementById('from'), b = document.getElementById('to'), t = a.value;
+    a.value = b.value; b.value = t;
+    a.dispatchEvent(new Event('change', { bubbles: true })); b.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
   root.addEventListener('input', update);
   root.addEventListener('change', update);
   update();

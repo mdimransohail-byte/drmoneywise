@@ -2491,7 +2491,8 @@ function render_video() {
             <button class="btn" data-vm="save" ${busy ? 'disabled' : ''}>Save script</button>
             <button class="btn btn-gold" data-vm="render" ${busy ? 'disabled' : ''}>Make the video</button>
           </div>
-          ${p.status === 'rendering' ? `<div style="margin-top:12px"><div style="height:10px;background:rgba(255,255,255,.08);border-radius:6px"><div style="height:10px;width:${p.progress?.pct || 2}%;background:#c9a227;border-radius:6px"></div></div><p style="font-size:.74rem;color:#dbe6f3">${h(p.progress?.step || 'Working')}… (a Short takes about a minute; a long video several minutes)</p></div>` : ''}
+          ${p.status === 'rendering' ? `<div style="margin-top:12px"><div style="height:10px;background:rgba(255,255,255,.08);border-radius:6px"><div style="height:10px;width:${p.progress?.pct || 2}%;background:#c9a227;border-radius:6px"></div></div><p style="font-size:.74rem;color:#dbe6f3">${h(p.progress?.step || 'Working')}… (a Short takes about a minute; a long video several minutes)</p><button class="btn" data-vm="cancel" data-id="${h(p.id)}" style="color:#f2b45a;margin-top:4px">Cancel: stop making this video</button></div>` : ''}
+          ${p.note && p.status === 'draft' ? `<p style="font-size:.76rem;color:#f2b45a">${h(p.note)}</p>` : ''}
           ${p.status === 'failed' ? `<p style="font-size:.76rem;color:#f26a6a">Couldn’t make the video: ${h(p.error || '')}</p>` : ''}
         </div>
         ${p.status === 'done' ? `<div class="card" id="vmDone">
@@ -2513,7 +2514,7 @@ function render_video() {
         <div><b style="font-size:.72rem;color:#c9a227">Biggest files</b>${(d.storage.biggest || []).map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:.72rem;color:#dbe6f3;padding:2px 0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(x.name)}</span><span>${x.mb} MB</span></div>`).join('')}</div></div></details>
       <p style="margin-top:10px"><button class="btn" data-vm="free">Free up space</button> <span style="font-size:.7rem;color:#9eb3cc">Removes leftover and half-made video files, all but the newest 3 videos, social and Gamma pictures older than a day, and half-written temporary files.</span></p></div>` : ''}
     <div class="card"><h2 style="margin-top:0">Your videos</h2>
-      ${d.projects.length ? d.projects.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.08);padding:8px 0;font-size:.8rem"><span style="color:#fff">${h(x.title)}<br><span style="color:#9eb3cc;font-size:.7rem">${x.format === 'short' ? 'Short' : 'Video'} · ${h(x.status)}${x.seconds ? ` · ${x.seconds} s` : ''} · ${fmtDate(x.createdAt)}</span></span><span style="display:flex;gap:6px;align-self:center"><button class="btn" data-vm="open" data-id="${h(x.id)}" style="padding:4px 10px">Open</button><button class="btn" data-vm="del" data-id="${h(x.id)}" style="padding:4px 10px;color:#f26a6a">Delete</button></span></div>`).join('') : '<p style="color:#9eb3cc;font-size:.8rem">None yet.</p>'}
+      ${d.projects.length ? d.projects.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.08);padding:8px 0;font-size:.8rem"><span style="color:#fff">${h(x.title)}<br><span style="color:#9eb3cc;font-size:.7rem">${x.format === 'short' ? 'Short' : 'Video'} · ${h(x.status)}${x.seconds ? ` · ${x.seconds} s` : ''} · ${fmtDate(x.createdAt)}</span></span><span style="display:flex;gap:6px;align-self:center"><button class="btn" data-vm="open" data-id="${h(x.id)}" style="padding:4px 10px">Open</button>${x.status === 'rendering' ? `<button class="btn" data-vm="cancel" data-id="${h(x.id)}" style="padding:4px 10px;color:#f2b45a">Cancel</button>` : ''}<button class="btn" data-vm="del" data-id="${h(x.id)}" style="padding:4px 10px;color:#f26a6a">Delete</button></span></div>`).join('') : '<p style="color:#9eb3cc;font-size:.8rem">None yet.</p>'}
     </div>`;
 }
 
@@ -2588,6 +2589,14 @@ function bind_video() {
         await API.post('/api/admin/video/delete', { id: btn.dataset.id });
         if (STATE.vp?.id === btn.dataset.id) STATE.vp = null;
         showToast('Video deleted'); await vmRefresh(); return;
+      }
+      if (act === 'cancel') {
+        if (!window.confirm('Stop making this video? Your script and recordings are kept.')) return;
+        btn.disabled = true;
+        await API.post('/api/admin/video/cancel', { id: btn.dataset.id });
+        clearInterval(VM.poll);
+        if (STATE.vp?.id === btn.dataset.id) STATE.vp = await API.get('/api/admin/video/project?id=' + btn.dataset.id);
+        showToast('Stopped. You can make it again any time.'); await vmRefresh(); return;
       }
       if (act === 'open') { STATE.vp = await API.get('/api/admin/video/project?id=' + btn.dataset.id); await vmRefresh(); window.scrollTo(0, 0); return; }
       if (act === 'save') { STATE.vp = await API.post('/api/admin/video/save', vmRead()); showToast('Script saved'); await vmRefresh(); return; }

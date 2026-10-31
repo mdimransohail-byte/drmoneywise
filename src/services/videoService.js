@@ -55,6 +55,7 @@ const providerOf = (v) => (String(v || '').startsWith('gemini:') ? 'gemini' : 'o
 const WORDS_PER_SECOND = 2.5;
 
 let ffmpegPath = null;
+const children = new Set(); // ffmpeg processes running now, so a render can be cancelled
 async function ffmpeg() {
   if (ffmpegPath) return ffmpegPath;
   try { ffmpegPath = (await import('@ffmpeg-installer/ffmpeg')).default.path; } catch { ffmpegPath = 'ffmpeg'; }
@@ -63,6 +64,7 @@ async function ffmpeg() {
 function run(args, { timeout = 30 * 60 * 1000 } = {}) {
   return new Promise(async (resolve, reject) => {
     const p = spawn(await ffmpeg(), ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
+    children.add(p); p.on('close', () => children.delete(p));
     let err = '';
     p.stderr.on('data', (d) => { err += d; if (err.length > 20000) err = err.slice(-10000); });
     const timer = setTimeout(() => { p.kill('SIGKILL'); reject(new Error('ffmpeg took too long')); }, timeout);
@@ -97,7 +99,13 @@ export async function listProjects() {
   try {
     const ids = (await fs.readdir(PROJECTS)).filter(validId);
     const out = [];
-    for (const id of ids) { const p = await getProject(id); if (p) out.push({ id, title: p.title, format: p.format, status: p.status, createdAt: p.createdAt, seconds: p.seconds || null }); }
+    for (const id of ids) {
+      const p = await getProject(id);
+      if (p && p.status === 'rendering' && current?.id !== id) { // left half-made by a restart
+        Object.assign(p, { status: 'failed', error: 'Stopped part-way because the server restarted. Click “Make video” to try again.', progress: null });
+        await saveProject(p).catch(() => {});
+      }
+      if (p) out.push({ id, title: p.title, format: p.format, status: p.status, createdAt: p.createdAt, seconds: p.seconds || null }); }
     return out.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 30);
   } catch { return []; }
 }
@@ -403,6 +411,7 @@ async function brandClip(kind, W, H, fps) {
 
 /* ── Rendering ────────────────────────────────────────────────────── */
 let busy = false;
+let current = null;     // { id, token } of the video being made now
 export async function startRender(id) {
   const p = await getProject(id);
   if (!p) throw Object.assign(new Error('Project not found.'), { status: 404 });
@@ -413,15 +422,31 @@ export async function startRender(id) {
   if (p.voice === 'own' && !p.voiceAll && !p.scenes.some((s) => s.voiceFile)) throw Object.assign(new Error('Record at least one scene, or upload a recording of the whole script, first.'), { status: 400 });
   const st = await storageReport().catch(() => null);
   if (st?.freeMb !== null && st?.freeMb !== undefined && st.freeMb < 150) throw Object.assign(new Error(`The saved-data space is nearly full (${st.freeMb} MB free). Click “Free up space” on this page first.`), { status: 507 });
-  busy = true;
-  p.status = 'rendering'; p.progress = { step: 'Starting', pct: 2 }; p.error = null;
+  const token = Symbol(p.id); busy = true; current = { id: p.id, token }; p._token = token;
+  p.status = 'rendering'; p.progress = { step: 'Starting', pct: 2 }; p.error = null; p.note = null;
   await saveProject(p);
   render(p).catch(async (error) => {
     console.error(`[video] ${p.id} failed: ${error.message}`);
     await fs.rm(path.join(os.tmpdir(), `dmw-video-${p.id}`), { recursive: true, force: true }).catch(() => {});
     const q = (await getProject(p.id)) || p;
+    if (current?.token !== token) return; // cancelled: cancelRender has already tidied up
     q.status = 'failed'; q.error = error.message; await saveProject(q);
-  }).finally(() => { busy = false; });
+  }).finally(() => { if (current?.token === token) { busy = false; current = null; } });
+  return { ok: true };
+}
+
+/** Stop a video part-way, or clear one left "being made" after a restart. */
+export async function cancelRender(id) {
+  if (!validId(id)) throw Object.assign(new Error('Project not found.'), { status: 404 });
+  const p = await getProject(id);
+  if (!p) throw Object.assign(new Error('Project not found.'), { status: 404 });
+  if (current?.id === id) {
+    for (const c of children) { try { c.kill('SIGKILL'); } catch { /* already gone */ } }
+    busy = false; current = null; // free the maker straight away, even if a step is hanging
+  }
+  await fs.rm(path.join(os.tmpdir(), `dmw-video-${id}`), { recursive: true, force: true }).catch(() => {});
+  Object.assign(p, { status: 'draft', progress: null, error: null, note: 'Stopped. Change anything you like, then click “Make video” again.' });
+  await saveProject(p);
   return { ok: true };
 }
 
@@ -434,7 +459,10 @@ async function render(p) {
   await fs.rm(path.join(dir, 'work'), { recursive: true, force: true });
   await fs.rm(work, { recursive: true, force: true });
   await fs.mkdir(work, { recursive: true });
-  const step = async (text, pct) => { p.progress = { step: text, pct }; await saveProject(p); };
+  const step = async (text, pct) => {
+    if (current?.token !== p._token) throw new Error('Cancelled');
+    p.progress = { step: text, pct }; await saveProject(p);
+  };
   const music = await ensureBrandAudio();
 
   // 1. Voice for each scene
@@ -533,6 +561,7 @@ async function render(p) {
   await fs.rm(work, { recursive: true, force: true });
 
   const q = (await getProject(p.id)) || p;
+  if (current?.token !== p._token) throw new Error('Cancelled');
   Object.assign(q, { status: 'done', progress: { step: 'Done', pct: 100 }, output: outName, thumbnail: thumb, seconds: Math.round(total), photosUsed: used, madeAt: new Date().toISOString(), meta: await metaFor(q, used) });
   await saveProject(q);
   console.log(`[video] ${q.id}: ${outName} (${Math.round(total)} s)`);

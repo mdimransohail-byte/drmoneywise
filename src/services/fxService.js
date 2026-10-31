@@ -61,3 +61,44 @@ export const CURRENCY_WORDS = {
   INR: 'Indian rupees', KRW: 'South Korean won', BRL: 'Brazilian reais', CHF: 'Swiss francs', AUD: 'Australian dollars',
   CAD: 'Canadian dollars', ILS: 'Israeli shekels', SAR: 'Saudi riyals', AED: 'UAE dirhams', MXN: 'Mexican pesos', TWD: 'Taiwan dollars',
 };
+
+/* ── Every currency, for the converter ────────────────────────────────────
+   ExchangeRate-API "open access" (free, commercial use allowed, about 160
+   currencies, updated once a day). Its terms ask for the credit link
+   "Rates By Exchange Rate API" wherever the rates are shown, and no more
+   than one request a day is needed, so the answer is saved for 24 hours.
+   If it can't be reached, the ECB rates above are used instead.          */
+const ALL_URL = 'https://open.er-api.com/v6/latest/USD';
+const ALL_FILE = path.join(process.cwd(), 'data', 'market', 'fx-all.json');
+let allMemo = null;
+
+/** { date, usdPer, source: 'erapi' | 'ecb' } — US dollars for one unit of each currency. */
+export async function getAllRates({ force = false } = {}) {
+  if (!force && allMemo && Date.now() - allMemo.at < 6 * 60 * 60 * 1000) return allMemo.data;
+  let saved = null;
+  try { saved = JSON.parse(await fs.readFile(ALL_FILE, 'utf8')); } catch { /* none yet */ }
+  if (!force && saved && Date.now() - new Date(saved.fetchedAt).getTime() < 24 * 60 * 60 * 1000) {
+    allMemo = { at: Date.now(), data: saved };
+    return saved;
+  }
+  try {
+    const response = await fetch(ALL_URL, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    if (json.result !== 'success' || !json.rates?.USD) throw new Error(json['error-type'] || 'no rates in the answer');
+    const usdPer = {};
+    for (const [cur, perUsd] of Object.entries(json.rates)) if (Number(perUsd) > 0) usdPer[cur] = 1 / Number(perUsd);
+    const date = json.time_last_update_unix ? new Date(json.time_last_update_unix * 1000).toISOString().slice(0, 10) : null;
+    const data = { date, usdPer, source: 'erapi', fetchedAt: new Date().toISOString() };
+    await fs.mkdir(path.dirname(ALL_FILE), { recursive: true });
+    await fs.writeFile(ALL_FILE, JSON.stringify(data));
+    allMemo = { at: Date.now(), data };
+    console.log(`[fx] All-currency rates saved for ${date} (${Object.keys(usdPer).length} currencies)`);
+    return data;
+  } catch (error) {
+    console.error(`[fx] Could not update all-currency rates: ${error.message}${saved ? ' — using the last saved rates' : ' — using ECB rates'}`);
+    if (saved) { allMemo = { at: Date.now(), data: saved }; return saved; }
+    const ecb = await getFxRates();
+    return { date: ecb.date, usdPer: ecb.usdPer, source: 'ecb' };
+  }
+}

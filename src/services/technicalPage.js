@@ -26,7 +26,7 @@ export async function renderTechnical(origin, raw = '') {
   let company = null;
   if (ticker) {
     company = await getCompany(ticker);
-    if (!company || company.notFound) company = null;
+    if (!company || company.notFound || !company.ticker) company = null;
   }
   const name = company ? String(company.displayName || company.name || ticker) : ticker;
   const head = buildHeadTags({

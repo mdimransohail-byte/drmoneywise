@@ -11,6 +11,7 @@ import { buildHeadTags, pageShell } from './seoService.js';
 import { TAX_CHECKED_ON, TAX_PRESETS } from '../data/taxPresets.js';
 import { GLOSSARY, slugify } from '../data/glossary.js';
 import { getPhoto, photoFigure } from './imageService.js';
+import { TOP_CURRENCIES } from '../data/currencies.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 
@@ -305,13 +306,20 @@ async function renderExtraCalculator(origin, slug) {
   const photo = await getPhoto(`page:tool-${slug}`, c.photo);
   let fx = null;
   if (c.currency) {
-    const { getFxRates, CURRENCY_WORDS } = await import('./fxService.js');
-    const rates = await getFxRates();
-    const list = CURRENCY_LIST.filter((k) => rates.usdPer?.[k]);
-    fx = { date: rates.date, usdPer: Object.fromEntries(list.map((k) => [k, rates.usdPer[k]])), words: Object.fromEntries(list.map((k) => [k, CURRENCY_WORDS[k] || k])) };
+    const { getAllRates } = await import('./fxService.js');
+    const { CURRENCIES } = await import('../data/currencies.js');
+    const rates = await getAllRates();
+    const list = Object.keys(CURRENCIES).filter((k) => rates.usdPer?.[k]);
+    fx = { date: rates.date, source: rates.source, flagBase: `${origin}/flags/`, usdPer: Object.fromEntries(list.map((k) => [k, rates.usdPer[k]])), words: Object.fromEntries(list.map((k) => [k, CURRENCIES[k][1]])), flags: Object.fromEntries(list.map((k) => [k, CURRENCIES[k][0]])) };
   }
   const symbolPicker = c.currency ? '' : `<div class="calc-field"><label for="symbol">Currency</label><select id="symbol">${[['$', 'US dollar ($)'], ['£', 'Pound (£)'], ['€', 'Euro (€)'], ['₹', 'Rupee (₹)'], ['AED ', 'Dirham (AED)']].map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select></div>`;
-  const pick = (id, label, def) => `<div class="calc-field"><label for="${id}">${esc(label)}</label><select id="${id}">${Object.keys(fx?.usdPer || {}).map((k) => `<option value="${k}"${k === def ? ' selected' : ''}>${k} · ${esc(fx.words[k])}</option>`).join('')}</select></div>`;
+  const pick = (id, label, def) => {
+    const codes = Object.keys(fx?.usdPer || {});
+    const top = TOP_CURRENCIES.filter((k) => codes.includes(k));
+    const rest = codes.filter((k) => !top.includes(k)).sort((a, b) => fx.words[a].localeCompare(fx.words[b]));
+    const opt = (k) => `<option value="${k}" data-flag="${esc(fx.flags[k])}"${k === def ? ' selected' : ''}>${k} · ${esc(fx.words[k])}</option>`;
+    return `<div class="calc-field fxp-field"><label for="${id}">${esc(label)}</label><select id="${id}" class="fxp-sel"><optgroup label="Most used">${top.map(opt).join('')}</optgroup><optgroup label="All currencies, A to Z">${rest.map(opt).join('')}</optgroup></select></div>`;
+  };
   const all = { ...CALCULATORS, ...EXTRA_CALCS };
   const others = Object.entries(all).filter(([s]) => s !== slug).map(([s, o]) => `<li><a href="/tools/${s}">${esc(o.title)}</a> <span>${esc(o.short)}</span></li>`).join('');
   const body = `
@@ -324,7 +332,7 @@ async function renderExtraCalculator(origin, slug) {
         <div class="calc-grid">
           <form class="surface calc-form" onsubmit="return false" aria-label="${esc(c.title)} inputs">
             ${symbolPicker}
-            ${c.currency ? `${pick('from', 'From', 'GBP')}${pick('to', 'To', 'USD')}` : ''}
+            ${c.currency ? `${pick('from', 'From', 'GBP')}<button type="button" class="fxp-swap" aria-label="Swap the two currencies" title="Swap">⇅ Swap</button>${pick('to', 'To', 'USD')}` : ''}
             ${c.fields.map(field).join('')}
           </form>
           <div class="surface calc-out" aria-live="polite">
@@ -332,7 +340,7 @@ async function renderExtraCalculator(origin, slug) {
             <div id="moreResults"><p class="calc-hint">Loading the calculator…</p></div>
           </div>
         </div>
-        ${c.currency ? `<p class="calc-hint">Reference rates from the European Central Bank${fx?.date ? `, ${esc(fx.date)}` : ''}; dirham, riyal and other fixed rates from their official pegs. Real rates from banks and exchange shops include their margin.</p>` : ''}
+        ${c.currency ? `<p class="calc-hint">${Object.keys(fx?.usdPer || {}).length} currencies${fx?.date ? `, rates for ${esc(fx.date)}` : ''}, updated once a day. ${fx?.source === 'erapi' ? '<a href="https://www.exchangerate-api.com" rel="noopener" target="_blank">Rates By Exchange Rate API</a>.' : 'Reference rates from the European Central Bank; dirham, riyal and other fixed rates from their official pegs.'} Real rates from banks and exchange shops include their margin.</p>` : ''}
         <p class="calc-hint">These are rough estimates to help you think, not financial advice. Read our <a href="/disclaimer">disclaimer</a>.</p>
         ${embedBoxHtml(origin, slug)}
         <div class="surface"><h2 style="margin-top:0">Other calculators</h2><ul class="calc-others">${others}</ul></div>
