@@ -90,7 +90,7 @@ const RESPONSE_JSON_SCHEMA =
 const LEARN_JSON_SCHEMA =
   '{"headline":"string","summary":"string","sections":[{"heading":"string","body":"string"}],"takeaways":["string"],"jargonBuster":[{"term":"string","meaning":"string"}],"infographic":{"title":"string","items":[{"label":"string","value":"string","context":"string"}]},"chart":{"title":"string","unit":"string","points":[{"label":"string","value":0}]},"quiz":[{"question":"string","options":["string"],"answer":0,"why":"string"}],"visualSuggestion":"string"}';
 
-function buildLearnPrompt({ headline, sourceNotes, level }) {
+function buildLearnPrompt({ headline, sourceNotes, level, sections = null, rules = [] }) {
   const reader = level === 'technical'
     ? 'Reader: an investor learning technical analysis (reading price charts). Assume they know what a share is but have never studied charts. Explain each chart idea with a concrete example using real-looking but clearly hypothetical prices (for example a share at $50 rising to $60), describe what it would look like on a chart, how traders use it, and how often it fails. Be balanced: chart signals are probabilities, not certainties, and costs and discipline matter.'
     : level === 'lords'
@@ -101,13 +101,15 @@ function buildLearnPrompt({ headline, sourceNotes, level }) {
   return [
     'You write clear, detailed money explainers for a plain-English education website. British spelling.',
     reader,
-    'Write SIX sections, each with its own short, specific heading (not generic headings like "Introduction" or "Conclusion"). Each section has a different job:',
-    '1. The short answer: what it is, in plain words (120-170 words).',
-    '2. How it works, step by step (200-260 words). Walk through the mechanism in order.',
-    '3. A worked example with real numbers (180-240 words). Use a named everyday person and actual figures, and show the sums.',
-    '4. Why it matters for your money (150-200 words): the effect on saving, borrowing or investing.',
-    '5. Common mistakes and myths (150-200 words): two or three, each with why it goes wrong.',
-    '6. What to check next (100-150 words): practical things the reader can look at or work out themselves. Describe, never recommend buying or selling anything.',
+    ...(sections || [
+      'Write SIX sections, each with its own short, specific heading (not generic headings like "Introduction" or "Conclusion"). Each section has a different job:',
+      '1. The short answer: what it is, in plain words (120-170 words).',
+      '2. How it works, step by step (200-260 words). Walk through the mechanism in order.',
+      '3. A worked example with real numbers (180-240 words). Use a named everyday person and actual figures, and show the sums.',
+      '4. Why it matters for your money (150-200 words): the effect on saving, borrowing or investing.',
+      '5. Common mistakes and myths (150-200 words): two or three, each with why it goes wrong.',
+      '6. What to check next (100-150 words): practical things the reader can look at or work out themselves. Describe, never recommend buying or selling anything.',
+    ]),
     'Total about 950-1300 words. Separate paragraphs inside a section with a blank line (\\n\\n). Keep paragraphs to 2-4 sentences.',
     'NO REPETITION: every section must add new information. Never restate a point already made in an earlier section or in the summary. Do not open sections by summarising what came before. Do not end with a recap.',
     'summary: 1-2 sentences (25-40 words), a teaser for preview cards. Do not reuse its sentences in the sections.',
@@ -119,6 +121,7 @@ function buildLearnPrompt({ headline, sourceNotes, level }) {
     'Facts must be accurate. If you mention a statistic, make it a widely published one, with its year. If unsure, explain the idea without the statistic.',
     'NEVER use these words or ideas: "AI", "artificial intelligence", the name of any writing tool or model; "guaranteed" (about returns, profits or income), "risk-free", "can\'t lose", "get rich", "double your money"; "buy now", "you should buy", "you should sell", "strong buy". This is education, not advice: describe, never promise or recommend.',
     'Keep the headline under 90 characters.',
+    ...rules,
     'CRITICAL FORMATTING RULE: every string value must be plain text only. No HTML, no Markdown, no bullet dashes inside strings.',
     `Headline idea: ${headline}`,
     `Source Notes: ${sourceNotes}`,
@@ -816,6 +819,37 @@ export async function writeReportSummary({ month, facts }) {
     if (out.headline && out.summary.length >= 2) return out;
   }
   return null;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   FORTNIGHTLY MARKET REVIEW (Premium) — trends, sectors and themes from the
+   last two weeks, in the lesson format, written ONLY from our own figures.
+   ════════════════════════════════════════════════════════════════════════ */
+export async function writeMarketReview({ period, facts }) {
+  const prompt = buildLearnPrompt({
+    headline: `Market review, ${period}: the trends, sectors and themes that mattered`,
+    sourceNotes: `Figures for ${period} (the only facts you may use): ${JSON.stringify(facts)}`,
+    level: 'lords',
+    sections: [
+      'Write SIX sections, each with its own short, specific heading that names what happened (not generic headings). Each section has a different job:',
+      '1. The fortnight in brief (120-170 words): the main story the figures tell.',
+      '2. The markets (150-220 words): what the share indexes did and what that means.',
+      '3. Sectors: leaders and laggards (180-240 words): which sectors rose and fell most and plain-English reasons that are true in general for such sectors (for example, energy shares tend to follow oil prices), without inventing news.',
+      '4. Themes to understand (180-240 words): interest rates, inflation, bond yields, commodities and currencies, using the figures.',
+      '5. Company news that mattered (120-180 words): results, dividends and bosses’ trades from the figures.',
+      '6. What to watch in the next fortnight (100-150 words): which of these figures to keep an eye on and why. No forecasts of prices.',
+    ],
+    rules: [
+      'Every number you write must come from the figures given, written the same way. Do not add events, news stories, dates or figures that are not in them. If a figure is missing, leave that point out.',
+      'The worked-example rule does not apply here; the chart should show the sector moves (label = sector, value = the % move, unit "%").',
+      'Do not tell anyone to buy, sell or hold anything.',
+    ],
+  });
+  const writer = await getNextWriter('');
+  const { sanitized, used } = await writeWithFallback(writer, prompt);
+  if (!sanitized) return null;
+  fromSections(sanitized);
+  return { ...sanitized, writerSlot: used.slot, provider: used.provider };
 }
 
 /* ════════════════════════════════════════════════════════════════════════

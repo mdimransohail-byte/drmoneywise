@@ -856,7 +856,7 @@ export async function upgradeOldLearningArticle() {
   const level = levelOf(old);
   const { lessonForArticle } = await import('../data/learnCourse.js');
   const lesson = lessonForArticle(old);
-  const generated = await createLearningArticleFromTopic(lesson ? `${lesson.headline}. The lesson covers: ${lesson.match}` : (old.trendingTopic || old.headline), level === 'lords' ? 'premium' : level === 'technical' ? 'regular' : 'free', old.region || 'global', old.interest || 'equities', '', '', level);
+  const generated = await createLearningArticleFromTopic(lesson ? await lessonBrief(lesson) : (old.trendingTopic || old.headline), level === 'lords' ? 'premium' : level === 'technical' ? 'regular' : 'free', old.region || 'global', old.interest || 'equities', '', '', level);
   const quality = generated.provider === 'local-fallback' || generated.format !== 2 ? { ok: false } : checkArticle(generated);
   const fields = quality.ok ? learnFields(generated, level) : null;
   await updateStore((s) => {
@@ -882,6 +882,37 @@ export async function upgradeOldLearningArticle() {
    Writes one Premium explainer from DEEPER_TOPICS (src/data/explainerTopics.js)
    in the paid-tier style. Topics are used once before any repeats; quality
    checks decide whether it goes live or waits as a draft. */
+/** What the writer is told about a course lesson: headline, scope, must-cover points and (sector lessons) real figures. */
+async function lessonBrief(lesson) {
+  let brief = `${lesson.headline}. The lesson covers: ${lesson.match}.${lesson.brief ? ` Must cover: ${lesson.brief}` : ''}`;
+  if (lesson.companies?.length) {
+    const facts = await companyFactsForWriter(lesson.companies);
+    brief += facts
+      ? ` Real reported figures from the companies' filings (use only these numbers for the two companies, written the same way; do not add other figures about them): ${facts}`
+      : ' No company figures are available today: describe the two companies’ businesses and what to look at, without quoting any figures about them.';
+  }
+  return brief;
+}
+
+/** Plain-text figures for the sector lessons (last three financial years, from SEC filings). */
+export async function companyFactsForWriter(tickers) {
+  const { getCompany } = await import('./companyLookup.js');
+  const bn = (v) => (Math.abs(v) >= 1e9 ? `$${(v / 1e9).toFixed(1)} billion` : `$${(v / 1e6).toFixed(0)} million`);
+  const out = [];
+  for (const t of tickers) {
+    const c = await getCompany(t).catch(() => null);
+    if (!c || c.notFound || !c.ticker) continue;
+    const last3 = (k, f = bn) => (Array.isArray(c[k]) ? c[k].slice(-3).map((x) => `${x.year}: ${f(x.value)}`).join(', ') : '');
+    const parts = [
+      ['revenue', last3('revenue')], ['net profit', last3('netIncome')], ['earnings per share', last3('eps', (v) => `$${Number(v).toFixed(2)}`)],
+      ['operating cash flow', last3('operatingCashFlow')], ['capital spending', last3('capex')], ['dividend per share', last3('dividendsPerShare', (v) => `$${Number(v).toFixed(2)}`)],
+      ['cash', Number.isFinite(c.cash) ? bn(c.cash) : ''], ['long-term debt', Number.isFinite(c.longTermDebt) ? bn(c.longTermDebt) : ''], ['shareholders’ equity', Number.isFinite(c.equity) ? bn(c.equity) : ''],
+    ].filter(([, v]) => v);
+    if (parts.length >= 3) out.push(`${c.displayName || c.name} (${c.ticker}${c.industry ? `, ${c.industry}` : ''}; balance sheet as of ${c.balanceSheetAsOf || 'the latest filing'}): ${parts.map(([k, v]) => `${k} ${v}`).join('; ')}.`);
+  }
+  return out.length === tickers.length ? out.join(' ') : '';
+}
+
 export async function writeDeeperExplainer() {
   const { DEEPER_TOPICS } = await import('../data/explainerTopics.js');
   const { lessonsInOrder, lessonForArticle } = await import('../data/learnCourse.js');
@@ -898,7 +929,8 @@ export async function writeDeeperExplainer() {
   const unused = DEEPER_TOPICS.filter((t) => !used.includes(t));
   const topic = lesson ? lesson.headline : (unused.length ? unused : DEEPER_TOPICS)[0];
   const interest = guessInterestFromTopic(lesson ? lesson.match : topic);
-  const generated = await createLearningArticleFromTopic(lesson ? `${lesson.headline}. The lesson covers: ${lesson.match}` : topic, 'premium', 'global', interest, '', '', 'lords');
+  const brief = lesson ? await lessonBrief(lesson) : topic;
+  const generated = await createLearningArticleFromTopic(brief, 'premium', 'global', interest, '', '', 'lords');
   if (generated.provider === 'local-fallback') return { ok: false, message: `No writing service answered for "${topic}"; will try again next run` };
   generated.headline = lesson ? lesson.headline : String(generated.headline || topic).trim();
   const quality = checkArticle(generated);
@@ -931,4 +963,73 @@ export async function writeDeeperExplainer() {
   });
   try { await attachPexelsImage(saved.id, generated.headline); } catch (error) { console.error('[articleService] Photo for deeper explainer failed:', error.message); }
   return { ok: true, message: quality.ok ? `Written: "${generated.headline}" (Premium)` : `Written but held as a draft for a read: "${generated.headline}" (${quality.issues.join('; ')})` };
+}
+
+
+/* ── Market review every two weeks (Premium) — data engine job "review" ──
+   Trends, sectors and themes from the last 14 days, written only from our
+   own figures: share indexes and sector funds (daily prices), the economy,
+   commodities, bond yields, results, dividends and bosses' trades. Every
+   number is checked against those figures; if any doesn't match, the review
+   waits as a draft for a read in Admin. Featured in the Premium newsletter. */
+const REVIEW_FUNDS = [
+  ['SPY', 'S&P 500 (large US companies)', 'index'], ['QQQ', 'Nasdaq 100 (big technology companies)', 'index'], ['DIA', 'Dow Jones (30 US giants)', 'index'], ['IWM', 'Russell 2000 (smaller US companies)', 'index'],
+  ['XLK', 'Technology', 'sector'], ['XLF', 'Banks and finance', 'sector'], ['XLE', 'Energy', 'sector'], ['XLV', 'Healthcare', 'sector'], ['XLY', 'Shops, cars and leisure', 'sector'],
+  ['XLP', 'Everyday essentials', 'sector'], ['XLI', 'Industrials', 'sector'], ['XLU', 'Utilities', 'sector'], ['XLB', 'Materials', 'sector'], ['XLRE', 'Property', 'sector'], ['XLC', 'Communication services', 'sector'],
+];
+
+export async function writeFortnightlyReview({ force = false } = {}) {
+  const store = await readStore();
+  const last = store.articles.filter((a) => (a.tags || []).includes('market-review')).map((a) => new Date(a.createdAt || a.publishAt).getTime()).sort().at(-1) || 0;
+  if (!force && Date.now() - last < 13.5 * 86400000) return { ok: true, skipped: true, message: 'Next market review is due 14 days after the last one' };
+  const { getPriceHistory } = await import('./marketstackClient.js');
+  const { gather, factsFor } = await import('./reportService.js');
+  const { writeMarketReview } = await import('./writerService.js');
+  const to = new Date(); const from = new Date(Date.now() - 14 * 86400000);
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const nice = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+  const period = `${nice(from)} to ${nice(to)} ${to.getUTCFullYear()}`;
+  const move = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}%`;
+  const markets = []; const sectors = [];
+  for (const [t, name, kind] of REVIEW_FUNDS) {
+    const h = await getPriceHistory(t).catch(() => null);
+    const rows = h?.ok ? h.rows : [];
+    const end = rows.at(-1); const start = [...rows].reverse().find((r) => r.d <= iso(from));
+    if (!end || !start || end.d <= start.d) continue;
+    const row = { name, change: move((end.c / start.c - 1) * 100), raw: (end.c / start.c - 1) * 100, from: start.d, to: end.d };
+    (kind === 'index' ? markets : sectors).push(row);
+  }
+  sectors.sort((a, b) => b.raw - a.raw);
+  const base = factsFor(await gather(iso(to).slice(0, 7), iso(from), iso(to)));
+  const facts = {
+    period,
+    shareIndexes: markets.map(({ name, change }) => ({ index: name, change })),
+    sectorsBestToWorst: sectors.map(({ name, change }) => ({ sector: name, change })),
+    ...base,
+  };
+  if (markets.length < 2 && !base.economy.length) return { ok: true, skipped: true, message: 'Not enough figures for a market review yet (daily prices and economy figures are needed)' };
+  const generated = await writeMarketReview({ period, facts });
+  if (!generated) return { ok: false, message: 'No writing service answered for the market review; will try again in a couple of hours' };
+  const { numbersCheck } = await import('./reportService.js');
+  const text = [generated.summary, ...(generated.sections || []).map((x) => x.body), ...(generated.takeaways || [])].join(' ');
+  const badNumbers = numbersCheck(text, facts);
+  const quality = checkArticle(generated);
+  const ok = quality.ok && badNumbers.length === 0;
+  const headline = String(generated.headline || `Market review: ${period}`).trim();
+  const saved = await saveAdminArticle({
+    headline, contentType: 'learning', accessTier: 'premium', region: 'global', interest: 'equities',
+    status: ok ? 'scheduled' : 'draft', publishAt: new Date().toISOString(), source: 'review-auto',
+    summary: generated.summary, plainEnglish: generated.plainEnglish, whyItMatters: generated.whyItMatters, everydayExample: generated.everydayExample,
+    takeaways: generated.takeaways, jargonBuster: generated.jargonBuster, infographic: generated.infographic,
+    ...learnFields(generated, 'lords'),
+    chart: sectors.length >= 3 ? { title: `Sector moves, ${period}`, unit: '%', points: sectors.map((x) => ({ label: x.name, value: Math.round(x.raw * 10) / 10 })) } : (generated.chart || { points: [] }),
+    tags: ['learning', 'market-review', 'equities'], engineSlot: generated.writerSlot, heroMood: 'equities',
+  });
+  await updateStore((s2) => {
+    const target = s2.articles.find((a) => a.id === saved.id);
+    if (target) { target.trendingTopic = `Market review ${period}`; target.qualityIssues = [...quality.issues, ...(badNumbers.length ? [`numbers not in our figures: ${badNumbers.slice(0, 5).join(', ')}`] : [])]; target.qualityCheckedAt = new Date().toISOString(); }
+    return s2;
+  });
+  try { await attachPexelsImage(saved.id, 'stock market trading screens'); } catch { /* photo is optional */ }
+  return { ok: true, message: ok ? `Market review written: "${headline}"` : `Market review held as a draft for a read: ${[...quality.issues, ...badNumbers.map((n) => `unmatched figure ${n}`)].slice(0, 4).join('; ')}` };
 }

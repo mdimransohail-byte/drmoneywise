@@ -40,8 +40,8 @@ export const LEVELS = {
     id: 'lords', slug: 'advanced', defaultName: 'Lords', who: 'Confident investors', premium: true,
     colour: '#5b2a9e', colour2: '#8a4fd8', pathLevel: 'confident',
     tagline: 'Read the accounts and the economy like a professional.',
-    intro: 'The deeper lessons, for Premium members: cash flow statements, what a share is really worth, the economy’s warning lights, advanced chart reading, company events and building a lasting income. Every lesson works through real figures, and Premium chart alerts put the ideas to work on your own companies.',
-    promise: ['How professionals value a company', 'Advanced chart reading, with alerts on your own companies', 'Company events and building a lasting income'],
+    intro: 'The deeper lessons, for Premium members: cash flow statements, what a share is really worth, the economy’s warning lights, advanced chart reading, company events and building a lasting income. Then the Intensive: accounting red flags, valuing any kind of business, a portfolio with clear rules for buying and selling, charts for long-term owners, honest short-term trading, sector deep dives with real company figures, and smart research tools. Every lesson works through real figures and comes as a printable PDF workbook.',
+    promise: ['How professionals read the accounts and value a company', 'A portfolio framework with buying and selling rules', 'A PDF workbook for every lesson, plus a market review every two weeks'],
   },
 };
 

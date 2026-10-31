@@ -271,6 +271,41 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
     }
 
+    // Lesson PDFs (Premium): one lesson, or a whole week's workbook
+    if ((requestUrl.pathname === '/api/learn/pdf' || requestUrl.pathname === '/api/learn/pdf-week') && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Lesson PDFs are for Premium members.' });
+      const { getPublishedLearningArticles } = await import('./src/services/seoService.js');
+      const { lessonPdf, weekPdf } = await import('./src/services/learnPdfService.js');
+      const { COURSE, lessonForArticle, courseArticleMap } = await import('./src/data/learnCourse.js');
+      const { levelNames, levelOf } = await import('./src/data/learnLevels.js');
+      const names = await levelNames();
+      const all = await getPublishedLearningArticles();
+      const site = getSiteOrigin(request);
+      const forWho = sessionUser.email || sessionUser.name || '';
+      let buf; let file;
+      if (requestUrl.pathname === '/api/learn/pdf') {
+        const a = all.find((x) => x.slug === String(requestUrl.searchParams.get('slug') || ''));
+        if (!a) return sendJson(response, 404, { error: 'Lesson not found.' });
+        const lesson = lessonForArticle(a);
+        const kicker = lesson ? `${names[lesson.level] || 'Lesson'} · Week ${lesson.week} · Lesson ${lesson.n}` : `${names[levelOf(a)] || 'Dr MoneyWise'} lesson`;
+        buf = await lessonPdf(a, { kicker, forWho, site });
+        file = `drmoneywise-${a.slug}.pdf`;
+      } else {
+        const level = String(requestUrl.searchParams.get('level') || '');
+        const week = (COURSE[level] || []).find((w) => String(w.week) === String(requestUrl.searchParams.get('week') || ''));
+        if (!week) return sendJson(response, 404, { error: 'Week not found.' });
+        const map = courseArticleMap(all.filter((a) => levelOf(a) === level));
+        const lessons = week.lessons.filter((l) => map.has(l.id)).map((l) => ({ lesson: l, article: map.get(l.id) }));
+        if (!lessons.length) return sendJson(response, 404, { error: 'No lessons from this week are published yet.' });
+        buf = await weekPdf({ levelName: names[level] || level, week, lessons, forWho, site });
+        file = `drmoneywise-${level}-week-${week.week}.pdf`;
+      }
+      response.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${file}"`, 'Content-Length': buf.length, 'Cache-Control': 'private, no-store' });
+      response.end(buf);
+      return true;
+    }
+
     // Monthly research report (Premium)
     const reportApi = requestUrl.pathname.match(/^\/api\/reports\/(\d{4}-\d{2})$/u);
     if (reportApi && request.method === 'GET') {
@@ -363,6 +398,12 @@ export const server = http.createServer(async (request, response) => {
           const chunks = []; let size = 0;
           for await (const c of request) { size += c.length; if (size > 60 * 1024 * 1024) return sendJson(response, 413, { error: 'Recording too large (60 MB limit).' }); chunks.push(c); }
           return sendJson(response, 200, await video.saveRecording(String(requestUrl.searchParams.get('id') || ''), String(requestUrl.searchParams.get('scene') || ''), Buffer.concat(chunks), String(request.headers['content-type'] || '')));
+        }
+        if (sub === '/voice-preview' && request.method === 'GET') {
+          const buf = await video.voicePreview(String(requestUrl.searchParams.get('id') || ''));
+          response.writeHead(200, { 'Content-Type': 'audio/wav', 'Content-Length': buf.length });
+          response.end(buf);
+          return true;
         }
         if (sub === '/voice-sample' && request.method === 'GET') {
           const buf = await video.voiceSample(String(requestUrl.searchParams.get('voice') || ''));

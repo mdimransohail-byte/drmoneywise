@@ -55,7 +55,7 @@ export async function readReport(id) {
 }
 
 /* ── Gathering the figures ─────────────────────────────────────────── */
-async function gather(id, from, to) {
+export async function gather(id, from, to) {
   const data = {};
   // Economy
   const econ = (await readEconomy()).figures || {};

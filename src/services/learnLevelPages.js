@@ -30,7 +30,7 @@ function weekBlock(L, week, map, i) {
     return `<li class="wk-l" data-lesson="${esc(a.slug)}"><a href="/learn/${esc(a.slug)}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="wk-n">${n + 1}</span>`}<div><strong>${esc(a.headline)}</strong><em>${esc(a.readingTime || '5 min read')}${a.format === 2 ? ' · infographic and quiz' : ''}${L.premium ? ' · Premium' : ''}</em></div></a></li>`;
   }).join('');
   return `<section class="wk" id="week-${week.week}" style="--c:${c}">
-          <div class="wk-head"><span class="wk-badge">Week ${week.week}</span><h3>${esc(week.title)}</h3><span class="wk-count">${ready} of ${week.lessons.length} ready</span><span class="wk-mine" hidden></span></div>
+          <div class="wk-head"><span class="wk-badge">Week ${week.week}</span><h3>${week.module ? `<span class="wk-mod">${esc(week.module)}</span>` : ''}${esc(week.title)}</h3><span class="wk-count">${ready} of ${week.lessons.length} ready</span><span class="wk-mine" hidden></span>${ready ? `<button type="button" class="wk-pdf" data-pdf-week="${esc(L.id)}:${week.week}" title="Every lesson of this week in one printable workbook">⬇ Week PDF <b>Premium</b></button>` : ''}</div>
           <ol class="wk-list">${rows}</ol>
         </section>`;
 }
@@ -44,7 +44,8 @@ export async function renderLevelPage(slug, origin) {
   const lessons = all.filter((a) => levelOf(a) === L.id);
   const map = courseArticleMap(lessons);
   const weeks = COURSE[L.id] || [];
-  const extra = lessons.filter((a) => !lessonForArticle(a));
+  const reviews = lessons.filter((a) => (a.tags || []).includes('market-review')).slice(0, 6);
+  const extra = lessons.filter((a) => !lessonForArticle(a) && !(a.tags || []).includes('market-review'));
   const total = lessons.reduce((n, a) => n + mins(a), 0);
   const planned = weeks.reduce((n, w) => n + w.lessons.length, 0);
   const order = ['beginner', 'intermediate', 'technical', 'lords'];
@@ -104,9 +105,12 @@ export async function renderLevelPage(slug, origin) {
         </div>
         ${L.id === 'technical' ? `<form class="ta-form lv-ta" onsubmit="var t=this.t.value.trim().toUpperCase();if(t){location.href='/technical/'+encodeURIComponent(t)}return false"><label for="lvTa">Try it now: the Chart check for any US-listed company</label><input id="lvTa" name="t" placeholder="e.g. AAPL" maxlength="10" required><button class="pf-btn gold" type="submit">Check the chart</button></form>` : ''}
         <nav class="wk-jump" aria-label="Weeks">${weeks.map((w, i) => `<a href="#week-${w.week}" style="--c:${WEEK_COLOURS[i % 6]}">Week ${w.week}<span>${esc(w.title)}</span></a>`).join('')}</nav>
-        <div class="wk-grid">${weeks.map((w, i) => weekBlock(L, w, map, i)).join('')}</div>
+        <div class="wk-grid">${weeks.filter((w) => !w.module).map((w, i) => weekBlock(L, w, map, i)).join('')}</div>
+        ${weeks.some((w) => w.module) ? `<div class="wk-intensive"><span class="pf-badge prem">Premium</span><h2>The ${esc(name)} Intensive</h2><p>Longer, worked lessons in ${new Set(weeks.filter((w) => w.module).map((w) => w.module)).size} modules: reading accounts like an analyst, spotting accounting red flags, valuing any kind of business, designing a portfolio with clear buying and selling rules, charts for long-term owners, honest short-term trading, sector deep dives with real company figures, and researching faster with smart tools. Every lesson and every week comes as a printable PDF workbook.</p></div>
+        <div class="wk-grid">${weeks.filter((w) => w.module).map((w) => weekBlock(L, w, map, weeks.indexOf(w))).join('')}</div>` : ''}
         <p class="lvp-tip">${L.premium ? 'Premium members can read every lesson. Others can read the opening of each one.' : L.paid ? 'Regular and Premium members can read every lesson; others can read the opening. Try each idea on a real company with the <a href="/technical">Chart check</a>.' : 'One week at a time works well: read a lesson a day, take the quick check at the end, then move on.'} Our free newsletter features one week of the course in every issue.</p>
 
+        ${L.id === 'lords' ? `<h2 class="lvp-h">Market review, every two weeks</h2><p class="lvp-tip">Trends, sectors and themes from the past fortnight, explained with our own figures. Also sent in the Premium newsletter.</p>${reviews.length ? `<div class="lv-cards">${reviews.map((a) => `<a class="lv-card" href="/learn/${esc(a.slug)}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="lv-card-ph" style="--c:${L.colour}">${levelEmblem(L.id, 48)}</span>`}<div><strong>${esc(a.headline)}</strong><span>${esc(String(a.summary || '').slice(0, 130))}</span><em>${esc(a.readingTime || '6 min read')}</em></div></a>`).join('')}</div>` : '<p class="note-box">The first review is published within two weeks of launch.</p>'}` : ''}
         ${extraCards ? `<h2 class="lvp-h">More ${esc(name)} lessons</h2><div class="lv-cards">${extraCards}</div>` : ''}
 
         <div class="ax-row">${promos}</div>
@@ -114,7 +118,8 @@ export async function renderLevelPage(slug, origin) {
         <p class="note-box">These lessons explain how money and investing work in general. They are not personal advice. Read our <a href="/disclaimer">disclaimer</a>.</p>
       </section>
       <script src="/newsletter.js" defer></script>
-      <script src="/learnprogress.js" defer></script>`;
+      <script src="/learnprogress.js" defer></script>
+      <script src="/learnpdf.js" defer></script>`;
   return pageShell({ head, body, active: 'learn' });
 }
 

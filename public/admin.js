@@ -2489,6 +2489,7 @@ function render_video() {
           </div>
           <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center">
             <button class="btn" data-vm="save" ${busy ? 'disabled' : ''}>Save script</button>
+            ${p.voice === 'computer' ? `<button class="btn" data-vm="preview" ${busy ? 'disabled' : ''} title="Hear the opening in the chosen voice before making the whole video">▶ Hear the voice first</button>` : ''}
             <button class="btn btn-gold" data-vm="render" ${busy ? 'disabled' : ''}>Make the video</button>
           </div>
           ${p.status === 'rendering' ? `<div style="margin-top:12px"><div style="height:10px;background:rgba(255,255,255,.08);border-radius:6px"><div style="height:10px;width:${p.progress?.pct || 2}%;background:#c9a227;border-radius:6px"></div></div><p style="font-size:.74rem;color:#dbe6f3">${h(p.progress?.step || 'Working')}… (a Short takes about a minute; a long video several minutes)</p><button class="btn" data-vm="cancel" data-id="${h(p.id)}" style="color:#f2b45a;margin-top:4px">Cancel: stop making this video</button></div>` : ''}
@@ -2589,6 +2590,17 @@ function bind_video() {
         await API.post('/api/admin/video/delete', { id: btn.dataset.id });
         if (STATE.vp?.id === btn.dataset.id) STATE.vp = null;
         showToast('Video deleted'); await vmRefresh(); return;
+      }
+      if (act === 'preview') {
+        btn.disabled = true; btn.textContent = 'Making the voice… (up to a minute)';
+        try {
+          STATE.vp = await API.post('/api/admin/video/save', vmRead());
+          const r = await fetch('/api/admin/video/voice-preview?id=' + STATE.vp.id, { headers: { 'x-session-token': STATE.token } });
+          if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'The voice could not be made'); }
+          new Audio(URL.createObjectURL(await r.blob())).play();
+          showToast('Playing the opening. The video will reuse this voice, so it won’t be made twice.');
+        } finally { btn.disabled = false; btn.textContent = '▶ Hear the voice first'; }
+        return;
       }
       if (act === 'cancel') {
         if (!window.confirm('Stop making this video? Your script and recordings are kept.')) return;

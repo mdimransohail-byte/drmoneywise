@@ -85,7 +85,10 @@ export async function premiumWeekContext() {
   const deeper = (store.articles || []).filter((a) => a.status === 'published' && (a.tags || []).includes('deeper') && new Date(a.publishAt).getTime() <= Date.now())
     .sort((a, b) => String(b.publishAt).localeCompare(String(a.publishAt)))[0] || null;
   const report = (await listReports())[0] || null;
-  return { from, to, trades, results, dividends, topBuys, deeper, report, reportDates: readReportDates(), before: await pricesAgo(7) };
+  // The fortnightly market review, if one came out in the last 16 days
+  const review = (store.articles || []).filter((a) => a.status === 'published' && (a.tags || []).includes('market-review') && new Date(a.publishAt).getTime() <= Date.now() && Date.now() - new Date(a.publishAt).getTime() < 16 * DAY)
+    .sort((a, b) => String(b.publishAt).localeCompare(String(a.publishAt)))[0] || null;
+  return { from, to, trades, results, dividends, topBuys, deeper, report, review, reportDates: readReportDates(), before: await pricesAgo(7) };
 }
 
 /** Results expected in the next 7 days, from last year's filing dates. */
@@ -176,7 +179,18 @@ export async function premiumWeekHtml(user, ctx, site = '') {
     ? soon.slice(0, 8).map((x) => p(`<strong>${nice(x.guess)}</strong> (around): ${link(`/stock/${x.ticker}`, x.ticker)} results expected. Last year they came out on ${nice(x.lastYear)}.`)).join('') + p('<span style="font-size:12px;color:#4a5170">Estimated from when each company filed results a year ago; companies sometimes move the date.</span>')
     : p(mine.length ? 'None of your companies is expected to report results in the next 7 days, judging by when they reported last year.' : 'Once you follow some companies, we’ll show which of them are due to report results in the week ahead.')));
 
-  // 4. Premium extras
+  // 4. The fortnightly market review
+  if (ctx.review) {
+    const r = ctx.review;
+    parts.push(box('#5b2a9e', 'Market review: the last two weeks', [
+      p(`<a href="${esc(site)}/learn/${esc(r.slug)}" style="color:#0a1128;font:700 16px Georgia,serif;text-decoration:none">${esc(r.headline)}</a>`),
+      r.summary ? p(esc(r.summary)) : '',
+      ...(r.takeaways || []).slice(0, 3).map((t) => p(`• ${esc(t)}`)),
+      p(link(`/learn/${r.slug}`, 'Read the full review, with the sector chart')),
+    ].join('')));
+  }
+
+  // 5. Premium extras
   const extras = [];
   if (ctx.topBuys.length) extras.push(p(`<strong>Where company bosses bought most this week:</strong> ${ctx.topBuys.map((b) => `${link(`/stock/${b.ticker}`, b.ticker)} (${money(b.value)} by ${b.people.size} ${b.people.size === 1 ? 'person' : 'people'})`).join(', ')}. ${link('/insiders', 'All bosses’ trades')}`));
   if (ctx.deeper) extras.push(p(`<strong>Deeper explainer:</strong> ${link(`/learn/${ctx.deeper.slug}`, ctx.deeper.headline)}`));

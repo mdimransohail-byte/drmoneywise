@@ -2245,3 +2245,13 @@ body.has-ad-strip { padding-bottom: 52px; }
 .fxp-g { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #7a849b; padding: 8px 8px 4px; }
 .fxp-swap { align-self: center; margin: -4px auto 10px; display: block; padding: 6px 14px; border-radius: 999px; border: 1px solid #cfd6e4; background: #f5f8ff; color: #2a78d6; font-weight: 700; cursor: pointer; }
 .fxp-swap:hover { background: #e3eeff; }
+
+/* Lesson PDFs and the Lords Intensive */
+.wk-pdf { margin-left: auto; border: 0; border-radius: 999px; padding: 5px 11px; font: 700 12px var(--sans, inherit); cursor: pointer; background: linear-gradient(135deg, var(--prem-2, #8a4fd8), var(--prem, #5b2a9e)); color: #fff; }
+.wk-pdf b { color: var(--prem-gold, #f7d07c); font-weight: 800; margin-left: 3px; }
+.wk-pdf:hover { filter: brightness(1.1); }
+.wk-mod { display: block; font: 800 11px var(--sans, inherit); letter-spacing: .06em; text-transform: uppercase; color: var(--prem, #5b2a9e); margin-bottom: 2px; }
+.wk-intensive { margin: 26px 0 14px; padding: 22px 24px; border-radius: 16px; background: linear-gradient(135deg, var(--prem-dark, #2a1050), var(--prem, #5b2a9e)); color: #f2ecff; }
+.wk-intensive h2 { margin: 8px 0 6px; font: 700 28px var(--serif); color: var(--prem-gold, #f7d07c); }
+.wk-intensive p { margin: 0; max-width: 820px; line-height: 1.55; }
+.pdf-btn .pf-badge { margin-left: 6px; font-size: 11px; padding: 2px 8px; border-radius: 999px; }

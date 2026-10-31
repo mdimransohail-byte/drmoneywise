@@ -53,6 +53,7 @@ const JOBS = {
   funds: { label: 'Big-fund holdings (SEC 13F)', every: 7 * 24 * HOUR },
   learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
   deeper: { label: 'Lords lessons for Premium (one a day until the course is complete)', every: 24 * HOUR },
+  review: { label: 'Market review for Premium (every two weeks)', every: 24 * HOUR },
   report: { label: 'Monthly research report (built on the 1st)', every: 20 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
   property: { label: 'Property and city rents (monthly figures; looks weekly, downloads only when new figures are due)', every: 7 * 24 * HOUR },
@@ -267,6 +268,11 @@ async function runDeeper() {
   return writeDeeperExplainer();
 }
 
+async function runReview({ manual = false } = {}) {
+  const { writeFortnightlyReview } = await import('./articleService.js');
+  return writeFortnightlyReview({ force: manual });
+}
+
 async function runHealth() {
   const { getHealthReport, sendHealthEmail } = await import('./healthService.js');
   const report = await getHealthReport();
@@ -312,7 +318,7 @@ async function runAlertsJob() {
   return runAlerts();
 }
 
-const RUNNERS = { newsletter: runNewsletter, report: runReport, deeper: runDeeper, alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
+const RUNNERS = { newsletter: runNewsletter, report: runReport, deeper: runDeeper, review: runReview, alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

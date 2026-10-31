@@ -5,7 +5,8 @@
    1. Script: built from the page's own words and figures (explainer,
       company, results, Shariah list, report). Every scene can be edited.
    2. Voice, chosen per video:
-        computer  OpenAI's text-to-speech (needs the OpenAI key). OpenAI's
+        computer  Google (Gemini key) or OpenAI voices, read in a few large
+                  pieces and cut into scenes at the pauses. OpenAI's
                   rules ask us to tell listeners the voice is computer-
                   generated; that line is added to the video description.
         own       your voice: record each scene in Admin, or upload one
@@ -237,20 +238,24 @@ function pcmToWav(pcm, rate = 24000) {
   h.write('data', 36); h.writeUInt32LE(pcm.length, 40);
   return Buffer.concat([h, pcm]);
 }
-/** Google Gemini speech: newest model first, older one if it isn't available. */
-async function speakGemini(text, voice, file) {
+/** Google Gemini speech: newest model first, older one if it isn't available.
+    The free allowance allows only a few requests a minute and a set number a
+    day, so: a "per day" limit fails at once (no point waiting), a "per minute"
+    limit is waited out at most twice, and every wait is reported. */
+async function speakGemini(text, voice, file, onWait = async () => {}) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('No Gemini key saved (Admin → APIs & More), so the Google voices aren’t available. Choose an OpenAI voice or record your own.');
-  const prompt = `Read this aloud in a warm, natural, conversational way, like a friendly teacher explaining money to a friend. Calm, steady pace, clear British English:\n\n${text.replace(/…/gu, '.')}`;
+  const prompt = `Read this aloud in a warm, natural, conversational way, like a friendly teacher explaining money to a friend. Calm, steady pace, clear British English. Leave a short pause between paragraphs:\n\n${text.replace(/…/gu, '.')}`;
   let lastErr = '';
+  let waits = 0;
   for (const model of ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts']) {
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(120000),
+        method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(100000),
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } } }),
-      }).catch((e) => ({ ok: false, status: 0, text: async () => e.message }));
+      }).catch((e) => ({ ok: false, status: 0, text: async () => (e.name === 'TimeoutError' ? 'no answer within 100 seconds' : e.message) }));
       if (r.ok) {
-        const d = await r.json();
+        const d = await r.json().catch(() => ({}));
         const part = d.candidates?.[0]?.content?.parts?.find((x) => x.inlineData?.data);
         if (!part) { lastErr = 'Google returned no audio'; break; }
         const rate = Number((part.inlineData.mimeType || '').match(/rate=(\d+)/u)?.[1]) || 24000;
@@ -258,18 +263,148 @@ async function speakGemini(text, voice, file) {
         return;
       }
       const body = await r.text().catch(() => '');
-      lastErr = `Google voice said ${r.status}: ${body.slice(0, 160)}`;
-      if (r.status === 429) { await sleep(Number(body.match(/"retryDelay":\s*"(\d+)s"/u)?.[1] || 20) * 1000 + 1000); continue; } // free allowance: wait and retry
+      if (r.status === 429) {
+        if (/per ?day|PerDay|daily/iu.test(body)) { lastErr = 'Google’s free voice allowance for today is used up'; break; }
+        if (waits >= 2) { lastErr = 'Google’s voice service is busy (free allowance per minute)'; break; }
+        const secs = Math.min(45, Number(body.match(/"retryDelay":\s*"(\d+)s"/u)?.[1] || 20) + 1);
+        waits += 1;
+        await onWait(`Google’s free allowance is busy: trying again in ${secs} seconds`);
+        await sleep(secs * 1000);
+        continue;
+      }
+      lastErr = r.status ? `Google voice said ${r.status}: ${body.slice(0, 160)}` : `Google voice: ${body}`;
       break; // other errors: try the older model
     }
   }
   throw new Error(lastErr || 'Google voice failed');
 }
 
-export async function speak(text, voiceId, file) {
+export async function speak(text, voiceId, file, onWait) {
   const [provider, voice] = String(voiceId || defaultVoice()).includes(':') ? String(voiceId).split(':') : ['openai', voiceId];
-  if (provider === 'gemini') return speakGemini(text, voice, file);
+  if (provider === 'gemini') return speakGemini(text, voice, file, onWait);
   return speakOpenAI(text, voice, file);
+}
+
+/* ── Voice for a whole video ──────────────────────────────────────────
+   Old way: one request per scene (10+ requests), which ran into Google's
+   free per-minute limit and looked "stuck". New way: the scenes are read
+   in a few large pieces (about 900 letters each, so 1 piece for a Short),
+   then each piece is cut back into scenes at the natural pauses between
+   paragraphs (found with ffmpeg's silence detector). Every piece is kept
+   in temporary space, so making the video again doesn't pay for the voice
+   twice. If the chosen voice fails, the other company's voice is used
+   when its key is saved, and the video description says which was used. */
+const VOICE_CACHE = path.join(os.tmpdir(), 'dmw-voice-cache');
+const PIECE_LETTERS = 900;
+
+function voicePieces(scenes) {
+  const pieces = []; let cur = [];
+  const len = (list) => list.reduce((n, i) => n + scenes[i].text.length + 2, 0);
+  scenes.forEach((s, i) => {
+    if (cur.length && len([...cur, i]) > PIECE_LETTERS) { pieces.push(cur); cur = []; }
+    cur.push(i);
+  });
+  if (cur.length) pieces.push(cur);
+  return pieces;
+}
+
+/** Quiet moments in an audio file: [{ start, end }] in seconds. */
+export function silences(file) {
+  return new Promise(async (resolve) => {
+    const p = spawn(await ffmpeg(), ['-hide_banner', '-i', file, '-af', 'silencedetect=noise=-35dB:d=0.22', '-f', 'null', '-']);
+    children.add(p); p.on('close', () => children.delete(p));
+    let out = '';
+    p.stderr.on('data', (d) => { out += d; });
+    p.on('close', () => {
+      const list = []; let start = null;
+      for (const m of out.matchAll(/silence_(start|end): ([\d.]+)/gu)) {
+        if (m[1] === 'start') start = Number(m[2]);
+        else if (start !== null) { list.push({ start, end: Number(m[2]) }); start = null; }
+      }
+      resolve(list);
+    });
+    p.on('error', () => resolve([]));
+  });
+}
+
+/** Where to cut a piece into its scenes: the pause nearest to where each scene should end. */
+export function cutPoints(total, wordsPerScene, quiet) {
+  const sum = wordsPerScene.reduce((a, b) => a + b, 0) || 1;
+  const cuts = []; let acc = 0; let after = 0;
+  for (let k = 0; k < wordsPerScene.length - 1; k += 1) {
+    acc += wordsPerScene[k];
+    const expected = total * (acc / sum);
+    const window = Math.max(1.5, total * 0.2);
+    const best = quiet
+      .map((q) => ({ mid: (q.start + q.end) / 2, len: q.end - q.start }))
+      .filter((q) => q.mid > after + 0.8 && Math.abs(q.mid - expected) < window)
+      .sort((a, b) => (Math.abs(a.mid - expected) - a.len * 2) - (Math.abs(b.mid - expected) - b.len * 2))[0];
+    const at = best ? best.mid : Math.max(after + 0.8, expected);
+    cuts.push(at); after = at;
+  }
+  return cuts;
+}
+
+async function speakCached(text, voiceId, onWait) {
+  await fs.mkdir(VOICE_CACHE, { recursive: true });
+  const file = path.join(VOICE_CACHE, `${crypto.createHash('sha1').update(`${voiceId}\n${text}`).digest('hex')}.wav`);
+  try { const st = await fs.stat(file); if (st.size > 2000) return file; } catch { /* not made yet */ }
+  await speak(text, voiceId, `${file}.part`, onWait);
+  await fs.rename(`${file}.part`, file);
+  return file;
+}
+
+function otherVoice(voiceId) {
+  if (providerOf(voiceId) === 'gemini' && process.env.OPENAI_API_KEY) return 'openai:marin';
+  if (providerOf(voiceId) === 'openai' && process.env.GEMINI_API_KEY) return 'gemini:Sulafat';
+  return null;
+}
+
+/** Makes work/v0.wav, v1.wav … (one per scene). Returns the voice actually used. */
+async function makeSceneVoices(p, work, step) {
+  const sc = p.scenes;
+  const pieces = voicePieces(sc);
+  let voiceId = p.voiceName;
+  // Old cache files (over two days) are removed, so temporary space stays small
+  for (const f of await fs.readdir(VOICE_CACHE).catch(() => [])) {
+    const fp = path.join(VOICE_CACHE, f);
+    const st = await fs.stat(fp).catch(() => null);
+    if (st && Date.now() - st.mtimeMs > 2 * 86400000) await fs.rm(fp, { force: true }).catch(() => {});
+  }
+  for (const [n, idx] of pieces.entries()) {
+    const label = pieces.length > 1 ? ` (part ${n + 1} of ${pieces.length})` : '';
+    await step(`Recording the voice${label}`, 6 + Math.round((n / pieces.length) * 24));
+    const text = idx.map((i) => sc[i].text.trim()).join('\n\n');
+    const onWait = (msg) => step(msg, 6 + Math.round((n / pieces.length) * 24));
+    let file;
+    try {
+      file = await speakCached(text, voiceId, onWait);
+    } catch (error) {
+      const alt = otherVoice(voiceId);
+      if (!alt) throw new Error(`${error.message}. Try again later, choose another voice, or record your own.`);
+      await step(`${error.message}; using the ${providerOf(alt) === 'openai' ? 'OpenAI' : 'Google'} voice instead`, 6 + Math.round((n / pieces.length) * 24));
+      voiceId = alt;
+      file = await speakCached(text, voiceId, onWait);
+    }
+    if (idx.length === 1) { await fs.copyFile(file, path.join(work, `v${idx[0]}.wav`)); continue; }
+    const total = await duration(file);
+    const cuts = cutPoints(total, idx.map((i) => Math.max(1, words(sc[i].text))), await silences(file));
+    const edges = [0, ...cuts, total];
+    for (const [k, i] of idx.entries()) {
+      await run(['-i', file, '-ss', edges[k].toFixed(3), '-to', edges[k + 1].toFixed(3), '-c:a', 'pcm_s16le', path.join(work, `v${i}.wav`)]);
+    }
+  }
+  return voiceId;
+}
+
+/** Hear the start of the voice before making the whole video (uses the same saved pieces). */
+export async function voicePreview(id) {
+  const p = await getProject(id);
+  if (!p) throw Object.assign(new Error('Project not found.'), { status: 404 });
+  const idx = voicePieces(p.scenes)[0] || [];
+  const text = idx.map((i) => p.scenes[i].text.trim()).join('\n\n');
+  if (!text) throw Object.assign(new Error('The script is empty.'), { status: 400 });
+  return fs.readFile(await speakCached(text, p.voiceName));
 }
 
 /** A 5-second sample of a voice (kept in temporary space, so each is made once). */
@@ -425,13 +560,22 @@ export async function startRender(id) {
   const token = Symbol(p.id); busy = true; current = { id: p.id, token }; p._token = token;
   p.status = 'rendering'; p.progress = { step: 'Starting', pct: 2 }; p.error = null; p.note = null;
   await saveProject(p);
+  // Safety net: nothing should take 25 minutes, so stop and say so rather than look stuck
+  const guard = setTimeout(() => {
+    if (current?.token !== token) return;
+    cancelRender(p.id).then(async () => {
+      const q = await getProject(p.id);
+      if (q) { Object.assign(q, { status: 'failed', note: null, error: 'Stopped after 25 minutes without finishing. Click “Make video” to try again (the voice already made is kept).' }); await saveProject(q); }
+    }).catch(() => {});
+  }, 25 * 60 * 1000);
+  guard.unref?.();
   render(p).catch(async (error) => {
     console.error(`[video] ${p.id} failed: ${error.message}`);
     await fs.rm(path.join(os.tmpdir(), `dmw-video-${p.id}`), { recursive: true, force: true }).catch(() => {});
     const q = (await getProject(p.id)) || p;
     if (current?.token !== token) return; // cancelled: cancelRender has already tidied up
     q.status = 'failed'; q.error = error.message; await saveProject(q);
-  }).finally(() => { if (current?.token === token) { busy = false; current = null; } });
+  }).finally(() => { clearTimeout(guard); if (current?.token === token) { busy = false; current = null; } });
   return { ok: true };
 }
 
@@ -470,12 +614,8 @@ async function render(p) {
   const sc = p.scenes;
   const secs = [];
   if (p.voice === 'computer') {
-    for (const [i, s] of sc.entries()) {
-      const file = path.join(work, `v${i}.wav`);
-      await speak(s.text, p.voiceName, file);
-      secs.push(await duration(file));
-      await step(`Recording the voice (${i + 1} of ${sc.length})`, 6 + Math.round((i + 1) / sc.length * 24));
-    }
+    p.voiceUsed = await makeSceneVoices(p, work, step);
+    for (const i of sc.keys()) secs.push(await duration(path.join(work, `v${i}.wav`)));
   } else if (p.voiceAll && !sc.some((s) => s.voiceFile)) {
     // One recording of the whole script: share its length out by the words in each scene
     const total = p.voiceAll.seconds || await duration(path.join(dir, p.voiceAll.file));
