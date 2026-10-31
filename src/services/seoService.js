@@ -573,6 +573,7 @@ export function pageShell({ head, body, active }) {
       </nav>
     </header>
     <div id="resultsStrip" class="rs-strip" hidden></div>
+    <div id="tickerBar" class="tk-bar" aria-label="Live prices"></div>
     <main>
       <div class="wrap">${adSlot('top-banner')}${body}
       </div>
@@ -598,6 +599,7 @@ export function pageShell({ head, body, active }) {
     ${adSlot('bottom-strip')}
     ${AD_SCRIPT}
     <script src="/results.js" defer></script>
+      <script src="/tickerbar.js" defer></script>
   </body>
 </html>
 `;

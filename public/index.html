@@ -51,6 +51,7 @@
       </nav>
     </header>
     <div id="resultsStrip" class="rs-strip" hidden></div>
+    <div id="tickerBar" class="tk-bar" aria-label="Live prices"></div>
 
     <main>
       <div class="wrap"><div data-ad-fill="top-banner"></div></div>
@@ -65,9 +66,9 @@
             <h1 id="heroHeadline">Money and Investing simplified</h1>
             <p id="heroLede" class="lede">Free courses from the basics up, a health score for every company, live market maps, calculators and guides. Clear, short and jargon-free.</p>
             <dl class="reading-aid">
-              <div><dt>What happened</dt><dd id="aidWhat">The day's biggest money stories, in a few lines.</dd></div>
-              <div><dt>Why it matters</dt><dd id="aidWhy">How it touches prices, jobs, savings and loans.</dd></div>
-              <div><dt>What you can do</dt><dd id="aidDo">Usually nothing urgent. We say so when it isn't.</dd></div>
+              <div><dt><a href="/learn" style="color:inherit">Learn</a></dt><dd>Free week-by-week courses, from the basics up.</dd></div>
+              <div><dt><a href="/health-check" style="color:inherit">Check</a></dt><dd>A health score for every company we cover.</dd></div>
+              <div><dt><a href="/guides" style="color:inherit">Plan</a></dt><dd>Calculators and guides for saving, retiring and more.</dd></div>
             </dl>
           </div>
           <div id="homeCalcs" class="hc-box" aria-label="Money calculators">
@@ -94,6 +95,17 @@
           </div>
           <div id="hmWidget" class="hm-widget"></div>
           <p class="rn-credit">Live heat map by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>; prices may be delayed. <a href="/today">The economy and this week’s announcements →</a></p>
+        </section>
+
+        <!-- ═══ LIVE CURRENCY RATES (public/fxlive.js) ═══ -->
+        <section class="block fx-box" id="fxLive">
+          <div class="block-head">
+            <div><h2>Live currency rates</h2><p>How much of each currency one unit buys, live. Choose the currencies you care about.</p></div>
+            <a class="go-link" href="/currencies">Currencies explained →</a>
+          </div>
+          <div class="fx-picks" id="fxPicks" role="group" aria-label="Choose currencies"></div>
+          <div id="fxWidget" class="fx-widget"></div>
+          <p class="rn-credit">Live rates by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>; may be delayed. Banks and exchange shops add their own margin: see the <a href="/tools/currency-converter">currency converter</a>.</p>
         </section>
 
         <section class="block rn-box" id="regionNews">
@@ -356,6 +368,8 @@
     <script src="/regionnews.js" defer></script>
     <script src="/newsletter.js" defer></script>
     <script src="/heatmap.js" defer></script>
+    <script src="/fxlive.js" defer></script>
     <script src="/portfolioedge.js" defer></script>
+      <script src="/tickerbar.js" defer></script>
   </body>
 </html>

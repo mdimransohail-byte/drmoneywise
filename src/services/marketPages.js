@@ -176,7 +176,6 @@ export async function renderToday(origin) {
           'Daily moves feel dramatic but usually even out. The economy figures (prices, interest rates, jobs) matter more for your savings and loans.',
           'Most days, nothing. If you invest for the long term, a single day rarely changes the plan.',
         )}
-        ${tickerTape()}
       </section>
 
       <section class="block">

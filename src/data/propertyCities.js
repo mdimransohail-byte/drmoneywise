@@ -10,7 +10,9 @@
                 primary residence by metro area (public domain). An index,
                 not dollars, so US cities show rent growth but no yield.
    ukhpi: Land Registry region names to try, in order.
-   ons:   area names as written in the ONS rents file, in order.
+   ons:   area names as written in the ONS rents file (checked against the
+          October 2026 file). Scottish rents are only given for wide areas
+          such as "Lothian", so Scottish cities are left out.
    ════════════════════════════════════════════════════════════════════════ */
 
 export const CITY_LIST = [
@@ -20,8 +22,10 @@ export const CITY_LIST = [
   { slug: 'leeds', name: 'Leeds', country: 'uk', ukhpi: ['leeds', 'city-of-leeds'], ons: ['Leeds'] },
   { slug: 'liverpool', name: 'Liverpool', country: 'uk', ukhpi: ['liverpool', 'city-of-liverpool'], ons: ['Liverpool'] },
   { slug: 'bristol', name: 'Bristol', country: 'uk', ukhpi: ['city-of-bristol', 'bristol'], ons: ['Bristol, City of', 'City of Bristol', 'Bristol'] },
-  { slug: 'edinburgh', name: 'Edinburgh', country: 'uk', ukhpi: ['city-of-edinburgh', 'edinburgh'], ons: ['City of Edinburgh', 'Edinburgh, City of', 'Edinburgh'] },
-  { slug: 'glasgow', name: 'Glasgow', country: 'uk', ukhpi: ['glasgow-city', 'city-of-glasgow', 'glasgow'], ons: ['Glasgow City', 'Glasgow'] },
+  { slug: 'sheffield', name: 'Sheffield', country: 'uk', ukhpi: ['sheffield', 'city-of-sheffield'], ons: ['Sheffield'] },
+  { slug: 'nottingham', name: 'Nottingham', country: 'uk', ukhpi: ['city-of-nottingham', 'nottingham'], ons: ['Nottingham'] },
+  { slug: 'newcastle', name: 'Newcastle', country: 'uk', ukhpi: ['newcastle-upon-tyne', 'city-of-newcastle-upon-tyne'], ons: ['Newcastle upon Tyne'] },
+  { slug: 'cardiff', name: 'Cardiff', country: 'uk', ukhpi: ['cardiff', 'city-of-cardiff'], ons: ['Cardiff'] },
   { slug: 'new-york', name: 'New York', country: 'us', bls: 'CUURA101SEHA', area: 'New York-Newark-Jersey City' },
   { slug: 'los-angeles', name: 'Los Angeles', country: 'us', bls: 'CUURA421SEHA', area: 'Los Angeles-Long Beach-Anaheim' },
   { slug: 'chicago', name: 'Chicago', country: 'us', bls: 'CUURA207SEHA', area: 'Chicago-Naperville-Elgin' },

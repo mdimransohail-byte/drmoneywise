@@ -55,7 +55,7 @@ const JOBS = {
   deeper: { label: 'Lords lessons for Premium (one every 2 days)', every: 2 * 24 * HOUR },
   report: { label: 'Monthly research report (built on the 1st)', every: 20 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
-  property: { label: 'Property prices and rents (BIS, OECD, BLS, Land Registry)', every: 7 * 24 * HOUR },
+  property: { label: 'Property and city rents (monthly figures; looks weekly, downloads only when new figures are due)', every: 7 * 24 * HOUR },
   commodities: { label: 'Commodity prices (World Bank)', every: 7 * 24 * HOUR },
   bonds: { label: 'Government bond yields (US Treasury daily, OECD monthly)', every: 24 * HOUR },
   etfs: { label: 'ETF holdings (SEC N-PORT)', every: 7 * 24 * HOUR },
@@ -269,14 +269,14 @@ async function runHealth() {
   return { ok: !sent.skipped ? sent.ok : true, message: `${report.summary.ok} OK, ${report.summary.warn} to check, ${report.summary.fail} problems. ${sent.message}` };
 }
 
-async function runProperty() {
+async function runProperty({ manual = false } = {}) {
   const { refreshProperty } = await import('./propertyService.js');
-  return refreshProperty();
+  return refreshProperty({ manual });
 }
 
-async function runCommodities() {
+async function runCommodities({ manual = false } = {}) {
   const { refreshCommodities } = await import('./commodityService.js');
-  return refreshCommodities();
+  return refreshCommodities({ manual });
 }
 
 async function runBonds() {

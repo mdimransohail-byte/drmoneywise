@@ -184,8 +184,21 @@ async function fetchUkHpiRegion(region) {
 }
 
 /* ── Refresh everything (weekly job) ──────────────────────────────── */
-export async function refreshProperty() {
+export async function refreshProperty({ manual = false } = {}) {
   const existing = await readProperty();
+  // The sources publish once a month. The job looks in weekly but only
+  // downloads when a new month's figures are due, and at least once every
+  // 32 days. "Run now" in Admin always downloads.
+  if (!manual && existing.updatedAt) {
+    const age = Date.now() - new Date(existing.updatedAt).getTime();
+    const newest = Object.values(existing.cities || {}).map((c) => c.rents?.at(-1)?.p).filter(Boolean).sort().at(-1);
+    const now = new Date();
+    // Official rents come out about seven weeks after the month they cover
+    const twoMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 1)).toISOString().slice(0, 7);
+    if (age < 32 * 24 * 3600 * 1000 && newest && newest >= twoMonthsAgo) {
+      return { ok: true, skipped: true, message: `Up to date: rents for ${newest} already saved; next month's figures are not out yet` };
+    }
+  }
   const places = { ...existing.places };
   const failures = [];
   const ok = [];

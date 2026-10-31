@@ -2113,3 +2113,23 @@ body.has-ad-strip { padding-bottom: 52px; }
 @media (max-width: 480px) { .ct-tops { grid-template-columns: minmax(0, 1fr); } }
 /* Property hub: 8 places fill two full rows of 4 */
 @media (min-width: 900px) { .pr-page > .pr-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ═══ Live price scroller under the header (tickerbar.js) ═══ */
+.tk-bar { position: relative; display: flex; align-items: center; background: #0a1128; border-bottom: 1px solid #1f2b66; min-height: 46px; }
+.tk-tape { flex: 1; min-width: 0; height: 46px; overflow: hidden; }
+.tk-tape .tradingview-widget-container { height: 46px; }
+.tk-choose { flex: none; margin: 0 10px; background: #f7d07c; color: #0a1128; border: 0; border-radius: 999px; padding: 6px 14px; font: 800 12.5px var(--sans); cursor: pointer; }
+.tk-panel { position: absolute; z-index: 60; top: 100%; right: 10px; width: min(560px, calc(100vw - 20px)); max-height: 70vh; overflow: auto; background: #fff; color: var(--ink); border-radius: 14px; box-shadow: 0 16px 40px rgba(10,17,40,.3); padding: 14px 16px; }
+.tk-panel-head { display: flex; flex-direction: column; margin: 0 0 8px; }
+.tk-panel-head span { font-size: 13px; color: var(--ink-2); }
+.tk-panel fieldset { border: 0; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tk-panel legend { font: 800 12px var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); margin-bottom: 4px; width: 100%; }
+.tk-panel label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; font-size: 13.5px; cursor: pointer; }
+.tk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.tk-actions button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 14px; font-weight: 700; cursor: pointer; }
+.tk-actions .tk-save { background: #0a1128; color: #f7d07c; border-color: #0a1128; }
+.tk-msg { font-size: 13px; color: var(--ink-2); }
+.fx-picks { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.fx-picks label { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 5px 11px; font: 700 13px var(--sans); cursor: pointer; }
+.fx-picks label:has(input:checked) { border-color: #0fa3b1; background: #e7f8fa; }
+.fx-widget { height: 400px; border-radius: 16px; overflow: hidden; background: #fff; border: 1px solid var(--line); }

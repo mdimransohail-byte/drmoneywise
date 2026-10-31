@@ -65,7 +65,16 @@ export function parsePinkSheet(rows) {
   return { items: out, missing };
 }
 
-export async function refreshCommodities() {
+export async function refreshCommodities({ manual = false } = {}) {
+  // Monthly figures: skip the download while last month's prices are saved
+  if (!manual) {
+    const saved = await readCommodities();
+    const now = new Date();
+    const lastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+    if (saved.latest && saved.latest >= lastMonth && Date.now() - new Date(saved.updatedAt || 0).getTime() < 32 * 86400000) {
+      return { ok: true, skipped: true, message: `Up to date: prices for ${saved.latest} already saved` };
+    }
+  }
   const url = await findFileUrl();
   const response = await fetch(url, { headers: UA });
   if (!response.ok) return { ok: false, message: `World Bank file download failed: HTTP ${response.status} (${url})` };
