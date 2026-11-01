@@ -151,7 +151,8 @@ export async function validateCoupon(code, planId) {
     (entry) =>
       entry.code === String(code || '').trim().toUpperCase() &&
       entry.active &&
-      (entry.planScope === 'all' || entry.planScope === planId),
+      (entry.planScope === 'all' || entry.planScope === planId) &&
+      (!entry.expiresAt || new Date(entry.expiresAt).getTime() > Date.now()),
   );
 
   if (!coupon) {
@@ -174,6 +175,7 @@ export async function validateCoupon(code, planId) {
     valid: true,
     code: coupon.code,
     discountPercent: coupon.discountPercent,
+    duration: coupon.duration === 'once' ? 'once' : 'forever',
     adjustedMonthly: Math.max(0, Number((monthly * (1 - coupon.discountPercent / 100)).toFixed(2))),
     adjustedAnnual: Math.max(0, Number((annual * (1 - coupon.discountPercent / 100)).toFixed(2))),
   };

@@ -119,15 +119,22 @@ function priceFor(planId, cycle) {
 }
 
 /* ── Our coupons become Stripe coupons (created once, then reused) ──── */
-async function ensureStripeCoupon(code, planId) {
+async function ensureStripeCoupon(code, planId, cycle = 'monthly') {
   if (!code) return null;
   const store = await readStore();
   const coupon = (store.coupons || []).find(
-    (entry) => entry.code === code && entry.active && (entry.planScope === 'all' || entry.planScope === planId),
+    (entry) => entry.code === code && entry.active && (entry.planScope === 'all' || entry.planScope === planId)
+      && (!entry.expiresAt || new Date(entry.expiresAt).getTime() > Date.now()),
   );
   if (!coupon) return null;
 
-  const stripeId = `DMW-${coupon.code}-${coupon.discountPercent}`;
+  // "First payment only" is set up as a discount for the first 1 month (monthly)
+  // or 12 months (yearly) from the start, so it still reaches the first real
+  // payment when a free trial comes first (a one-off discount would be used
+  // up on the trial's $0 invoice).
+  const once = coupon.duration === 'once';
+  const months = cycle === 'annual' ? 12 : 1;
+  const stripeId = `DMW-${coupon.code}-${coupon.discountPercent}${once ? `-M${months}` : ''}`;
   try {
     await stripeRequest('GET', `/coupons/${encodeURIComponent(stripeId)}`);
   } catch (error) {
@@ -135,8 +142,9 @@ async function ensureStripeCoupon(code, planId) {
     await stripeRequest('POST', '/coupons', {
       id: stripeId,
       percent_off: coupon.discountPercent,
-      duration: 'forever',
-      name: `${coupon.code} (${coupon.discountPercent}% off)`,
+      duration: once ? 'repeating' : 'forever',
+      ...(once ? { duration_in_months: months } : {}),
+      name: `${coupon.code} (${coupon.discountPercent}% off${once ? ' the first payment' : ''})`,
     });
     console.log(`[billing] Created Stripe coupon ${stripeId}`);
   }
@@ -144,7 +152,7 @@ async function ensureStripeCoupon(code, planId) {
 }
 
 /* ── 1. Start checkout ──────────────────────────────────────────────── */
-export async function createCheckoutSession({ user, planId, cycle, couponCode, origin }) {
+export async function createCheckoutSession({ user, planId, cycle, couponCode, origin, via = '', promo = '' }) {
   if (!user || user.role === 'admin') {
     throw new Error('Please sign in with a member account to subscribe.');
   }
@@ -157,8 +165,12 @@ export async function createCheckoutSession({ user, planId, cycle, couponCode, o
     throw new Error('You already have a paid plan. Use "Manage my plan" to change or cancel it.');
   }
 
-  const stripeCouponId = await ensureStripeCoupon(String(couponCode || '').trim().toUpperCase(), planId);
+  const stripeCouponId = await ensureStripeCoupon(String(couponCode || '').trim().toUpperCase(), planId, billingCycle);
   const metadata = { userId: user.id, planId, billingCycle };
+  if (via === 'popup') { metadata.via = 'popup'; if (/^[a-f0-9]{8}$/u.test(String(promo))) metadata.promo = promo; }
+  // 7-day free Premium trial, once per member (Admin → Offers sets the days; 0 switches it off)
+  const trialDays = planId === 'premium' && !member?.trialUsed ? Math.max(0, Math.min(30, Number(store.settings?.premiumTrialDays ?? 7))) : 0;
+  if (trialDays) metadata.trial = String(trialDays);
 
   const params = {
     mode: 'subscription',
@@ -167,7 +179,7 @@ export async function createCheckoutSession({ user, planId, cycle, couponCode, o
     locale: 'en-GB', // British spelling on Stripe's pages ("cancelled")
     client_reference_id: user.id,
     metadata,
-    subscription_data: { metadata },
+    subscription_data: { metadata, ...(trialDays ? { trial_period_days: trialDays } : {}) },
     line_items: [
       {
         quantity: 1,
@@ -227,19 +239,25 @@ async function applyCheckoutToMember(session) {
       return store;
     }
     const previousPlan = member.plan;
+    const trial = Number(session.metadata?.trial || 0);
     member.plan = planId;
     member.billingCycle = billingCycle;
-    member.planStatus = 'active';
+    member.planStatus = trial ? 'trialing' : 'active';
+    if (trial) { member.trialUsed = true; member.trialEndsAt = member.trialEndsAt || new Date(Date.now() + trial * 86400000).toISOString(); }
     member.stripeCustomerId = session.customer || member.stripeCustomerId || '';
     member.stripeSubscriptionId = session.subscription || member.stripeSubscriptionId || '';
     member.updatedAt = new Date().toISOString();
-    if (previousPlan !== planId) {
+    const already = (store.events || []).some((e) => e.session === session.id);
+    if (previousPlan !== planId && !already) {
       store.events.push({
         id: crypto.randomUUID(),
-        type: 'upgrade',
+        type: trial ? 'trial' : 'upgrade',
         path: '/billing/checkout',
         userId,
         value: 1,
+        plan: planId,
+        session: session.id,
+        ...(session.metadata?.via ? { via: session.metadata.via, promo: session.metadata.promo || '' } : {}),
         at: new Date().toISOString(),
       });
       console.log(`[billing] ${member.email} upgraded ${previousPlan} → ${planId} (${billingCycle})`);
@@ -358,7 +376,13 @@ async function applySubscriptionChange(subscription, eventType) {
       if (planId && ['active', 'trialing'].includes(subscription.status)) {
         member.plan = planId;
       }
-      member.planStatus = cancelling ? 'cancelling' : subscription.status === 'past_due' ? 'past_due' : 'active';
+      if (subscription.trial_end) member.trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+      // The trial turned into a paid plan: count it as an upgrade
+      if (member.planStatus === 'trialing' && subscription.status === 'active') {
+        store.events.push({ id: crypto.randomUUID(), type: 'upgrade', path: '/billing/trial', userId: member.id, value: 1, plan: planId || member.plan, fromTrial: true, ...(subscription.metadata?.via ? { via: subscription.metadata.via, promo: subscription.metadata.promo || '' } : {}), at: new Date().toISOString() });
+        console.log(`[billing] ${member.email} trial became a paid plan`);
+      }
+      member.planStatus = cancelling ? 'cancelling' : subscription.status === 'past_due' ? 'past_due' : subscription.status === 'trialing' ? 'trialing' : 'active';
     }
     return store;
   });

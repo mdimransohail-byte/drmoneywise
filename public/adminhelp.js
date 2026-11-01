@@ -16,6 +16,7 @@
     'Ask Dr MoneyWise': 'Members’ questions. Open one, press Draft answer, edit the draft in your own words, then Send. Nothing is sent without you. Reply within 2–3 days.',
     'Newsletter': 'The Saturday newsletter builds and sends itself (see “Automatic Saturday newsletter”). You can also write one by hand, preview it and send a test to yourself first.',
     'Social studio': 'Ready-made pictures and captions for social media from any page of the site. Pick a page, choose a size, download and post.',
+    'Offers': 'Run a discount for any occasion: it pops up on the homepage after a couple of seconds and takes people to the membership page with the code filled in. Also: the free Premium trial and the welcome emails.',
     'Video maker': 'Turns any page into a Short or a longer video with a voice. Paste a link, check the script, press “Hear the voice first”, then “Make the video”.',
   };
   var BOXES = [
@@ -70,6 +71,13 @@
     ['Past and current newsletters', 'Every issue, with how many were sent. A big list carries on by itself the next day.'],
     ['New newsletter', 'Write your own issue: a subject, a short intro and a few stories with links.'],
     ['Edit draft', 'Change the issue, then Preview, Send me a test, and Send.'],
+    // Analytics: sources
+    ['How members joined', 'Where new members found us (Google, Instagram, an advert, the pop-up…), and how many started a trial or paid. Use it to decide where to spend.'],
+    // Offers
+    ['Offer pop-up', 'Choose the occasion, discount and dates, tick “Show”, then Save. The discount code is created for you and stops working the day after the offer ends.'],
+    ['Pop-up picture', 'The picture shown in the pop-up. Make one here, or upload one from Social studio.'],
+    ['Free Premium trial', 'How many days new Premium members can try it free. 7 is usual; 0 switches it off.'],
+    ['Welcome emails', 'Five short emails that show new members the most useful parts of the site, ending with the trial offer.'],
     // Social
     ['Caption', 'The text to post with the picture. Edit it to sound like you.'],
     ['Pictures', 'Download the size you need: square for Instagram, landscape for X and LinkedIn, tall for Stories.'],

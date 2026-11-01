@@ -63,7 +63,7 @@ const JOBS = {
   news: { label: 'In the news: headlines for each page (GDELT)', every: 12 * HOUR },
   results: { label: 'Company results (SEC filings, checked hourly)', every: 1 * HOUR },
   newsletter: { label: 'Newsletter: Saturday 6am (Dubai) automatic issue, and carries on a big send (daily limit)', every: 1 * HOUR },
-  alerts: { label: 'Member emails: dividend, chart and big-fund alerts', every: 1 * HOUR },
+  alerts: { label: 'Member emails: dividend, chart and big-fund alerts, welcome emails, trial reminders', every: 1 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 const FIRST_CHECK_AFTER_MS = 60 * 1000;
@@ -317,7 +317,10 @@ async function runResults() {
 
 async function runAlertsJob() {
   const { runAlerts } = await import('./alertsService.js');
-  return runAlerts();
+  const { runWelcomeEmails } = await import('./welcomeService.js');
+  const r = await runAlerts();
+  const w = await runWelcomeEmails().catch((error) => ({ message: `welcome emails failed: ${error.message}` }));
+  return { ...r, message: `${r.message} · ${w.message}` };
 }
 
 const RUNNERS = { newsletter: runNewsletter, report: runReport, deeper: runDeeper, review: runReview, alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };

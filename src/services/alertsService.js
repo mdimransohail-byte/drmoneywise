@@ -39,6 +39,7 @@ export const EMAIL_KINDS = {
   charts: { label: 'Chart alerts', plan: 'premium', about: 'When a chart sign appears on a company in your watchlist or portfolio: golden or death cross, crossing the 200-day average, RSI above 70 or below 30, a new 52-week high or low, or a big move on heavy trading.' },
   funds: { label: 'Big-fund alerts', plan: 'premium', about: 'When a famous fund buys or sells a company on your watchlist (each quarter).' },
   report: { label: 'Monthly research report', plan: 'premium', about: 'On the 1st of each month: the month in figures, with a link to the full report.' },
+  welcome: { label: 'Getting-started emails', plan: 'free', about: 'Five short emails in your first ten days, each showing one useful part of the site.' },
   newsletter: { label: 'Saturday newsletter', plan: 'free', about: 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons in one email. Premium members get an extra section with their own portfolio and companies.' },
 };
 

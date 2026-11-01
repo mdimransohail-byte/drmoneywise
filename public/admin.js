@@ -241,6 +241,7 @@ function showLogin(msg) {
 
 function setActivePage(pageId) {
   qsa('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === pageId));
+  document.body.dataset.page = pageId; // each page has its own background colour (admin.html)
 }
 
 function bindNav() {
@@ -296,6 +297,8 @@ function render_analytics() {
           <span class="met-trend ${m.up ? 'trend-up' : 'trend-dn'}">${m.up ? '▲' : '▼'} live</span>
         </div>`).join('')}
     </div>
+
+    ${render_joins()}
 
     <div class="card-grid chart-col" style="margin-bottom:14px">
       <div class="card">
@@ -462,9 +465,10 @@ function renderAudience(a) {
 
 async function load_analytics() {
   try {
-    const [dash, audience] = await Promise.all([API.dashboard(), API.get('/api/admin/audience').catch(() => null)]);
+    const [dash, audience, joins] = await Promise.all([API.dashboard(), API.get('/api/admin/audience').catch(() => null), API.get('/api/admin/join-stats').catch(() => null)]);
     STATE.dashboard = dash;
     STATE.audience = audience;
+    STATE.joins = joins;
     setMain(render_analytics());
     bind_analytics();
   } catch (e) {
@@ -472,8 +476,38 @@ async function load_analytics() {
   }
 }
 
+/* "How members joined": sign-ups, trials and paid members by where they came from */
+function render_joins() {
+  const j = STATE.joins;
+  if (!j) return '';
+  const period = STATE.joinPeriod || 'd30';
+  const rows = j.periods?.[period] || [];
+  const max = Math.max(1, ...rows.map((r) => r.signups));
+  const colours = ['#2a78d6', '#1baf7a', '#e8a33d', '#6250d6', '#e5566f', '#0fa3b1', '#eb6834', '#8a4fd8'];
+  const tot = rows.reduce((a, r) => ({ s: a.s + r.signups, t: a.t + r.trials, p: a.p + r.paid }), { s: 0, t: 0, p: 0 });
+  return `
+    <div class="card" style="grid-column:1 / -1;max-height:none">
+      <div class="card-title">How members joined</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px">${[['d30', 'Last 30 days'], ['d90', 'Last 90 days'], ['all', 'All time']].map(([k, l]) => `<button class="btn ${k === period ? 'btn-teal' : ''}" data-join-period="${k}">${l}</button>`).join('')}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 14px">
+        <div class="met-card" style="--ac:#2a78d6"><div class="met-val">${tot.s}</div><div class="met-lbl">New free accounts</div></div>
+        <div class="met-card" style="--ac:#8a4fd8"><div class="met-val">${tot.t}</div><div class="met-lbl">Free trials started</div></div>
+        <div class="met-card" style="--ac:#1baf7a"><div class="met-val">${tot.p}</div><div class="met-lbl">Became paying</div></div>
+        <div class="met-card" style="--ac:#e8a33d"><div class="met-val">${j.trials?.now || 0}</div><div class="met-lbl">On a trial now · ${j.trials?.converted || 0} of ${j.trials?.started || 0} trials paid so far</div></div>
+      </div>
+      ${rows.length ? `<table style="width:100%;border-collapse:collapse;font-size:.9rem">
+        <tr style="text-align:left"><th style="padding:6px">Where they came from</th><th style="padding:6px;width:34%">Free accounts</th><th style="padding:6px">Trials</th><th style="padding:6px">Paying</th><th style="padding:6px">Campaigns (from advert links)</th></tr>
+        ${rows.map((r, i) => `<tr style="border-top:1px solid #e1e6f0"><td style="padding:7px 6px;font-weight:700">${h(r.label)}</td>
+          <td style="padding:7px 6px"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;background:#eef2f9;border-radius:6px;height:12px"><div style="width:${Math.max(3, r.signups / max * 100)}%;height:12px;border-radius:6px;background:${colours[i % colours.length]}"></div></div><b>${r.signups}</b></div></td>
+          <td style="padding:7px 6px">${r.trials}</td><td style="padding:7px 6px;font-weight:800;color:#0f8a5a">${r.paid}</td>
+          <td style="padding:7px 6px;font-size:.8rem;color:#4a5570">${r.campaigns.map(([c, n]) => `${h(c)} (${n})`).join(', ') || '—'}</td></tr>`).join('')}
+      </table>` : '<p style="color:#4a5570">No new members in this period yet.</p>'}
+      <p style="font-size:.8rem;color:#4a5570;margin-top:10px">Tip: add tags to every advert or post link so you can see which one worked, for example <code>drmoneywise.com/?utm_source=meta&amp;utm_medium=paid&amp;utm_campaign=ramadan</code>. Members who joined before tracking began are shown as “Before tracking began”.</p>
+    </div>`;
+}
+
 function bind_analytics() {
-  // Analytics has no interactive elements — nothing to bind
+  qsa('[data-join-period]').forEach((b) => b.addEventListener('click', () => { STATE.joinPeriod = b.dataset.joinPeriod; setMain(render_analytics()); bind_analytics(); }));
 }
 
 
@@ -2663,6 +2697,124 @@ function bind_video() {
 // To add a new page: add an entry to the PAGES map
 // ════════════════════════════════════════════════════════════════════════════
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// PAGE: OFFERS — the homepage pop-up, the free Premium trial, welcome emails
+// ════════════════════════════════════════════════════════════════════════════
+async function load_offers() {
+  try { STATE.offers = await API.get('/api/admin/offers'); } catch (e) { STATE.offers = { error: e.message }; }
+  setMain(render_offers()); bind_offers();
+}
+
+function render_offers() {
+  const d = STATE.offers || {};
+  if (d.error) return `<div class="loading">Could not load offers: ${h(d.error)}</div>`;
+  const p = STATE.offerEdit || d.promo || { on: false, occasion: 'founding', percent: 20, duration: 'once', delay: 2 };
+  const st = d.stats || { views: 0, clicks: 0, upgrades: 0 };
+  const today = new Date().toISOString().slice(0, 10);
+  const live = p.on && p.startAt <= today && today <= p.endAt;
+  const occ = d.occasions || {};
+  return `
+    <div class="pg-head">
+      <div class="eyebrow" style="--ac:#e8730c">Growth</div>
+      <h1>Offers</h1>
+      <p>A discount pop-up on the homepage for any occasion, the free Premium trial, and the welcome emails for new members.</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Offer pop-up</h2>
+      <p>Status: <strong style="color:${live ? '#0f8a5a' : p.on ? '#a86200' : '#c62f3f'}">${live ? 'Showing now' : p.on ? 'Switched on, outside its dates' : 'Off'}</strong></p>
+      <div class="form-gap">
+        <label><span class="field">Occasion</span><select class="input" name="ofOccasion">${Object.entries(occ).map(([k, v]) => `<option value="${k}" ${k === p.occasion ? 'selected' : ''}>${h(v)}</option>`).join('')}</select></label>
+        <div class="form-row">
+          <label><span class="field">Discount on Premium (%)</span><input class="input" type="number" name="ofPercent" min="5" max="80" value="${h(p.percent || 20)}"></label>
+          <label><span class="field">Discount code</span><input class="input" name="ofCode" maxlength="20" value="${h(p.code || '')}" placeholder="e.g. RAMADAN20 (made for you if empty)"></label>
+        </div>
+        <div class="form-row">
+          <label><span class="field">First day</span><input class="input" type="date" name="ofStart" value="${h(p.startAt || today)}"></label>
+          <label><span class="field">Last day</span><input class="input" type="date" name="ofEnd" value="${h(p.endAt || '')}"></label>
+        </div>
+        <label><span class="field">How long the discount lasts</span><select class="input" name="ofDuration"><option value="once" ${p.duration !== 'forever' ? 'selected' : ''}>First payment only (first month, or first year on yearly)</option><option value="forever" ${p.duration === 'forever' ? 'selected' : ''}>Every payment, for as long as they stay</option></select></label>
+        <label><span class="field">Headline</span><input class="input" name="ofHeadline" maxlength="70" value="${h(p.headline || '')}" placeholder="e.g. Ramadan offer"></label>
+        <label><span class="field">Short text</span><textarea name="ofText" rows="2" maxlength="220" placeholder="Left empty, a standard line about Premium is used">${h(p.text || '')}</textarea></label>
+        <div class="form-row">
+          <label><span class="field">Button words</span><input class="input" name="ofButton" maxlength="30" value="${h(p.button || '')}" placeholder="Claim 20% off"></label>
+          <label><span class="field">Seconds before it appears</span><input class="input" type="number" name="ofDelay" min="0" max="30" value="${h(p.delay ?? 2)}"></label>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" name="ofOn" ${p.on ? 'checked' : ''}> Show the pop-up between these dates</label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-green" data-of="save">Save offer</button><a class="btn" href="/" target="_blank" rel="noopener">Open the homepage ↗</a></div>
+      <div id="ofMsg" style="font-size:.85rem;margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Pop-up picture</h2>
+      ${p.image ? `<img src="${h(p.image)}" alt="" style="display:block;width:100%;border-radius:12px;margin:0 0 10px;border:1px solid #dfe4ef">` : '<div style="display:grid;place-items:center;height:200px;background:#f3f6fb;border-radius:12px;color:#4a5570;margin:0 0 10px">No picture yet: the pop-up shows the words only</div>'}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-gold" data-of="make">Make a picture for this occasion</button>
+        <label class="btn" style="cursor:pointer">Upload my own picture<input type="file" accept="image/png,image/jpeg,image/webp" data-of-file hidden></label>
+        ${p.image ? '<button class="btn btn-rose" data-of="noimg">Remove picture</button>' : ''}
+      </div>
+      <p style="font-size:.85rem;color:#4a5570;margin-top:8px">“Make a picture” draws one in our colours with the occasion, the discount, the code and the last day. Or make one in Social studio (or anywhere), download it and upload it here. Wide pictures (for example 1200 × 800) look best. Press <b>Save offer</b> after changing the picture.</p>
+      <h3 style="margin:16px 0 6px">How this offer is doing</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div class="met-card" style="--ac:#2a78d6"><div class="met-val">${st.views || 0}</div><div class="met-lbl">Times shown</div></div>
+        <div class="met-card" style="--ac:#e8a33d"><div class="met-val">${st.clicks || 0}</div><div class="met-lbl">Clicked (${st.views ? Math.round((st.clicks || 0) / st.views * 100) : 0}%)</div></div>
+        <div class="met-card" style="--ac:#1baf7a"><div class="met-val">${st.upgrades || 0}</div><div class="met-lbl">Trials and paid plans</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Free Premium trial</h2>
+      <p>New Premium members can try it free first. Their card is taken at the start and the first payment is made when the trial ends, unless they cancel. Each member can have one trial. We email them 2 days before it ends.</p>
+      <div style="display:flex;gap:8px;align-items:end"><label style="flex:1"><span class="field">Trial length in days (0 switches it off)</span><input class="input" type="number" name="ofTrial" min="0" max="30" value="${h(d.trialDays ?? 7)}"></label><button class="btn btn-green" data-of="trial">Save</button></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Welcome emails</h2>
+      <p>Five short emails in a new member’s first ten days: day 0 the first three lessons; day 2 the savings calculator; day 4 the Health Check; day 7 the topic guides; day 10 the free Premium trial (paying members get a “make the most of your plan” email instead). They send themselves every hour with the member emails.</p>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:700;margin:6px 0 10px"><input type="checkbox" name="ofWelcome" ${d.welcomeOn !== false ? 'checked' : ''}> Send welcome emails to new members</label>
+      <button class="btn btn-green" data-of="welcome">Save</button>
+    </div>`;
+}
+
+function ofRead() {
+  const v = (n) => qs(`[name=${n}]`)?.value || '';
+  const cur = STATE.offerEdit || STATE.offers?.promo || {};
+  return { on: qs('[name=ofOn]')?.checked || false, occasion: v('ofOccasion'), percent: Number(v('ofPercent')), code: v('ofCode').trim().toUpperCase(), startAt: v('ofStart'), endAt: v('ofEnd'), duration: v('ofDuration'), headline: v('ofHeadline').trim(), text: v('ofText').trim(), button: v('ofButton').trim(), delay: Number(v('ofDelay')), image: cur.image || '' };
+}
+
+function bind_offers() {
+  const say = (t, bad) => { const m = qs('#ofMsg'); if (m) { m.textContent = t; m.style.color = bad ? '#c62f3f' : '#0f8a5a'; } };
+  const redraw = (edit) => { STATE.offerEdit = edit; setMain(render_offers()); bind_offers(); };
+  qsa('[data-of]').forEach((btn) => btn.addEventListener('click', async () => {
+    const act = btn.dataset.of;
+    try {
+      if (act === 'save') {
+        const body = ofRead();
+        if (body.endAt && body.startAt && body.endAt < body.startAt) { say('The last day is before the first day.', true); return; }
+        const r = await API.post('/api/admin/offers/save', body);
+        STATE.offerEdit = null; STATE.offers = await API.get('/api/admin/offers');
+        setMain(render_offers()); bind_offers();
+        showToast(r.promo.on ? `Offer saved: code ${r.promo.code} for ${r.promo.percent}% off Premium` : 'Offer saved (switched off)');
+        return;
+      }
+      if (act === 'make') { btn.disabled = true; btn.textContent = 'Making the picture…'; const r = await API.post('/api/admin/offers/make-image', ofRead()); redraw({ ...ofRead(), image: r.image }); showToast('Picture made. Press Save offer to use it.'); return; }
+      if (act === 'noimg') { redraw({ ...ofRead(), image: '' }); return; }
+      if (act === 'trial') { await API.post('/api/admin/offers/settings', { trialDays: Number(qs('[name=ofTrial]').value) }); showToast(Number(qs('[name=ofTrial]').value) ? 'Trial length saved' : 'Free trial switched off'); return; }
+      if (act === 'welcome') { await API.post('/api/admin/offers/settings', { welcomeOn: qs('[name=ofWelcome]').checked }); showToast('Saved'); return; }
+    } catch (e) { say(e.message, true); showToast(e.message); btn.disabled = false; }
+  }));
+  qs('[data-of-file]')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const r = await fetch('/api/admin/offers/upload', { method: 'POST', headers: { 'x-session-token': STATE.token, 'Content-Type': file.type }, body: file });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Upload failed');
+      redraw({ ...ofRead(), image: d.image }); showToast('Picture uploaded. Press Save offer to use it.');
+    } catch (err) { showToast(err.message); }
+  });
+}
+
 const PAGES = {
   analytics: { load: load_analytics,  render: render_analytics, bind: bind_analytics  },
   news:      { load: load_news,        render: render_news,      bind: bind_news       },
@@ -2677,6 +2829,7 @@ const PAGES = {
   newsletter:{ load: load_newsletter, render: render_newsletter, bind: bind_newsletter },
   social:    { load: load_social,     render: render_social,     bind: bind_social     },
   video:     { load: load_video,      render: render_video,      bind: bind_video      },
+  offers:    { load: load_offers,     render: render_offers,     bind: bind_offers     },
 };
 
 const ROUTER = {

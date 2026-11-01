@@ -131,6 +131,8 @@ export async function signUpMember(payload) {
   }
 
   const { updateStore } = await import('./storeService.js');
+  const { cleanSource } = await import('./growthService.js');
+  const joinedFrom = cleanSource(payload.source);
 
   const created = await updateStore((store) => {
     const existing = store.users.find((u) => u.email === email);
@@ -156,6 +158,7 @@ export async function signUpMember(payload) {
       savedArticleSlugs: [],
       createdAt: new Date().toISOString(),
       lastLoginAt: null,
+      joinedFrom,
     };
 
     store.users.push(user);
@@ -165,6 +168,7 @@ export async function signUpMember(payload) {
       path: '/signup',
       userId: user.id,
       value: 1,
+      source: joinedFrom.label,
       at: new Date().toISOString(),
     });
 
@@ -252,6 +256,8 @@ export function sanitizeUser(user) {
     billingCycle: user.billingCycle || 'monthly',
     planStatus: user.planStatus || (user.plan && user.plan !== 'free' ? 'active' : 'free'),
     planRenewsAt: user.planRenewsAt || null,
+    trialUsed: Boolean(user.trialUsed),
+    trialEndsAt: user.trialEndsAt || null,
     hasBillingAccount: Boolean(user.stripeCustomerId),
     regions: user.regions && user.regions.length ? user.regions : user.region ? [user.region] : ['global'],
     region: user.region || (user.regions && user.regions[0]) || 'global',

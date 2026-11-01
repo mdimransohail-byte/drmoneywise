@@ -348,6 +348,24 @@
     th{color:#2c3650}
     td,th{border-color:#e1e6f0!important}
     @media(max-width:1100px){#mainArea{grid-template-columns:minmax(0,1fr)}#mainArea > *{grid-column:auto!important}.settings-grid > div,#mainArea > .card{max-height:none}}
+
+    /* Each admin page has its own bright background */
+    body{background:#fff7e0}
+    .main{transition:background .3s}
+    body[data-page=analytics] .main{background:linear-gradient(160deg,#dcecff,#f0f7ff)}
+    body[data-page=news] .main{background:linear-gradient(160deg,#d6f5ec,#effcf7)}
+    body[data-page=writer] .main{background:linear-gradient(160deg,#ebe3ff,#f7f3ff)}
+    body[data-page=inventory] .main{background:linear-gradient(160deg,#ffe6d6,#fff5ee)}
+    body[data-page=settings] .main{background:linear-gradient(160deg,#fff1c7,#fffaea)}
+    body[data-page=health] .main{background:linear-gradient(160deg,#dff7d9,#f3fdf0)}
+    body[data-page=forum] .main{background:linear-gradient(160deg,#ffe0ec,#fff4f8)}
+    body[data-page=property] .main{background:linear-gradient(160deg,#f5e8d3,#fdf8ef)}
+    body[data-page=ads] .main{background:linear-gradient(160deg,#ffe0dc,#fff5f3)}
+    body[data-page=ask] .main{background:linear-gradient(160deg,#d6f3fa,#effbfe)}
+    body[data-page=newsletter] .main{background:linear-gradient(160deg,#fdeec4,#fffaeb)}
+    body[data-page=social] .main{background:linear-gradient(160deg,#f6dcf5,#fdf2fc)}
+    body[data-page=video] .main{background:linear-gradient(160deg,#e0e1ff,#f4f4ff)}
+    body[data-page=offers] .main{background:linear-gradient(160deg,#ffe2c4,#fff6ec)}
   </style>
 </head>
 <body>
@@ -457,6 +475,11 @@
         style="--nb:rgba(98,80,214,.12);--nbr:rgba(98,80,214,.25);--nc:#9a8cf0"
         data-page="video">
         <span class="nav-icon">▶</span>Video maker
+      </button>
+      <button class="nav-btn"
+        style="--nb:rgba(232,115,12,.12);--nbr:rgba(232,115,12,.25);--nc:#f39a4a"
+        data-page="offers">
+        <span class="nav-icon">%</span>Offers
       </button>
 
       <div class="side-foot">

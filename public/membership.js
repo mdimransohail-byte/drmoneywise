@@ -32,6 +32,7 @@
   const PLAN_NAMES = { free: 'Free', regular: 'Paid Regular', premium: 'Paid Premium' };
   let me = null;
   let coupon = '';
+  let via = ''; let promo = '';
 
   /* ── Tabs ── */
   function showTab(name) {
@@ -54,6 +55,7 @@
     let status;
     if (!paid) status = 'You are on the free plan. See <a href="#" data-goto="plans">Plans &amp; prices</a> for the deeper look on every company.';
     else if (me.planStatus === 'cancelling') status = `<strong>Cancelled.</strong> Your membership ends on <strong>${esc(day(me.planRenewsAt)) || 'the last day of your billing period'}</strong>. You keep full access until then and will not be charged again.`;
+    else if (me.planStatus === 'trialing') status = `<strong>Free trial.</strong> Everything in ${esc(PLAN_NAMES[plan] || plan)} is unlocked. Your first payment is on <strong>${esc(day(me.trialEndsAt || me.planRenewsAt)) || 'the day the trial ends'}</strong>. Cancel before then in “Manage my plan” and you pay nothing.`;
     else if (me.planStatus === 'past_due') status = '<strong>Your last payment did not go through.</strong> Please update your card in "Manage my plan" to keep your membership.';
     else status = `<strong>Active.</strong> ${me.planRenewsAt ? `Renews on <strong>${esc(day(me.planRenewsAt))}</strong> (${me.billingCycle === 'annual' ? 'yearly' : 'monthly'}).` : 'Renews automatically.'}`;
     box.innerHTML = `
@@ -84,6 +86,7 @@
 
   /* ── Your emails ── */
   var EMAILS = [
+    ['welcome', 'Getting-started emails', 'Five short emails in your first ten days, each showing one useful part of the site.', 'free'],
     ['newsletter', 'Saturday newsletter', 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons. Premium members get an extra section with their own portfolio and companies.', 'free'],
     ['dividends', 'Dividend alerts', 'When a company on your watchlist raises, cuts, starts or stops its dividend.', 'regular'],
     ['charts', 'Chart alerts', 'When a chart sign appears on a company in your watchlist or portfolio: golden or death cross, RSI above 70 or below 30, a new 52-week high or low.', 'premium'],
@@ -169,7 +172,7 @@
       try {
         const r = await api('/api/billing/confirm', { sessionId: params.get('session_id') });
         if (r.user) me = r.user;
-        if (r.upgraded) msg(`Payment accepted. Thank you! You're now on ${PLAN_NAMES[r.planId] || r.planId} and everything it includes is unlocked.`, 'ok');
+        if (r.upgraded) msg(r.user && r.user.planStatus === 'trialing' ? `Your free trial has started. Everything in Premium is unlocked. You can cancel any time before ${new Date(r.user.trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} and pay nothing.` : `Payment accepted. Thank you! You're now on ${PLAN_NAMES[r.planId] || r.planId} and everything it includes is unlocked.`, 'ok');
         else msg(r.message || 'Your payment is processing. Your plan will update shortly.');
       } catch (err) { msg(`${err.message} If you were charged, your plan will update within a few minutes.`, 'bad'); }
     } else if (outcome === 'cancelled') {
@@ -177,7 +180,18 @@
     } else if (params.get('from') === 'portal') {
       msg('Your plan details are up to date.', 'ok');
     }
-    if (outcome || params.get('from')) history.replaceState({}, '', '/membership');
+    // Arrived from the offer pop-up: remember it and fill in the code
+    let src = params.get('src') || '';
+    let savedCode = '';
+    if (!params.get('coupon')) {
+      try { const o = JSON.parse(localStorage.getItem('dmw-offer') || 'null'); if (o && o.until >= new Date().toISOString().slice(0, 10)) { savedCode = o.code; src = o.src; } } catch (e) { /* ignore */ }
+    }
+    if (/^popup-[a-f0-9]{8}$/.test(src)) { via = 'popup'; promo = src.slice(6); }
+    const offerCode = params.get('coupon') || savedCode;
+    if (offerCode && $('mbCoupon')) { $('mbCoupon').value = offerCode.toUpperCase().replace(/[^A-Z0-9]/g, ''); setTimeout(() => $('mbCouponBtn')?.click(), 50); }
+    if (outcome || params.get('from') || params.get('coupon')) history.replaceState({}, '', '/membership' + (location.hash || ''));
+    // A member who has had the free trial already doesn't see the trial wording
+    if (me && me.trialUsed) document.querySelectorAll('[data-trial-note],[data-trial-word]').forEach((el) => el.remove());
 
     if (me) {
       document.querySelector('.mb-tabs').hidden = false;
@@ -201,7 +215,7 @@
     btn.disabled = true;
     msg('Opening secure checkout…');
     try {
-      location.href = (await api('/api/billing/checkout', { planId: btn.dataset.planId, billingCycle: btn.dataset.cycle, couponCode: coupon })).url;
+      location.href = (await api('/api/billing/checkout', { planId: btn.dataset.planId, billingCycle: btn.dataset.cycle, couponCode: coupon, via, promo })).url;
     } catch (err) { msg(err.message, 'bad'); btn.disabled = false; }
   });
 
@@ -217,7 +231,7 @@
         if (r.valid) {
           any = true;
           const note = document.querySelector(`[data-coupon-note="${planId}"]`);
-          if (note) note.textContent = `With ${code}: $${Number(r.adjustedMonthly).toFixed(2)}/month or $${Number(r.adjustedAnnual).toFixed(2)}/year`;
+          if (note) note.textContent = `With ${code}: $${Number(r.adjustedMonthly).toFixed(2)}/month or $${Number(r.adjustedAnnual).toFixed(2)}/year${r.duration === 'once' ? ' for your first payment' : ''}`;
         }
       }
       coupon = any ? code : '';

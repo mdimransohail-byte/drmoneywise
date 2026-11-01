@@ -842,6 +842,7 @@ async function handleSignUp(event) {
       interests: state.selectedInterests,
       plan: 'free',
       billingCycle: 'monthly',
+      source: (() => { try { return JSON.parse(window.localStorage.getItem('dmw-src') || 'null'); } catch { return null; } })(),
     };
 
     const session = await apiPost('/api/auth/signup', payload, { allowGuest: true });

@@ -601,6 +601,7 @@ export function pageShell({ head, body, active }) {
     ${AD_SCRIPT}
     <script src="/results.js" defer></script>
       <script src="/tickerbar.js" defer></script>
+      <script src="/track.js" defer></script>
   </body>
 </html>
 `;

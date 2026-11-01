@@ -85,7 +85,7 @@ const COMPARE = [
   ['No adverts', 0, 0, 1],
 ];
 
-export function renderMembershipPage(origin) {
+export function renderMembershipPage(origin, { trialDays = 7 } = {}) {
   const plans = getPlanCatalog();
   const head = buildHeadTags({
     title: 'Membership: plans and prices | Dr MoneyWise',
@@ -103,12 +103,13 @@ export function renderMembershipPage(origin) {
             <h3>${esc(plan.name)}</h3>
             <p class="mb-price"><strong>${esc(plan.priceLabel)}</strong> <span>${esc(plan.billingLabel)}</span></p>
             <p class="mb-coupon-note" data-coupon-note="${esc(plan.id)}"></p>
+            ${plan.id === 'premium' && trialDays ? `<p class="mb-trial" data-trial-note>★ Try it <b>free for ${trialDays} days</b>. Cancel before day ${trialDays} and you pay nothing; we email you 2 days before it ends.</p>` : ''}
             <ul>${top.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
             ${more.length ? `<details class="mb-more"><summary>See everything included</summary><ul>${more.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></details>` : ''}
             <div class="mb-actions" data-plan-actions="${esc(plan.id)}">
               ${plan.id === 'free'
                 ? '<a class="mb-btn plain" href="/#join">Create a free account</a>'
-                : (plan.billingOptions || []).map((o) => `<button type="button" class="mb-btn${plan.highlight ? ' gold' : ' navy'}" data-plan-id="${esc(plan.id)}" data-cycle="${o.id.includes('annual') ? 'annual' : 'monthly'}">${esc(o.label)} ${esc(o.priceText || '')}</button>`).join('')}
+                : (plan.billingOptions || []).map((o) => `<button type="button" class="mb-btn${plan.highlight ? ' gold' : ' navy'}" data-plan-id="${esc(plan.id)}" data-cycle="${o.id.includes('annual') ? 'annual' : 'monthly'}">${plan.id === 'premium' && trialDays ? `<span data-trial-word>Free ${trialDays}-day trial, then </span>` : ''}${esc(o.label)} ${esc(o.priceText || '')}</button>`).join('')}
             </div>
           </article>`;
   }).join('');

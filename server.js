@@ -30,7 +30,7 @@ import { ensureAdminUser, getSessionUser, requireAdminUser, signInMember, signOu
 import { trackEvent } from './src/services/analyticsService.js';
 import { getInterestHeadlines, getLiveHeadlines } from './src/services/newsService.js';
 import { saveHoldings, saveLearningDone, getAudienceSummary, saveMemberProfile, saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
-import { ensureStore } from './src/services/storeService.js';
+import { ensureStore, readStore, updateStore } from './src/services/storeService.js';
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
 import { getDataStatus, runJob, startDataEngine } from './src/services/dataEngine.js';
@@ -150,6 +150,8 @@ export const server = http.createServer(async (request, response) => {
         cycle: body.billingCycle,
         couponCode: body.couponCode,
         origin: getSiteOrigin(request),
+        via: String(body.via || ''),
+        promo: String(body.promo || ''),
       }));
     }
 
@@ -304,6 +306,54 @@ export const server = http.createServer(async (request, response) => {
       response.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${file}"`, 'Content-Length': buf.length, 'Cache-Control': 'private, no-store' });
       response.end(buf);
       return true;
+    }
+
+    // Offer pop-up (homepage): the current offer for this visitor, and view/click counts
+    if (requestUrl.pathname === '/api/site/promo' && request.method === 'GET') {
+      const { activePromo } = await import('./src/services/growthService.js');
+      return sendJson(response, 200, { promo: await activePromo(sessionUser) });
+    }
+    if (requestUrl.pathname === '/api/site/promo/event' && request.method === 'POST') {
+      const { promoEvent } = await import('./src/services/growthService.js');
+      const body = await parseJsonBody(request);
+      await promoEvent(body.id, body.type).catch(() => {});
+      return sendJson(response, 200, { ok: true });
+    }
+
+    // Admin → Offers (pop-up, trial) and Analytics → How members joined
+    if (requestUrl.pathname.startsWith('/api/admin/offers') || requestUrl.pathname === '/api/admin/join-stats') {
+      await requireAdminUser(token);
+      const growth = await import('./src/services/growthService.js');
+      try {
+        if (requestUrl.pathname === '/api/admin/join-stats') return sendJson(response, 200, await growth.joinStats());
+        const sub = requestUrl.pathname.slice('/api/admin/offers'.length);
+        if (sub === '' && request.method === 'GET') {
+          const store = await readStore();
+          return sendJson(response, 200, { ...(await growth.getPromoAdmin()), trialDays: Number(store.settings?.premiumTrialDays ?? 7), welcomeOn: store.settings?.welcomeEmails !== false });
+        }
+        if (sub === '/upload' && request.method === 'POST') {
+          const chunks = []; let size = 0;
+          for await (const c of request) { size += c.length; if (size > 4.5 * 1024 * 1024) return sendJson(response, 413, { error: 'The picture must be under 4 MB.' }); chunks.push(c); }
+          const type = String(request.headers['content-type'] || '');
+          const ext = type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : type.includes('jp') ? 'jpg' : '';
+          return sendJson(response, 200, { image: await growth.savePromoFile(Buffer.concat(chunks), ext) });
+        }
+        if (request.method === 'POST') {
+          const body = await parseJsonBody(request);
+          if (sub === '/save') return sendJson(response, 200, { promo: await growth.savePromo(body) });
+          if (sub === '/make-image') return sendJson(response, 200, { image: await growth.makePromoImage(body) });
+          if (sub === '/settings') {
+            await updateStore((st) => {
+              st.settings = st.settings || {};
+              if (body.trialDays !== undefined) st.settings.premiumTrialDays = Math.max(0, Math.min(30, Math.round(Number(body.trialDays) || 0)));
+              if (body.welcomeOn !== undefined) st.settings.welcomeEmails = Boolean(body.welcomeOn);
+              return st;
+            });
+            return sendJson(response, 200, { ok: true });
+          }
+        }
+        return sendJson(response, 404, { error: 'Not found' });
+      } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
     }
 
     // Monthly research report (Premium)
@@ -1211,6 +1261,15 @@ async function handlePublicPage(requestUrl, request, response) {
   }
   const learnTa = pathname.match(/^\/learn\/technical\/([A-Za-z0-9.-]{1,10})$/u);
   if (learnTa) { response.writeHead(301, { Location: `/technical/${learnTa[1].toUpperCase()}` }); response.end(); return true; }
+  const promoImg = pathname.match(/^\/promo-images\/([\w-]+\.(?:png|jpg|webp))$/u);
+  if (promoImg) {
+    const { readPromoImage } = await import('./src/services/growthService.js');
+    const img = await readPromoImage(promoImg[1]);
+    if (!img) return false;
+    response.writeHead(200, { 'Content-Type': img.type, 'Content-Length': img.buf.length, 'Cache-Control': 'public, max-age=31536000, immutable' });
+    response.end(img.buf);
+    return true;
+  }
   const nlChart = pathname.match(/^\/newsletter-charts\/([\w.-]+\.png)$/u);
   if (nlChart) {
     const { readChart } = await import('./src/services/newsletterCharts.js');
@@ -1246,7 +1305,7 @@ async function handlePublicPage(requestUrl, request, response) {
   }
 
   if (pathname === '/membership') {
-    return sendHtml(response, 200, renderMembershipPage(origin));
+    return sendHtml(response, 200, renderMembershipPage(origin, { trialDays: Number((await readStore()).settings?.premiumTrialDays ?? 7) }));
   }
 
   // ── Forum (hidden with a 404 while switched off in Admin → Forum) ──────
