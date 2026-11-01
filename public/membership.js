@@ -84,8 +84,7 @@
 
   /* ── Your emails ── */
   var EMAILS = [
-    ['newsletter', 'Newsletter', 'About once a week: our best explainers, the biggest results and new research.', 'free'],
-    ['weekly', 'Weekly email', 'Saturday morning: your watchlist’s week, the biggest results and the economy.', 'regular'],
+    ['newsletter', 'Saturday newsletter', 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons. Premium members get an extra section with their own portfolio and companies.', 'free'],
     ['dividends', 'Dividend alerts', 'When a company on your watchlist raises, cuts, starts or stops its dividend.', 'regular'],
     ['charts', 'Chart alerts', 'When a chart sign appears on a company in your watchlist or portfolio: golden or death cross, RSI above 70 or below 30, a new 52-week high or low.', 'premium'],
     ['funds', 'Big-fund alerts', 'When a famous fund buys or sells a company on your watchlist (each quarter).', 'premium'],

@@ -36,11 +36,10 @@ const SECRET_FILE = path.join(process.cwd(), 'data', '.alerts-secret');
 
 export const EMAIL_KINDS = {
   dividends: { label: 'Dividend alerts', plan: 'regular', about: 'When a company on your watchlist raises, cuts, starts or stops its dividend.' },
-  weekly: { label: 'Weekly email', plan: 'regular', about: 'Saturday morning: your watchlist’s week, the biggest results and the economy.' },
   charts: { label: 'Chart alerts', plan: 'premium', about: 'When a chart sign appears on a company in your watchlist or portfolio: golden or death cross, crossing the 200-day average, RSI above 70 or below 30, a new 52-week high or low, or a big move on heavy trading.' },
   funds: { label: 'Big-fund alerts', plan: 'premium', about: 'When a famous fund buys or sells a company on your watchlist (each quarter).' },
   report: { label: 'Monthly research report', plan: 'premium', about: 'On the 1st of each month: the month in figures, with a link to the full report.' },
-  newsletter: { label: 'Newsletter', plan: 'free', about: 'About once a week: our best explainers, the biggest results and new research. Easy to stop at any time.' },
+  newsletter: { label: 'Saturday newsletter', plan: 'free', about: 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons in one email. Premium members get an extra section with their own portfolio and companies.' },
 };
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
@@ -245,10 +244,12 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
     }
   }
 
-  // 3. Weekly email: Saturdays from 07:00 Dubai time (03:00 UTC)
+  // 3. Weekly email: replaced by the Saturday newsletter (admin test only)
   const now = new Date();
   const week = `${now.getUTCFullYear()}-${Math.ceil((((now - new Date(Date.UTC(now.getUTCFullYear(), 0, 1))) / 86400000) + 1) / 7)}`;
-  const isSaturday = now.getUTCDay() === 6 && now.getUTCHours() >= 3;
+  // The separate weekly email is now part of the one Saturday newsletter
+  // (newsletterService.autoWeeklyNewsletter); only the admin test still uses it.
+  const isSaturday = false;
   if (isSaturday || forceWeeklyTo) {
     const content = await weeklyContent(site);
     for (const user of users) {
@@ -258,13 +259,14 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
       const ok = await send(user, 'weekly', `Your week in money${user.name ? `, ${user.name.split(' ')[0]}` : ''}`, 'Your week in money', 'The week’s money news that matters to you, in plain English.', sections);
       if (ok && !forceWeeklyTo) mark(`weekly:${user.id}:${week}`);
     }
-    // Premium idea lists: remember this week's matches so next week can say what's new
-    if (!forceWeeklyTo && !testUser) {
-      const { ideasFor, rememberMatches } = await import('./ideasService.js');
-      for (const user of users) {
-        if (!(user.ideas || []).length || !canAccess(user.plan || 'free', 'premium') || log[`ideas:${user.id}:${week}`]) continue;
-        try { await rememberMatches(user.id, await ideasFor(user)); mark(`ideas:${user.id}:${week}`); } catch (error) { console.error(`[alerts] idea lists for ${user.email}: ${error.message}`); }
-      }
+  }
+  // Premium idea lists: on Sundays (after the Saturday newsletter has listed
+  // the week's new matches), remember today's matches so next week can say what's new
+  if (now.getUTCDay() === 0 && !forceWeeklyTo && !testUser) {
+    const { ideasFor, rememberMatches } = await import('./ideasService.js');
+    for (const user of users) {
+      if (!(user.ideas || []).length || !canAccess(user.plan || 'free', 'premium') || log[`ideas:${user.id}:${week}`]) continue;
+      try { await rememberMatches(user.id, await ideasFor(user)); mark(`ideas:${user.id}:${week}`); } catch (error) { console.error(`[alerts] idea lists for ${user.email}: ${error.message}`); }
     }
   }
 

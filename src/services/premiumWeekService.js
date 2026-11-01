@@ -195,7 +195,15 @@ export async function premiumWeekHtml(user, ctx, site = '') {
   if (ctx.topBuys.length) extras.push(p(`<strong>Where company bosses bought most this week:</strong> ${ctx.topBuys.map((b) => `${link(`/stock/${b.ticker}`, b.ticker)} (${money(b.value)} by ${b.people.size} ${b.people.size === 1 ? 'person' : 'people'})`).join(', ')}. ${link('/insiders', 'All bosses’ trades')}`));
   if (ctx.deeper) extras.push(p(`<strong>Deeper explainer:</strong> ${link(`/learn/${ctx.deeper.slug}`, ctx.deeper.headline)}`));
   if (ctx.report) extras.push(p(`<strong>Research report:</strong> ${link(`/reports/${ctx.report.id}`, `${ctx.report.month}${ctx.report.partial ? ' (month so far)' : ''}`)}`));
-  if ((user.ideas || []).length) extras.push(p(`<strong>Your idea lists:</strong> ${(user.ideas || []).length} saved. ${link('/ideas', 'See what matches your rules today')}`));
+  if ((user.ideas || []).length) {
+    const { ideasFor } = await import('./ideasService.js');
+    const lists = await ideasFor(user).catch(() => []);
+    for (const i of lists.slice(0, 5)) {
+      const fresh = i.rows.filter((r) => i.newTickers.includes(r.ticker)).slice(0, 5);
+      extras.push(p(`<strong>Your idea list “${esc(i.name)}”:</strong> ${i.count} compan${i.count === 1 ? 'y matches' : 'ies match'} today${i.newTickers.length ? `, ${i.newTickers.length} new this week` : ''}.${fresh.length ? ` New: ${fresh.map((r) => link(`/stock/${r.ticker}`, `${r.name} (${r.ticker})`)).join(', ')}.` : ''}`));
+    }
+    extras.push(p(`${link('/ideas', 'See all your idea lists')}. These companies match the rules you chose; they are not recommendations.`));
+  }
   else extras.push(p(`<strong>Idea lists:</strong> save your own rules in the screener and we’ll tell you when new companies match. ${link('/screener', 'Open the screener')}`));
   parts.push(box('#6250d6', 'Premium extras', extras.join('')));
   parts.push(p('<span style="font-size:12px;color:#4a5170">This section is for your learning, based on figures from company filings and our own price records. It isn’t advice to buy or sell anything.</span>'));

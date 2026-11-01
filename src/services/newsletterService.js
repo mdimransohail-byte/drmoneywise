@@ -424,8 +424,8 @@ export async function saveDailyLimit(n) {
 }
 
 /* ── Automatic Saturday newsletter ─────────────────────────────────────
-   Checked every hour by the data engine. On Saturday from 08:00 Dubai time
-   (04:00 UTC) it builds the issue from the site (news, charts, lessons),
+   Checked every hour by the data engine. On Saturday from 06:00 Dubai time
+   (02:00 UTC) it builds the issue from the site (news, charts, lessons),
    saves it, starts sending to everyone, and emails the admin a copy of the
    Premium version. Once per week only. Switch off in Admin → Newsletter. */
 const isoWeek = (d) => {
@@ -434,7 +434,7 @@ const isoWeek = (d) => {
   const y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
   return `${t.getUTCFullYear()}-W${String(Math.ceil(((t - y) / 86400000 + 1) / 7)).padStart(2, '0')}`;
 };
-export const AUTO_SEND_HOUR_UTC = 4;
+export const AUTO_SEND_HOUR_UTC = 2; // 06:00 Dubai time
 
 export async function autoWeeklyNewsletter({ force = false } = {}) {
   const store = await readStore();

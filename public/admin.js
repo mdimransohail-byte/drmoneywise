@@ -2135,7 +2135,7 @@ function render_newsletter() {
           <p style="font-size:.7rem;color:#4a5570;margin-top:8px"><b>Once:</b> they get this one email only and aren't added to the list. <b>Invite:</b> they get a "please confirm" email and join only if they click it. <b>Gift:</b> they're added straight away and get a short email saying someone gave them the newsletter, with an unsubscribe link. Only gift it to people you know would welcome it.</p>
         </div>
         <div class="card" style="border-left:5px solid #1baf7a"><h2 style="margin-top:0">Automatic Saturday newsletter</h2>
-          <p style="font-size:.8rem">Every Saturday from 8am (Dubai time) the newsletter builds itself from the site and goes to everyone: company results and business news first, then charts of the week (the stock market this year, the Big Seven, the economy), then the week’s lessons. Premium readers also get their own section. You get a copy by email.</p>
+          <p style="font-size:.8rem">Every Saturday from 6am (Dubai time) the one newsletter builds itself from the site and goes to everyone: company results and business news first, then charts of the week (the stock market this year, the Big Seven, the economy), then the week’s lessons. Free and Regular readers get the same email; Premium readers also get their own section with more data. You get a copy by email. (There is no separate weekly members’ email any more.)</p>
           <label style="display:flex;gap:8px;align-items:center;margin:8px 0;font-weight:600"><input type="checkbox" name="nlAuto" ${st.autoNewsletter !== false ? 'checked' : ''}> Send automatically every Saturday</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-green" data-nl="auto">Save</button><button class="btn" data-nl="auto-now" title="Builds and sends this week’s issue now, even if it isn’t Saturday">Build and send this week’s issue now</button></div>
         </div>
@@ -2313,9 +2313,9 @@ function render_social() {
       </div>
     </div>
     <div class="card"><h2 style="margin-top:0">Pictures</h2><div id="soPics" style="display:flex;flex-wrap:wrap;gap:14px">${res ? '' : '<p style="color:#4a5570;font-size:.8rem">Your pictures will appear here.</p>'}</div></div>
-    <div class="card"><h2 style="margin-top:0">Gamma themes</h2>
+    <div class="card" style="grid-column:1 / -1;max-height:none"><h2 style="margin-top:0">Gamma themes</h2>
       <p style="font-size:.76rem;color:#4a5570">Choose the look Gamma uses for infographics. “Make 2 samples” creates two example pictures in that theme (it uses one Gamma generation, so a little of your Gamma credit), and they are kept here so you only make them once.</p>
-      <div id="soThemes" style="display:flex;flex-wrap:wrap;gap:12px"><span style="color:#4a5570;font-size:.8rem">Loading themes…</span></div>
+      <div id="soThemes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px"><span style="color:#4a5570;font-size:.8rem">Loading themes…</span></div>
     </div>
     <div class="card"><h2 style="margin-top:0">Made in the last 30 days</h2><div id="soRecent" style="display:flex;flex-wrap:wrap;gap:8px"><span style="color:#4a5570;font-size:.8rem">Loading…</span></div></div>`;
 }
@@ -2363,8 +2363,8 @@ async function soThemes() {
   box.innerHTML = list.map((t) => {
     const pv = r.previews?.[t.id]?.urls || [];
     const on = (r.chosen || '') === t.id;
-    return `<div class="card" style="width:250px;margin:0;padding:10px;border:2px solid ${on ? '#c9a227' : '#dfe4ef'}">
-      <div style="display:flex;gap:4px;margin-bottom:6px;min-height:118px">${pv.length ? pv.map((u) => `<a href="${h(u)}" target="_blank" rel="noopener"><img src="${h(u)}" alt="" style="width:113px;height:113px;object-fit:cover;border-radius:6px"></a>`).join('') : '<div style="flex:1;display:grid;place-items:center;background:#f3f6fb;border-radius:6px;color:#4a5570;font-size:.7rem">No samples yet</div>'}</div>
+    return `<div class="card" style="margin:0;padding:14px;border:2px solid ${on ? '#c9a227' : '#dfe4ef'}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;min-height:200px">${pv.length ? pv.map((u) => `<a href="${h(u)}" target="_blank" rel="noopener" title="Open full size"><img src="${h(u)}" alt="" style="width:100%;height:260px;object-fit:contain;background:#0a1128;border-radius:8px"></a>`).join('') : '<div style="grid-column:1 / -1;display:grid;place-items:center;background:#f3f6fb;border-radius:8px;color:#4a5570;font-size:.85rem">No samples yet</div>'}</div>
       <strong style="color:#0a1128;font-size:.82rem">${h(t.name)}</strong>${t.type === 'custom' ? ' <span style="color:#8a6a10;font-size:.68rem">yours</span>' : ''}
       ${(t.colors || []).length ? `<div style="font-size:.68rem;color:#4a5570">${h(t.colors.slice(0, 4).join(', '))}</div>` : ''}
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">

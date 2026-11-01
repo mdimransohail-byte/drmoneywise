@@ -65,7 +65,7 @@
     // Newsletter
     ['Preview', 'Exactly how the email will look. Check the links and pictures before sending.'],
     ['Add people by hand', 'Paste email addresses to invite people, send them one issue, or gift a subscription. Choose Free, Regular or Premium for them.'],
-    ['Automatic Saturday newsletter', 'Leave this ticked and the newsletter goes out every Saturday at 8am (Dubai) without you. A copy comes to your inbox.'],
+    ['Automatic Saturday newsletter', 'Leave this ticked and the newsletter goes out every Saturday at 6am (Dubai) without you. A copy comes to your inbox.'],
     ['Sending speed', 'How many newsletter emails go out per day. Raise it when you move to a paid Resend plan.'],
     ['Past and current newsletters', 'Every issue, with how many were sent. A big list carries on by itself the next day.'],
     ['New newsletter', 'Write your own issue: a subject, a short intro and a few stories with links.'],
@@ -87,9 +87,23 @@
     return '';
   }
 
+  /* Two-column pages: a box left alone on its row (an odd one out before a
+     full-width section) is stretched across, so there are no empty gaps. */
+  function fillRows(main) {
+    var run = [];
+    function close() { if (run.length % 2 === 1) run[run.length - 1].classList.add('adm-wide'); run = []; }
+    Array.prototype.forEach.call(main.children, function (el) {
+      el.classList.remove('adm-wide');
+      var wide = getComputedStyle(el).gridColumnEnd === '-1' || el.style.gridColumn;
+      if (wide) close(); else run.push(el);
+    });
+    close();
+  }
+
   function decorate() {
     var main = document.getElementById('mainArea');
     if (!main) return;
+    if (window.innerWidth > 1100) fillRows(main);
     var h1 = main.querySelector('.pg-head h1');
     if (h1 && !h1.parentNode.querySelector('.adm-help')) {
       var t = h1.textContent.trim(); var msg = '';

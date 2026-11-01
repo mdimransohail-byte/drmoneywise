@@ -62,8 +62,8 @@ const JOBS = {
   etfs: { label: 'ETF holdings (SEC N-PORT)', every: 7 * 24 * HOUR },
   news: { label: 'In the news: headlines for each page (GDELT)', every: 12 * HOUR },
   results: { label: 'Company results (SEC filings, checked hourly)', every: 1 * HOUR },
-  newsletter: { label: 'Newsletter: Saturday 8am (Dubai) automatic issue, and carries on a big send (daily limit)', every: 1 * HOUR },
-  alerts: { label: 'Member emails: dividend + big-fund alerts, Saturday weekly email', every: 1 * HOUR },
+  newsletter: { label: 'Newsletter: Saturday 6am (Dubai) automatic issue, and carries on a big send (daily limit)', every: 1 * HOUR },
+  alerts: { label: 'Member emails: dividend, chart and big-fund alerts', every: 1 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
 const FIRST_CHECK_AFTER_MS = 60 * 1000;

@@ -4,7 +4,7 @@
 export const BUSINESS_SETTINGS = {
   // Raise this number when you change any plan's features or tagline below,
   // so the live site picks up the new wording.
-  featuresVersion: 9,
+  featuresVersion: 12,
   // Raise this number when you change a price below, so the live site
   // shows the new price even if prices were saved earlier in Admin.
   // (Stripe charges whatever its payment links say: make new links too.)
@@ -71,9 +71,10 @@ export const BUSINESS_SETTINGS = {
         'The Deeper look on every company, ETF, bond and commodity: what the big funds own, "what if" scenarios and 10 years of results',
         'Portfolio and watchlist review',
         'Dividend alerts for your watchlist',
-        'A weekly email: your watchlist, the week’s results and the economy',
+        'The Saturday newsletter: company news, charts and the week’s lessons',
         'Stock screener: filter companies in the US and around the world by growth, profit, debt and dividends',
         'Ask Dr MoneyWise: send us up to 3 money questions a month',
+        'Chart Readers course and the full Chart check on any company',
         'Price alerts (coming soon)',
         'Reply in the members’ forum (when it opens)',
       ],
@@ -106,10 +107,13 @@ export const BUSINESS_SETTINGS = {
       ],
       features: [
         'Everything in Regular',
-        'Lords: the deeper lessons for confident investors, a new one every few days',
+        'Lords: 17 weeks of deeper lessons, including the Lords Intensive (accounts, red flags, valuation, portfolio rules, sector deep dives)',
+        'A printable PDF workbook for every lesson and every week of the course',
+        'A market review every two weeks: trends, sectors and themes, also in your Premium newsletter',
+        'Chart alerts by email: golden and death crosses, RSI extremes, new highs and lows on your watchlist and portfolio',
         'Financial Health Check in full: how each company compares with others in its industry',
         'Portfolio health check: a score and heat map for every holding and your whole portfolio',
-        'The Premium weekly newsletter: your portfolio’s week, results and dividends coming up',
+        'An extra Premium section in the Saturday newsletter: your portfolio’s week, your companies and results coming up',
         'What each company’s results mean: what changed, what it expects next and what to watch',
         'No adverts anywhere on the site',
         'Big-fund alerts: when famous investors buy or sell your companies',
