@@ -751,6 +751,7 @@ function learnFields(generated, level) {
     chart: generated.chart || { points: [] },
     format: sections ? 2 : 1,
     readingTime: `${Math.max(3, Math.round(wordsCount / 200))} min read`,
+    styleVersion: 2, // 2 = the simpler Premium style (Nov 2026); older Lords lessons are rewritten in it
   };
 }
 
@@ -850,7 +851,8 @@ export async function upgradeOldLearningArticle() {
   const old = (store.articles || [])
     .filter((a) => a.contentType === 'learning' && a.status === 'published'
       && ((a.accessTier || 'free') === 'free' || (a.tags || []).includes('deeper'))
-      && a.format !== 2 && new Date(a.upgradeTriedAt || 0).getTime() < weekAgo)
+      && (a.format !== 2 || ((a.tags || []).includes('deeper') && (a.styleVersion || 0) < 2 && !(a.tags || []).includes('market-review')))
+      && new Date(a.upgradeTriedAt || 0).getTime() < weekAgo)
     .sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt))[0];
   if (!old) return null;
   const level = levelOf(old);

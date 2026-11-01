@@ -71,7 +71,7 @@ function heading(doc, text, colour = PREM) {
 function paras(doc, text) {
   for (const p of clean(text).split(/\n\s*\n/u).map((x) => x.replace(/\s*\n\s*/gu, ' ').trim()).filter(Boolean)) {
     room(doc, 40);
-    doc.font('body').fontSize(10.8).fillColor(INK).text(p, L(doc), doc.y, { width: W(doc), lineGap: 2.2, align: 'left' });
+    doc.font('body').fontSize(11.2).fillColor(INK).text(p, L(doc), doc.y, { width: W(doc), lineGap: 2.6, align: 'left' });
     doc.moveDown(0.55);
   }
 }
@@ -129,7 +129,7 @@ function barChart(doc, chart) {
 function jargon(doc, list) {
   const items = (list || []).filter((j) => j?.term && j?.meaning);
   if (!items.length) return;
-  heading(doc, 'Words worth knowing', '#0fa3b1');
+  heading(doc, 'Words you’ll meet in this lesson', '#0fa3b1');
   for (const j of items) {
     room(doc, 30);
     doc.font('bold').fontSize(10.5).fillColor(NAVY).text(`${clean(j.term)}: `, L(doc), doc.y, { continued: true, width: W(doc) });
@@ -207,12 +207,12 @@ function lessonBody(doc, a, { kicker, qStart = 1 }) {
     heading(doc, clean(a.infographic.title) || 'At a glance', '#2a78d6');
     tiles(doc, glance.map((x) => ({ value: clean(x.value), label: clean(x.label), context: clean(x.context) })), { cols: 2 });
   }
+  jargon(doc, a.jargonBuster); // the new words first, so the lesson reads easily
   const sections = Array.isArray(a.bodySections) && a.bodySections.length ? a.bodySections : [
     { heading: 'The simple version', body: a.plainEnglish }, { heading: 'Why this matters', body: a.whyItMatters }, { heading: 'Everyday example', body: a.everydayExample },
   ];
   sections.filter((s) => clean(s.body)).forEach((s, i) => { heading(doc, clean(s.heading) || `Part ${i + 1}`, TILE[i % TILE.length]); paras(doc, s.body); });
   barChart(doc, a.chart);
-  jargon(doc, a.jargonBuster);
   return quizQuestions(doc, a.quiz, qStart);
 }
 

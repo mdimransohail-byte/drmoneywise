@@ -125,9 +125,10 @@ function renderArticle() {
     <div class="article-body-stack">
       ${article.diagramHtml || ''}
       ${renderTakeaways(article)}
+      ${article.contentType === 'learning' ? renderJargon(article) : ''}
       ${article.visualHtml || renderInfographic(article)}
       ${renderArticleBody(article)}
-      ${renderJargon(article)}
+      ${article.contentType === 'learning' ? '' : renderJargon(article)}
       ${article.quizHtml || ''}
       ${article.contentType === 'learning' && article.accessible ? '<section class="ls-prog" id="lessonProgress" aria-live="polite"></section>' : ''}
       ${article.accessible ? '' : renderLockedPanel(article)}
