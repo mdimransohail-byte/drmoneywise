@@ -483,6 +483,8 @@ export const server = http.createServer(async (request, response) => {
           if (sub === '/send-once') return sendJson(response, 200, await newsletter.sendOnce(body.id, body.emails, body.plan));
           if (sub === '/add-people') return sendJson(response, 200, await newsletter.addSubscribers(body.emails, body.mode === 'gift' ? 'gift' : 'invite', body.plan));
           if (sub === '/limit') return sendJson(response, 200, { dailyLimit: await newsletter.saveDailyLimit(body.limit) });
+          if (sub === '/auto') return sendJson(response, 200, { on: await newsletter.saveAutoNewsletter(body.on) });
+          if (sub === '/auto-now') return sendJson(response, 200, await newsletter.autoWeeklyNewsletter({ force: true }));
           if (sub === '/preview') return sendJson(response, 200, { html: newsletter.newsletterHtml({ ...body, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site: getSiteOrigin(request), extra: body.premiumSection !== false ? '<div style="background:#0a1128;color:#c9a227;border-radius:10px;padding:12px 16px;margin:6px 0 14px;font:700 15px Georgia,serif">★ Premium members also get their own section here: their portfolio’s week, their companies’ news, results expected in the coming week and Premium extras. Use “Send me a test (Premium version)” to see it.</div>' : '', name: 'Sam', webUrl: '#', unsubscribeUrl: '#' }) });
         }
         return sendJson(response, 404, { error: 'Not found' });
@@ -1209,6 +1211,15 @@ async function handlePublicPage(requestUrl, request, response) {
   }
   const learnTa = pathname.match(/^\/learn\/technical\/([A-Za-z0-9.-]{1,10})$/u);
   if (learnTa) { response.writeHead(301, { Location: `/technical/${learnTa[1].toUpperCase()}` }); response.end(); return true; }
+  const nlChart = pathname.match(/^\/newsletter-charts\/([\w.-]+\.png)$/u);
+  if (nlChart) {
+    const { readChart } = await import('./src/services/newsletterCharts.js');
+    const buf = await readChart(nlChart[1]);
+    if (!buf) return false;
+    response.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': buf.length, 'Cache-Control': 'public, max-age=31536000, immutable' });
+    response.end(buf);
+    return true;
+  }
   if (pathname === '/technical' || /^\/technical\/[A-Za-z0-9.-]{1,10}$/u.test(pathname)) {
     const { renderTechnical } = await import('./src/services/technicalPage.js');
     return sendHtml(response, 200, await renderTechnical(origin, pathname.split('/')[2] || ''));

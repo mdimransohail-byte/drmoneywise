@@ -260,6 +260,94 @@
     .reader-warn { background: #f6dcd8; border-left: 4px solid #b3261e; padding: 8px 12px; border-radius: 6px; margin: 10px 0; font-size: 14px; }
     .reader-close { position: absolute; top: 14px; right: 14px; color: #0a1128 !important; }
     .reader-actions { display: flex; gap: 8px; margin-top: 24px; border-top: 1px solid #e6dcc6; padding-top: 16px; }
+
+    /* ═════════════════════════════════════════════════════════════
+       BRIGHT THEME (Nov 2026): light pages, larger text, colourful
+       cards, two scrollable columns, and a short explainer under each
+       heading (public/adminhelp.js). Everything above still applies;
+       this block only overrides colours, sizes and layout.
+    ═════════════════════════════════════════════════════════════ */
+    html{font-size:17px}
+    body{background:#eef2f9;color:#1d2433;font-size:16px;line-height:1.55}
+    ::-webkit-scrollbar{width:8px;height:8px}
+    ::-webkit-scrollbar-thumb{background:#c4cde0;border-radius:6px}
+    /* login */
+    .login-wrap{background:linear-gradient(135deg,#e8f0ff,#fff6e0)}
+    .login-card{background:#fff;border:1px solid #dfe4ef;box-shadow:0 20px 50px rgba(30,50,110,.12)}
+    .login-title,.login-brand strong{color:#0a1128}
+    .login-sub,.login-form label,.login-hint,.login-brand small{color:#4a5570}
+    .login-form input{background:#fff;border:1px solid #c9d2e3;color:#0a1128}
+    /* sidebar */
+    .side{background:#ffffff;border-right:1px solid #dfe4ef;box-shadow:2px 0 12px rgba(30,50,110,.05)}
+    .side-brand{border-bottom:1px solid #e6eaf3}
+    .side-brand strong{color:#0a1128;font-size:1rem}
+    .side-brand small,.side-user{color:#4a5570}
+    .side-user strong{color:#0a1128}
+    .side-foot{border-top:1px solid #e6eaf3}
+    .nav-btn{color:#2c3650;font-size:.95rem;font-weight:600;padding:10px 12px}
+    .nav-btn:hover{background:#f0f4fc;color:#0a1128}
+    .nav-btn.active{background:var(--nc,#2a78d6);border-color:transparent;color:#0a1128;box-shadow:0 6px 14px rgba(30,50,110,.15)}
+    .nav-icon{color:var(--nc,#2a78d6)} .nav-btn.active .nav-icon{color:#0a1128}
+    .shell{grid-template-columns:230px 1fr}
+    /* main area: two columns that scroll on their own */
+    .main{background:#eef2f9;padding:28px 30px}
+    .pg-head h1{color:#0a1128;font-size:2.1rem}
+    .pg-head p{color:#2c3650;font-size:1rem;max-width:900px}
+    .eyebrow{font-size:.72rem;color:var(--ac,#a86200)}
+    #mainArea{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+    #mainArea > .pg-head,#mainArea > .met-grid,#mainArea > .news-bar,#mainArea > .inv-bar,#mainArea > .inv-grid,#mainArea > .card-grid,#mainArea > .settings-grid,#mainArea > .writer-grid,#mainArea > h2,#mainArea > p,#mainArea > .card:has(table),#mainArea > .loading{grid-column:1 / -1}
+    #mainArea > .card:last-child:nth-child(even){grid-column:1 / -1}
+    .settings-grid{gap:18px;align-items:start}
+    .settings-grid > div{max-height:calc(100vh - 190px);overflow-y:auto;padding-right:6px;scrollbar-gutter:stable}
+    #mainArea > .card{max-height:calc(100vh - 190px);overflow-y:auto}
+    /* cards: white, with a coloured top edge that changes card to card */
+    .card{background:#ffffff;border:1px solid #dfe4ef;border-top:5px solid var(--cc,#2a78d6);border-radius:16px;padding:20px 22px;box-shadow:0 4px 16px rgba(30,50,110,.06);color:#1d2433}
+    .card:nth-of-type(6n+1){--cc:#2a78d6}.card:nth-of-type(6n+2){--cc:#1baf7a}.card:nth-of-type(6n+3){--cc:#e8a33d}
+    .card:nth-of-type(6n+4){--cc:#6250d6}.card:nth-of-type(6n+5){--cc:#e5566f}.card:nth-of-type(6n+6){--cc:#0fa3b1}
+    .card .card{box-shadow:none;border-top-width:1px}
+    .card h2,.card h3{color:#0a1128;font-family:'Playfair Display',Georgia,serif}
+    .card h2{font-size:1.35rem}
+    .card-title{font-size:.95rem;color:#0a1128;font-weight:800;letter-spacing:.04em}
+    .card p{color:#2c3650}
+    .adm-help{font-size:.88rem;line-height:1.5;color:#2c3650;background:#f4f8ff;border-left:4px solid var(--cc,#2a78d6);border-radius:8px;padding:8px 12px;margin:2px 0 14px}
+    .pg-head .adm-help{max-width:900px;margin-top:10px;background:#fff8e6;border-left-color:#e8a33d}
+    /* metric tiles */
+    .met-card{background:#fff;border:1px solid #dfe4ef;border-left:5px solid var(--ac,#2a78d6);box-shadow:0 4px 14px rgba(30,50,110,.06)}
+    .met-val{color:#0a1128}
+    .met-lbl{color:#4a5570;font-size:.8rem}
+    /* forms */
+    .field,.api-hint{color:#4a5570}
+    .field{font-size:.85rem;font-weight:600}
+    .api-hint{font-size:.78rem;line-height:1.4;margin-top:2px}
+    .input,textarea,select,.api-val input,.yt-row input,.sched-row input,.coupon-form input,.coupon-form select{background:#fff!important;border:1px solid #c9d2e3!important;color:#0a1128!important;font-size:.92rem!important}
+    .input:focus,textarea:focus,select:focus,.api-val input:focus{border-color:#2a78d6!important;box-shadow:0 0 0 3px rgba(42,120,214,.15)}
+    .api-row,.coupon-row,.news-item,.inv-card{background:#f8faff;border:1px solid #e1e6f0;color:#1d2433}
+    .api-label{flex-basis:200px;font-size:.92rem;font-weight:700;color:#0a1128}
+    .news-item h4,.inv-card h4{color:#0a1128;font-size:.95rem}
+    .news-src,.news-time{color:#4a5570;background:#eef2f9}
+    .preview-box{background:#fff;border:1px solid #dfe4ef;color:#1d2433}
+    .model-btn{background:#fff;border:1px solid #dfe4ef;color:#2c3650}
+    /* buttons: bright and solid */
+    .btn{font-size:.88rem;padding:9px 18px;background:#eef2f9;color:#0a1128;border:1px solid #c9d2e3}
+    .btn-sm{font-size:.8rem;padding:6px 12px}
+    .btn-gold{background:linear-gradient(135deg,#f7d07c,#e0a930);color:#1d1303;border:0}
+    .btn-teal{background:#0fa3b1;color:#fff;border:0}.btn-teal:hover{background:#0b8b97}
+    .btn-purple{background:#6250d6;color:#fff;border:0}.btn-purple:hover{background:#4f3fc0}
+    .btn-green{background:#1baf7a;color:#fff;border:0}.btn-green:hover{background:#149566}
+    .btn-rose{background:#e5566f;color:#fff;border:0}.btn-rose:hover{background:#cc3f58}
+    .btn-ghost{background:#fff;color:#2c3650;border:1px solid #c9d2e3}
+    /* tags */
+    .tag{font-size:.72rem}
+    .tag-free{background:#e7ecf5;color:#2c3650}.tag-regular{background:#dff4f6;color:#0d7f8c}.tag-premium{background:#efe6ff;color:#5b2a9e}
+    .tag-published{background:#dff5ea;color:#0f8a5a}.tag-scheduled{background:#fff1d6;color:#8a5a00}.tag-draft{background:#eceff5;color:#4a5570}.tag-candidate{background:#ece8ff;color:#4f3fc0}
+    .tier-pill{background:#fff;color:#4a5570;border:1px solid #c9d2e3}
+    .coupon-code{color:#8a5a00}
+    .toast{background:#0a1128;color:#f7d07c}
+    .loading{color:#4a5570}
+    table{color:#1d2433}
+    th{color:#2c3650}
+    td,th{border-color:#e1e6f0!important}
+    @media(max-width:1100px){#mainArea{grid-template-columns:minmax(0,1fr)}#mainArea > *{grid-column:auto!important}.settings-grid > div,#mainArea > .card{max-height:none}}
   </style>
 </head>
 <body>
@@ -392,6 +480,7 @@
   <!-- TOAST (shown by showToast() in admin.js) -->
   <div id="toastEl" class="toast hidden"></div>
 
+  <script src="/adminhelp.js" defer></script>
   <script src="/admin.js"></script>
 </body>
 </html>

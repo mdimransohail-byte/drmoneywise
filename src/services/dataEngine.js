@@ -62,7 +62,7 @@ const JOBS = {
   etfs: { label: 'ETF holdings (SEC N-PORT)', every: 7 * 24 * HOUR },
   news: { label: 'In the news: headlines for each page (GDELT)', every: 12 * HOUR },
   results: { label: 'Company results (SEC filings, checked hourly)', every: 1 * HOUR },
-  newsletter: { label: 'Newsletter: carries on a big send (daily limit)', every: 1 * HOUR },
+  newsletter: { label: 'Newsletter: Saturday 8am (Dubai) automatic issue, and carries on a big send (daily limit)', every: 1 * HOUR },
   alerts: { label: 'Member emails: dividend + big-fund alerts, Saturday weekly email', every: 1 * HOUR },
 };
 const CHECK_EVERY_MS = 15 * 60 * 1000;
@@ -259,8 +259,10 @@ async function runReport() {
 }
 
 async function runNewsletter() {
-  const { continueSending } = await import('./newsletterService.js');
-  return continueSending();
+  const { continueSending, autoWeeklyNewsletter } = await import('./newsletterService.js');
+  const auto = await autoWeeklyNewsletter().catch((error) => ({ ok: false, message: `Saturday newsletter: ${error.message}` }));
+  const cont = await continueSending();
+  return { ok: auto.ok !== false && cont.ok !== false, message: `${auto.message} · ${cont.message}` };
 }
 
 async function runDeeper() {

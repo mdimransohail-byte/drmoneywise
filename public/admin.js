@@ -35,11 +35,11 @@
 const SESSION_KEY = 'drmoneywise-admin-session';
 
 const NAV_PAGES = [
-  { id: 'analytics', label: 'Analytics',   icon: '▲', nb: 'rgba(255,203,107,.10)', nbr: 'rgba(255,203,107,.22)', nc: '#ffcb6b' },
+  { id: 'analytics', label: 'Analytics',   icon: '▲', nb: 'rgba(255,203,107,.10)', nbr: 'rgba(255,203,107,.22)', nc: '#d49a12' },
   { id: 'news',      label: 'News Feed',   icon: '◈', nb: 'rgba(60,181,196,.10)',  nbr: 'rgba(60,181,196,.22)',  nc: '#3cb5c4' },
   { id: 'writer',    label: 'AI Writer',   icon: '✦', nb: 'rgba(167,139,250,.10)', nbr: 'rgba(167,139,250,.22)', nc: '#a78bfa' },
-  { id: 'inventory', label: 'Inventory',   icon: '▣', nb: 'rgba(43,196,138,.10)',  nbr: 'rgba(43,196,138,.22)',  nc: '#2bc48a' },
-  { id: 'settings',  label: 'APIs & More', icon: '◎', nb: 'rgba(242,106,106,.10)', nbr: 'rgba(242,106,106,.22)', nc: '#f26a6a' },
+  { id: 'inventory', label: 'Inventory',   icon: '▣', nb: 'rgba(43,196,138,.10)',  nbr: 'rgba(43,196,138,.22)',  nc: '#0f8a5a' },
+  { id: 'settings',  label: 'APIs & More', icon: '◎', nb: 'rgba(242,106,106,.10)', nbr: 'rgba(242,106,106,.22)', nc: '#c62f3f' },
 ];
 
 
@@ -262,13 +262,13 @@ function render_analytics() {
   const d = STATE.dashboard;
 
   const metrics = [
-    { l: 'Readers',    v: fmtNum(d?.metrics?.totalReaders    || 0), ac: '#ffcb6b', up: true  },
+    { l: 'Readers',    v: fmtNum(d?.metrics?.totalReaders    || 0), ac: '#d49a12', up: true  },
     { l: 'Page Views', v: fmtNum(d?.metrics?.pageViews       || 0), ac: '#3cb5c4', up: true  },
     { l: 'Signups',    v: fmtNum(d?.metrics?.signups         || 0), ac: '#a78bfa', up: true  },
-    { l: 'Upgrades',   v: fmtNum(d?.metrics?.upgrades        || 0), ac: '#2bc48a', up: true  },
-    { l: 'Revenue',    v: '$' + fmtNum(d?.metrics?.revenue   || 0), ac: '#ffcb6b', up: true  },
-    { l: 'Conversion', v: (d?.metrics?.conversionRate        || 0) + '%', ac: '#f26a6a', up: false },
-    { l: 'Published',  v: d?.metrics?.publishedArticles      || 0,  ac: '#2bc48a', up: true  },
+    { l: 'Upgrades',   v: fmtNum(d?.metrics?.upgrades        || 0), ac: '#0f8a5a', up: true  },
+    { l: 'Revenue',    v: '$' + fmtNum(d?.metrics?.revenue   || 0), ac: '#d49a12', up: true  },
+    { l: 'Conversion', v: (d?.metrics?.conversionRate        || 0) + '%', ac: '#c62f3f', up: false },
+    { l: 'Published',  v: d?.metrics?.publishedArticles      || 0,  ac: '#0f8a5a', up: true  },
     { l: 'Scheduled',  v: d?.metrics?.scheduledArticles      || 0,  ac: '#3cb5c4', up: true  },
   ];
 
@@ -279,11 +279,11 @@ function render_analytics() {
   const signupVals = timeline.map(t => t.signups   || 0);
 
   const maxSt = Math.max(...statuses.map(s => s.count), 1);
-  const barColors = { Published: '#2bc48a', Scheduled: '#ffcb6b', Drafts: '#9eb3cc' };
+  const barColors = { Published: '#0f8a5a', Scheduled: '#d49a12', Drafts: '#4a5570' };
 
   return `
     <div class="pg-head">
-      <div class="eyebrow" style="--ac:#ffcb6b">Overview</div>
+      <div class="eyebrow" style="--ac:#d49a12">Overview</div>
       <h1>Analytics</h1>
       <p>Live platform data — pulls from your Railway database on every visit.</p>
     </div>
@@ -300,9 +300,9 @@ function render_analytics() {
     <div class="card-grid chart-col" style="margin-bottom:14px">
       <div class="card">
         <div class="card-title">Traffic — page views over time</div>
-        ${viewVals.length ? makeLine(viewVals, 460, 100, '#3cb5c4', true) : '<p style="color:#9eb3cc;font-size:.78rem">No traffic data yet.</p>'}
+        ${viewVals.length ? makeLine(viewVals, 460, 100, '#3cb5c4', true) : '<p style="color:#4a5570;font-size:.78rem">No traffic data yet.</p>'}
         ${timeline.length ? `<div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap">
-          ${timeline.slice(-5).map(t => `<span style="font-size:.62rem;color:#9eb3cc">${h(t.date?.slice(5)||t.date)} <strong style="color:#ecf3ff">${fmtNum(t.pageViews)}</strong></span>`).join('')}
+          ${timeline.slice(-5).map(t => `<span style="font-size:.62rem;color:#4a5570">${h(t.date?.slice(5)||t.date)} <strong style="color:#0a1128">${fmtNum(t.pageViews)}</strong></span>`).join('')}
         </div>` : ''}
       </div>
       <div class="card">
@@ -310,31 +310,31 @@ function render_analytics() {
         ${tierMix.map(t => {
           const pct = tierMix.reduce((a,b)=>a+(b.count||0),0) > 0
             ? Math.round((t.count / tierMix.reduce((a,b)=>a+(b.count||0),0)) * 100) : 0;
-          const c = t.plan === 'free' ? '#9eb3cc' : t.plan === 'regular' ? '#3cb5c4' : '#ffcb6b';
+          const c = t.plan === 'free' ? '#4a5570' : t.plan === 'regular' ? '#3cb5c4' : '#d49a12';
           return `<div style="display:grid;grid-template-columns:80px 1fr 40px;gap:8px;align-items:center;margin-bottom:8px">
             <span style="font-size:.72rem;color:${c}">${h(t.label || t.plan)}</span>
-            <div style="height:8px;border-radius:99px;background:rgba(255,255,255,.06)">
+            <div style="height:8px;border-radius:99px;background:#eef2f9">
               <div style="height:8px;border-radius:99px;background:${c};width:${pct}%"></div>
             </div>
-            <span style="font-size:.7rem;color:#9eb3cc;text-align:right">${fmtNum(t.count)}</span>
+            <span style="font-size:.7rem;color:#4a5570;text-align:right">${fmtNum(t.count)}</span>
           </div>`;
-        }).join('') || '<p style="color:#9eb3cc;font-size:.78rem">No member data yet.</p>'}
+        }).join('') || '<p style="color:#4a5570;font-size:.78rem">No member data yet.</p>'}
       </div>
     </div>
 
     <div class="card-grid two-col">
       <div class="card">
         <div class="card-title">Signups — daily</div>
-        ${signupVals.length ? makeLine(signupVals, 460, 80, '#a78bfa', true) : '<p style="color:#9eb3cc;font-size:.78rem">No signup data yet.</p>'}
+        ${signupVals.length ? makeLine(signupVals, 460, 80, '#a78bfa', true) : '<p style="color:#4a5570;font-size:.78rem">No signup data yet.</p>'}
       </div>
       <div class="card">
         <div class="card-title">Article status</div>
         <div style="display:flex;align-items:flex-end;gap:10px;height:80px;padding:0 8px">
           ${statuses.map(s => `
             <div style="display:flex;flex-direction:column;align-items:center;flex:1">
-              <div style="height:${Math.round((s.count/maxSt)*70)+4}px;width:100%;border-radius:6px 6px 0 0;background:${barColors[s.label]||'#9eb3cc'};opacity:.85"></div>
-              <div style="font-size:.62rem;color:#9eb3cc;margin-top:5px;text-align:center">${h(s.label)}<br/><strong style="color:#ecf3ff">${s.count}</strong></div>
-            </div>`).join('') || '<p style="color:#9eb3cc;font-size:.78rem">No articles yet.</p>'}
+              <div style="height:${Math.round((s.count/maxSt)*70)+4}px;width:100%;border-radius:6px 6px 0 0;background:${barColors[s.label]||'#4a5570'};opacity:.85"></div>
+              <div style="font-size:.62rem;color:#4a5570;margin-top:5px;text-align:center">${h(s.label)}<br/><strong style="color:#0a1128">${s.count}</strong></div>
+            </div>`).join('') || '<p style="color:#4a5570;font-size:.78rem">No articles yet.</p>'}
         </div>
       </div>
     </div>
@@ -346,8 +346,8 @@ function render_analytics() {
    plus a writing-level suggestion worked out from knowledge + experience */
 function renderAudience(a) {
   if (!a) return '';
-  const GOLD = '#ffcb6b';
-  const MUTED = '#9eb3cc';
+  const GOLD = '#d49a12';
+  const MUTED = '#4a5570';
   const INK = '#ecf3ff';
   const total = a.withProfile || 0;
   const share = a.members ? Math.round((total / a.members) * 100) : 0;
@@ -367,7 +367,7 @@ function renderAudience(a) {
   const ring = (pct) => {
     const r = 30; const c = 2 * Math.PI * r;
     return `<svg width="76" height="76" viewBox="0 0 76 76" role="img" aria-label="${pct}% filled in">
-      <circle cx="38" cy="38" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/>
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="#dfe4ef" stroke-width="8"/>
       <circle cx="38" cy="38" r="${r}" fill="none" stroke="${GOLD}" stroke-width="8" stroke-linecap="round"
         stroke-dasharray="${(c * pct) / 100} ${c}" transform="rotate(-90 38 38)"/>
       <text x="38" y="43" text-anchor="middle" font-size="15" font-weight="800" fill="${INK}">${pct}%</text></svg>`;
@@ -379,8 +379,8 @@ function renderAudience(a) {
     const max = Math.max(1, ...list.map((r) => r.n));
     return `<div class="card"><div class="card-title">${h(title)}</div>${list.some((r) => r.n) ? list.map((r) => `
       <div title="${h(r.label)}: ${r.n} reader${r.n === 1 ? '' : 's'} (${r.pct}%)" style="display:grid;grid-template-columns:minmax(90px,38%) 1fr 62px;gap:10px;align-items:center;margin-bottom:8px">
-        <span style="font-size:.74rem;color:#dbe6f3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(r.label)}</span>
-        <div style="height:10px;border-radius:0 4px 4px 0;background:rgba(255,255,255,.05)"><div style="height:10px;border-radius:0 4px 4px 0;background:${GOLD};width:${r.n ? Math.max(3, (r.n / max) * 100) : 0}%"></div></div>
+        <span style="font-size:.74rem;color:#2c3650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(r.label)}</span>
+        <div style="height:10px;border-radius:0 4px 4px 0;background:#eef2f9"><div style="height:10px;border-radius:0 4px 4px 0;background:${GOLD};width:${r.n ? Math.max(3, (r.n / max) * 100) : 0}%"></div></div>
         <span style="font-size:.74rem;color:${INK};text-align:right"><strong>${r.n}</strong> <span style="color:${MUTED}">${r.pct}%</span></span>
       </div>`).join('') : noData}</div>`;
   };
@@ -394,20 +394,20 @@ function renderAudience(a) {
         <div title="${h(r.label)}: ${r.n} (${r.pct}%)" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0">
           <div style="font-size:.74rem;font-weight:800;color:${INK}">${r.n}</div>
           <div style="font-size:.62rem;color:${MUTED};margin-bottom:4px">${r.pct}%</div>
-          <div style="width:70%;max-width:38px;height:${r.n ? Math.max(4, Math.round((r.n / max) * 92)) : 2}px;background:${r.n ? GOLD : 'rgba(255,255,255,.12)'};border-radius:4px 4px 0 0"></div>
+          <div style="width:70%;max-width:38px;height:${r.n ? Math.max(4, Math.round((r.n / max) * 92)) : 2}px;background:${r.n ? GOLD : '#d4dae8'};border-radius:4px 4px 0 0"></div>
         </div>`).join('')}</div>
-      <div style="display:flex;gap:6px;border-top:1px solid rgba(255,255,255,.12);padding-top:6px">${list.map((r) => `<div style="flex:1;min-width:0;text-align:center;font-size:.62rem;color:${MUTED};line-height:1.25">${h(r.label)}</div>`).join('')}</div>` : noData}</div>`;
+      <div style="display:flex;gap:6px;border-top:1px solid #d4dae8;padding-top:6px">${list.map((r) => `<div style="flex:1;min-width:0;text-align:center;font-size:.62rem;color:${MUTED};line-height:1.25">${h(r.label)}</div>`).join('')}</div>` : noData}</div>`;
   };
 
   // Knowledge as a 100% strip (ordered, beginner → expert), with numbers below
   const knowledge = () => {
     const list = rows('knowledge');
-    const shades = ['#fff0c7', '#ffdc8a', '#ffcb6b', '#e0a63a'];
+    const shades = ['#fff0c7', '#ffdc8a', '#d49a12', '#e0a63a'];
     if (!list.some((r) => r.n)) return `<div class="card"><div class="card-title">How much they know</div>${noData}</div>`;
     return `<div class="card"><div class="card-title">How much they know</div>
       <div style="display:flex;gap:2px;height:22px;border-radius:4px;overflow:hidden;margin-bottom:12px">${list.filter((r) => r.n).map((r) => `<div title="${h(r.label)}: ${r.n} (${r.pct}%)" style="flex:${r.n};background:${shades[list.indexOf(r)] || GOLD}"></div>`).join('')}</div>
       <div style="display:grid;grid-template-columns:repeat(${list.length},1fr);gap:8px">${list.map((r, i) => `
-        <div><div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:${shades[i]}"></span><span style="font-size:.7rem;color:#dbe6f3">${h(r.label)}</span></div>
+        <div><div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:${shades[i]}"></span><span style="font-size:.7rem;color:#2c3650">${h(r.label)}</span></div>
         <div style="font-size:1.15rem;font-weight:800;color:${INK};margin-top:2px">${r.n} <span style="font-size:.7rem;font-weight:400;color:${MUTED}">${r.pct}%</span></div></div>`).join('')}</div></div>`;
   };
 
@@ -418,11 +418,11 @@ function renderAudience(a) {
     const label = { simple: 'Keep it simple', mixed: 'Mix of levels', deeper: 'Can go deeper', wait: 'Waiting for 5+ profiles' }[a.tone || 'wait'];
     return `<div class="card" style="grid-column:1/-1">
       <div class="card-title">Suggested writing level · <span style="color:${GOLD}">${h(label)}</span></div>
-      <div style="position:relative;height:14px;border-radius:99px;background:linear-gradient(90deg,#2bc48a 0%,#ffcb6b 50%,#a78bfa 100%);margin:18px 6px 6px">
+      <div style="position:relative;height:14px;border-radius:99px;background:linear-gradient(90deg,#2bc48a 0%,#d49a12 50%,#a78bfa 100%);margin:18px 6px 6px">
         ${pos === null ? '' : `<div title="${newer}% of readers are newer to investing" style="position:absolute;top:-7px;left:calc(${pos}% - 9px);width:18px;height:28px;border-radius:6px;background:${INK};box-shadow:0 0 0 3px #0d1530"></div>`}
       </div>
       <div style="display:flex;justify-content:space-between;font-size:.68rem;color:${MUTED};margin:0 6px 10px"><span>Simple words</span><span>Mixed</span><span>More detail</span></div>
-      <p style="font-size:.8rem;color:#dbe6f3;margin:0">${h(a.suggestion)}</p>
+      <p style="font-size:.8rem;color:#2c3650;margin:0">${h(a.suggestion)}</p>
     </div>`;
   };
 
@@ -441,7 +441,7 @@ function renderAudience(a) {
     <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px">
       ${tile('Readers', a.members, 'free + paid accounts')}
       <div class="card" style="padding:16px 18px;border-top:3px solid ${GOLD};display:flex;align-items:center;gap:14px">${ring(share)}<div><div class="card-title" style="margin-bottom:4px">Profiles filled in</div><div style="font-size:1.3rem;font-weight:800;color:${INK}">${total} of ${a.members}</div></div></div>
-      ${tile('Newer to investing', a.newerPct === null || a.newerPct === undefined ? '—' : `${a.newerPct}%`, 'beginner / under 3 years', '#2bc48a')}
+      ${tile('Newer to investing', a.newerPct === null || a.newerPct === undefined ? '—' : `${a.newerPct}%`, 'beginner / under 3 years', '#0f8a5a')}
       ${tile('Top country', topCountry ? h(topCountry.label) : '—', topCountry ? `${topCountry.n} reader${topCountry.n === 1 ? '' : 's'} · ${topCountry.pct}%` : 'no answers yet', '#3cb5c4', '1.25rem')}
     </div>
     <div class="card-grid two-col" style="margin-top:12px">
@@ -506,7 +506,7 @@ function render_news() {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span style="font-size:.7rem;color:#9eb3cc">${vis.length} items · ${selCnt} selected</span>
+        <span style="font-size:.7rem;color:#4a5570">${vis.length} items · ${selCnt} selected</span>
         <button class="btn btn-sm btn-ghost" id="selAllBtn">Select all</button>
         <button class="btn btn-sm btn-ghost" id="clrAllBtn">Clear</button>
         ${selCnt > 0 ? `<button class="btn btn-sm btn-gold" id="approveNewsBtn">▲ Approve ${selCnt}</button>` : ''}
@@ -514,9 +514,9 @@ function render_news() {
     </div>
 
     ${vis.length === 0 ? `
-      <div class="card" style="text-align:center;padding:40px;color:#9eb3cc">
+      <div class="card" style="text-align:center;padding:40px;color:#4a5570">
         <div style="font-size:1.4rem;margin-bottom:10px">◈</div>
-        <p>No headlines yet. Click <strong style="color:#3cb5c4">Load draft articles</strong> to pull in your pending content.</p>
+        <p>No headlines yet. Click <strong style="color:#0d7f8c">Load draft articles</strong> to pull in your pending content.</p>
         <p style="margin-top:8px;font-size:.72rem">When you configure Marketaux or NewsData.io keys in Settings, live headlines will appear here automatically.</p>
       </div>
     ` : vis.map(n => `
@@ -666,7 +666,7 @@ function render_writer() {
 
     <div class="card" style="margin-bottom:14px">
       <div class="card-title">🔥 Trending auto-pick</div>
-      <p style="font-size:.75rem;color:#9eb3cc;margin-bottom:10px">
+      <p style="font-size:.75rem;color:#4a5570;margin-bottom:10px">
         Finds whatever's trending across your news sources right now (a topic showing up in
         several separate headlines) and writes a Learning Point about it in simple, jargon-free
         language — then attaches a Pexels photo automatically. Saved to Inventory as
@@ -956,7 +956,7 @@ function render_inventory() {
       <div class="eyebrow" style="--ac:#2bc48a">Content library</div>
       <h1>Article Inventory</h1>
       <p>${STATE.articles.length} articles — edit tiers, add YouTube links, schedule, publish, or delete.</p>
-      <p style="font-size:.72rem;color:#9eb3cc;margin-top:4px">
+      <p style="font-size:.72rem;color:#4a5570;margin-top:4px">
         ${liveInventory} / ${PRE_LAUNCH_TARGET} toward launch inventory (published + scheduled)
         ${counts.candidate ? ` · ${counts.candidate} candidate${counts.candidate === 1 ? '' : 's'} awaiting review` : ''}
         ${counts.archived ? ` · ${counts.archived} archived (rotated off the homepage — reschedule any time)` : ''}
@@ -970,7 +970,7 @@ function render_inventory() {
         </button>`).join('')}
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:.7rem;color:#9eb3cc">${vis.length} showing</span>
+        <span style="font-size:.7rem;color:#4a5570">${vis.length} showing</span>
         <button class="btn btn-sm btn-teal" id="discoverBtn" title="Pull fresh headlines from your news APIs and AI-rewrite them into candidate articles for review">✨ Discover candidates</button>
         <button class="btn btn-sm btn-teal" id="refreshInvBtn">↻ Refresh</button>
       </div>
@@ -984,14 +984,14 @@ function render_inventory() {
             <span class="tag ${statusClass(a.status)}">${h(a.status)}</span>
             <span class="tag tag-free" style="font-size:.6rem">${h(a.interest || a.contentType || '')}</span>
             ${a.engineSlot === 'local-fallback'
-              ? `<span class="tag" style="font-size:.6rem;background:rgba(255,107,107,.14);color:#ff6b6b" title="AI writer failed for this article — content is the generic template, not real AI writing. Check Railway logs, then regenerate.">⚠ fallback</span>`
+              ? `<span class="tag" style="font-size:.6rem;background:rgba(255,107,107,.14);color:#c62f3f" title="AI writer failed for this article — content is the generic template, not real AI writing. Check Railway logs, then regenerate.">⚠ fallback</span>`
               : a.engineSlot
-                ? `<span class="tag" style="font-size:.6rem;background:rgba(158,179,204,.10);color:#9eb3cc">${h(a.engineSlot)}</span>`
+                ? `<span class="tag" style="font-size:.6rem;background:rgba(158,179,204,.10);color:#4a5570">${h(a.engineSlot)}</span>`
                 : ''}
-            <span style="font-size:.65rem;color:#9eb3cc;margin-left:auto">${fmtDate(a.publishAt)}</span>
+            <span style="font-size:.65rem;color:#4a5570;margin-left:auto">${fmtDate(a.publishAt)}</span>
           </div>
           <h4>${h(a.headline)}</h4>
-          ${(a.qualityIssues || []).length ? `<p style="font-size:.7rem;color:#e8a33d;margin:2px 0 6px">⚠ Held: ${h(a.qualityIssues.join('; '))}</p>` : ''}
+          ${(a.qualityIssues || []).length ? `<p style="font-size:.7rem;color:#a86200;margin:2px 0 6px">⚠ Held: ${h(a.qualityIssues.join('; '))}</p>` : ''}
 
           <div class="yt-row">
             <span style="font-size:1rem">▶</span>
@@ -999,7 +999,7 @@ function render_inventory() {
           </div>
 
           <div class="sched-row">
-            <span style="font-size:.7rem;color:#9eb3cc">◷</span>
+            <span style="font-size:.7rem;color:#4a5570">◷</span>
             <input type="datetime-local" class="input" data-dtid="${h(a.id)}" title="Schedule publish date"/>
           </div>
 
@@ -1015,7 +1015,7 @@ function render_inventory() {
             <button class="btn btn-sm btn-rose" data-idel="${h(a.id)}">Delete</button>
           </div>
         </div>
-      `).join('') || '<div class="card" style="text-align:center;color:#9eb3cc;padding:40px">No articles in this filter.</div>'}
+      `).join('') || '<div class="card" style="text-align:center;color:#4a5570;padding:40px">No articles in this filter.</div>'}
     </div>
   `;
 }
@@ -1194,9 +1194,9 @@ const apiRows = [
     { l: 'Pexels',                 k: 'pexelsKey',     c: '#05a081', hint: 'pexels.com — free stock photos for article images' },
     { l: 'Gamma',                  k: 'gammaKey',      c: '#ff6b6b', hint: 'gamma.app — requires Pro+ plan, generates infographic images (slow: ~1-2 min per call)' },
     { l: 'Anthropic (Claude)',    k: 'claudeKey',    c: '#a78bfa', hint: 'console.anthropic.com' },
-    { l: 'OpenAI (GPT-4)',        k: 'openAiKey',    c: '#2bc48a', hint: 'platform.openai.com'   },
+    { l: 'OpenAI (GPT-4)',        k: 'openAiKey',    c: '#0f8a5a', hint: 'platform.openai.com'   },
     { l: 'Marketaux',             k: 'marketauxKey', c: '#3cb5c4', hint: 'marketaux.com — free 100 req/day' },
-    { l: 'NewsData.io',           k: 'newsdataKey',  c: '#e8a33d', hint: 'newsdata.io — free 200 credits/day, commercial use allowed' },
+    { l: 'NewsData.io',           k: 'newsdataKey',  c: '#a86200', hint: 'newsdata.io — free 200 credits/day, commercial use allowed' },
     { l: 'Logo.dev',              k: 'logoDevKey',     c: '#7c5cff', hint: 'logo.dev — free company logos (publishable key, starts pk_). Credit link is shown on company pages' },
     { l: 'Marketstack',           k: 'marketstackKey', c: '#d4af37', hint: 'marketstack.com — free 100 req/month for testing, upgrade to Basic ($9.99/mo) before launch' },
   ];
@@ -1232,7 +1232,7 @@ const apiRows = [
               </div>
             </div>`).join('')}
           <button class="btn btn-rose btn-sm" id="saveApiKeysBtn" style="margin-top:10px">Save API keys</button>
-          <div id="apiKeysMsg" style="font-size:.72rem;color:#2bc48a;margin-top:7px;min-height:16px"></div>
+          <div id="apiKeysMsg" style="font-size:.72rem;color:#0f8a5a;margin-top:7px;min-height:16px"></div>
         </div>
 
         <!-- LEARN LEVEL NAMES -->
@@ -1243,16 +1243,16 @@ const apiRows = [
           <div class="api-row"><div class="api-dot" style="background:#2a78d6"></div><div class="api-label">Mid-level (free)<div class="api-hint">default: Knights</div></div><div class="api-val"><input id="lvlIntermediate" maxlength="30" placeholder="Knights"/></div></div>
           <div class="api-row"><div class="api-dot" style="background:#c9a227"></div><div class="api-label">Advanced (Premium)<div class="api-hint">default: Lords</div></div><div class="api-val"><input id="lvlLords" maxlength="30" placeholder="Lords"/></div></div>
           <button class="btn btn-rose btn-sm" id="saveLvlBtn" style="margin-top:10px">Save names</button>
-          <div id="lvlMsg" style="font-size:.72rem;color:#2bc48a;margin-top:7px;min-height:16px"></div>
+          <div id="lvlMsg" style="font-size:.72rem;color:#0f8a5a;margin-top:7px;min-height:16px"></div>
         </div>
 
         <!-- PAYMENTS (STRIPE) -->
         <div class="card">
           <div class="card-title">Payments (Stripe)</div>
-          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">
-            Status: <strong style="color:${s.stripeKeyMode === 'live' ? '#2bc48a' : s.stripeKeyMode === 'test' ? '#e8a33d' : '#f26a6a'}">${
+          <p style="font-size:.78rem;color:#4a5570;margin:0 0 10px">
+            Status: <strong style="color:${s.stripeKeyMode === 'live' ? '#0f8a5a' : s.stripeKeyMode === 'test' ? '#a86200' : '#c62f3f'}">${
               s.stripeKeyMode === 'live' ? 'LIVE — real payments' : s.stripeKeyMode === 'test' ? 'Test mode — no real money' : s.stripeKeyMode === 'unknown' ? 'Key saved but not recognised' : 'Not set up'
-            }</strong> · Webhook: <strong style="color:${s.stripeWebhookConfigured ? '#2bc48a' : '#f26a6a'}">${s.stripeWebhookConfigured ? 'connected' : 'not set'}</strong>
+            }</strong> · Webhook: <strong style="color:${s.stripeWebhookConfigured ? '#0f8a5a' : '#c62f3f'}">${s.stripeWebhookConfigured ? 'connected' : 'not set'}</strong>
           </p>
           <div class="api-row">
             <div class="api-dot" style="background:#2bc48a"></div>
@@ -1265,7 +1265,7 @@ const apiRows = [
             <div class="api-val"><input type="password" placeholder="${s.stripeWebhookConfigured ? 'Saved — paste a new one to replace' : 'whsec_…'}" id="stripeWebhookSecret"/></div>
           </div>
           <button class="btn btn-green btn-sm" id="saveStripeBtn" style="margin-top:10px">Save payment keys</button>
-          <div id="stripeMsg" style="font-size:.72rem;color:#2bc48a;margin-top:7px;min-height:16px"></div>
+          <div id="stripeMsg" style="font-size:.72rem;color:#0f8a5a;margin-top:7px;min-height:16px"></div>
         </div>
 
       </div>
@@ -1276,26 +1276,26 @@ const apiRows = [
         <!-- BACKUP -->
         <div class="card">
           <div class="card-title">Backup</div>
-          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Downloads one file with all site data, settings and saved API keys. Keep it somewhere private.</p>
+          <p style="font-size:.78rem;color:#4a5570;margin:0 0 10px">Downloads one file with all site data, settings and saved API keys. Keep it somewhere private.</p>
           <button class="btn btn-gold btn-sm" id="downloadBackupBtn">Download full backup</button>
-          <div id="backupMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
+          <div id="backupMsg" style="font-size:.72rem;color:#0f8a5a;min-height:16px;margin-top:6px"></div>
         </div>
 
         <!-- DATA ENGINE -->
         <div class="card" id="dataEngineCard">
           <div class="card-title">Data engine</div>
           ${renderDataEngineRows(STATE.dataStatus)}
-          <div id="dataMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
+          <div id="dataMsg" style="font-size:.72rem;color:#0f8a5a;min-height:16px;margin-top:6px"></div>
         </div>
 
         <!-- SEARCH ENGINES -->
         <div class="card">
           <div class="card-title">Search engines (Google, Bing)</div>
-          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">${s.searchVisible
+          <p style="font-size:.78rem;color:#4a5570;margin:0 0 10px">${s.searchVisible
             ? 'Visible: Google and Bing may list the site. Set your real domain in Site settings first.'
             : 'Hidden: the site is kept off Google and Bing until launch day.'}</p>
           <button class="btn btn-gold btn-sm" id="toggleSearchBtn">${s.searchVisible ? 'Hide from search engines' : 'Show to search engines (launch day)'}</button>
-          <div id="searchMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
+          <div id="searchMsg" style="font-size:.72rem;color:#0f8a5a;min-height:16px;margin-top:6px"></div>
         </div>
 
         <!-- SITE SETTINGS -->
@@ -1308,7 +1308,7 @@ const apiRows = [
                 <input class="input" type="text" id="site_${k}" placeholder="${h(ph)}" value="${h(s[k]||'')}"/>
               </div>`).join('')}
             <button class="btn btn-gold btn-sm" id="saveSiteBtn">Save settings</button>
-            <div id="siteMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px"></div>
+            <div id="siteMsg" style="font-size:.72rem;color:#0f8a5a;min-height:16px"></div>
           </div>
         </div>
 
@@ -1334,18 +1334,18 @@ const apiRows = [
             </div>
             <button class="btn btn-gold btn-sm" id="addCouponBtn" style="align-self:end">+ Add</button>
           </div>
-          <div id="couponMsg" style="font-size:.72rem;color:#f26a6a;min-height:16px;margin-bottom:8px"></div>
+          <div id="couponMsg" style="font-size:.72rem;color:#c62f3f;min-height:16px;margin-bottom:8px"></div>
           <div id="couponList">
             ${coupons.map(c => `
               <div class="coupon-row">
                 <span class="coupon-code">${h(c.code)}</span>
-                <span style="font-size:.7rem;color:#9eb3cc">${c.discountPercent}% · ${h(c.planScope)}</span>
+                <span style="font-size:.7rem;color:#4a5570">${c.discountPercent}% · ${h(c.planScope)}</span>
                 <div style="display:flex;gap:5px;align-items:center">
                   <span class="tag ${c.active?'tag-published':'tag-draft'}">${c.active?'Active':'Off'}</span>
                   <button class="btn btn-sm btn-ghost" data-ctog="${h(c.id)}">${c.active?'Disable':'Enable'}</button>
                   <button class="btn btn-sm btn-rose"  data-cdel="${h(c.id)}">✕</button>
                 </div>
-              </div>`).join('') || '<p style="color:#9eb3cc;font-size:.78rem">No coupons yet.</p>'}
+              </div>`).join('') || '<p style="color:#4a5570;font-size:.78rem">No coupons yet.</p>'}
           </div>
         </div>
 
@@ -1355,12 +1355,12 @@ const apiRows = [
 }
 
 function renderDataEngineRows(status) {
-  if (!status) return '<p style="font-size:.78rem;color:#9eb3cc">Status unavailable.</p>';
+  if (!status) return '<p style="font-size:.78rem;color:#4a5570">Status unavailable.</p>';
   const c = status.counts || {};
   const when = (iso) => (iso ? new Date(iso).toLocaleString() : 'never');
-  const colour = (r) => (r === 'ok' ? '#2bc48a' : r === 'skipped' ? '#e8a33d' : r === 'failed' ? '#f26a6a' : '#9eb3cc');
+  const colour = (r) => (r === 'ok' ? '#0f8a5a' : r === 'skipped' ? '#a86200' : r === 'failed' ? '#c62f3f' : '#4a5570');
   return `
-    <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Saved so far: ${c.companies || 0} of ${c.universe || 0} companies · ${c.economyFigures || 0} economy figures · ${c.prices || 0} prices. Runs automatically; use Run now to test.</p>
+    <p style="font-size:.78rem;color:#4a5570;margin:0 0 10px">Saved so far: ${c.companies || 0} of ${c.universe || 0} companies · ${c.economyFigures || 0} economy figures · ${c.prices || 0} prices. Runs automatically; use Run now to test.</p>
     ${(status.jobs || []).map((job) => `
       <div class="api-row" style="align-items:flex-start">
         <div class="api-dot" style="background:${colour(job.lastResult)};margin-top:5px"></div>
@@ -1411,7 +1411,7 @@ function bind_settings() {
       const refresh = async (tries) => {
         STATE.dataStatus = await API.dataStatus().catch(() => STATE.dataStatus);
         const card = qs('#dataEngineCard');
-        if (card) card.innerHTML = '<div class="card-title">Data engine</div>' + renderDataEngineRows(STATE.dataStatus) + '<div id="dataMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>';
+        if (card) card.innerHTML = '<div class="card-title">Data engine</div>' + renderDataEngineRows(STATE.dataStatus) + '<div id="dataMsg" style="font-size:.72rem;color:#0f8a5a;min-height:16px;margin-top:6px"></div>';
         if (tries > 0 && (STATE.dataStatus?.jobs || []).some((j) => j.running)) setTimeout(() => refresh(tries - 1), 5000);
       };
       setTimeout(() => refresh(60), 2000);
@@ -1545,7 +1545,7 @@ function render_health() {
   if (!r) return '<div class="loading">Health report unavailable.</div>';
   const word = { ok: 'OK', warn: 'Check', fail: 'Problem' };
   const icon = { ok: '✓', warn: '!', fail: '✕' };
-  const colour = { ok: '#2bc48a', warn: '#e8a33d', fail: '#f26a6a' };
+  const colour = { ok: '#0f8a5a', warn: '#a86200', fail: '#c62f3f' };
   const areas = [...new Set(r.checks.map((c) => c.area))];
   return `
     <div class="pg-head">
@@ -1568,7 +1568,7 @@ function render_health() {
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="card">
           <div class="card-title">Daily health email</div>
-          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Status: <strong style="color:${r.email.configured ? '#2bc48a' : '#e8a33d'}">${r.email.configured ? 'On — sent to ' + h(r.email.to) : 'Off'}</strong><br/>
+          <p style="font-size:.78rem;color:#4a5570;margin:0 0 10px">Status: <strong style="color:${r.email.configured ? '#0f8a5a' : '#a86200'}">${r.email.configured ? 'On — sent to ' + h(r.email.to) : 'Off'}</strong><br/>
             Uses Resend (resend.com, free). Sign up with the email you want the report at, create an API key (starts re_), paste it here.</p>
           <div class="form-gap">
             <div><label class="field" for="resendKey">Resend API key</label>
@@ -1579,12 +1579,12 @@ function render_health() {
               <button class="btn btn-gold btn-sm" id="saveHealthEmailBtn">Save</button>
               <button class="btn btn-ghost btn-sm" id="testHealthEmailBtn">Send a test email now</button>
             </div>
-            <div id="healthMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px"></div>
+            <div id="healthMsg" style="font-size:.72rem;color:#0f8a5a;min-height:16px"></div>
           </div>
         </div>
         <div class="card">
           <div class="card-title">Member emails (alerts and weekly email)</div>
-          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Status: <strong style="color:${r.memberEmail?.ready ? '#2bc48a' : '#e8a33d'}">${r.memberEmail?.ready ? 'On' : 'Not ready'}</strong> — ${h(r.memberEmail?.note || '')}<br/>
+          <p style="font-size:.78rem;color:#4a5570;margin:0 0 10px">Status: <strong style="color:${r.memberEmail?.ready ? '#0f8a5a' : '#a86200'}">${r.memberEmail?.ready ? 'On' : 'Not ready'}</strong> — ${h(r.memberEmail?.note || '')}<br/>
             Uses the same Resend key. To email members, add your own domain in Resend (Domains → Add domain, then copy the DNS records it shows into your domain provider) and put an address on that domain below.</p>
           <div class="form-gap">
             <div><label class="field" for="alertsFrom">Send member emails from</label>
@@ -1595,12 +1595,12 @@ function render_health() {
               <button class="btn btn-gold btn-sm" id="saveAlertsBtn">Save</button>
               <button class="btn btn-ghost btn-sm" id="testWeeklyBtn">Send me a test weekly email</button>
             </div>
-            <div id="alertsMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px"></div>
+            <div id="alertsMsg" style="font-size:.72rem;color:#0f8a5a;min-height:16px"></div>
           </div>
         </div>
         <div class="card">
           <div class="card-title">What runs by itself</div>
-          <p style="font-size:.78rem;color:#9eb3cc;margin:0">
+          <p style="font-size:.78rem;color:#4a5570;margin:0">
             • Every 6 hours: homepage explainers are checked; every 2 days they change, and new ones are written from the day's news.<br/>
             • Every new explainer is checked for banned words (for example "AI", tool names, promises of returns) and missing parts. Anything that fails is kept as a draft in Inventory for you to read.<br/>
             • Daily: economy numbers, Top 10 lists, photos, and this health check (emailed).<br/>
@@ -1663,7 +1663,7 @@ function bind_health() {
       if (msg) msg.textContent = 'Sending…';
       const res = await API.healthEmail();
       if (msg) msg.textContent = '✓ ' + res.message;
-    } catch (e) { if (msg) { msg.style.color = '#f26a6a'; msg.textContent = e.message; } }
+    } catch (e) { if (msg) { msg.style.color = '#c62f3f'; msg.textContent = e.message; } }
   });
 }
 
@@ -1682,11 +1682,11 @@ function render_forum() {
     <div class="pg-head">
       <div class="eyebrow" style="--ac:#3cb5c4">Community</div>
       <h1>Forum moderation</h1>
-      <p>${st.threads || 0} questions · ${st.replies || 0} replies · <strong>${q.items.length}</strong> waiting for you. Clean posts appear by themselves; only doubtful or reported ones wait here. <a href="/forum" target="_blank" style="color:#3cb5c4">Open the forum ↗</a></p>
+      <p>${st.threads || 0} questions · ${st.replies || 0} replies · <strong>${q.items.length}</strong> waiting for you. Clean posts appear by themselves; only doubtful or reported ones wait here. <a href="/forum" target="_blank" style="color:#0d7f8c">Open the forum ↗</a></p>
     </div>
     <div class="card" style="margin-bottom:14px">
       <div class="card-title">Forum on the site</div>
-      <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Status: <strong style="color:${STATE.forumEnabled ? '#2bc48a' : '#e8a33d'}">${STATE.forumEnabled ? 'ON — visible to readers, in the menu and on company pages' : 'OFF — hidden from readers (pages show "not found"). You can still prepare it here.'}</strong></p>
+      <p style="font-size:.78rem;color:#4a5570;margin:0 0 10px">Status: <strong style="color:${STATE.forumEnabled ? '#0f8a5a' : '#a86200'}">${STATE.forumEnabled ? 'ON — visible to readers, in the menu and on company pages' : 'OFF — hidden from readers (pages show "not found"). You can still prepare it here.'}</strong></p>
       <button class="btn btn-gold btn-sm" id="forumToggleBtn">${STATE.forumEnabled ? 'Switch the forum off' : 'Switch the forum on'}</button>
     </div>
     <div class="settings-grid">
@@ -1697,10 +1697,10 @@ function render_forum() {
             <div class="api-row" style="align-items:flex-start;flex-wrap:wrap">
               <div class="api-label" style="flex:1 1 100%">
                 ${h(it.kind === 'thread' ? 'Question' : 'Reply')} by <strong>${h(it.authorName)}</strong> · ${h(new Date(it.at).toLocaleString())}
-                ${it.reports ? ` · <span style="color:#f26a6a">${it.reports} report${it.reports === 1 ? '' : 's'}</span>` : ''}
+                ${it.reports ? ` · <span style="color:#c62f3f">${it.reports} report${it.reports === 1 ? '' : 's'}</span>` : ''}
                 <div class="api-hint">On: ${h(it.title)}</div>
-                <div class="api-hint" style="color:#e8a33d">${h(it.reason || '')}</div>
-                <div style="white-space:pre-wrap;background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;margin-top:6px;font-size:.8rem;color:#dbe6f3">${h(it.body)}</div>
+                <div class="api-hint" style="color:#a86200">${h(it.reason || '')}</div>
+                <div style="white-space:pre-wrap;background:#f3f6fb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:.8rem;color:#2c3650">${h(it.body)}</div>
               </div>
               <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
                 <button class="btn btn-sm btn-green" data-fa="approve" data-id="${h(it.id)}">Approve</button>
@@ -1708,23 +1708,23 @@ function render_forum() {
                 <button class="btn btn-sm btn-ghost" data-fa="ban" data-user="${h(it.authorId)}">Ban author</button>
                 <a class="btn btn-sm btn-ghost" href="${h(it.url)}" target="_blank">View ↗</a>
               </div>
-            </div>`).join('') || '<p style="color:#9eb3cc;font-size:.8rem">Nothing waiting. 🎉</p>'}
+            </div>`).join('') || '<p style="color:#4a5570;font-size:.8rem">Nothing waiting. 🎉</p>'}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="card">
           <div class="card-title">Starter threads</div>
-          <p style="font-size:.78rem;color:#9eb3cc;margin:0 0 10px">Adds 24 common questions with answers, 3 per topic, posted openly as "Dr MoneyWise Team". Safe to press twice (nothing is duplicated).</p>
+          <p style="font-size:.78rem;color:#4a5570;margin:0 0 10px">Adds 24 common questions with answers, 3 per topic, posted openly as "Dr MoneyWise Team". Safe to press twice (nothing is duplicated).</p>
           <button class="btn btn-gold btn-sm" id="forumStartersBtn">Add starter threads</button>
-          <div id="forumMsg" style="font-size:.72rem;color:#2bc48a;min-height:16px;margin-top:6px"></div>
+          <div id="forumMsg" style="font-size:.72rem;color:#0f8a5a;min-height:16px;margin-top:6px"></div>
         </div>
         <div class="card">
           <div class="card-title">Banned readers</div>
-          ${q.banned.map((b) => `<div class="api-row"><div class="api-label">${h(b.name)}<div class="api-hint">since ${h(new Date(b.at).toLocaleDateString())}</div></div><button class="btn btn-sm btn-ghost" data-fa="unban" data-user="${h(b.id)}">Lift ban</button></div>`).join('') || '<p style="color:#9eb3cc;font-size:.8rem">No one is banned.</p>'}
+          ${q.banned.map((b) => `<div class="api-row"><div class="api-label">${h(b.name)}<div class="api-hint">since ${h(new Date(b.at).toLocaleDateString())}</div></div><button class="btn btn-sm btn-ghost" data-fa="unban" data-user="${h(b.id)}">Lift ban</button></div>`).join('') || '<p style="color:#4a5570;font-size:.8rem">No one is banned.</p>'}
         </div>
         <div class="card">
           <div class="card-title">How moderation works</div>
-          <p style="font-size:.78rem;color:#9eb3cc;margin:0">Every post is checked: first by fixed rules (links, contact details, shouting, promises of returns, posting too fast), then by the writing service. Clean posts show in seconds; doubtful ones wait here; clearly bad ones are refused with a reason. Two reader reports hide a post until you decide. On the forum itself, you also see Edit, Remove, Pin, Close and Ban on every post while signed in as admin.</p>
+          <p style="font-size:.78rem;color:#4a5570;margin:0">Every post is checked: first by fixed rules (links, contact details, shouting, promises of returns, posting too fast), then by the writing service. Clean posts show in seconds; doubtful ones wait here; clearly bad ones are refused with a reason. Two reader reports hide a post until you decide. On the forum itself, you also see Edit, Remove, Pin, Close and Ban on every post while signed in as admin.</p>
         </div>
       </div>
     </div>`;
@@ -1782,30 +1782,30 @@ function bind_forum() {
 
 function render_property() {
   const st = STATE.property || { places: [], dubai: [], failures: [] };
-  const word = (p) => (p ? qWords(p) : '<span style="color:#e8a33d">—</span>');
+  const word = (p) => (p ? qWords(p) : '<span style="color:#a86200">—</span>');
   const year = new Date().getFullYear();
   const years = [year, year - 1, year - 2, year - 3];
   return `
     <div class="pg-head">
       <div class="eyebrow" style="--ac:#2bc48a">Property</div>
       <h1>Property pages</h1>
-      <p>Home prices and rents for each place, refreshed weekly from official sources. Last refresh: <strong>${st.updatedAt ? h(new Date(st.updatedAt).toLocaleString()) : 'not yet'}</strong>. <a href="/property" target="_blank" style="color:#2bc48a">Open the pages ↗</a></p>
+      <p>Home prices and rents for each place, refreshed weekly from official sources. Last refresh: <strong>${st.updatedAt ? h(new Date(st.updatedAt).toLocaleString()) : 'not yet'}</strong>. <a href="/property" target="_blank" style="color:#0f8a5a">Open the pages ↗</a></p>
     </div>
     <div class="card" style="margin-bottom:14px">
       <div class="card-title">What each place has (latest period)</div>
       <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.76rem">
-        <thead><tr style="color:#9eb3cc;text-align:left"><th style="padding:6px">Place</th><th>House prices</th><th>Rents</th><th>Vs incomes</th><th>Extra</th></tr></thead>
-        <tbody>${st.places.map((p) => `<tr style="border-top:1px solid rgba(255,255,255,.06)"><td style="padding:7px 6px"><a href="/property/${h(p.slug)}" target="_blank" style="color:#ecf3ff">${h(p.name)}</a></td>${p.manualRows !== null
-          ? `<td colspan="4" style="color:#9eb3cc">Typed in by hand: ${p.manualRows} quarter(s) — see below</td>`
-          : `<td>${word(p.prices)}</td><td>${p.rents ? word(p.rents) : '<span style="color:#9eb3cc">no free source</span>'}</td><td>${p.ratios ? word(p.ratios) : '<span style="color:#9eb3cc">—</span>'}</td><td>${p.ukPrice ? `£ prices ${word(p.ukPrice)}` : ''}</td>`}</tr>`).join('')}</tbody>
+        <thead><tr style="color:#4a5570;text-align:left"><th style="padding:6px">Place</th><th>House prices</th><th>Rents</th><th>Vs incomes</th><th>Extra</th></tr></thead>
+        <tbody>${st.places.map((p) => `<tr style="border-top:1px solid #eef2f9"><td style="padding:7px 6px"><a href="/property/${h(p.slug)}" target="_blank" style="color:#0a1128">${h(p.name)}</a></td>${p.manualRows !== null
+          ? `<td colspan="4" style="color:#4a5570">Typed in by hand: ${p.manualRows} quarter(s) — see below</td>`
+          : `<td>${word(p.prices)}</td><td>${p.rents ? word(p.rents) : '<span style="color:#4a5570">no free source</span>'}</td><td>${p.ratios ? word(p.ratios) : '<span style="color:#4a5570">—</span>'}</td><td>${p.ukPrice ? `£ prices ${word(p.ukPrice)}` : ''}</td>`}</tr>`).join('')}</tbody>
       </table></div>
-      ${st.failures.length ? `<p style="font-size:.74rem;color:#e8a33d;margin:10px 0 0">Last refresh problems: ${st.failures.map((f) => `${h(f.source)} — ${h(f.reason)}`).join('; ')}</p>` : ''}
-      <div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button class="btn btn-gold btn-sm" id="propRefreshBtn">Refresh now</button><span id="propMsg" style="font-size:.72rem;color:#2bc48a"></span></div>
+      ${st.failures.length ? `<p style="font-size:.74rem;color:#a86200;margin:10px 0 0">Last refresh problems: ${st.failures.map((f) => `${h(f.source)} — ${h(f.reason)}`).join('; ')}</p>` : ''}
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center"><button class="btn btn-gold btn-sm" id="propRefreshBtn">Refresh now</button><span id="propMsg" style="font-size:.72rem;color:#0f8a5a"></span></div>
     </div>
     <div class="settings-grid">
       <div class="card">
         <div class="card-title">Add Dubai figures for a quarter</div>
-        <p style="font-size:.74rem;color:#9eb3cc;margin:0 0 10px">Copy the totals from the Dubai Land Department's quarterly announcement or report, and paste the link where you found them. Saving the same quarter again replaces it.</p>
+        <p style="font-size:.74rem;color:#4a5570;margin:0 0 10px">Copy the totals from the Dubai Land Department's quarterly announcement or report, and paste the link where you found them. Saving the same quarter again replaces it.</p>
         <form id="dubaiForm" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <label><span class="field">Year</span><select name="year">${years.map((y) => `<option>${y}</option>`).join('')}</select></label>
           <label><span class="field">Quarter</span><select name="q"><option value="Q1">Jan–Mar (Q1)</option><option value="Q2">Apr–Jun (Q2)</option><option value="Q3">Jul–Sep (Q3)</option><option value="Q4">Oct–Dec (Q4)</option></select></label>
@@ -1820,7 +1820,7 @@ function render_property() {
       </div>
       <div class="card">
         <div class="card-title">Dubai quarters saved</div>
-        ${st.dubai.length ? st.dubai.slice().reverse().map((r) => `<div class="api-row"><div class="api-label" style="flex:1">${h(qWords(r.period))}<div class="api-hint">${r.salesCount !== null ? `${fmtNum(r.salesCount)} sales` : ''}${r.salesValueBn !== null ? ` · AED ${h(r.salesValueBn)}bn` : ''}${r.pricePerSqft !== null ? ` · AED ${fmtNum(r.pricePerSqft)}/sq ft` : ''} · <a href="${h(r.sourceUrl)}" target="_blank" style="color:#3cb5c4">source</a></div></div><button class="btn btn-sm btn-rose" data-del-period="${h(r.period)}">Delete</button></div>`).join('') : '<p style="color:#9eb3cc;font-size:.78rem">None yet. The Dubai page shows "coming soon" until you add one.</p>'}
+        ${st.dubai.length ? st.dubai.slice().reverse().map((r) => `<div class="api-row"><div class="api-label" style="flex:1">${h(qWords(r.period))}<div class="api-hint">${r.salesCount !== null ? `${fmtNum(r.salesCount)} sales` : ''}${r.salesValueBn !== null ? ` · AED ${h(r.salesValueBn)}bn` : ''}${r.pricePerSqft !== null ? ` · AED ${fmtNum(r.pricePerSqft)}/sq ft` : ''} · <a href="${h(r.sourceUrl)}" target="_blank" style="color:#0d7f8c">source</a></div></div><button class="btn btn-sm btn-rose" data-del-period="${h(r.period)}">Delete</button></div>`).join('') : '<p style="color:#4a5570;font-size:.78rem">None yet. The Dubai page shows "coming soon" until you add one.</p>'}
       </div>
     </div>`;
 }
@@ -1861,7 +1861,7 @@ function bind_property() {
       showToast('Dubai figures saved');
       setMain(render_property());
       bind_property();
-    } catch (err) { if (msg) { msg.textContent = err.message; msg.style.color = '#f26a6a'; } }
+    } catch (err) { if (msg) { msg.textContent = err.message; msg.style.color = '#c62f3f'; } }
   });
   qsa('[data-del-period]').forEach((b) => b.addEventListener('click', async () => {
     if (!confirm('Delete this quarter?')) return;
@@ -1892,11 +1892,11 @@ function render_ads() {
       <div class="card" data-slot="${h(slot.id)}">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <div class="card-title" style="margin:0">${h(slot.label)}</div>
-          <label style="font-size:.74rem;color:${s.enabled ? '#2bc48a' : '#9eb3cc'};display:flex;gap:6px;align-items:center"><input type="checkbox" name="enabled" ${s.enabled ? 'checked' : ''} style="width:auto"> ${s.enabled ? 'ON' : 'Off'}</label>
+          <label style="font-size:.74rem;color:${s.enabled ? '#0f8a5a' : '#4a5570'};display:flex;gap:6px;align-items:center"><input type="checkbox" name="enabled" ${s.enabled ? 'checked' : ''} style="width:auto"> ${s.enabled ? 'ON' : 'Off'}</label>
         </div>
-        <p style="font-size:.72rem;color:#9eb3cc;margin:6px 0 10px">${h(slot.where)}. ${h(slot.size)}.</p>
+        <p style="font-size:.72rem;color:#4a5570;margin:6px 0 10px">${h(slot.where)}. ${h(slot.size)}.</p>
         <label><span class="field">Kind</span><select name="kind">${slot.kinds.map((k) => `<option value="${k}"${k === kind ? ' selected' : ''}>${h(kindName[k])}</option>`).join('')}</select></label>
-        <label style="display:flex;gap:6px;align-items:center;font-size:.74rem;color:#dbe6f3;margin:8px 0"><input type="checkbox" name="affiliate" ${s.affiliate ? 'checked' : ''} style="width:auto"> This is an affiliate / partner link (shows "Partner offer" and a commission note)</label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:.74rem;color:#2c3650;margin:8px 0"><input type="checkbox" name="affiliate" ${s.affiliate ? 'checked' : ''} style="width:auto"> This is an affiliate / partner link (shows "Partner offer" and a commission note)</label>
         <div data-for="banner" ${kind === 'banner' ? '' : 'hidden'} style="display:grid;gap:8px">
           <label><span class="field">Image link (https)</span><input class="input" name="imageUrl" value="${h(s.imageUrl || '')}"></label>
           <label><span class="field">Click-through link (https)</span><input class="input" name="linkUrl" value="${h(s.linkUrl || '')}"></label>
@@ -1924,8 +1924,8 @@ function render_ads() {
       <p>Spaces for adverts and affiliate links. Everything is off until you switch it on. Every ad is labelled "Advertisement" or "Partner offer" on the site.</p>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <label style="display:flex;gap:8px;align-items:center;font-size:.8rem;color:#dbe6f3"><input type="checkbox" id="adsHideMembers" ${set.hideForMembers !== false ? 'checked' : ''} style="width:auto"> Hide all ads from Premium members (a Premium benefit)</label>
-      <p style="font-size:.72rem;color:#e8a33d;margin:8px 0 0">Before switching on an ad network such as Google AdSense: those networks use cookies, so readers in the UK and Europe must be asked first (a cookie banner), which can be added when you are ready. Your own banners and partner links need no banner.</p>
+      <label style="display:flex;gap:8px;align-items:center;font-size:.8rem;color:#2c3650"><input type="checkbox" id="adsHideMembers" ${set.hideForMembers !== false ? 'checked' : ''} style="width:auto"> Hide all ads from Premium members (a Premium benefit)</label>
+      <p style="font-size:.72rem;color:#a86200;margin:8px 0 0">Before switching on an ad network such as Google AdSense: those networks use cookies, so readers in the UK and Europe must be asked first (a cookie banner), which can be added when you are ready. Your own banners and partner links need no banner.</p>
     </div>
     <div class="card-grid two-col">${(a.slots || []).map(slotCard).join('')}</div>
     <div style="margin-top:14px;display:flex;gap:10px;align-items:center"><button class="btn btn-gold" id="adsSaveBtn">Save ads &amp; partners</button><span id="adsMsg" style="font-size:.74rem"></span></div>`;
@@ -1967,7 +1967,7 @@ function bind_ads() {
       showToast('Ads & partners saved');
       setMain(render_ads());
       bind_ads();
-    } catch (e) { if (msg) { msg.textContent = e.message; msg.style.color = '#f26a6a'; } }
+    } catch (e) { if (msg) { msg.textContent = e.message; msg.style.color = '#c62f3f'; } }
   });
 }
 
@@ -1984,18 +1984,18 @@ function bind_ads() {
 function render_ask() {
   const a = STATE.ask || { questions: [], waiting: 0, topics: [] };
   const topic = Object.fromEntries(a.topics || []);
-  const badge = { waiting: ['Waiting', '#e8a33d'], answered: ['Answered', '#2bc48a'], declined: ['Declined', '#9eb3cc'] };
+  const badge = { waiting: ['Waiting', '#a86200'], answered: ['Answered', '#0f8a5a'], declined: ['Declined', '#4a5570'] };
   const card = (q) => {
     const b = badge[q.status] || badge.waiting;
     return `
       <div class="card" data-q="${h(q.id)}">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
           <span style="font-size:.72rem;font-weight:700;color:${b[1]}">${b[0]} · ${h(topic[q.topic] || q.topic)}</span>
-          <span style="font-size:.7rem;color:#9eb3cc">${h(q.name || 'Member')} (${h(q.plan)}) · ${h(new Date(q.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</span>
+          <span style="font-size:.7rem;color:#4a5570">${h(q.name || 'Member')} (${h(q.plan)}) · ${h(new Date(q.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</span>
         </div>
-        <p style="font-size:.9rem;color:#fff;margin:10px 0">${h(q.question)}</p>
+        <p style="font-size:.9rem;color:#0a1128;margin:10px 0">${h(q.question)}</p>
         <label><span class="field">Answer (general information, not personal advice)</span><textarea name="answer" rows="8">${h(q.answer || q.draft || '')}</textarea></label>
-        <label style="display:flex;gap:6px;align-items:center;font-size:.74rem;color:${q.publishOk ? '#dbe6f3' : '#9eb3cc'};margin:8px 0"><input type="checkbox" name="publish" ${q.published || (q.status === 'waiting' && q.publishOk) ? 'checked' : ''} ${q.publishOk ? '' : 'disabled'} style="width:auto"> Show on the Ask page without their name ${q.publishOk ? '' : '(the member said no)'}</label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:.74rem;color:${q.publishOk ? '#dbe6f3' : '#4a5570'};margin:8px 0"><input type="checkbox" name="publish" ${q.published || (q.status === 'waiting' && q.publishOk) ? 'checked' : ''} ${q.publishOk ? '' : 'disabled'} style="width:auto"> Show on the Ask page without their name ${q.publishOk ? '' : '(the member said no)'}</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <button class="btn" data-act="draft">Write a first draft</button>
           <button class="btn btn-gold" data-act="send">${q.status === 'answered' ? 'Save changes' : 'Send answer'}</button>
@@ -2010,7 +2010,7 @@ function render_ask() {
       <h1>Ask Dr MoneyWise</h1>
       <p>${a.waiting} question${a.waiting === 1 ? '' : 's'} waiting. "Write a first draft" gives you a starting point: always read and correct it before sending. The member is emailed when you send an answer.</p>
     </div>
-    ${a.questions.length ? `<div class="card-grid two-col">${a.questions.map(card).join('')}</div>` : '<div class="card"><p style="color:#9eb3cc">No questions yet. Members ask them at /ask.</p></div>'}`;
+    ${a.questions.length ? `<div class="card-grid two-col">${a.questions.map(card).join('')}</div>` : '<div class="card"><p style="color:#4a5570">No questions yet. Members ask them at /ask.</p></div>'}`;
 }
 
 async function load_ask() {
@@ -2028,7 +2028,7 @@ function bind_ask() {
     const card = btn.closest('[data-q]');
     const id = card.dataset.q;
     const msg = card.querySelector('.ask-msg');
-    const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? '#f26a6a' : '#2bc48a'; };
+    const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? '#c62f3f' : '#0f8a5a'; };
     btn.disabled = true;
     try {
       if (btn.dataset.act === 'draft') {
@@ -2062,12 +2062,14 @@ const NL_BLANK = () => ({ id: '', premiumSection: true, subject: '', preheader: 
 function render_newsletter() {
   const d = STATE.nl || { stats: { counts: {}, subscribers: {} }, issues: [], audiences: {} };
   const st = d.stats; const ed = STATE.nlEdit || NL_BLANK();
-  const tile = (n, label, c) => `<div class="card" style="border-left:4px solid ${c};padding:12px 14px"><div style="font-size:1.5rem;font-weight:700;color:#fff">${fmtNum(n)}</div><div style="font-size:.72rem;color:#9eb3cc">${label}</div></div>`;
-  const statusBadge = { draft: ['Draft', '#9eb3cc'], sending: ['Sending', '#e8a33d'], sent: ['Sent', '#2bc48a'], stopped: ['Stopped', '#f26a6a'] };
+  const tile = (n, label, c) => `<div class="card" style="border-left:4px solid ${c};padding:12px 14px"><div style="font-size:1.5rem;font-weight:700;color:#0a1128">${fmtNum(n)}</div><div style="font-size:.72rem;color:#4a5570">${label}</div></div>`;
+  const statusBadge = { draft: ['Draft', '#4a5570'], sending: ['Sending', '#a86200'], sent: ['Sent', '#0f8a5a'], stopped: ['Stopped', '#c62f3f'] };
   const itemRow = (x, i) => `
-      <div class="card nl-item" data-i="${i}" style="background:rgba(255,255,255,.03);margin:0 0 10px">
-        <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.78rem;color:#c9a227">Story ${i + 1}</strong><button class="btn" data-nl="remove" data-i="${i}" style="padding:4px 10px">Remove</button></div>
+      <div class="card nl-item" data-i="${i}" style="background:#f6f8fc;margin:0 0 10px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.78rem;color:#8a6a10">Story ${i + 1}</strong><button class="btn" data-nl="remove" data-i="${i}" style="padding:4px 10px">Remove</button></div>
         <label style="display:block;margin:8px 0"><span class="field">Heading</span><input class="input" name="heading" value="${h(x.heading)}" maxlength="160"></label>
+        ${x.image ? `<img src="${h(x.image)}" alt="" style="display:block;width:100%;max-width:420px;border-radius:8px;margin:8px 0">` : ''}
+        <input type="hidden" name="image" value="${h(x.image || '')}">
         <label style="display:block;margin:8px 0"><span class="field">Text (a blank line starts a new paragraph)</span><textarea name="text" rows="4" maxlength="2000">${h(x.text)}</textarea></label>
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
           <label style="display:block;margin:8px 0"><span class="field">Link (optional)</span><input class="input" name="url" value="${h(x.url)}" placeholder="https://drmoneywise.com/learn/..."></label>
@@ -2079,14 +2081,14 @@ function render_newsletter() {
     <div class="pg-head">
       <div class="eyebrow" style="--ac:#c9a227">Members</div>
       <h1>Newsletter</h1>
-      <p>Write it, preview it, send yourself a test, then send. Each email has its own one-click unsubscribe link. ${st.emailReady ? '' : '<strong style="color:#f26a6a">Sending is off until the Resend key and your own "from" address (ALERTS_EMAIL_FROM) are saved.</strong>'}</p>
+      <p>Write it, preview it, send yourself a test, then send. Each email has its own one-click unsubscribe link. ${st.emailReady ? '' : '<strong style="color:#c62f3f">Sending is off until the Resend key and your own "from" address (ALERTS_EMAIL_FROM) are saved.</strong>'}</p>
     </div>
     <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
       ${tile(st.counts.everyone || 0, 'Would get it (everyone)', '#c9a227')}
       ${tile(st.counts.members || 0, 'Members with it switched on', '#2a78d6')}
-      ${tile(st.subscribers.active || 0, `Confirmed subscribers${st.subscribers.byPlan ? ` (Free ${st.subscribers.byPlan.free || 0} · Regular ${st.subscribers.byPlan.regular || 0} · Premium ${st.subscribers.byPlan.premium || 0})` : ''}`, '#2bc48a')}
-      ${tile(st.subscribers.pending || 0, 'Waiting to confirm', '#e8a33d')}
-      ${tile((st.subscribers.unsubscribed || 0) + (st.membersOptedOut || 0), 'Unsubscribed', '#f26a6a')}
+      ${tile(st.subscribers.active || 0, `Confirmed subscribers${st.subscribers.byPlan ? ` (Free ${st.subscribers.byPlan.free || 0} · Regular ${st.subscribers.byPlan.regular || 0} · Premium ${st.subscribers.byPlan.premium || 0})` : ''}`, '#0f8a5a')}
+      ${tile(st.subscribers.pending || 0, 'Waiting to confirm', '#a86200')}
+      ${tile((st.subscribers.unsubscribed || 0) + (st.membersOptedOut || 0), 'Unsubscribed', '#c62f3f')}
       ${tile(st.sentToday || 0, `Sent today (limit ${fmtNum(st.dailyLimit)})`, '#3cb5c4')}
     </div>
     <div class="card-grid two-col">
@@ -2101,7 +2103,7 @@ function render_newsletter() {
         <div id="nlItems">${(ed.items || []).map(itemRow).join('')}</div>
         <button class="btn" data-nl="add">+ Add a story</button>
         <label style="margin-top:10px"><span class="field">Closing words</span><textarea name="closing" rows="3" maxlength="2000">${h(ed.closing)}</textarea></label>
-        <label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:.78rem;color:#dbe6f3"><input type="checkbox" name="premiumSection" ${ed.premiumSection !== false ? 'checked' : ''} style="width:auto;margin-top:2px"> <span>Add each Premium member's own section: their portfolio's week, their companies' news, results expected in the coming week and Premium extras</span></label>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:.78rem;color:#2c3650"><input type="checkbox" name="premiumSection" ${ed.premiumSection !== false ? 'checked' : ''} style="width:auto;margin-top:2px"> <span>Add each Premium member's own section: their portfolio's week, their companies' news, results expected in the coming week and Premium extras</span></label>
         <label style="display:block;margin:8px 0"><span class="field">Send to</span><select name="audience">${Object.entries(d.audiences).map(([k, v]) => `<option value="${k}" ${ed.audience === k ? 'selected' : ''}>${h(v)} — ${fmtNum(st.counts[k] || 0)} people</option>`).join('')}</select></label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
           ${locked ? '' : `<button class="btn" data-nl="save">Save draft</button>
@@ -2111,18 +2113,18 @@ function render_newsletter() {
           <button class="btn btn-gold" data-nl="send">Send to everyone chosen</button>`}
           <span id="nlMsg" style="font-size:.76rem"></span>
         </div>
-        <p style="font-size:.7rem;color:#9eb3cc;margin-top:10px">Tip: keep each story short with one link. The footer (education-only note, unsubscribe link and your business address) is added for you.</p>
+        <p style="font-size:.7rem;color:#4a5570;margin-top:10px">Tip: keep each story short with one link. The footer (education-only note, unsubscribe link and your business address) is added for you.</p>
       </div>
       <div>
         <div class="card"><h2 style="margin-top:0">Preview</h2><iframe id="nlPreview" title="Newsletter preview" style="width:100%;height:520px;border:0;border-radius:10px;background:#f1e8d6"></iframe></div>
         <div class="card"><h2 style="margin-top:0">Add people by hand</h2>
-          <p style="font-size:.76rem;color:#9eb3cc">Type or paste email addresses (up to 50, separated by commas, spaces or new lines).</p>
+          <p style="font-size:.76rem;color:#4a5570">Type or paste email addresses (up to 50, separated by commas, spaces or new lines).</p>
           <textarea class="input" id="nlPeople" rows="4" placeholder="friend@example.com, colleague@example.com"></textarea>
           <div style="margin-top:8px"><span class="field">Which newsletter do they get?</span>
             <div id="nlPlan" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-              ${[['free', 'Free', '#2bc48a'], ['regular', 'Regular', '#4f9eff'], ['premium', 'Premium', '#c9a227']].map(([v, l, c], i) => `<label style="display:flex;align-items:center;gap:6px;border:1.5px solid ${c};border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.8rem"><input type="radio" name="nlPlan" value="${v}" ${i === 0 ? 'checked' : ''}/> ${l}</label>`).join('')}
+              ${[['free', 'Free', '#0f8a5a'], ['regular', 'Regular', '#4f9eff'], ['premium', 'Premium', '#c9a227']].map(([v, l, c], i) => `<label style="display:flex;align-items:center;gap:6px;border:1.5px solid ${c};border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.8rem"><input type="radio" name="nlPlan" value="${v}" ${i === 0 ? 'checked' : ''}/> ${l}</label>`).join('')}
             </div>
-            <p style="font-size:.7rem;color:#9eb3cc;margin:6px 0 0"><b>Free:</b> the normal newsletter. <b>Regular:</b> also included when you send to "Regular and Premium". <b>Premium:</b> also gets the Premium section and is included when you send to "Premium only". This is for the newsletter only; it doesn't give them a website login. Already-subscribed people get the new plan; members keep the plan on their account (change it in Users).</p>
+            <p style="font-size:.7rem;color:#4a5570;margin:6px 0 0"><b>Free:</b> the normal newsletter. <b>Regular:</b> also included when you send to "Regular and Premium". <b>Premium:</b> also gets the Premium section and is included when you send to "Premium only". This is for the newsletter only; it doesn't give them a website login. Already-subscribed people get the new plan; members keep the plan on their account (change it in Users).</p>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
             <button class="btn btn-gold" data-nl="once">Send the newsletter on the left once</button>
@@ -2130,25 +2132,30 @@ function render_newsletter() {
             <button class="btn" data-nl="gift">Gift subscription (added now)</button>
           </div>
           <div id="nlPeopleMsg" style="font-size:.74rem;margin-top:8px"></div>
-          <p style="font-size:.7rem;color:#9eb3cc;margin-top:8px"><b>Once:</b> they get this one email only and aren't added to the list. <b>Invite:</b> they get a "please confirm" email and join only if they click it. <b>Gift:</b> they're added straight away and get a short email saying someone gave them the newsletter, with an unsubscribe link. Only gift it to people you know would welcome it.</p>
+          <p style="font-size:.7rem;color:#4a5570;margin-top:8px"><b>Once:</b> they get this one email only and aren't added to the list. <b>Invite:</b> they get a "please confirm" email and join only if they click it. <b>Gift:</b> they're added straight away and get a short email saying someone gave them the newsletter, with an unsubscribe link. Only gift it to people you know would welcome it.</p>
+        </div>
+        <div class="card" style="border-left:5px solid #1baf7a"><h2 style="margin-top:0">Automatic Saturday newsletter</h2>
+          <p style="font-size:.8rem">Every Saturday from 8am (Dubai time) the newsletter builds itself from the site and goes to everyone: company results and business news first, then charts of the week (the stock market this year, the Big Seven, the economy), then the week’s lessons. Premium readers also get their own section. You get a copy by email.</p>
+          <label style="display:flex;gap:8px;align-items:center;margin:8px 0;font-weight:600"><input type="checkbox" name="nlAuto" ${st.autoNewsletter !== false ? 'checked' : ''}> Send automatically every Saturday</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-green" data-nl="auto">Save</button><button class="btn" data-nl="auto-now" title="Builds and sends this week’s issue now, even if it isn’t Saturday">Build and send this week’s issue now</button></div>
         </div>
         <div class="card"><h2 style="margin-top:0">Sending speed</h2>
-          <p style="font-size:.76rem;color:#9eb3cc">Resend's free plan allows about 100 emails a day in total, and member alerts use some of those. A bigger list carries on automatically the next day. If you move to a paid Resend plan, raise this number.</p>
+          <p style="font-size:.76rem;color:#4a5570">Resend's free plan allows about 100 emails a day in total, and member alerts use some of those. A bigger list carries on automatically the next day. If you move to a paid Resend plan, raise this number.</p>
           <div style="display:flex;gap:8px;align-items:end"><label style="flex:1"><span class="field">Newsletter emails per day</span><input class="input" type="number" name="nlLimit" min="1" value="${st.dailyLimit}"></label><button class="btn" data-nl="limit">Save</button></div>
         </div>
         <div class="card"><h2 style="margin-top:0">Past and current newsletters</h2>
           ${d.issues.length ? d.issues.map((x) => { const b = statusBadge[x.status] || statusBadge.draft; const pct = x.total ? Math.round(((x.sent || 0) / x.total) * 100) : 0; return `
-          <div style="border-top:1px solid rgba(255,255,255,.08);padding:10px 0">
-            <div style="display:flex;justify-content:space-between;gap:8px"><strong style="color:#fff;font-size:.84rem">${h(x.subject || '(no subject)')}</strong><span style="color:${b[1]};font-size:.72rem;font-weight:700">${b[0]}</span></div>
-            <div style="font-size:.7rem;color:#9eb3cc">${h(d.audiences[x.audience] || '')} · ${fmtDate(x.sentAt || x.startedAt || x.updatedAt || x.createdAt)}</div>
-            ${x.status !== 'draft' ? `<div style="height:8px;background:rgba(255,255,255,.08);border-radius:6px;margin:6px 0"><div style="height:8px;width:${pct}%;background:${b[1]};border-radius:6px"></div></div><div style="font-size:.7rem;color:#dbe6f3">${fmtNum(x.sent || 0)} of ${fmtNum(x.total || 0)} sent${x.failed ? `, ${fmtNum(x.failed)} failed` : ''}${x.lastError ? ` · <span style="color:#f26a6a">${h(x.lastError)}</span>` : ''}</div>` : ''}
+          <div style="border-top:1px solid #dfe4ef;padding:10px 0">
+            <div style="display:flex;justify-content:space-between;gap:8px"><strong style="color:#0a1128;font-size:.84rem">${h(x.subject || '(no subject)')}</strong><span style="color:${b[1]};font-size:.72rem;font-weight:700">${b[0]}</span></div>
+            <div style="font-size:.7rem;color:#4a5570">${h(d.audiences[x.audience] || '')} · ${fmtDate(x.sentAt || x.startedAt || x.updatedAt || x.createdAt)}</div>
+            ${x.status !== 'draft' ? `<div style="height:8px;background:#dfe4ef;border-radius:6px;margin:6px 0"><div style="height:8px;width:${pct}%;background:${b[1]};border-radius:6px"></div></div><div style="font-size:.7rem;color:#2c3650">${fmtNum(x.sent || 0)} of ${fmtNum(x.total || 0)} sent${x.failed ? `, ${fmtNum(x.failed)} failed` : ''}${x.lastError ? ` · <span style="color:#c62f3f">${h(x.lastError)}</span>` : ''}</div>` : ''}
             <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
               <button class="btn" data-nl="open" data-id="${h(x.id)}" style="padding:4px 10px">${x.status === 'draft' ? 'Edit' : 'View'}</button>
               ${x.status === 'draft' ? `<button class="btn" data-nl="delete" data-id="${h(x.id)}" style="padding:4px 10px">Delete</button>` : ''}
               ${x.status === 'sending' ? `<button class="btn" data-nl="continue" style="padding:4px 10px">Send next batch now</button><button class="btn" data-nl="stop" data-id="${h(x.id)}" style="padding:4px 10px">Stop</button>` : ''}
               ${x.status === 'sent' ? `<a class="btn" href="/newsletter/${h(x.id)}" target="_blank" rel="noopener" style="padding:4px 10px">Web page</a>` : ''}
             </div>
-          </div>`; }).join('') : '<p style="color:#9eb3cc;font-size:.8rem">None yet.</p>'}
+          </div>`; }).join('') : '<p style="color:#4a5570;font-size:.8rem">None yet.</p>'}
           <p style="margin-top:10px"><button class="btn" data-nl="csv">Download subscriber list (CSV)</button></p>
         </div>
       </div>
@@ -2172,7 +2179,7 @@ function nlRead() {
     ...(STATE.nlEdit || {}),
     premiumSection: Boolean(ed.querySelector('[name=premiumSection]')?.checked),
     subject: v('subject'), preheader: v('preheader'), intro: v('intro'), closing: v('closing'), audience: v('audience') || 'everyone',
-    items: qsa('#nlItems .nl-item').map((el) => ({ heading: el.querySelector('[name=heading]').value, text: el.querySelector('[name=text]').value, url: el.querySelector('[name=url]').value, button: el.querySelector('[name=button]').value })),
+    items: qsa('#nlItems .nl-item').map((el) => ({ heading: el.querySelector('[name=heading]').value, text: el.querySelector('[name=text]').value, url: el.querySelector('[name=url]').value, button: el.querySelector('[name=button]').value, image: el.querySelector('[name=image]')?.value || '' })),
   };
 }
 
@@ -2184,7 +2191,7 @@ async function nlPreview() {
 
 function bind_newsletter() {
   const msg = qs('#nlMsg');
-  const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? '#f26a6a' : '#2bc48a'; } };
+  const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? '#c62f3f' : '#0f8a5a'; } };
   const redraw = async (keepEdit) => { if (keepEdit) STATE.nlEdit = keepEdit; STATE.nl = await API.nlGet(); setMain(render_newsletter()); bind_newsletter(); };
   const saveDraft = async () => { const r = await API.nlPost('save', nlRead()); STATE.nlEdit = r.issue; return r.issue; };
   qsa('#nlEditor input, #nlEditor textarea, #nlEditor select').forEach((el) => el.addEventListener('change', nlPreview));
@@ -2225,7 +2232,7 @@ function bind_newsletter() {
       if (act === 'stop') { if (!window.confirm('Stop sending? People who already got it keep it.')) { btn.disabled = false; return; } await API.nlPost('stop', { id: btn.dataset.id }); await redraw(); return; }
       if (act === 'once' || act === 'invite' || act === 'gift') {
         const pm = qs('#nlPeopleMsg'); const emails = qs('#nlPeople').value;
-        const show = (t, bad) => { pm.textContent = t; pm.style.color = bad ? '#f26a6a' : '#2bc48a'; };
+        const show = (t, bad) => { pm.textContent = t; pm.style.color = bad ? '#c62f3f' : '#0f8a5a'; };
         if (!emails.trim()) { show('Add at least one email address.', true); btn.disabled = false; return; }
         show('Working…');
         let r; let text;
@@ -2250,6 +2257,8 @@ function bind_newsletter() {
         if (act !== 'once') { STATE.nl = await API.nlGet(); }
         btn.disabled = false; return;
       }
+      if (act === 'auto') { const r = await API.nlPost('auto', { on: qs('[name=nlAuto]').checked }); showToast(r.on ? 'The newsletter will go out by itself every Saturday' : 'Automatic Saturday newsletter switched off'); return; }
+      if (act === 'auto-now') { if (!window.confirm('Build this week’s newsletter from the site and send it to everyone now?')) return; btn.disabled = true; const r = await API.nlPost('auto-now', {}); showToast(r.message || 'Started'); await redraw(nlRead()); return; }
       if (act === 'limit') { const r = await API.nlPost('limit', { limit: qs('[name=nlLimit]').value }); showToast(`Daily limit set to ${r.dailyLimit}`); await redraw(nlRead()); return; }
       if (act === 'csv') {
         const res = await fetch('/api/admin/newsletter/subscribers.csv', { headers: { 'x-session-token': STATE.token } });
@@ -2286,7 +2295,7 @@ function render_social() {
       <div class="card" id="soForm">
         <label style="display:block;margin:0 0 10px"><span class="field">Link</span><input class="input" name="url" value="${h(st.url || '')}" placeholder="https://drmoneywise.com/learn/... or /stock/KO or /results or a picture link"></label>
         <span class="field">Sizes</span>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 10px">${SOCIAL_SIZES.map(([k, l, d]) => `<label style="display:flex;gap:8px;align-items:flex-start;font-size:.76rem;color:#dbe6f3;background:rgba(255,255,255,.04);border-radius:10px;padding:8px"><input type="checkbox" name="size" value="${k}" ${(st.sizes || ['square', 'story']).includes(k) ? 'checked' : ''} style="width:auto;margin-top:2px"><span><b>${l}</b><br><span style="color:#9eb3cc">${d}</span></span></label>`).join('')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 10px">${SOCIAL_SIZES.map(([k, l, d]) => `<label style="display:flex;gap:8px;align-items:flex-start;font-size:.76rem;color:#2c3650;background:#f3f6fb;border-radius:10px;padding:8px"><input type="checkbox" name="size" value="${k}" ${(st.sizes || ['square', 'story']).includes(k) ? 'checked' : ''} style="width:auto;margin-top:2px"><span><b>${l}</b><br><span style="color:#4a5570">${d}</span></span></label>`).join('')}</div>
         <label style="display:block;margin:0 0 10px"><span class="field">Look</span><select name="style"><option value="auto" ${st.style !== 'brand' ? 'selected' : ''}>With a photo when the page has one (Pexels)</option><option value="brand" ${st.style === 'brand' ? 'selected' : ''}>Plain navy and gold</option></select></label>
         <label style="display:block;margin:0 0 10px"><span class="field">Headline (optional: replaces the page’s own)</span><input class="input" name="title" value="${h(st.title || '')}" maxlength="200"></label>
         <label style="display:block;margin:0 0 10px"><span class="field">Short text (optional)</span><textarea name="sub" rows="2" maxlength="400">${h(st.sub || '')}</textarea></label>
@@ -2295,7 +2304,7 @@ function render_social() {
           <button class="btn" data-so="gamma" title="Explainers only; takes 1–3 minutes">Make a Gamma infographic</button>
           <span id="soMsg" style="font-size:.76rem"></span>
         </div>
-        <p style="font-size:.7rem;color:#9eb3cc;margin-top:10px">Works with: explainers (/learn/…), companies (/stock/…), results (/results or a result’s link), Shariah pages, research reports and any other page (uses its title and description). For picture links, only use pictures you’re allowed to post: your own, or free ones such as Pexels.</p>
+        <p style="font-size:.7rem;color:#4a5570;margin-top:10px">Works with: explainers (/learn/…), companies (/stock/…), results (/results or a result’s link), Shariah pages, research reports and any other page (uses its title and description). For picture links, only use pictures you’re allowed to post: your own, or free ones such as Pexels.</p>
       </div>
       <div class="card">
         <h2 style="margin-top:0">Caption</h2>
@@ -2303,12 +2312,12 @@ function render_social() {
         <p style="margin-top:8px"><button class="btn" data-so="copy">Copy caption</button></p>
       </div>
     </div>
-    <div class="card"><h2 style="margin-top:0">Pictures</h2><div id="soPics" style="display:flex;flex-wrap:wrap;gap:14px">${res ? '' : '<p style="color:#9eb3cc;font-size:.8rem">Your pictures will appear here.</p>'}</div></div>
+    <div class="card"><h2 style="margin-top:0">Pictures</h2><div id="soPics" style="display:flex;flex-wrap:wrap;gap:14px">${res ? '' : '<p style="color:#4a5570;font-size:.8rem">Your pictures will appear here.</p>'}</div></div>
     <div class="card"><h2 style="margin-top:0">Gamma themes</h2>
-      <p style="font-size:.76rem;color:#9eb3cc">Choose the look Gamma uses for infographics. “Make 2 samples” creates two example pictures in that theme (it uses one Gamma generation, so a little of your Gamma credit), and they are kept here so you only make them once.</p>
-      <div id="soThemes" style="display:flex;flex-wrap:wrap;gap:12px"><span style="color:#9eb3cc;font-size:.8rem">Loading themes…</span></div>
+      <p style="font-size:.76rem;color:#4a5570">Choose the look Gamma uses for infographics. “Make 2 samples” creates two example pictures in that theme (it uses one Gamma generation, so a little of your Gamma credit), and they are kept here so you only make them once.</p>
+      <div id="soThemes" style="display:flex;flex-wrap:wrap;gap:12px"><span style="color:#4a5570;font-size:.8rem">Loading themes…</span></div>
     </div>
-    <div class="card"><h2 style="margin-top:0">Made in the last 30 days</h2><div id="soRecent" style="display:flex;flex-wrap:wrap;gap:8px"><span style="color:#9eb3cc;font-size:.8rem">Loading…</span></div></div>`;
+    <div class="card"><h2 style="margin-top:0">Made in the last 30 days</h2><div id="soRecent" style="display:flex;flex-wrap:wrap;gap:8px"><span style="color:#4a5570;font-size:.8rem">Loading…</span></div></div>`;
 }
 
 async function soBlob(file) {
@@ -2325,7 +2334,7 @@ async function soShow(items) {
     const d = document.createElement('div');
     d.style.cssText = 'width:240px';
     d.innerHTML = `<img src="${url}" alt="" style="width:100%;border-radius:10px;display:block;background:#111">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.72rem;color:#9eb3cc"><span>${h(it.size)} · ${it.w}×${it.h}</span><a class="btn" href="${url}" download="drmoneywise-${h(it.file)}" style="padding:4px 10px">Download</a></div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.72rem;color:#4a5570"><span>${h(it.size)} · ${it.w}×${it.h}</span><a class="btn" href="${url}" download="drmoneywise-${h(it.file)}" style="padding:4px 10px">Download</a></div>`;
     box.appendChild(d);
   }
 }
@@ -2334,7 +2343,7 @@ async function soRecent() {
   if (!box) return;
   try {
     const r = await API.get('/api/admin/social/recent');
-    box.innerHTML = r.files.length ? '' : '<span style="color:#9eb3cc;font-size:.8rem">None yet.</span>';
+    box.innerHTML = r.files.length ? '' : '<span style="color:#4a5570;font-size:.8rem">None yet.</span>';
     for (const f of r.files) {
       const url = await soBlob(f).catch(() => '');
       const a = document.createElement('a');
@@ -2348,16 +2357,16 @@ async function soRecent() {
 async function soThemes() {
   const box = qs('#soThemes'); if (!box) return;
   let r;
-  try { r = await API.get('/api/admin/social/gamma-themes'); } catch (e) { box.innerHTML = `<span style="color:#f26a6a;font-size:.8rem">Themes not available: ${h(e.message)}</span>`; return; }
-  if (!r.themes.length) { box.innerHTML = '<span style="color:#9eb3cc;font-size:.8rem">No themes found. Check the Gamma key in APIs & More.</span>'; return; }
+  try { r = await API.get('/api/admin/social/gamma-themes'); } catch (e) { box.innerHTML = `<span style="color:#c62f3f;font-size:.8rem">Themes not available: ${h(e.message)}</span>`; return; }
+  if (!r.themes.length) { box.innerHTML = '<span style="color:#4a5570;font-size:.8rem">No themes found. Check the Gamma key in APIs & More.</span>'; return; }
   const list = [{ id: '', name: 'Gamma’s default', type: '' }, ...r.themes.sort((a, b) => (b.type === 'custom') - (a.type === 'custom') || a.name.localeCompare(b.name))];
   box.innerHTML = list.map((t) => {
     const pv = r.previews?.[t.id]?.urls || [];
     const on = (r.chosen || '') === t.id;
-    return `<div class="card" style="width:250px;margin:0;padding:10px;border:2px solid ${on ? '#c9a227' : 'rgba(255,255,255,.08)'}">
-      <div style="display:flex;gap:4px;margin-bottom:6px;min-height:118px">${pv.length ? pv.map((u) => `<a href="${h(u)}" target="_blank" rel="noopener"><img src="${h(u)}" alt="" style="width:113px;height:113px;object-fit:cover;border-radius:6px"></a>`).join('') : '<div style="flex:1;display:grid;place-items:center;background:rgba(255,255,255,.04);border-radius:6px;color:#9eb3cc;font-size:.7rem">No samples yet</div>'}</div>
-      <strong style="color:#fff;font-size:.82rem">${h(t.name)}</strong>${t.type === 'custom' ? ' <span style="color:#c9a227;font-size:.68rem">yours</span>' : ''}
-      ${(t.colors || []).length ? `<div style="font-size:.68rem;color:#9eb3cc">${h(t.colors.slice(0, 4).join(', '))}</div>` : ''}
+    return `<div class="card" style="width:250px;margin:0;padding:10px;border:2px solid ${on ? '#c9a227' : '#dfe4ef'}">
+      <div style="display:flex;gap:4px;margin-bottom:6px;min-height:118px">${pv.length ? pv.map((u) => `<a href="${h(u)}" target="_blank" rel="noopener"><img src="${h(u)}" alt="" style="width:113px;height:113px;object-fit:cover;border-radius:6px"></a>`).join('') : '<div style="flex:1;display:grid;place-items:center;background:#f3f6fb;border-radius:6px;color:#4a5570;font-size:.7rem">No samples yet</div>'}</div>
+      <strong style="color:#0a1128;font-size:.82rem">${h(t.name)}</strong>${t.type === 'custom' ? ' <span style="color:#8a6a10;font-size:.68rem">yours</span>' : ''}
+      ${(t.colors || []).length ? `<div style="font-size:.68rem;color:#4a5570">${h(t.colors.slice(0, 4).join(', '))}</div>` : ''}
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
         ${t.id ? `<button class="btn" data-th="sample" data-id="${h(t.id)}" style="padding:4px 10px">${pv.length ? 'Make new samples' : 'Make 2 samples'}</button>` : ''}
         <button class="btn ${on ? 'btn-gold' : ''}" data-th="use" data-id="${h(t.id)}" style="padding:4px 10px">${on ? 'In use' : 'Use this theme'}</button>
@@ -2368,15 +2377,15 @@ async function soThemes() {
     btn.disabled = true;
     try {
       if (btn.dataset.th === 'use') { await API.post('/api/admin/social/gamma-theme', { themeId: btn.dataset.id }); showToast('Gamma theme saved'); await soThemes(); return; }
-      msg.style.color = '#2bc48a'; msg.textContent = 'Gamma is making 2 samples (1–3 minutes)…';
+      msg.style.color = '#0f8a5a'; msg.textContent = 'Gamma is making 2 samples (1–3 minutes)…';
       const { job } = await API.post('/api/admin/social/theme-preview', { themeId: btn.dataset.id });
       for (let i = 0; i < 60; i += 1) {
         await new Promise((res) => setTimeout(res, 5000));
         const j = await API.get('/api/admin/social/gamma?job=' + job);
         if (j.status === 'done') { await soThemes(); return; }
-        if (j.status !== 'working') { msg.style.color = '#f26a6a'; msg.textContent = j.error || 'Didn’t finish.'; break; }
+        if (j.status !== 'working') { msg.style.color = '#c62f3f'; msg.textContent = j.error || 'Didn’t finish.'; break; }
       }
-    } catch (e) { msg.style.color = '#f26a6a'; msg.textContent = e.message; }
+    } catch (e) { msg.style.color = '#c62f3f'; msg.textContent = e.message; }
     btn.disabled = false;
   }));
 }
@@ -2384,7 +2393,7 @@ async function load_social() { setMain(render_social()); bind_social(); soRecent
 
 function bind_social() {
   const msg = qs('#soMsg');
-  const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? '#f26a6a' : '#2bc48a'; };
+  const say = (t, bad) => { msg.textContent = t; msg.style.color = bad ? '#c62f3f' : '#0f8a5a'; };
   const read = () => {
     const f = qs('#soForm');
     return { url: f.querySelector('[name=url]').value.trim(), sizes: qsa('#soForm [name=size]:checked').map((x) => x.value), style: f.querySelector('[name=style]').value, title: f.querySelector('[name=title]').value.trim(), sub: f.querySelector('[name=sub]').value.trim() };
@@ -2439,17 +2448,17 @@ function render_video() {
   const p = STATE.vp;
   const busy = p && p.status === 'rendering';
   const sceneCard = (s, i) => `
-      <div class="card" data-sc="${h(s.id)}" style="background:rgba(255,255,255,.03);margin:0 0 10px">
+      <div class="card" data-sc="${h(s.id)}" style="background:#f6f8fc;margin:0 0 10px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <strong style="font-size:.78rem;color:#c9a227">Scene ${i + 1} · ${h({ title: 'Title', point: 'Point', stats: 'Numbers', list: 'Summary', cta: 'Closing' }[s.kind] || s.kind)}</strong>
-          <span style="font-size:.7rem;color:#9eb3cc">about ${Math.max(2, Math.round(s.text.split(/\s+/).filter(Boolean).length / 2.5))} seconds</span>
+          <strong style="font-size:.78rem;color:#8a6a10">Scene ${i + 1} · ${h({ title: 'Title', point: 'Point', stats: 'Numbers', list: 'Summary', cta: 'Closing' }[s.kind] || s.kind)}</strong>
+          <span style="font-size:.7rem;color:#4a5570">about ${Math.max(2, Math.round(s.text.split(/\s+/).filter(Boolean).length / 2.5))} seconds</span>
         </div>
         <label style="display:block;margin:6px 0"><span class="field">Heading on screen (optional)</span><input class="input" name="heading" value="${h(s.heading || '')}" maxlength="70"></label>
         <label style="display:block;margin:6px 0"><span class="field">What is said</span><textarea name="text" rows="3" maxlength="1200">${h(s.text)}</textarea></label>
         ${s.kind === 'point' ? '' : ''}
         <div class="vm-own" style="display:${p.voice === 'own' ? 'flex' : 'none'};gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn" data-vm="rec" data-id="${h(s.id)}">● Record</button>
-          ${s.voiceFile ? `<button class="btn" data-vm="play" data-file="${h(s.voiceFile)}">▶ Play (${(s.voiceSeconds || 0).toFixed(1)} s)</button>` : '<span style="font-size:.72rem;color:#9eb3cc">Not recorded yet</span>'}
+          ${s.voiceFile ? `<button class="btn" data-vm="play" data-file="${h(s.voiceFile)}">▶ Play (${(s.voiceSeconds || 0).toFixed(1)} s)</button>` : '<span style="font-size:.72rem;color:#4a5570">Not recorded yet</span>'}
           <label class="btn" style="cursor:pointer">Upload file<input type="file" accept="audio/*" data-vm="file" data-id="${h(s.id)}" style="display:none"></label>
         </div>
       </div>`;
@@ -2471,30 +2480,30 @@ function render_video() {
     <div class="card-grid two-col">
       <div class="card" id="vmScript">
         <h2 style="margin-top:0">${h(p.title)}</h2>
-        <p style="font-size:.74rem;color:#9eb3cc">${h(d.formats?.[p.format]?.label || p.format)} · ${p.scenes.length} scenes · about ${Math.round(p.scenes.reduce((a, s) => a + Math.max(2.5, s.text.split(/\s+/).filter(Boolean).length / 2.5 + 0.5), 0) + 6)} seconds. Edit the words as you like; keep figures as they are.</p>
+        <p style="font-size:.74rem;color:#4a5570">${h(d.formats?.[p.format]?.label || p.format)} · ${p.scenes.length} scenes · about ${Math.round(p.scenes.reduce((a, s) => a + Math.max(2.5, s.text.split(/\s+/).filter(Boolean).length / 2.5 + 0.5), 0) + 6)} seconds. Edit the words as you like; keep figures as they are.</p>
         ${p.scenes.map(sceneCard).join('')}
       </div>
       <div>
         <div class="card">
           <h2 style="margin-top:0">Voice</h2>
-          <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#dbe6f3"><input type="radio" name="voice" value="computer" ${p.voice === 'computer' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>Computer voice</b>: quickest. Google’s voices sound the most natural and use your Gemini key (it has a free allowance).${d.computerVoice ? '' : ' <span style="color:#f26a6a">Needs the Gemini or OpenAI key (APIs & More).</span>'}<br><span style="color:#9eb3cc">The description will say “Narration voice is computer-generated”, as the voice providers’ rules ask.</span></span></label>
+          <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#2c3650"><input type="radio" name="voice" value="computer" ${p.voice === 'computer' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>Computer voice</b>: quickest. Google’s voices sound the most natural and use your Gemini key (it has a free allowance).${d.computerVoice ? '' : ' <span style="color:#c62f3f">Needs the Gemini or OpenAI key (APIs & More).</span>'}<br><span style="color:#4a5570">The description will say “Narration voice is computer-generated”, as the voice providers’ rules ask.</span></span></label>
           <div style="display:flex;gap:8px;align-items:end;margin:4px 0 10px 26px"><label style="flex:1"><span class="field">Which voice</span><select name="voiceName">
             <optgroup label="Google (most natural)${d.voiceKeys?.gemini ? '' : ': needs the Gemini key'}">${(d.voices || []).filter((v) => v.provider === 'gemini').map((v) => `<option value="${h(v.id)}" ${p.voiceName === v.id ? 'selected' : ''}>${h(v.label)}</option>`).join('')}</optgroup>
             <optgroup label="OpenAI${d.voiceKeys?.openai ? '' : ': needs the OpenAI key'}">${(d.voices || []).filter((v) => v.provider === 'openai').map((v) => `<option value="${h(v.id)}" ${p.voiceName === v.id || p.voiceName === v.id.split(':')[1] ? 'selected' : ''}>${h(v.label)}</option>`).join('')}</optgroup>
           </select></label><button class="btn" data-vm="listen">▶ Listen</button></div>
-          <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#dbe6f3"><input type="radio" name="voice" value="own" ${p.voice === 'own' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>My own voice</b>: record each scene with the ● Record buttons (allow the microphone), or upload one recording of the whole script below.</span></label>
+          <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#2c3650"><input type="radio" name="voice" value="own" ${p.voice === 'own' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>My own voice</b>: record each scene with the ● Record buttons (allow the microphone), or upload one recording of the whole script below.</span></label>
           <div class="vm-own" style="display:${p.voice === 'own' ? 'block' : 'none'};margin:8px 0 0 26px">
             <label class="btn" style="cursor:pointer">Upload the whole script as one file<input type="file" accept="audio/*" data-vm="file" data-id="all" style="display:none"></label>
-            ${p.voiceAll ? `<p style="font-size:.72rem;color:#2bc48a">Whole recording saved (${p.voiceAll.seconds.toFixed(1)} s). Scenes are timed by their number of words.</p>` : ''}
+            ${p.voiceAll ? `<p style="font-size:.72rem;color:#0f8a5a">Whole recording saved (${p.voiceAll.seconds.toFixed(1)} s). Scenes are timed by their number of words.</p>` : ''}
           </div>
           <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center">
             <button class="btn" data-vm="save" ${busy ? 'disabled' : ''}>Save script</button>
             ${p.voice === 'computer' ? `<button class="btn" data-vm="preview" ${busy ? 'disabled' : ''} title="Hear the opening in the chosen voice before making the whole video">▶ Hear the voice first</button>` : ''}
             <button class="btn btn-gold" data-vm="render" ${busy ? 'disabled' : ''}>Make the video</button>
           </div>
-          ${p.status === 'rendering' ? `<div style="margin-top:12px"><div style="height:10px;background:rgba(255,255,255,.08);border-radius:6px"><div style="height:10px;width:${p.progress?.pct || 2}%;background:#c9a227;border-radius:6px"></div></div><p style="font-size:.74rem;color:#dbe6f3">${h(p.progress?.step || 'Working')}… (a Short takes about a minute; a long video several minutes)</p><button class="btn" data-vm="cancel" data-id="${h(p.id)}" style="color:#f2b45a;margin-top:4px">Cancel: stop making this video</button></div>` : ''}
-          ${p.note && p.status === 'draft' ? `<p style="font-size:.76rem;color:#f2b45a">${h(p.note)}</p>` : ''}
-          ${p.status === 'failed' ? `<p style="font-size:.76rem;color:#f26a6a">Couldn’t make the video: ${h(p.error || '')}</p>` : ''}
+          ${p.status === 'rendering' ? `<div style="margin-top:12px"><div style="height:10px;background:#dfe4ef;border-radius:6px"><div style="height:10px;width:${p.progress?.pct || 2}%;background:#c9a227;border-radius:6px"></div></div><p style="font-size:.74rem;color:#2c3650">${h(p.progress?.step || 'Working')}… (a Short takes about a minute; a long video several minutes)</p><button class="btn" data-vm="cancel" data-id="${h(p.id)}" style="color:#a65f00;margin-top:4px">Cancel: stop making this video</button></div>` : ''}
+          ${p.note && p.status === 'draft' ? `<p style="font-size:.76rem;color:#a65f00">${h(p.note)}</p>` : ''}
+          ${p.status === 'failed' ? `<p style="font-size:.76rem;color:#c62f3f">Couldn’t make the video: ${h(p.error || '')}</p>` : ''}
         </div>
         ${p.status === 'done' ? `<div class="card" id="vmDone">
           <h2 style="margin-top:0">Your video (${p.seconds} s)</h2>
@@ -2508,14 +2517,14 @@ function render_video() {
       </div>
     </div>` : ''}
     ${d.storage ? `<div class="card"><h2 style="margin-top:0">Saved-data space</h2>
-      ${d.storage.freeMb !== null ? `<p style="font-size:.8rem;color:${d.storage.freeMb < 300 ? '#f26a6a' : '#dbe6f3'}"><b>${d.storage.freeMb} MB free</b> of ${d.storage.totalMb} MB. Videos are made in temporary space; only the finished MP4s are kept (the newest 10).</p>
-      <div style="height:10px;background:rgba(255,255,255,.08);border-radius:6px;margin:6px 0 10px"><div style="height:10px;width:${Math.min(100, Math.round(100 - (d.storage.freeMb / Math.max(1, d.storage.totalMb)) * 100))}%;background:${d.storage.freeMb < 300 ? '#f26a6a' : '#c9a227'};border-radius:6px"></div></div>` : ''}
-      <details ${d.storage.freeMb !== null && d.storage.freeMb < 300 ? 'open' : ''}><summary style="cursor:pointer;font-size:.76rem;color:#9eb3cc">What uses the space</summary>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px"><div><b style="font-size:.72rem;color:#c9a227">Folders</b>${d.storage.parts.map((x) => `<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#dbe6f3;padding:2px 0"><span>${h(x.name)}</span><span>${x.mb} MB</span></div>`).join('')}</div>
-        <div><b style="font-size:.72rem;color:#c9a227">Biggest files</b>${(d.storage.biggest || []).map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:.72rem;color:#dbe6f3;padding:2px 0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(x.name)}</span><span>${x.mb} MB</span></div>`).join('')}</div></div></details>
-      <p style="margin-top:10px"><button class="btn" data-vm="free">Free up space</button> <span style="font-size:.7rem;color:#9eb3cc">Removes leftover and half-made video files, all but the newest 3 videos, social and Gamma pictures older than a day, and half-written temporary files.</span></p></div>` : ''}
+      ${d.storage.freeMb !== null ? `<p style="font-size:.8rem;color:${d.storage.freeMb < 300 ? '#c62f3f' : '#dbe6f3'}"><b>${d.storage.freeMb} MB free</b> of ${d.storage.totalMb} MB. Videos are made in temporary space; only the finished MP4s are kept (the newest 10).</p>
+      <div style="height:10px;background:#dfe4ef;border-radius:6px;margin:6px 0 10px"><div style="height:10px;width:${Math.min(100, Math.round(100 - (d.storage.freeMb / Math.max(1, d.storage.totalMb)) * 100))}%;background:${d.storage.freeMb < 300 ? '#c62f3f' : '#c9a227'};border-radius:6px"></div></div>` : ''}
+      <details ${d.storage.freeMb !== null && d.storage.freeMb < 300 ? 'open' : ''}><summary style="cursor:pointer;font-size:.76rem;color:#4a5570">What uses the space</summary>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px"><div><b style="font-size:.72rem;color:#8a6a10">Folders</b>${d.storage.parts.map((x) => `<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#2c3650;padding:2px 0"><span>${h(x.name)}</span><span>${x.mb} MB</span></div>`).join('')}</div>
+        <div><b style="font-size:.72rem;color:#8a6a10">Biggest files</b>${(d.storage.biggest || []).map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:.72rem;color:#2c3650;padding:2px 0"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(x.name)}</span><span>${x.mb} MB</span></div>`).join('')}</div></div></details>
+      <p style="margin-top:10px"><button class="btn" data-vm="free">Free up space</button> <span style="font-size:.7rem;color:#4a5570">Removes leftover and half-made video files, all but the newest 3 videos, social and Gamma pictures older than a day, and half-written temporary files.</span></p></div>` : ''}
     <div class="card"><h2 style="margin-top:0">Your videos</h2>
-      ${d.projects.length ? d.projects.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.08);padding:8px 0;font-size:.8rem"><span style="color:#fff">${h(x.title)}<br><span style="color:#9eb3cc;font-size:.7rem">${x.format === 'short' ? 'Short' : 'Video'} · ${h(x.status)}${x.seconds ? ` · ${x.seconds} s` : ''} · ${fmtDate(x.createdAt)}</span></span><span style="display:flex;gap:6px;align-self:center"><button class="btn" data-vm="open" data-id="${h(x.id)}" style="padding:4px 10px">Open</button>${x.status === 'rendering' ? `<button class="btn" data-vm="cancel" data-id="${h(x.id)}" style="padding:4px 10px;color:#f2b45a">Cancel</button>` : ''}<button class="btn" data-vm="del" data-id="${h(x.id)}" style="padding:4px 10px;color:#f26a6a">Delete</button></span></div>`).join('') : '<p style="color:#9eb3cc;font-size:.8rem">None yet.</p>'}
+      ${d.projects.length ? d.projects.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;border-top:1px solid #dfe4ef;padding:8px 0;font-size:.8rem"><span style="color:#0a1128">${h(x.title)}<br><span style="color:#4a5570;font-size:.7rem">${x.format === 'short' ? 'Short' : 'Video'} · ${h(x.status)}${x.seconds ? ` · ${x.seconds} s` : ''} · ${fmtDate(x.createdAt)}</span></span><span style="display:flex;gap:6px;align-self:center"><button class="btn" data-vm="open" data-id="${h(x.id)}" style="padding:4px 10px">Open</button>${x.status === 'rendering' ? `<button class="btn" data-vm="cancel" data-id="${h(x.id)}" style="padding:4px 10px;color:#a65f00">Cancel</button>` : ''}<button class="btn" data-vm="del" data-id="${h(x.id)}" style="padding:4px 10px;color:#c62f3f">Delete</button></span></div>`).join('') : '<p style="color:#4a5570;font-size:.8rem">None yet.</p>'}
     </div>`;
 }
 
@@ -2552,7 +2561,7 @@ function vmPoll() {
 
 function bind_video() {
   const msg = qs('#vmMsg');
-  const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? '#f26a6a' : '#2bc48a'; } };
+  const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? '#c62f3f' : '#0f8a5a'; } };
   qsa('[name=voice]').forEach((r) => r.addEventListener('change', () => qsa('.vm-own').forEach((el) => { el.style.display = r.value === 'own' && r.checked ? (el.tagName === 'DIV' && el.closest('[data-sc]') ? 'flex' : 'block') : 'none'; })));
   if (STATE.vp?.status === 'done') {
     soVideo();
@@ -2633,7 +2642,7 @@ function bind_video() {
           const blob = new Blob(VM.chunks, { type: VM.rec.mimeType || 'audio/webm' });
           try { await API.post('/api/admin/video/save', vmRead()); const r = await vmUpload(VM.recScene, blob); showToast(`Scene recorded (${r.seconds} s)`); STATE.vp = await API.get('/api/admin/video/project?id=' + STATE.vp.id); await vmRefresh(); } catch (e) { showToast(e.message); }
         };
-        VM.rec.start(); btn.textContent = '■ Stop'; btn.style.background = '#f26a6a'; btn.style.color = '#fff';
+        VM.rec.start(); btn.textContent = '■ Stop'; btn.style.background = '#c62f3f'; btn.style.color = '#fff';
         return;
       }
       if (act === 'dl') {

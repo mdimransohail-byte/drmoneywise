@@ -57,6 +57,7 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
       ${para(issue.intro || '')}
       ${items.map((x, i) => `
       <div style="border-left:5px solid ${colours[i % colours.length]};background:#fff;border-radius:10px;padding:14px 16px;margin:0 0 14px">
+        ${x.image ? `<a href="${esc(x.url ? (x.url.startsWith('/') ? `${site}${x.url}` : x.url) : x.image)}"><img src="${esc(x.image)}" alt="${esc(x.heading || 'Chart')}" width="560" style="display:block;width:100%;max-width:560px;height:auto;border-radius:8px;margin:0 0 10px;border:0"></a>` : ''}
         ${x.heading ? `<h2 style="font:700 18px Georgia,serif;margin:0 0 8px">${x.url ? `<a href="${esc(x.url.startsWith('/') ? `${site}${x.url}` : x.url)}" style="color:#0a1128;text-decoration:none">${esc(x.heading)}</a>` : esc(x.heading)}</h2>` : ''}
         ${para(x.text || '')}
         ${x.url ? `<p style="margin:0"><a href="${esc(x.url.startsWith('/') ? `${site}${x.url}` : x.url)}" style="display:inline-block;background:#c9a227;color:#0a1128;font-weight:700;text-decoration:none;padding:8px 14px;border-radius:999px">${esc(x.button || 'Read more')}</a></p>` : ''}
@@ -160,6 +161,7 @@ export async function newsletterStats() {
     subscribers: { active: subs.filter((x) => x.status === 'active').length, pending: subs.filter((x) => x.status === 'pending').length, unsubscribed: subs.filter((x) => x.status === 'unsubscribed').length, byPlan: Object.fromEntries(SUB_PLANS.map((pl) => [pl, subs.filter((x) => x.status === 'active' && subPlan(x) === pl).length])) },
     membersOptedOut: (store.users || []).filter((u) => u.email && u.role !== 'admin' && (u.emailPrefs || {}).newsletter === false).length,
     dailyLimit: store.settings?.newsletterDailyLimit || DEFAULT_DAILY,
+    autoNewsletter: store.settings?.autoNewsletter !== false,
     sentToday: sentToday(store),
     emailReady: Boolean(process.env.RESEND_API_KEY) && /@/u.test(process.env.ALERTS_EMAIL_FROM || ''),
   };
@@ -174,10 +176,12 @@ function cleanIssue(raw = {}) {
     closing: clean(raw.closing, 2000),
     audience: AUDIENCES[raw.audience] ? raw.audience : 'everyone',
     premiumSection: raw.premiumSection !== false,
-    items: (Array.isArray(raw.items) ? raw.items : []).slice(0, 10).map((x) => ({
+    items: (Array.isArray(raw.items) ? raw.items : []).slice(0, 18).map((x) => ({
       heading: clean(x.heading, 160), text: clean(x.text, 2000),
+      image: /^https?:\/\//u.test(String(x.image || '')) ? clean(x.image, 400) : '',
       url: /^https?:\/\/|^\//u.test(String(x.url || '')) ? clean(x.url, 400) : '', button: clean(x.button, 40),
     })).filter((x) => x.heading || x.text || x.url),
+    ...(raw.auto ? { auto: String(raw.auto).slice(0, 12) } : {}),
   };
 }
 
@@ -279,13 +283,17 @@ export async function draftFromSite() {
   const results = latestResults(300, 8).filter((r) => r.simple && big.has(r.ticker)).slice(0, 4);
   const report = (await listReports())[0];
   const { resultPath } = await import('./newsPages.js');
-  const business = await businessNews(results.length ? 3 : 5);
+  const business = await businessNews(results.length >= 3 ? 5 : 7);
+  // Pictures of the week's figures (markets this year, the Big Seven, the economy)
+  const { newsletterChartItems } = await import('./newsletterCharts.js');
+  const charts = await newsletterChartItems(site).catch(() => []);
   // The course, one week per issue: Week 1 in the first issue, Week 2 in the next…
   const course = await courseWeekItems(site);
   // News first (results, then other company news), then learning
   const items = [
     ...results.map((r) => ({ heading: `${r.name}: ${r.headline}`, text: r.simple || '', url: `${site}${resultPath(r)}`, button: 'Read the results, explained' })),
     ...business.map((n) => ({ heading: n.title, text: `${n.source}${n.when ? ` · ${n.when}` : ''}`, url: n.url, button: `Read on ${n.source}` })),
+    ...charts,
     ...(report ? [{ heading: `Research report: ${report.text.headline}`, text: String((report.text.summary || [])[0] || ''), url: `${site}/reports/${report.id}`, button: 'Read the report (Premium)' }] : []),
     ...course,
     ...explainers.map((a) => ({ heading: a.headline, text: a.summary || '', url: `${site}/learn/${a.slug}`, button: 'Read the explainer' })),
@@ -295,7 +303,7 @@ export async function draftFromSite() {
   return {
     subject: `Your week in money: ${date}`,
     preheader: results[0] ? `${results[0].name}: ${results[0].headline}` : business[0]?.title || explainers[0]?.headline || 'The week’s money news, explained simply',
-    intro: 'The week’s company news first: results explained simply and what businesses are doing. Then this week’s lessons from our course, from the basics up.',
+    intro: 'The week’s company news first: results explained simply and what businesses are doing, then the week in pictures. After that, this week’s lessons from our course, from the basics up.',
     closing: 'Have a good week,\nThe Dr MoneyWise team',
     audience: 'everyone',
     items,
@@ -413,6 +421,41 @@ export async function saveDailyLimit(n) {
   const v = Math.max(1, Math.min(100000, Math.round(Number(n) || DEFAULT_DAILY)));
   await updateStore((s) => { s.settings = { ...(s.settings || {}), newsletterDailyLimit: v }; return s; });
   return v;
+}
+
+/* ── Automatic Saturday newsletter ─────────────────────────────────────
+   Checked every hour by the data engine. On Saturday from 08:00 Dubai time
+   (04:00 UTC) it builds the issue from the site (news, charts, lessons),
+   saves it, starts sending to everyone, and emails the admin a copy of the
+   Premium version. Once per week only. Switch off in Admin → Newsletter. */
+const isoWeek = (d) => {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+  const y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return `${t.getUTCFullYear()}-W${String(Math.ceil(((t - y) / 86400000 + 1) / 7)).padStart(2, '0')}`;
+};
+export const AUTO_SEND_HOUR_UTC = 4;
+
+export async function autoWeeklyNewsletter({ force = false } = {}) {
+  const store = await readStore();
+  if (store.settings?.autoNewsletter === false && !force) return { ok: true, skipped: true, message: 'Automatic Saturday newsletter is switched off' };
+  const now = new Date();
+  if (!force && (now.getUTCDay() !== 6 || now.getUTCHours() < AUTO_SEND_HOUR_UTC)) return { ok: true, message: 'Waiting for Saturday morning' };
+  const week = isoWeek(now);
+  if ((store.newsletters || []).some((x) => x.auto === week)) return { ok: true, message: `This week’s newsletter (${week}) is already done` };
+  if ((store.newsletters || []).some((x) => x.status === 'sending')) return { ok: true, message: 'Another newsletter is still sending; will try again in an hour' };
+  if (!process.env.RESEND_API_KEY) return { ok: false, message: 'No Resend key saved: the Saturday newsletter can’t be sent' };
+  const draft = await draftFromSite();
+  const issue = await saveIssue(null, { ...draft, auto: week, premiumSection: true });
+  const started = await startSend(issue.id);
+  const admin = process.env.ADMIN_EMAIL;
+  if (admin) await sendTest(issue.id, admin, { premiumAs: { email: admin, plan: 'premium', name: 'Admin' } }).catch((e) => console.error(`[newsletter] copy to admin: ${e.message}`));
+  return { ok: true, message: `Saturday newsletter started: “${issue.subject}” to ${started.total} people${admin ? `; a copy went to ${admin}` : ''}` };
+}
+
+export async function saveAutoNewsletter(on) {
+  await updateStore((s) => { s.settings = { ...(s.settings || {}), autoNewsletter: Boolean(on) }; return s; });
+  return Boolean(on);
 }
 
 /** Sent issues for the public archive at /newsletter. */
