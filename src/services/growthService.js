@@ -274,8 +274,9 @@ export async function makePromoImage(raw) {
   const lines = ['Every lesson and PDF workbook · Health Check in full', 'Portfolio check · Chart alerts · No adverts'];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
   ${d.art}
-  <text x="70" y="110" font-family="Libre Baskerville" font-weight="700" font-size="40" fill="${d.brand}">Dr MoneyWise</text>
-  <text x="70" y="180" font-family="Lato" font-weight="900" font-size="26" fill="${d.ink}" letter-spacing="4">${x(d.tag)}</text>
+  <text x="70" y="104" font-family="Libre Baskerville" font-weight="700" font-size="40" fill="${d.brand}">Dr MoneyWise</text>
+  <text x="72" y="136" font-family="Lato" font-size="22" fill="${d.sub}">Your financial health, simplified.</text>
+  <text x="70" y="192" font-family="Lato" font-weight="900" font-size="26" fill="${d.ink}" letter-spacing="4">${x(d.tag)}</text>
   <text x="62" y="410" font-family="Lato" font-weight="900" font-size="220" fill="${d.big}">${p.percent}%</text>
   <text x="70" y="490" font-family="Libre Baskerville" font-weight="700" font-size="56" fill="${d.ink}">off Pro</text>
   <text x="70" y="565" font-family="Lato" font-size="24" fill="${d.sub}">${x(lines[0])}</text>

@@ -35,6 +35,7 @@
       (p.image ? '<a href="' + href + '" class="promo-img" data-go><img src="' + esc(p.image) + '" alt="' + esc(p.headline) + ': ' + esc(p.percent) + '% off Pro"></a>' : '') +
       '<div class="promo-body"><span class="promo-tag">' + esc(p.occasion) + '</span><h2>' + esc(p.headline) + '</h2><p>' + esc(p.text) + '</p>' +
       '<a class="promo-btn" href="' + href + '" data-go>' + esc(p.button) + '</a>' +
+      '<p class="promo-brand"><b>Dr MoneyWise</b> · Your financial health, simplified.</p>' +
       '<p class="promo-small">Code <b>' + esc(p.code) + '</b> · until ' + esc(until) + ' · cancel any time</p></div></div>';
     document.body.appendChild(wrap);
     ping(p.id, 'view');

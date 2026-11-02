@@ -244,8 +244,8 @@ async function injectNewsWidget(html) {
 export async function renderHomePage(template, origin) {
   const articles = (await getPublishedLearningArticles()).slice(0, 10);
   const head = buildHeadTags({
-    title: 'Dr MoneyWise — Money and Investing simplified',
-    description: 'Money and investing simplified: free courses from the basics up, a health score for every company, live market heat maps, calculators and guides for everyday investors.',
+    title: 'Dr MoneyWise — Money and Investing Made Simple',
+    description: 'Money and investing made simple: free courses from the basics up, a health score for every company, live market heat maps, calculators and guides for everyday investors.',
     canonical: `${origin}/`,
     jsonLd: {
       '@context': 'https://schema.org',
@@ -575,7 +575,7 @@ export function pageShell({ head, body, active }) {
   <body>
     <header class="site-header">
       <div class="wrap bar">
-        <a class="brand" href="/">Dr MoneyWise</a>
+        <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Your financial health, simplified.</small></a>
         <nav class="main-nav" aria-label="Main">
           ${links}
         </nav>
@@ -597,7 +597,7 @@ export function pageShell({ head, body, active }) {
     <footer class="site-footer">
       <div class="wrap">
         <div class="foot-grid">
-          <a class="brand" href="/">Dr MoneyWise</a>
+          <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Your financial health, simplified.</small></a>
           <div class="foot-links">
             <a href="/about">About</a>
             <a href="/contact">Contact</a>

@@ -2354,3 +2354,10 @@ body.has-ad-strip { padding-bottom: 52px; }
 .abroad-table th { text-align: left; background: #0a1128; color: #f7d07c; padding: 8px 10px; }
 .abroad-table td { padding: 8px 10px; border-bottom: 1px solid #e3d9c4; vertical-align: top; }
 .lock-chip { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 800; color: #5b2a9e; background: #f1e8ff; border-radius: 999px; padding: 2px 10px; }
+
+/* Tagline under the logo */
+.brand { display: inline-flex; flex-direction: column; line-height: 1.05; }
+.brand .brand-tag { font: 600 11.5px var(--sans, Arial, sans-serif); color: #cfd5f2; letter-spacing: .02em; margin-top: 3px; white-space: nowrap; }
+.site-footer .brand .brand-tag { color: inherit; opacity: .8; }
+@media (max-width: 420px) { .brand .brand-tag { font-size: 10px; } }
+.promo-brand { font-size: 13px !important; color: #2c3650 !important; margin: 10px 0 0 !important; }

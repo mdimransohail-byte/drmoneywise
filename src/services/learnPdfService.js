@@ -17,10 +17,14 @@ import path from 'node:path';
 import PDFDocument from 'pdfkit';
 
 const FONTS = path.join(process.cwd(), 'assets', 'fonts');
-// The Dr MoneyWise mascot (assets/brand): full figure for the first page, round badge for page headers
-const MASCOT = path.join(process.cwd(), 'assets', 'brand', 'mascot.png');
-const BADGE = path.join(process.cwd(), 'assets', 'brand', 'mascot-badge.png');
-const hasFile = (f) => { try { return fs.existsSync(f); } catch { return false; } };
+const TAGLINE = 'Your financial health, simplified.';
+/* The logo mark, drawn (no picture files): a gold coin with a navy $ */
+function logoMark(doc, x, y, size) {
+  const r = size / 2;
+  doc.save().circle(x + r, y + r, r).fill(GOLD).restore();
+  doc.save().circle(x + r, y + r, r * 0.8).lineWidth(Math.max(0.8, size / 30)).stroke('#8a6a10').restore();
+  doc.font('serif').fontSize(size * 0.62).fillColor(NAVY).text('$', x, y + size * 0.16, { width: size, align: 'center', lineBreak: false });
+}
 const NAVY = '#0a1128';
 const GOLD = '#c9a227';
 const PREM = '#5b2a9e';
@@ -194,9 +198,9 @@ function finish(doc, { forWho, site, skipHeader = [], headerRight = '' }) {
     const keepTop = doc.page.margins.top; doc.page.margins.top = 0;
     // Header with the mini logo (not on a full navy cover page)
     if (!(skipHeader || []).includes(i)) {
-      if (hasFile(BADGE)) doc.image(BADGE, x, 16, { width: 28, height: 28 });
+      logoMark(doc, x, 17, 26);
       doc.font('serif').fontSize(11).fillColor(NAVY).text('Dr MoneyWise', x + 34, 21, { lineBreak: false });
-      doc.font('body').fontSize(7.5).fillColor(GREY).text('Money and investing, simplified', x + 34, 34, { lineBreak: false });
+      doc.font('body').fontSize(7.5).fillColor(GREY).text(TAGLINE, x + 34, 34, { lineBreak: false });
       doc.font('bold').fontSize(8).fillColor(PREM).text(headerRight || 'Pro workbook', x + w / 2, 26, { width: w / 2, align: 'right', lineBreak: false });
       doc.save().moveTo(x, 50).lineTo(x + w, 50).lineWidth(0.8).stroke(GOLD).restore();
     }
@@ -252,15 +256,15 @@ export async function lessonPdf(article, { kicker = 'Pro lesson', forWho = '', s
   return toBuffer(doc);
 }
 
-/** The big logo at the top of a first page: the mascot, the name and the promise. */
+/** The big logo at the top of a first page: the gold mark, the name and the tagline. */
 function logoBlock(doc) {
   const x = L(doc); const y = doc.y;
-  if (hasFile(MASCOT)) doc.image(MASCOT, x - 6, y - 6, { height: 104 });
-  const tx = x + (hasFile(MASCOT) ? 80 : 0);
+  logoMark(doc, x, y + 10, 64);
+  const tx = x + 78;
   doc.font('serif').fontSize(26).fillColor(NAVY).text('Dr MoneyWise', tx, y + 18, { lineBreak: false });
-  doc.font('bold').fontSize(11).fillColor(GOLD).text('MONEY AND INVESTING, SIMPLIFIED', tx + 2, y + 54, { characterSpacing: 1.4, lineBreak: false });
+  doc.font('bold').fontSize(11).fillColor(GOLD).text(TAGLINE.toUpperCase(), tx + 2, y + 54, { characterSpacing: 1.4, lineBreak: false });
   doc.font('body').fontSize(9.5).fillColor(GREY).text('drmoneywise.com', tx + 2, y + 72, { lineBreak: false });
-  doc.x = x; doc.y = y + 112;
+  doc.x = x; doc.y = y + 96;
 }
 
 /** PDF workbook for one week: cover, contents, every lesson ready so far, answers, notes. */
@@ -271,14 +275,14 @@ export async function weekPdf({ levelName, week, lessons, forWho = '', site = 'h
   doc.save().rect(0, 0, doc.page.width, doc.page.height).fill(NAVY).restore();
   doc.save().rect(0, doc.page.height * 0.62, doc.page.width, 6).fill(GOLD).restore();
   doc.font('black').fontSize(11).fillColor(GOLD).text(`DR MONEYWISE · ${levelName.toUpperCase()}${week.module ? ` · ${week.module.toUpperCase()}` : ''}`, x, 150, { width: w, characterSpacing: 1.5 });
-  doc.font('serif').fontSize(40).fillColor('#ffffff').text(`Week ${week.week}`, x, 190, { width: w - 210 });
-  doc.font('serif').fontSize(26).fillColor(GOLD).text(week.title, x, doc.y + 6, { width: w - 210, lineGap: 3 });
-  doc.font('body').fontSize(12).fillColor('#d9dcf0').text(`Pro workbook: ${week.lessons.length} lessons with worked examples, key figures, a self-check and space for your notes.`, x, doc.y + 18, { width: w - 210, lineGap: 2 });
+  doc.font('serif').fontSize(40).fillColor('#ffffff').text(`Week ${week.week}`, x, 190, { width: w });
+  doc.font('serif').fontSize(26).fillColor(GOLD).text(week.title, x, doc.y + 6, { width: w, lineGap: 3 });
+  doc.font('body').fontSize(12).fillColor('#d9dcf0').text(`Pro workbook: ${week.lessons.length} lessons with worked examples, key figures, a self-check and space for your notes.`, x, doc.y + 18, { width: w * 0.85, lineGap: 2 });
   doc.font('bold').fontSize(10).fillColor('#d9dcf0').text(forWho ? `Prepared for ${forWho}` : '', x, doc.page.height * 0.62 + 30, { width: w });
-  // Big logo on the cover: the mascot standing on the gold line, with the name
-  if (hasFile(MASCOT)) doc.image(MASCOT, doc.page.width - 54 - 190, doc.page.height * 0.62 - 262, { height: 262 });
-  doc.font('serif').fontSize(30).fillColor(GOLD).text('Dr MoneyWise', x, 70, { lineBreak: false });
-  doc.font('bold').fontSize(10).fillColor('#d9dcf0').text('MONEY AND INVESTING, SIMPLIFIED', x + 2, 108, { characterSpacing: 1.4, lineBreak: false });
+  // Big logo on the cover: the gold mark, the name and the tagline
+  logoMark(doc, x, 64, 56);
+  doc.font('serif').fontSize(30).fillColor(GOLD).text('Dr MoneyWise', x + 70, 68, { lineBreak: false });
+  doc.font('bold').fontSize(10).fillColor('#d9dcf0').text(TAGLINE.toUpperCase(), x + 72, 106, { characterSpacing: 1.4, lineBreak: false });
   // Contents
   doc.addPage();
   heading(doc, 'In this workbook', GOLD);

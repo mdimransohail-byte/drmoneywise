@@ -50,7 +50,7 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
 <div style="background:#f1e8d6;padding:20px 0;font-family:Arial,Helvetica,sans-serif;color:#0a1128">
   <div style="max-width:620px;margin:0 auto;background:#fbf7ef;border-radius:14px;overflow:hidden;border:1px solid #d9ccb2">
     <div style="background:#0a1128;padding:16px 22px"><a href="${esc(site || '#')}" style="color:#c9a227;font:700 22px Georgia,serif;text-decoration:none">Dr MoneyWise</a>
-      <span style="float:right;color:#c9d0e6;font-size:12px;line-height:28px">${esc(issue.dateLabel || '')}</span></div>
+      <span style="float:right;color:#c9d0e6;font-size:12px;line-height:28px">${esc(issue.dateLabel || '')}</span><div style="color:#c9d0e6;font-size:12px;margin-top:2px">Your financial health, simplified.</div></div>
     <div style="padding:22px">
       <h1 style="font:700 24px Georgia,serif;margin:0 0 12px">${esc(issue.subject || '')}</h1>
       ${name ? `<p style="margin:0 0 12px">Hello ${esc(name)},</p>` : ''}
@@ -66,7 +66,7 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
       ${issue.closing ? para(issue.closing) : ''}
     </div>
     <div style="padding:14px 22px;background:#f3ead6;font-size:12px;color:#4a5170;line-height:1.5">
-      For education only, not financial advice. ${esc(why || 'You get this because you joined Dr MoneyWise or signed up for our newsletter.')}
+      <strong style="color:#0a1128">Dr MoneyWise</strong> · Your financial health, simplified.<br>For education only, not financial advice. ${esc(why || 'You get this because you joined Dr MoneyWise or signed up for our newsletter.')}
       ${webUrl ? `<a href="${esc(webUrl)}" style="color:#1a2a9e">Read it on the website</a> · ` : ''}${unsubscribeUrl ? `<a href="${esc(unsubscribeUrl)}" style="color:#1a2a9e">Unsubscribe</a>` : ''}${address}
     </div>
   </div></div></body></html>`;
