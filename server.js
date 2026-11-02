@@ -260,8 +260,11 @@ export const server = http.createServer(async (request, response) => {
     }
 
     if (requestUrl.pathname === '/api/auth/me' && request.method === 'GET') {
+      let trialDays = 7;
+      try { trialDays = Number((await readStore()).settings?.premiumTrialDays ?? 7); } catch { /* default */ }
       return sendJson(response, 200, {
         user: sessionUser,
+        trialDays,
       });
     }
 
