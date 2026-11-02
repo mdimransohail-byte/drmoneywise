@@ -1,6 +1,6 @@
-/* Premium lesson PDFs: buttons with data-pdf-lesson="<slug>" or
+/* Pro lesson PDFs: buttons with data-pdf-lesson="<slug>" or
    data-pdf-week="<level>:<week>". Members download straight away; others
-   are taken to sign in or to the Premium page. */
+   are taken to sign in or to the Pro page. */
 (function () {
   function token() { try { return JSON.parse(localStorage.getItem('drmoneywise-session') || '{}').token || ''; } catch (e) { return ''; } }
   document.addEventListener('click', function (e) {

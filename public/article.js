@@ -82,7 +82,7 @@ function renderArticle() {
   }
 
   const article = state.article;
-  const accessTag = article.accessTier === 'free' ? 'Free' : article.accessTier === 'regular' ? 'Regular' : 'Premium';
+  const accessTag = article.accessTier === 'free' ? 'Free' : article.accessTier === 'regular' ? 'Plus' : 'Pro';
   const saved = Boolean(state.user?.savedArticleSlugs?.includes(article.slug));
 
   elements.articleContainer.innerHTML = `
@@ -109,7 +109,7 @@ function renderArticle() {
             ? `<a class="button secondary" href="${escapeAttribute(article.sourceUrl)}" target="_blank" rel="noopener">Open original source</a>`
             : ''
         }
-        ${article.contentType === 'learning' ? `<button class="button secondary pdf-btn" type="button" data-pdf-lesson="${escapeAttribute(article.slug)}" title="A printable workbook of this lesson, with the self-check and space for notes">⬇ Download as PDF <span class="pf-badge prem">Premium</span></button>` : ''}
+        ${article.contentType === 'learning' ? `<button class="button secondary pdf-btn" type="button" data-pdf-lesson="${escapeAttribute(article.slug)}" title="A printable workbook of this lesson, with the self-check and space for notes">⬇ Download as PDF <span class="pf-badge prem">Pro</span></button>` : ''}
         ${
           state.user
             ? `<button class="button primary" type="button" data-save-article="${article.slug}">${saved ? 'Saved to account' : 'Save to account'}</button>`

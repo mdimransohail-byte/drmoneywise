@@ -29,7 +29,7 @@
     return data;
   };
   const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
-  const PLAN_NAMES = { free: 'Free', regular: 'Paid Regular', premium: 'Paid Premium' };
+  const PLAN_NAMES = { free: 'Free', regular: 'Plus', premium: 'Pro' };
   let me = null;
   let coupon = '';
   let via = ''; let promo = '';
@@ -87,7 +87,7 @@
   /* ── Your emails ── */
   var EMAILS = [
     ['welcome', 'Getting-started emails', 'Five short emails in your first ten days, each showing one useful part of the site.', 'free'],
-    ['newsletter', 'Saturday newsletter', 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons. Premium members get an extra section with their own portfolio and companies.', 'free'],
+    ['newsletter', 'Saturday newsletter', 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons. Pro members get an extra section with their own portfolio and companies.', 'free'],
     ['dividends', 'Dividend alerts', 'When a company on your watchlist raises, cuts, starts or stops its dividend.', 'regular'],
     ['charts', 'Chart alerts', 'When a chart sign appears on a company in your watchlist or portfolio: golden or death cross, RSI above 70 or below 30, a new 52-week high or low.', 'premium'],
     ['funds', 'Big-fund alerts', 'When a famous fund buys or sells a company on your watchlist (each quarter).', 'premium'],
@@ -103,7 +103,7 @@
       <div class="mb-email-list">${EMAILS.map(([id, name, about, need]) => {
         const allowed = mine >= level[need];
         const on = allowed && prefs[id] !== false;
-        return `<label class="mb-email${allowed ? '' : ' locked'}"><input type="checkbox" data-email="${id}" ${on ? 'checked' : ''} ${allowed ? '' : 'disabled'}><span><div><strong>${esc(name)}</strong>${allowed ? '' : ` <em>${need === 'premium' ? 'Premium' : 'Regular and Premium'}</em>`}</div><small>${esc(about)}</small></span></label>`;
+        return `<label class="mb-email${allowed ? '' : ' locked'}"><input type="checkbox" data-email="${id}" ${on ? 'checked' : ''} ${allowed ? '' : 'disabled'}><span><div><strong>${esc(name)}</strong>${allowed ? '' : ` <em>${need === 'premium' ? 'Pro' : 'Plus and Pro'}</em>`}</div><small>${esc(about)}</small></span></label>`;
       }).join('')}</div>
       ${(me.watchlist || []).length ? '' : '<p class="mb-small" style="text-align:left">Tip: alerts are about the companies on your watchlist. <a href="/#tools">Add some companies</a>.</p>'}
       <span class="mb-saved" role="status" aria-live="polite"></span>`;
@@ -172,7 +172,7 @@
       try {
         const r = await api('/api/billing/confirm', { sessionId: params.get('session_id') });
         if (r.user) me = r.user;
-        if (r.upgraded) msg(r.user && r.user.planStatus === 'trialing' ? `Your free trial has started. Everything in Premium is unlocked. You can cancel any time before ${new Date(r.user.trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} and pay nothing.` : `Payment accepted. Thank you! You're now on ${PLAN_NAMES[r.planId] || r.planId} and everything it includes is unlocked.`, 'ok');
+        if (r.upgraded) msg(r.user && r.user.planStatus === 'trialing' ? `Your free trial has started. Everything in Pro is unlocked. You can cancel any time before ${new Date(r.user.trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} and pay nothing.` : `Payment accepted. Thank you! You're now on ${PLAN_NAMES[r.planId] || r.planId} and everything it includes is unlocked.`, 'ok');
         else msg(r.message || 'Your payment is processing. Your plan will update shortly.');
       } catch (err) { msg(`${err.message} If you were charged, your plan will update within a few minutes.`, 'bad'); }
     } else if (outcome === 'cancelled') {

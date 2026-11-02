@@ -1,11 +1,13 @@
 /* Offer pop-up on the homepage (Admin → Offers). Appears a couple of
-   seconds after the page opens, to visitors who aren't Premium, at most once
+   seconds after the page opens, to visitors who aren't Pro, at most once
    every 3 days per offer. The button goes to the membership page with the
    discount code filled in, so the analytics can count members it brought. */
 (function () {
   var token = '';
   try { token = JSON.parse(localStorage.getItem('drmoneywise-session') || '{}').token || ''; } catch (e) { token = ''; }
-  fetch('/api/site/promo', { headers: token ? { 'x-session-token': token } : {} })
+  var tz = '';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { tz = ''; }
+  fetch('/api/site/promo?tz=' + encodeURIComponent(tz), { headers: token ? { 'x-session-token': token } : {} })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
       var p = d && d.promo;
@@ -30,7 +32,7 @@
     wrap.setAttribute('aria-label', p.headline);
     wrap.innerHTML = '<div class="promo-box">' +
       '<button type="button" class="promo-x" aria-label="Close">×</button>' +
-      (p.image ? '<a href="' + href + '" class="promo-img" data-go><img src="' + esc(p.image) + '" alt="' + esc(p.headline) + ': ' + esc(p.percent) + '% off Premium"></a>' : '') +
+      (p.image ? '<a href="' + href + '" class="promo-img" data-go><img src="' + esc(p.image) + '" alt="' + esc(p.headline) + ': ' + esc(p.percent) + '% off Pro"></a>' : '') +
       '<div class="promo-body"><span class="promo-tag">' + esc(p.occasion) + '</span><h2>' + esc(p.headline) + '</h2><p>' + esc(p.text) + '</p>' +
       '<a class="promo-btn" href="' + href + '" data-go>' + esc(p.button) + '</a>' +
       '<p class="promo-small">Code <b>' + esc(p.code) + '</b> · until ' + esc(until) + ' · cancel any time</p></div></div>';

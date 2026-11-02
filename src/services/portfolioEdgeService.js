@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   PORTFOLIO EDGE (Premium) — extra insight on the homepage portfolio:
+   PORTFOLIO EDGE (Pro) — extra insight on the homepage portfolio:
    for each holding its Financial Health score, area of the economy,
    dividend yield, latest price against the price paid, and Shariah status;
    for the whole portfolio a weighted health score, the sector mix, the

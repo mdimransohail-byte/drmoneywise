@@ -234,6 +234,8 @@ async function injectNewsWidget(html) {
   let out = html.replace(/<div class="news">[\s\S]*?<div id="briefBoard" class="story-list"><\/div>\s*<\/div>/u, () => `<div class="news-widget">${newsWidget(520)}</div>
           <div hidden><a id="briefFeatured" href="#"></a><div id="briefBoard"></div></div>`);
   out = out.replace('<span id="feedState" class="subtle-chip">Loading</span>', () => '<span id="feedState" class="subtle-chip" hidden>Live</span>');
+  // The news widget scrolled inside the page; the region headlines below do the job instead
+  out = out.replace('<section id="news" class="block">', () => '<section id="news" class="block" hidden>');
   out = out.replace('<section id="topics" class="block">', () => '<section id="topics" class="block" hidden>');
   out = out.replace('<p>The biggest money news, linked to the original source.</p>', () => '<p>The biggest money news right now, from TradingView’s news feed.</p>');
   return out;
@@ -258,8 +260,8 @@ export async function renderHomePage(template, origin) {
   html = await injectNewsWidget(html);
   const guides = `
           <div class="home-guides">${[
-            ['/learn/beginners', '#1baf7a', '✦', 'Young Guns', 'Free course for beginners'],
-            ['/learn/intermediate', '#2a78d6', '⛨', 'Knights', 'Free course, next level'],
+            ['/learn/beginners', '#1baf7a', '✦', 'Beginners', 'Free course for beginners'],
+            ['/learn/intermediate', '#2a78d6', '⛨', 'Intermediate', 'Free course, next level'],
             ['/health-check', '#e5566f', '❤', 'Health Check', 'Every company scored'],
             ['/personal-finance', '#0f8a76', '◈', 'Personal finance', 'Budget, save, clear debt'],
             ['/retirement', '#6250d6', '◷', 'Retirement', 'How much you need'],
@@ -269,25 +271,37 @@ export async function renderHomePage(template, origin) {
             ['/commodities', '#b8891a', '⛏', 'Commodities', 'Gold, oil and trading'],
             ['/shariah', '#127a5d', '☪', 'Shariah investing', 'Halal stocks and funds'],
           ].map(([href, c, ico, name, sub]) => `<a href="${href}" style="--c:${c}"><span class="hg-ico" aria-hidden="true">${ico}</span><b>${name}</b><span>${sub}</span></a>`).join('')}</div>`;
-  const listHtml = `<div id="learningPoints" class="explain">${articles.map(renderExplainItem).join('')}</div>`;
+  const seenHome = new Set();
+  const listHtml = `<div id="learningPoints" class="explain">${articles.map((a) => renderExplainItem(a, null, seenHome)).join('')}</div>`;
   html = html.replace('<div id="learningPoints" class="explain"></div>', () => listHtml);
   html = html.replace('<!-- GUIDES -->', () => guides);
   return html;
 }
 
-function renderExplainItem(article, names = null) {
+/* A small picture for a lesson in a list: its photo, or (when the photo is
+   missing or already shown higher up the same list) a coloured tile with the
+   lesson's own key figure, so no two items look the same. */
+const TILE_COLOURS_LIST = ['#1baf7a', '#2a78d6', '#e8a33d', '#6250d6', '#e5566f', '#0fa3b1', '#eb6834', '#8a4fd8'];
+export function lessonThumb(article, seen) {
+  const url = article.heroImage?.url;
+  if (url && !(seen && seen.has(url))) { seen?.add(url); return `<img src="${escapeAttr(url)}" alt="" loading="lazy" />`; }
+  const item = (article.infographic?.items || []).find((x) => x?.value && String(x.value).length <= 14);
+  let h = 0; for (const ch of String(article.slug || article.headline || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const c = TILE_COLOURS_LIST[h % TILE_COLOURS_LIST.length];
+  return `<span class="thumb-tile" style="--c:${c}"><b>${escapeHtml(item ? item.value : (TOPIC_LABELS[article.interest] || 'Money'))}</b>${item?.label ? `<small>${escapeHtml(item.label)}</small>` : ''}</span>`;
+}
+
+function renderExplainItem(article, names = null, seen = null) {
   const free = (article.accessTier || 'free') === 'free';
   const lv = names ? levelOf(article) : '';
-  const badge = article.heroImage?.url
-    ? `<img src="${escapeAttr(article.heroImage.url)}" alt="" loading="lazy" />`
-    : escapeHtml(TOPIC_LABELS[article.interest] || 'Money');
+  const badge = lessonThumb(article, seen);
   return `
         <a class="explain-item" href="/learn/${encodeURIComponent(article.slug)}">
           <span class="topic">${badge}</span>
           <div>
             ${lv ? `<span class="lvl-mini" style="--c:${LEVELS[lv].colour}">${escapeHtml(names[lv])}</span>` : ''}
             <h3>${escapeHtml(article.headline)}</h3>
-            ${free ? `<p>${escapeHtml(article.summary || '')}</p>` : '<p class="lock-label">Members</p>'}
+            <p>${escapeHtml(article.summary || '')}</p>${free ? '' : `<span class="lock-chip">${article.accessTier === 'premium' ? 'Pro' : 'Plus'} · opening free to read</span>`}
           </div>
         </a>`;
 }
@@ -297,15 +311,16 @@ export async function renderLearnIndex(origin) {
   const articles = await getPublishedLearningArticles();
   const head = buildHeadTags({
     title: 'Learn investing and money, week by week: free courses | Dr MoneyWise',
-    description: 'Free plain-English money courses: Young Guns for beginners, Knights for mid-level investors, plus Lords for confident investors. Inflation, saving, shares, ETFs, dividends and more.',
+    description: 'Free plain-English money courses for beginners and mid-level investors, plus advanced lessons for confident investors. Inflation, saving, shares, ETFs, dividends and more.',
     canonical: `${origin}/learn`,
   });
   const everyday = articles;
+  const seenLearn = new Set();
   const names = await levelNames();
   const { levelChooserHtml } = await import('./learnLevelPages.js');
   const chooser = await levelChooserHtml();
   const list = everyday.length
-    ? `<h2 class="lvp-h">Latest lessons</h2><div class="explain">${everyday.map((a) => renderExplainItem(a, names)).join('')}</div>`
+    ? `<h2 class="lvp-h">Latest lessons</h2><div class="explain">${everyday.map((a) => renderExplainItem(a, names, seenLearn)).join('')}</div>`
     : '<p class="empty-note">New explainers are on their way. Check back soon.</p>';
   const { getPhoto, photoFigure, PAGE_PHOTO_QUERIES } = await import('./imageService.js');
   const photo = await getPhoto('page:learn', PAGE_PHOTO_QUERIES.learn);
@@ -313,11 +328,11 @@ export async function renderLearnIndex(origin) {
       <section class="block">
         ${photoFigure(photo, 'Reading and learning about money', 'page-photo wide')}
         <div class="block-head">
-          <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with worked examples, infographics and a quick check at the end. ${articles.length} lesson${articles.length === 1 ? '' : 's'} so far, free for ${escapeHtml(names.beginner)} and ${escapeHtml(names.intermediate)}, with ${escapeHtml(names.lords)} lessons for Premium members.</p></div>
+          <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with worked examples, infographics and a quick check at the end. ${articles.length} lesson${articles.length === 1 ? '' : 's'} so far, free for ${escapeHtml(names.beginner)} and ${escapeHtml(names.intermediate)}, with ${escapeHtml(names.lords)} lessons for Pro members.</p></div>
         </div>
         ${chooser}
         ${list}
-        <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge">Members</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in plain English. Read other readers’ answers too.</span><em>Ask a question →</em></a>
+        <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge mem">Plus</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in plain English. Read other readers’ answers too.</span><em>Ask a question →</em></a>
         <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge free">Free</span><strong>Shariah-compliant investing</strong><span>How Islamic screening works, the five main standards side by side, and Shariah funds and ETFs.</span><em>Read the guide →</em></a>
         <a class="lp-banner" href="/learn/path"><span class="pf-badge free">Free</span><strong>Your learning path</strong><span>Short steps from your first savings to running a portfolio. Tick them off as you go.</span><em>Start the path →</em></a>
         ${(await import('./newsletterPage.js')).newsletterSignupBox('learn')}
@@ -359,8 +374,8 @@ async function articleExtras(current, level, names) {
           ${more.length ? `<div class="ax-head" style="--c:${L.colour}">${levelEmblem(level, 30)}<h2>More for ${escapeHtml(names[level])}</h2><a href="/learn/${L.slug}">See the whole course →</a></div><div class="ax-cards">${more.map(card).join('')}</div>` : ''}
           <div class="ax-row">
             ${up && !up.premium ? `<a class="ax-promo" href="/learn/${up.slug}" style="--c:${up.colour}">${levelEmblem(up.id, 44)}<span><b>Ready for the next level?</b>Join the ${escapeHtml(names[up.id])}: ${escapeHtml(up.tagline.charAt(0).toLowerCase() + up.tagline.slice(1))} ${up.paid ? 'For members.' : 'Free.'}</span></a>` : ''}
-            ${level === 'lords' ? `<a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Premium: $19.99 a month or $179 a year</b>Every ${escapeHtml(names.lords)} lesson, the Financial Health Check in full, the portfolio check and no adverts.</span></a>`
-              : `<a class="ax-promo prem" href="/learn/advanced"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Join the ${escapeHtml(names.lords)}</b>Premium lessons that go deeper: valuing a company, the economy’s warning lights and advanced portfolio craft.</span></a>`}
+            ${level === 'lords' ? `<a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Pro: $19.99 a month or $179 a year</b>Every ${escapeHtml(names.lords)} lesson, the Financial Health Check in full, the portfolio check and no adverts.</span></a>`
+              : `<a class="ax-promo prem" href="/learn/advanced"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Join the ${escapeHtml(names.lords)}</b>Pro lessons that go deeper: valuing a company, the economy’s warning lights and advanced portfolio craft.</span></a>`}
           </div>
           ${newsletterSignupBox('article')}
         </section>
@@ -592,7 +607,7 @@ export function pageShell({ head, body, active }) {
             <a href="/terms">Terms</a>
           </div>
         </div>
-        <nav class="foot-topics" aria-label="Guides"><a href="/learn/beginners">Young Guns course</a><a href="/learn/intermediate">Knights course</a><a href="/health-check">Financial Health Check</a><a href="/personal-finance">Personal finance</a><a href="/retirement">Retirement</a><a href="/child-education">Child’s education</a><a href="/insurance">Insurance</a><a href="/currencies">Currencies</a><a href="/commodities">Commodities</a><a href="/shariah">Shariah investing</a><a href="/tools">Calculators</a><a href="/glossary">Money words</a></nav>
+        <nav class="foot-topics" aria-label="Guides"><a href="/learn/beginners">Beginners course</a><a href="/learn/intermediate">Intermediate course</a><a href="/health-check">Financial Health Check</a><a href="/personal-finance">Personal finance</a><a href="/retirement">Retirement</a><a href="/child-education">Child’s education</a><a href="/insurance">Insurance</a><a href="/currencies">Currencies</a><a href="/commodities">Commodities</a><a href="/shariah">Shariah investing</a><a href="/tools">Calculators</a><a href="/glossary">Money words</a></nav>
         <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
         <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the World Bank, the BIS, the OECD, HM Land Registry and the European Central Bank (exchange rates). Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
       </div>
@@ -602,6 +617,7 @@ export function pageShell({ head, body, active }) {
     <script src="/results.js" defer></script>
       <script src="/tickerbar.js" defer></script>
       <script src="/track.js" defer></script>
+      <script src="/nav.js" defer></script>
   </body>
 </html>
 `;

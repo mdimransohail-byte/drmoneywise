@@ -70,6 +70,8 @@ export function getBusinessSettings() {
         if (merged.plans?.[id]) {
           merged.plans[id].features = plan.features;
           merged.plans[id].tagline = plan.tagline;
+          merged.plans[id].name = plan.name; // plan names (Free, Plus, Pro) travel with the wording
+          merged.plans[id].shortName = plan.shortName;
         }
       }
       merged.featuresVersion = BUSINESS_SETTINGS.featuresVersion;

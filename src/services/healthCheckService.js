@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   PORTFOLIO HEALTH CHECK (Premium) — a score out of 100 for each holding
+   PORTFOLIO HEALTH CHECK (Pro) — a score out of 100 for each holding
    and for the whole portfolio, worked out by fixed rules from official
    figures. It describes the businesses and how each holding has done; it
    is NOT advice to buy or sell (the page says so).
@@ -116,10 +116,16 @@ async function scoreEtf(h, curated, price) {
 export async function portfolioHealth(holdingsRaw) {
   const prices = (await readPrices()).prices || {};
   const pricesOn = Object.keys(prices).length > 0;
+  // A price paid in another currency is turned into US dollars at today's rate
+  let usdPer = null;
+  if ((holdingsRaw || []).some((h) => h.currency && h.currency !== 'USD')) {
+    try { usdPer = (await (await import('./fxService.js')).getAllRates()).usdPer || null; } catch { usdPer = null; }
+  }
+  const toUsd = (v, cur) => (v === null || !cur || cur === 'USD' ? v : usdPer?.[cur] ? v * usdPer[cur] : v);
   const holdings = (holdingsRaw || []).map((h) => ({
     ticker: String(h.ticker || '').toUpperCase().trim(),
     shares: num(h.shares),
-    buyPrice: num(h.buyPrice ?? h.cost),
+    buyPrice: toUsd(num(h.buyPrice ?? h.cost), h.currency),
     weightIn: num(h.weight),
   })).filter((h) => /^[A-Z0-9.-]{1,10}$/u.test(h.ticker)).slice(0, 30);
 

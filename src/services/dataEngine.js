@@ -52,8 +52,8 @@ const JOBS = {
   photos: { label: 'Photos for explainers (Pexels)', every: 20 * HOUR },
   funds: { label: 'Big-fund holdings (SEC 13F)', every: 7 * 24 * HOUR },
   learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
-  deeper: { label: 'Lords lessons for Premium (one a day until the course is complete)', every: 24 * HOUR },
-  review: { label: 'Market review for Premium (every two weeks)', every: 24 * HOUR },
+  deeper: { label: 'Advanced lessons for Pro (one a day until the course is complete)', every: 24 * HOUR },
+  review: { label: 'Market review for Pro (every two weeks)', every: 24 * HOUR },
   report: { label: 'Monthly research report (built on the 1st)', every: 20 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
   property: { label: 'Property and city rents (monthly figures; looks weekly, downloads only when new figures are due)', every: 7 * 24 * HOUR },
@@ -212,7 +212,7 @@ async function runPrices({ manual = false } = {}) {
     const n = await appendDailyCloses(full);
     if (n) console.log(`[data] Prices: ${n} chart histories brought up to date`);
   } catch (error) { console.error('[data] Chart histories:', error.message); }
-  // Keep a short daily history so the Premium newsletter can show the week's change
+  // Keep a short daily history so the Pro newsletter can show the week's change
   try {
     const { savePriceSnapshot } = await import('./premiumWeekService.js');
     await savePriceSnapshot(prices);

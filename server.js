@@ -273,10 +273,10 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { user: await saveMemberProfile(token, await parseJsonBody(request)) });
     }
 
-    // Lesson PDFs (Premium): one lesson, or a whole week's workbook
+    // Lesson PDFs (Pro): one lesson, or a whole week's workbook
     if ((requestUrl.pathname === '/api/learn/pdf' || requestUrl.pathname === '/api/learn/pdf-week') && request.method === 'GET') {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
-      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Lesson PDFs are for Premium members.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Lesson PDFs are for Pro members.' });
       const { getPublishedLearningArticles } = await import('./src/services/seoService.js');
       const { lessonPdf, weekPdf } = await import('./src/services/learnPdfService.js');
       const { COURSE, lessonForArticle, courseArticleMap } = await import('./src/data/learnCourse.js');
@@ -308,10 +308,19 @@ export const server = http.createServer(async (request, response) => {
       return true;
     }
 
+    // Company suggestions while typing (homepage search, portfolio form)
+    if (requestUrl.pathname === '/api/site/suggest' && request.method === 'GET') {
+      const { searchAllCompanies } = await import('./src/services/companyLookup.js');
+      const q = String(requestUrl.searchParams.get('q') || '').slice(0, 40);
+      const rows = q.length ? await searchAllCompanies(q, 8).catch(() => []) : [];
+      return sendJson(response, 200, { items: rows.slice(0, 8).map((r) => ({ ticker: r.ticker, name: r.name })) });
+    }
+
     // Offer pop-up (homepage): the current offer for this visitor, and view/click counts
     if (requestUrl.pathname === '/api/site/promo' && request.method === 'GET') {
-      const { activePromo } = await import('./src/services/growthService.js');
-      return sendJson(response, 200, { promo: await activePromo(sessionUser) });
+      const { activePromo, countryOf } = await import('./src/services/growthService.js');
+      const country = countryOf({ tz: requestUrl.searchParams.get('tz'), header: request.headers['cf-ipcountry'] });
+      return sendJson(response, 200, { promo: await activePromo(sessionUser, country) });
     }
     if (requestUrl.pathname === '/api/site/promo/event' && request.method === 'POST') {
       const { promoEvent } = await import('./src/services/growthService.js');
@@ -356,11 +365,11 @@ export const server = http.createServer(async (request, response) => {
       } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
     }
 
-    // Monthly research report (Premium)
+    // Monthly research report (Pro)
     const reportApi = requestUrl.pathname.match(/^\/api\/reports\/(\d{4}-\d{2})$/u);
     if (reportApi && request.method === 'GET') {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
-      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'The monthly report is for Premium members.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'The monthly report is for Pro members.' });
       const report = await readReport(reportApi[1]);
       if (!report) return sendJson(response, 404, { error: 'No report for that month.' });
       return sendJson(response, 200, { id: report.id, html: reportFullHtml(report) });
@@ -396,10 +405,10 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, await lessonProgress(user));
     }
 
-    // Ideas that match your rules (Premium)
+    // Ideas that match your rules (Pro)
     if (requestUrl.pathname === '/api/member/ideas' && (request.method === 'GET' || request.method === 'POST')) {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
-      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Idea lists are for Premium members.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Idea lists are for Pro members.' });
       let owner = sessionUser;
       if (request.method === 'POST') {
         const posted = (await parseJsonBody(request)).ideas;
@@ -535,16 +544,16 @@ export const server = http.createServer(async (request, response) => {
           if (sub === '/limit') return sendJson(response, 200, { dailyLimit: await newsletter.saveDailyLimit(body.limit) });
           if (sub === '/auto') return sendJson(response, 200, { on: await newsletter.saveAutoNewsletter(body.on) });
           if (sub === '/auto-now') return sendJson(response, 200, await newsletter.autoWeeklyNewsletter({ force: true }));
-          if (sub === '/preview') return sendJson(response, 200, { html: newsletter.newsletterHtml({ ...body, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site: getSiteOrigin(request), extra: body.premiumSection !== false ? '<div style="background:#0a1128;color:#c9a227;border-radius:10px;padding:12px 16px;margin:6px 0 14px;font:700 15px Georgia,serif">★ Premium members also get their own section here: their portfolio’s week, their companies’ news, results expected in the coming week and Premium extras. Use “Send me a test (Premium version)” to see it.</div>' : '', name: 'Sam', webUrl: '#', unsubscribeUrl: '#' }) });
+          if (sub === '/preview') return sendJson(response, 200, { html: newsletter.newsletterHtml({ ...body, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site: getSiteOrigin(request), extra: body.premiumSection !== false ? '<div style="background:#0a1128;color:#c9a227;border-radius:10px;padding:12px 16px;margin:6px 0 14px;font:700 15px Georgia,serif">★ Pro members also get their own section here: their portfolio’s week, their companies’ news, results expected in the coming week and Pro extras. Use “Send me a test (Pro version)” to see it.</div>' : '', name: 'Sam', webUrl: '#', unsubscribeUrl: '#' }) });
         }
         return sendJson(response, 404, { error: 'Not found' });
       } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
     }
 
-    // Shariah: each company's ratios and purification share (Premium)
+    // Shariah: each company's ratios and purification share (Pro)
     if (requestUrl.pathname === '/api/shariah' && request.method === 'GET') {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
-      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Shariah ratios are for Premium members.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Shariah ratios are for Pro members.' });
       const { shariahTable } = await import('./src/services/shariahService.js');
       const market = String(requestUrl.searchParams.get('market') || '');
       const { rows } = await shariahTable();
@@ -558,13 +567,13 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, data ? 200 : 404, data ? { ...data, regions: HOME_NEWS_REGIONS } : { error: 'Unknown region' });
     }
 
-    // Company bosses' trades (Premium)
+    // Company bosses' trades (Pro)
     if (requestUrl.pathname === '/api/site/insiders-preview' && request.method === 'GET') {
       return sendJson(response, 200, await insiderPreview());
     }
     if (requestUrl.pathname === '/api/insiders' && request.method === 'GET') {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
-      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Company bosses’ trades are for Premium members.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Company bosses’ trades are for Pro members.' });
       const days = [30, 90, 180].includes(Number(requestUrl.searchParams.get('days'))) ? Number(requestUrl.searchParams.get('days')) : 90;
       const ticker = String(requestUrl.searchParams.get('ticker') || '').toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10) || null;
       const mine = [...new Set([...(sessionUser.watchlist || []), ...(sessionUser.portfolio || []).map((h) => h.ticker)].map((t) => String(t || '').toUpperCase()))];
@@ -576,7 +585,7 @@ export const server = http.createServer(async (request, response) => {
       }
     }
 
-    // Stock screener (Regular) + big-fund data and Fund explorer (Premium)
+    // Stock screener (Plus) + big-fund data and Fund explorer (Pro)
     if (requestUrl.pathname === '/api/site/screener-preview' && request.method === 'GET') {
       return sendJson(response, 200, await screenerPreview());
     }
@@ -585,9 +594,9 @@ export const server = http.createServer(async (request, response) => {
       const isAdmin = sessionUser.role === 'admin';
       const plan = sessionUser.plan || 'free';
       const premium = isAdmin || canAccess(plan, 'premium');
-      if (!isAdmin && !canAccess(plan, 'regular')) return sendJson(response, 403, { error: 'The screener is for Regular and Premium members.' });
+      if (!isAdmin && !canAccess(plan, 'regular')) return sendJson(response, 403, { error: 'The screener is for Plus and Pro members.' });
       if (requestUrl.pathname === '/api/screener') return sendJson(response, 200, { premium, ...(await screenerRows({ premium })) });
-      if (!premium) return sendJson(response, 403, { error: 'This is for Premium members.' });
+      if (!premium) return sendJson(response, 403, { error: 'This is for Pro members.' });
       if (requestUrl.pathname === '/api/screener/owners') {
         const ticker = String(requestUrl.searchParams.get('ticker') || '').toUpperCase().replace(/[^A-Z0-9.\-]/g, '').slice(0, 10);
         return sendJson(response, 200, await fundOwners(ticker));
@@ -595,14 +604,14 @@ export const server = http.createServer(async (request, response) => {
       if (requestUrl.pathname === '/api/screener/funds') return sendJson(response, 200, await fundExplorer());
     }
 
-    // Portfolio health check (Premium)
+    // Portfolio health check (Pro)
     if (requestUrl.pathname === '/api/site/portfolio-health-example' && request.method === 'GET') {
       return sendJson(response, 200, await examplePortfolioHealth());
     }
 
     if ((requestUrl.pathname === '/api/member/portfolio-health' && request.method === 'GET') || (requestUrl.pathname === '/api/member/holdings' && request.method === 'POST')) {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
-      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'The portfolio health check is for Premium members.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'The portfolio health check is for Pro members.' });
       let holdings = sessionUser.portfolio || [];
       if (request.method === 'POST') {
         const posted = (await parseJsonBody(request)).holdings;
@@ -642,11 +651,11 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { items: await resultsStripData() });
     }
 
-    // "What it means" for results — Premium only
+    // "What it means" for results — Pro only
     if (requestUrl.pathname === '/api/results/impact' && request.method === 'GET') {
       const user = sessionUser;
       if (!user) return sendJson(response, 401, { error: 'Sign in first.' });
-      if (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'This is for Premium members.' });
+      if (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'This is for Pro members.' });
       const ids = String(requestUrl.searchParams.get('ids') || '').split(',').map((x) => x.replace(/[^0-9]/gu, '')).filter(Boolean).slice(0, 80);
       return sendJson(response, 200, { impacts: impactsFor(ids) });
     }
@@ -656,11 +665,11 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, publicAdSlots());
     }
 
-    // Ask Dr MoneyWise: members' questions (Regular and Premium) and the team's answers
+    // Ask Dr MoneyWise: members' questions (Plus and Pro) and the team's answers
     if (requestUrl.pathname === '/api/member/ask' && (request.method === 'GET' || request.method === 'POST')) {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
       if (request.method === 'POST') {
-        if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'regular')) return sendJson(response, 403, { error: 'Ask Dr MoneyWise is for Regular and Premium members.' });
+        if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'regular')) return sendJson(response, 403, { error: 'Ask Dr MoneyWise is for Plus and Pro members.' });
         try { await askQuestion(sessionUser, await parseJsonBody(request)); } catch (error) { return sendJson(response, error.status || 500, { error: error.message }); }
       }
       return sendJson(response, 200, { ...(await myQuestions(sessionUser)), topics: ASK_TOPICS, canAsk: sessionUser.role === 'admin' || canAccess(sessionUser.plan || 'free', 'regular') });
@@ -734,10 +743,10 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, await getPortfolioSnapshot({ holdings: body.holdings || [] }));
     }
 
-    // Portfolio edge (Premium): health scores, sector mix, yield, Shariah
+    // Portfolio edge (Pro): health scores, sector mix, yield, Shariah
     if (requestUrl.pathname === '/api/member/portfolio-edge' && request.method === 'GET') {
       if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
-      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Premium only.' });
+      if (sessionUser.role !== 'admin' && !canAccess(sessionUser.plan || 'free', 'premium')) return sendJson(response, 403, { error: 'Pro only.' });
       const { portfolioEdge } = await import('./src/services/portfolioEdgeService.js');
       return sendJson(response, 200, await portfolioEdge(sessionUser));
     }
@@ -839,7 +848,7 @@ export const server = http.createServer(async (request, response) => {
         const body = await parseJsonBody(request);
         const clean = (v) => String(v || '').replace(/[<>]/gu, '').trim().slice(0, 30);
         const { updateStore } = await import('./src/services/storeService.js');
-        await updateStore((st) => { st.settings = { ...(st.settings || {}), learnLevelNames: { beginner: clean(body.beginner), intermediate: clean(body.intermediate), technical: clean(body.technical), lords: clean(body.lords) } }; return st; });
+        await updateStore((st) => { st.settings = { ...(st.settings || {}), learnLevelNames: { beginner: clean(body.beginner), intermediate: clean(body.intermediate), technical: clean(body.technical), lords: clean(body.lords) }, learnLevelNamesV: 2 }; return st; });
       }
       return sendJson(response, 200, { names: await levelNames() });
     }
@@ -976,18 +985,18 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { ok: true, full, ticker: hist.ticker, date: a.date, price: a.price, picture: full ? a.picture : null, good: a.good, weak: a.weak, levels: full ? a.levels : null, signals: full ? a.signals : a.signals.filter((x) => x.free), hidden: full ? 0 : a.signals.filter((x) => !x.free).length, chart: full ? chartSvg(a) : '' });
     }
 
-    // Property: city scorecard (Premium)
+    // Property: city scorecard (Pro)
     if (requestUrl.pathname === '/api/property/cities-premium' && request.method === 'GET') {
       const user = sessionUser;
-      if (!user || (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium'))) return sendJson(response, 403, { error: 'Premium only.' });
+      if (!user || (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium'))) return sendJson(response, 403, { error: 'Pro only.' });
       const { premiumCities } = await import('./src/services/propertyCityPages.js');
       return sendJson(response, 200, { cities: await premiumCities() });
     }
 
-    // Financial Health Check: industry ranking (Premium)
+    // Financial Health Check: industry ranking (Pro)
     if (requestUrl.pathname === '/api/health/rank' && request.method === 'GET') {
       const user = sessionUser;
-      if (!user || (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium'))) return sendJson(response, 403, { error: 'Premium only.' });
+      if (!user || (user.role !== 'admin' && !canAccess(user.plan || 'free', 'premium'))) return sendJson(response, 403, { error: 'Pro only.' });
       const { industryRank } = await import('./src/services/financialHealthService.js');
       const { readCompanies } = await import('./src/services/dataEngine.js');
       const ticker = String(requestUrl.searchParams.get('ticker') || '').toUpperCase().slice(0, 10);

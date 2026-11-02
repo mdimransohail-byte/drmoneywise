@@ -2,7 +2,7 @@
    Company results in the browser:
    • the scrolling "Latest results" strip under the menu (every page)
    • the "Latest company results" cards on the homepage
-   • "What it means" for Premium members (on /results and company pages)
+   • "What it means" for Pro members (on /results and company pages)
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
   if (window.__dmwResults) return; // load once even if included twice
@@ -36,7 +36,7 @@
     }).catch(function () { home.remove(); });
   }
 
-  /* ── Premium: "What it means" ── */
+  /* ── Pro: "What it means" ── */
   function unlock() {
     var boxes = document.querySelectorAll('[data-impact-for]');
     if (!boxes.length || !token) return;
@@ -47,7 +47,7 @@
         if (!d || !d.impacts) return;
         boxes.forEach(function (b) {
           var text = d.impacts[b.getAttribute('data-impact-for')];
-          if (text) b.innerHTML = '<h4>What it means <span class="members-badge prem">Premium</span></h4><p>' + esc(text) + '</p>';
+          if (text) b.innerHTML = '<h4>What it means <span class="members-badge prem">Pro</span></h4><p>' + esc(text) + '</p>';
         });
       }).catch(function () {});
   }

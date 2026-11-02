@@ -6,7 +6,7 @@
      resistance (recent lows and highs).
    Each signal is described in plain English with a colour. A description
    of the chart, not a forecast and not advice to buy or sell.
-   Free readers get 3 headline signals; Regular and Premium get all.
+   Free readers get 3 headline signals; Plus and Pro get all.
    ════════════════════════════════════════════════════════════════════════ */
 
 export function sma(values, n) {
@@ -148,7 +148,7 @@ export function chartSvg(a, days = 180) {
     <figcaption><i style="--c:#0a1128"></i>Price <i style="--c:#1baf7a"></i>50-day average <i style="--c:#e8730c"></i>200-day average <i style="--c:#2a78d6;opacity:.35"></i>Bollinger bands</figcaption></figure>`;
 }
 
-/* ── Chart alerts (Premium): signs that appeared on the latest trading day ──
+/* ── Chart alerts (Pro): signs that appeared on the latest trading day ──
    Compares the last day with the day before, so each sign is reported once. */
 export function chartEvents(rows) {
   if (!rows || rows.length < 60) return [];

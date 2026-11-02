@@ -1,10 +1,10 @@
 /* ════════════════════════════════════════════════════════════════════════
    THE LEARN COURSE — three levels, taught week by week, basics first
    ───────────────────────────────────────────────────────────────────────
-     beginner      Young Guns   free     6 weeks
-     intermediate  Knights      free     6 weeks
-     technical     Chart Readers Regular and Premium (technical analysis) 4 weeks
-     lords         Lords        Premium  17 weeks (weeks 9-17: the Lords Intensive)
+     beginner      Beginners   free     6 weeks
+     intermediate  Intermediate      free     6 weeks
+     technical     Chart reading Plus and Pro (technical analysis) 4 weeks
+     lords         Advanced        Pro  17 weeks (weeks 9-17: the Pro Intensive)
    Week 1 has 5 lessons, later weeks 4. Each lesson:
      id        stays the same forever (it is saved on the article)
      headline  the attention-grabbing title the article is published with
@@ -12,7 +12,7 @@
      match     the older topic name, so explainers written before the
                course existed slot into the right week automatically
    The writer works through lessons in order (Week 1 of every level, then
-   Week 2...), see pickEvergreenTopic() in explainerTopics.js. Lords lessons
+   Week 2...), see pickEvergreenTopic() in explainerTopics.js. Advanced lessons
    are written by the "deeper" job. The newsletter features one week at a
    time (newsletterService draftFromSite).
    To add a week: add a block with the next week number. Keep ids unique.
@@ -174,7 +174,7 @@ export const COURSE = {
       { id: 'lo-8-3', headline: 'Bonds, REITs and dividend shares: mixing income sources', match: 'Building an income portfolio from bonds, REITs and dividend shares' },
       { id: 'lo-8-4', headline: 'Drawing an income without running out', match: 'Withdrawal strategies in retirement: fixed, flexible and bucket approaches' },
     ] },
-    /* ── Weeks 9 to 17: the Lords Intensive ───────────────────────────
+    /* ── Weeks 9 to 17: the Pro Intensive ───────────────────────────
        Longer, worked lessons with a downloadable PDF workbook per lesson
        and per week (src/services/learnPdfService.js). "brief" tells the
        writer what the lesson must cover; "companies" (sector lessons) are

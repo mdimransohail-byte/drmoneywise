@@ -1,4 +1,4 @@
-/* /property/cities: Premium members see the city scorecard (stars on five
+/* /property/cities: Pro members see the city scorecard (stars on five
    fixed tests, ranking, "if the pace continued" sums) from
    /api/property/cities-premium. Others keep the description already shown. */
 (function () {
@@ -27,7 +27,7 @@
           (p.rent ? '<li>If that pace continued: rent about ' + gbp(p.rent) + ' a month in 5 years (now ' + gbp(c.rent) + ')</li>' : p.rentGrowth5 != null ? '<li>If that pace continued: rents about ' + p.rentGrowth5.toFixed(0) + '% higher in 5 years</li>' : '') +
           (p.price ? '<li>Average price about ' + gbp(p.price) + ' in 5 years (now ' + gbp(c.price) + ')</li>' : '') + '</ul></div>';
       }).join('');
-      box.innerHTML = '<div class="ct-prem-head"><span class="pf-badge prem">★ Premium</span><h2>City scorecard: five stars, five tests</h2></div>' +
+      box.innerHTML = '<div class="ct-prem-head"><span class="pf-badge prem">★ Pro</span><h2>City scorecard: five stars, five tests</h2></div>' +
         '<p>Each city is rated on the five tests below, from official figures. The ranking shows which cities score best on today’s numbers; the “if the pace continued” sums simply extend the last five years and are not forecasts.</p>' +
         '<div class="ct-tops">' + cards + '</div>' +
         '<div class="table-scroll"><table class="ct-score"><thead><tr><th>#</th><th>City</th><th>Overall</th>' + d.cities[0].stars.map(function (s) { return '<th>' + esc(s[0]) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>' +

@@ -46,7 +46,7 @@ async function lessonsHtml(hub) {
   if (!picked.length && !soon.length) return '';
   const card = (a) => {
     const lv = levelOf(a); const L = LEVELS[lv];
-    return `<a class="hb-lesson" href="/learn/${esc(a.slug)}" style="--c:${L.colour}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : '<span class="hb-ph"></span>'}<span class="lvl-mini" style="--c:${L.colour}">${esc(names[lv])}${L.premium ? ' · Premium' : ''}</span><strong>${esc(a.headline)}</strong><em>${esc(a.readingTime || '5 min read')}</em></a>`;
+    return `<a class="hb-lesson" href="/learn/${esc(a.slug)}" style="--c:${L.colour}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : '<span class="hb-ph"></span>'}<span class="lvl-mini" style="--c:${L.colour}">${esc(names[lv])}${L.premium ? ' · Pro' : ''}</span><strong>${esc(a.headline)}</strong><em>${esc(a.readingTime || '5 min read')}</em></a>`;
   };
   const soonCard = (l) => { const L = LEVELS[l.level]; return `<a class="hb-lesson soon" href="/learn/${L.slug}#week-${l.week}" style="--c:${L.colour}"><span class="hb-ph"></span><span class="lvl-mini" style="--c:${L.colour}">${esc(names[l.level])} · Week ${l.week}</span><strong>${esc(l.headline)}</strong><em>Coming soon</em></a>`; };
   return `<h2 class="lvp-h">Lessons on this</h2><div class="hb-lessons hb-grid"${cols(picked.length + soon.length, 5)}>${picked.map(card).join('')}${soon.map(soonCard).join('')}</div>`;

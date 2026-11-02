@@ -1,9 +1,9 @@
 /* ════════════════════════════════════════════════════════════════════════
    /technical and /technical/<TICKER> — the Chart check.
    Everyone: TradingView's live chart (with moving averages, RSI and MACD
-   drawn on) and the headline reading of the chart. Regular and Premium:
+   drawn on) and the headline reading of the chart. Plus and Pro:
    every signal, support and resistance, and our annotated chart, from
-   /api/technical (public/technical.js). Linked to the Chart Readers course.
+   /api/technical (public/technical.js). Linked to the Chart reading course.
    ════════════════════════════════════════════════════════════════════════ */
 
 import { getCompany, normaliseTicker } from './companyLookup.js';
@@ -39,7 +39,7 @@ export async function renderTechnical(origin, raw = '') {
   const body = `
       <section class="block ta-page">
         <p class="crumbs"><a href="/tools">Tools</a> › Chart check${ticker ? ` › ${esc(ticker)}` : ''}</p>
-        <div class="ta-hero"><div><span class="pf-badge free">Free</span> <span class="pf-badge mem">Full check: Members</span>
+        <div class="ta-hero"><div><span class="pf-badge free">Free</span> <span class="pf-badge mem">Full check: Plus</span>
           <h1>${ticker ? `${esc(name)}: chart check` : 'Chart check'}</h1>
           <p>Technical analysis looks at a share’s price chart rather than the business: which way the trend is going, how strong the moves are, and where buyers and sellers have stepped in before. We explain each sign in plain English.</p></div>
           ${formHtml(ticker)}</div>
@@ -54,7 +54,7 @@ export async function renderTechnical(origin, raw = '') {
         ${company ? `<p class="ta-links"><a href="/stock/${encodeURIComponent(ticker)}#healthCheck">${esc(name)}: Financial Health Check (the business itself) →</a></p>` : ''}` : `
         <div class="ta-intro">
           <div><h2>What you’ll see</h2><ul><li><b>Trend:</b> is the price above or below its 50- and 200-day averages?</li><li><b>Momentum:</b> RSI and MACD, and whether the move is speeding up or fading</li><li><b>Range:</b> where the price sits between its 52-week high and low</li><li><b>Levels:</b> support and resistance, where buyers and sellers stepped in before</li></ul></div>
-          <div><h2>Learn to read charts</h2><p>Our <a href="/learn/technical">Chart Readers course</a> explains each idea step by step, with pictures: candlesticks, trends, moving averages, RSI, MACD, chart patterns and how to manage risk.</p></div>
+          <div><h2>Learn to read charts</h2><p>Our <a href="/learn/technical">Chart reading course</a> explains each idea step by step, with pictures: candlesticks, trends, moving averages, RSI, MACD, chart patterns and how to manage risk.</p></div>
         </div>`}
         <p class="note-box">A chart shows where a price has been, not where it will go. Technical signals are often wrong, and this is not advice to buy or sell. Prices from Marketstack (end of day) and TradingView (live chart, may be delayed). Read our <a href="/disclaimer">disclaimer</a>.</p>
       </section>

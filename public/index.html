@@ -65,11 +65,18 @@
             <p id="heroDateline" class="dateline">Dr MoneyWise</p>
             <h1 id="heroHeadline">Money and Investing simplified</h1>
             <p id="heroLede" class="lede">Free courses from the basics up, a health score for every company, live market maps, calculators and guides. Clear, short and jargon-free.</p>
-            <dl class="reading-aid">
-              <div><dt><a href="/learn" style="color:inherit">Learn</a></dt><dd>Free week-by-week courses, from the basics up.</dd></div>
-              <div><dt><a href="/health-check" style="color:inherit">Check</a></dt><dd>A health score for every company we cover.</dd></div>
-              <div><dt><a href="/guides" style="color:inherit">Plan</a></dt><dd>Calculators and guides for saving, retiring and more.</dd></div>
-            </dl>
+            <div class="hero-find">
+              <form id="lookupForm" method="get" action="/stocks" role="search">
+                <label for="lookupInput">Look up any company: what it does, whether it’s growing, its debt and dividend, explained simply</label>
+                <div class="hf-row"><input id="lookupInput" name="q" type="search" data-suggest="go" placeholder="Company name or ticker, e.g. Apple or AAPL" /><button type="submit">Look up</button></div>
+              </form>
+              <p id="lookupMessage" class="hf-pop">Popular: <a href="/stock/AAPL">Apple</a> <a href="/stock/MSFT">Microsoft</a> <a href="/stock/NVDA">Nvidia</a> <a href="/stock/KO">Coca-Cola</a> <a href="/stock/TSLA">Tesla</a> <a href="/stocks">All companies →</a></p>
+            </div>
+            <div class="hero-paths">
+              <a href="/learn" style="--c:#1baf7a"><i aria-hidden="true">✎</i><strong>Learn</strong><span>Free courses, from the basics up</span></a>
+              <a href="/health-check" style="--c:#2a78d6"><i aria-hidden="true">✓</i><strong>Check</strong><span>A health score for every company</span></a>
+              <a href="/guides" style="--c:#e8a33d"><i aria-hidden="true">◎</i><strong>Plan</strong><span>Calculators and guides for saving and retiring</span></a>
+            </div>
           </div>
           <div id="homeCalcs" class="hc-box" aria-label="Money calculators">
             <div class="hc-head"><h2>Money calculators</h2><span>Free · nothing you type leaves your device</span></div>
@@ -131,12 +138,12 @@
           <div class="mk-cards">
             <a class="mk-card" href="/technical"><strong>Chart check</strong><span>What any share’s price chart shows: trend, RSI, MACD, support and resistance.</span><em>Free · full for members</em></a>
             <a class="mk-card" href="/compare"><strong>Compare two companies</strong><span>Health scores, sales, profit, debt and dividends side by side.</span><em>Free</em></a>
-            <a class="mk-card" href="/screener"><strong>Stock screener</strong><span>Filter companies by growth, profit, debt and dividends.</span><em>Members</em></a>
+            <a class="mk-card" href="/screener"><strong>Stock screener</strong><span>Filter companies by growth, profit, debt and dividends.</span><em>Plus</em></a>
             <a class="mk-card" href="/stocks/world"><strong>Stocks around the world</strong><span>The UK, Europe, Japan, China, India, South Korea, Brazil and the Gulf.</span><em>Free</em></a>
-            <a class="mk-card" href="/ideas"><strong>Ideas that match your rules</strong><span>Save your rules and see every company that matches.</span><em class="prem">Premium</em></a>
-            <a class="mk-card" href="/portfolio-health"><strong>Portfolio health check</strong><span>A score and heat map for every holding.</span><em class="prem">Premium</em></a>
-            <a class="mk-card" href="/insiders"><strong>Company bosses’ trades</strong><span>When directors buy or sell their own company’s shares.</span><em class="prem">Premium</em></a>
-            <a class="mk-card" href="/reports"><strong>Monthly research report</strong><span>The month in figures, with charts.</span><em class="prem">Premium</em></a>
+            <a class="mk-card" href="/ideas"><strong>Ideas that match your rules</strong><span>Save your rules and see every company that matches.</span><em class="prem">Pro</em></a>
+            <a class="mk-card" href="/portfolio-health"><strong>Portfolio health check</strong><span>A score and heat map for every holding.</span><em class="prem">Pro</em></a>
+            <a class="mk-card" href="/insiders"><strong>Company bosses’ trades</strong><span>When directors buy or sell their own company’s shares.</span><em class="prem">Pro</em></a>
+            <a class="mk-card" href="/reports"><strong>Monthly research report</strong><span>The month in figures, with charts.</span><em class="prem">Pro</em></a>
           </div>
           <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge free">Free</span><strong>Shariah-compliant investing</strong><span>Which big companies pass the five main Shariah standards, and the Shariah funds and ETFs you can buy.</span><em>See the guide →</em></a>
         </section>
@@ -219,14 +226,9 @@
           <div class="split">
             <div class="split-col">
             <div class="finder">
-              <h2>Look up a company</h2>
-              <p>See what it does, whether it's growing, its debt and its dividend, explained simply.</p>
-              <form id="lookupForm" method="get" action="/stocks" role="search">
-                <label class="sr-only" for="lookupInput">Company name or ticker</label>
-                <input id="lookupInput" name="q" type="search" placeholder="Company name or ticker, e.g. Apple" />
-                <button type="submit">Look up</button>
-              </form>
-              <p id="lookupMessage" class="soon">Popular: <a href="/stock/AAPL" style="color:#fff">Apple</a> · <a href="/stock/KO" style="color:#fff">Coca-Cola</a> · <a href="/stock/MSFT" style="color:#fff">Microsoft</a> · <a href="/stocks" style="color:#fff">All companies</a></p>
+              <h2>Not sure of the name?</h2>
+              <p>Browse every company we cover by area of the economy, or compare two side by side.</p>
+              <p class="soon"><a href="/stocks" style="color:#fff">All companies</a> · <a href="/compare" style="color:#fff">Compare two companies</a> · <a href="/stocks/world" style="color:#fff">Stocks around the world</a></p>
             </div>
             <a class="surface gloss-tile" href="/glossary">
               <h3>Glossary</h3>
@@ -255,7 +257,7 @@
               <p class="helper-note">Add companies you want to follow.</p>
               <form id="watchlistForm" class="inline-form">
                 <label class="sr-only" for="watchlistTickerInput">Ticker</label>
-                <input id="watchlistTickerInput" class="input" type="text" placeholder="Ticker, e.g. NVDA" />
+                <input id="watchlistTickerInput" class="input" type="text" data-suggest="ticker" placeholder="Type a name or ticker, e.g. Nvidia" />
                 <button class="button primary" type="submit">Add</button>
               </form>
               <div id="watchlistList" class="chip-row" style="margin-top:14px"></div>
@@ -265,15 +267,15 @@
             <div class="surface">
               <h3>Portfolio</h3>
               <p class="helper-note">Add what you own to see it together.</p>
-              <form id="portfolioForm" class="stack-form">
-                <div class="inline-form">
-                  <input id="portfolioTickerInput" class="input" type="text" placeholder="Ticker" aria-label="Ticker" />
-                  <input id="portfolioNameInput" class="input" type="text" placeholder="Name" aria-label="Name" />
+              <form id="portfolioForm" class="stack-form pf-form">
+                <label class="pf-f pf-tk"><span>Company</span><input id="portfolioTickerInput" class="input" type="text" data-suggest="ticker" placeholder="Type a name or ticker, e.g. Apple" autocomplete="off" required /><em data-suggest-name></em></label>
+                <input id="portfolioNameInput" type="hidden" />
+                <div class="pf-3">
+                  <label class="pf-f"><span>Number of shares</span><input id="portfolioWeightInput" class="input" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 10" /></label>
+                  <label class="pf-f"><span>Price paid per share</span><input id="portfolioCostInput" class="input" type="number" min="0" step="any" inputmode="decimal" placeholder="e.g. 150" /></label>
+                  <label class="pf-f"><span>Currency</span><select id="portfolioCurrencyInput" class="input"><option value="USD">US$</option><option value="GBP">£ GBP</option><option value="EUR">€ EUR</option><option value="AED">AED</option><option value="SAR">SAR</option><option value="INR">₹ INR</option><option value="PKR">PKR</option><option value="CAD">C$ CAD</option><option value="AUD">A$ AUD</option><option value="SGD">S$ SGD</option></select></label>
                 </div>
-                <div class="inline-form">
-                  <input id="portfolioWeightInput" class="input" type="text" placeholder="Share of portfolio, e.g. 25%" aria-label="Share of portfolio" />
-                  <input id="portfolioCostInput" class="input" type="text" placeholder="Price paid" aria-label="Price paid" />
-                </div>
+                <p class="helper-note" style="margin:0">Shares and price are optional but give you the value, gain or loss and each holding’s share of your portfolio. Prices of US-listed shares are in US dollars; other currencies are converted at today’s rate.</p>
                 <div><button class="button primary" type="submit">Add holding</button></div>
               </form>
               <div id="portfolioList" class="stack-list"></div>
@@ -282,7 +284,7 @@
           </div>
 
           <div class="block-head" style="margin-top:28px;margin-bottom:0">
-            <div><h3 style="font-size:22px;margin:0">Portfolio review</h3><p>A members' check-up of your holdings: strengths, risks and next steps. Premium members: try the full <a href="/portfolio-health">Portfolio health check</a> with scores and heat maps.</p></div>
+            <div><h3 style="font-size:22px;margin:0">Portfolio review</h3><p>A members' check-up of your holdings: strengths, risks and next steps. Pro members: try the full <a href="/portfolio-health">Portfolio health check</a> with scores and heat maps.</p></div>
             <button id="refreshReviewButton" class="button secondary" type="button">Refresh review</button>
           </div>
           <div id="portfolioReview" class="review-board"></div>
@@ -308,9 +310,10 @@
         <section id="join" class="block">
           <div class="join-box">
             <div>
-              <h2>Join free</h2>
-              <p>Save your topics, region, watchlist and portfolio, and read more explainers.</p>
-              <p>Signed in as: <span id="accountState" class="account-name">Guest</span></p>
+              <h2 id="joinTitle">Join free</h2>
+              <p id="joinLede">Save your topics, region, watchlist and portfolio, and read more explainers.</p>
+              <p id="joinWho" class="hidden">Signed in as: <span id="accountState" class="account-name">Guest</span></p>
+              <div id="joinLinks" class="join-links hidden"><a class="button primary" href="/membership">My plan and emails</a><a class="button secondary" href="/learn">Continue learning</a><a class="button secondary" href="#tools">My watchlist and portfolio</a></div>
               <div id="authMessage" class="helper-note"></div>
             </div>
 
@@ -357,7 +360,7 @@
             <a href="/terms">Terms</a>
           </div>
         </div>
-        <nav class="foot-topics" aria-label="Guides"><a href="/learn/beginners">Young Guns course</a><a href="/learn/intermediate">Knights course</a><a href="/health-check">Financial Health Check</a><a href="/personal-finance">Personal finance</a><a href="/retirement">Retirement</a><a href="/child-education">Child’s education</a><a href="/insurance">Insurance</a><a href="/currencies">Currencies</a><a href="/commodities">Commodities</a><a href="/shariah">Shariah investing</a><a href="/tools">Calculators</a><a href="/glossary">Money words</a></nav>
+        <nav class="foot-topics" aria-label="Guides"><a href="/learn/beginners">Beginners course</a><a href="/learn/intermediate">Intermediate course</a><a href="/health-check">Financial Health Check</a><a href="/personal-finance">Personal finance</a><a href="/retirement">Retirement</a><a href="/child-education">Child’s education</a><a href="/insurance">Insurance</a><a href="/currencies">Currencies</a><a href="/commodities">Commodities</a><a href="/shariah">Shariah investing</a><a href="/tools">Calculators</a><a href="/glossary">Money words</a></nav>
         <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
         <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the World Bank, the BIS, the OECD and HM Land Registry. Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
       </div>
@@ -374,6 +377,8 @@
     <script src="/portfolioedge.js" defer></script>
       <script src="/tickerbar.js" defer></script>
       <script src="/track.js" defer></script>
+      <script src="/nav.js" defer></script>
+      <script src="/suggest.js" defer></script>
       <script src="/promo.js" defer></script>
   </body>
 </html>

@@ -4,7 +4,7 @@
    Who can do what:
      • Anyone can read.
      • Any signed-in reader (free or paid) can start a thread (ask a question).
-     • Paid members (Regular/Premium) can reply and edit their own posts.
+     • Paid members (Plus/Pro) can reply and edit their own posts.
      • Admin can reply, edit, remove, restore and ban.
    Every new or edited post is checked before it shows:
      1. rule checks (instant, free): length, links, contact details, shouting,

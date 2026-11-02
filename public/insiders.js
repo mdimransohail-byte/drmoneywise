@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   Company bosses' trades (Premium) — the /insiders page and the box on
+   Company bosses' trades (Pro) — the /insiders page and the box on
    each US company page. Data from /api/insiders (SEC Form 4 reports).
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -76,7 +76,7 @@
     var biggest = d.trades.filter(function (x) { return x.side === 'buy' && (!S.mine || mineSet[x.ticker]); }).sort(function (a, b) { return (b.value || 0) - (a.value || 0); }).slice(0, 4);
     var plannedPct = t.sold ? Math.round(t.plannedSold / t.sold * 100) : null;
     page.innerHTML =
-      '<div class="sc-hero"><div><span class="pf-badge prem">★ Premium</span><h1>Company bosses’ trades</h1><p>When directors and top managers of the companies we cover bought or sold their own company’s shares on the stock market, from their official Form 4 reports.</p></div>' +
+      '<div class="sc-hero"><div><span class="pf-badge prem">★ Pro</span><h1>Company bosses’ trades</h1><p>When directors and top managers of the companies we cover bought or sold their own company’s shares on the stock market, from their official Form 4 reports.</p></div>' +
       '<div class="sc-tabs">' + [30, 90, 180].map(function (n) { return '<button data-days="' + n + '" class="' + (S.days === n ? 'on' : '') + '">' + n + ' days</button>'; }).join('') + '</div></div>' +
       '<div class="pr-tiles">' +
         tileHtml('Bought on the market', big(t.bought), nTrades(t.buys), GREEN) +
@@ -104,10 +104,10 @@
   function previewPage(text) {
     fetch('/api/site/insiders-preview').then(function (r) { return r.json(); }).then(function (d) {
       var t = d.totals || {};
-      page.innerHTML = '<div class="sc-hero"><div><span class="pf-badge prem">★ Premium</span><h1>Company bosses’ trades</h1><p>When directors and top managers of the companies we cover bought or sold their own company’s shares, from their official Form 4 reports.</p></div></div>' +
-        '<div class="pf-upsell"><strong>' + esc(text) + '</strong><a class="pf-btn gold" href="/membership#plans">See Premium</a></div>' +
-        '<div class="pr-tiles">' + tileHtml('Bought on the market', big(t.bought), nTrades(t.buys) + ' in 90 days', GREEN) + tileHtml('Sold on the market', big(t.sold), nTrades(t.sells) + ' in 90 days', ORANGE) + tileHtml('Companies with trades', String(d.companies || 0), 'names shown to Premium members', '#2a78d6') + '</div>' +
-        '<div class="pf-panel in-locked"><h2>Premium members see</h2><ul class="plain-list"><li>Every market buy and sale by directors and top managers, with who, what job, how many shares, the price and what they own afterwards</li><li>Which companies’ bosses were buying most, and which were selling, as colour charts</li><li>Which sales were planned months in advance, so you can tell routine selling from a real choice</li><li>A filter for just the companies on your watchlist and in your portfolio</li><li>The same box on every company’s page</li></ul></div>';
+      page.innerHTML = '<div class="sc-hero"><div><span class="pf-badge prem">★ Pro</span><h1>Company bosses’ trades</h1><p>When directors and top managers of the companies we cover bought or sold their own company’s shares, from their official Form 4 reports.</p></div></div>' +
+        '<div class="pf-upsell"><strong>' + esc(text) + '</strong><a class="pf-btn gold" href="/membership#plans">See Pro</a></div>' +
+        '<div class="pr-tiles">' + tileHtml('Bought on the market', big(t.bought), nTrades(t.buys) + ' in 90 days', GREEN) + tileHtml('Sold on the market', big(t.sold), nTrades(t.sells) + ' in 90 days', ORANGE) + tileHtml('Companies with trades', String(d.companies || 0), 'names shown to Pro members', '#2a78d6') + '</div>' +
+        '<div class="pf-panel in-locked"><h2>Pro members see</h2><ul class="plain-list"><li>Every market buy and sale by directors and top managers, with who, what job, how many shares, the price and what they own afterwards</li><li>Which companies’ bosses were buying most, and which were selling, as colour charts</li><li>Which sales were planned months in advance, so you can tell routine selling from a real choice</li><li>A filter for just the companies on your watchlist and in your portfolio</li><li>The same box on every company’s page</li></ul></div>';
     }).catch(function () { page.innerHTML = '<p class="note-box">This page could not load. Please try again.</p>'; });
   }
   function loadPage() {
@@ -115,8 +115,8 @@
       S.data = d;
       try { drawPage(); } catch (err) { console.error(err); page.innerHTML = '<p class="note-box">The trades could not be shown (' + esc(err.message) + '). Please tell us.</p>'; }
     }).catch(function (e) {
-      if (e.status === 401) previewPage('Sign in with a Premium membership to see every trade.');
-      else if (e.status === 403) previewPage('Company bosses’ trades are part of Premium.');
+      if (e.status === 401) previewPage('Sign in with a Pro membership to see every trade.');
+      else if (e.status === 403) previewPage('Company bosses’ trades are part of Pro.');
       else page.innerHTML = '<p class="note-box">The trades could not load (' + esc(e.message) + '). Please try again in a minute.</p>';
     });
   }
@@ -127,14 +127,14 @@
     var lock = function (text) {
       box.innerHTML = '<ul class="plain-list"><li>Every time a director or top manager bought or sold shares on the stock market in the last 6 months</li><li>Who it was, their job, the number of shares, the price and what they own afterwards</li><li>Whether a sale was planned months in advance</li></ul><p class="members-cta"><a class="pill-gold" href="/membership#plans">' + esc(text) + '</a> <a href="/insiders">About company bosses’ trades</a></p>';
     };
-    if (!token) { lock('Premium members see this'); return; }
+    if (!token) { lock('Pro members see this'); return; }
     api('/api/insiders?days=180&ticker=' + encodeURIComponent(ticker)).then(function (d) {
       var t = d.totals;
       if (!d.trades.length) { box.innerHTML = '<p>No director or top manager bought or sold ' + esc(ticker) + ' shares on the stock market in the last 6 months. (Shares received as pay, option exercises and tax withholding are not counted.) <a href="/insiders">See trades at other companies</a>.</p>'; return; }
       box.innerHTML = '<div class="pr-tiles">' + tileHtml('Bought', big(t.bought), nTrades(t.buys), GREEN) + tileHtml('Sold', big(t.sold), nTrades(t.sells), ORANGE) + tileHtml('Planned sales', t.sold ? Math.round(t.plannedSold / t.sold * 100) + '%' : '—', 'of the value sold', GOLD) + '</div>' +
         '<div class="in-meter"><span class="buy" style="width:' + ((t.bought + t.sold) ? (t.bought / (t.bought + t.sold) * 100) : 50) + '%"></span><span class="sell"></span></div><p class="pf-sub">Green = value bought, orange = value sold, last 6 months.</p>' +
         tradeRows(d.trades.slice(0, 15), false) + '<p class="helper-note"><a href="/insiders">See trades at every company we cover</a></p>';
-    }).catch(function (e) { lock(e.status === 403 ? 'Upgrade to Premium to see them' : 'Premium members see this'); });
+    }).catch(function (e) { lock(e.status === 403 ? 'Upgrade to Pro to see them' : 'Pro members see this'); });
   }
 
   if (page) loadPage(); else loadBox();

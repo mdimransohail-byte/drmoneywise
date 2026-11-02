@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   ASK DR MONEYWISE (Regular and Premium) — /ask
+   ASK DR MONEYWISE (Plus and Pro) — /ask
    Members send a money question. The team answers it from Admin → "Ask
    Dr MoneyWise" (a first draft can be written for them to check and edit).
    The member is emailed when it's answered. If they said yes, the question

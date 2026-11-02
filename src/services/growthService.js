@@ -8,7 +8,7 @@
       in Admin → Analytics → "How members joined".
    2. The offer pop-up (Admin → Offers): a picture with a discount for an
       occasion (Ramadan, Diwali, New Year…), shown on the homepage two
-      seconds after it opens, to visitors who aren't Premium yet. It links
+      seconds after it opens, to visitors who aren't Pro yet. It links
       to /membership with the coupon filled in. Saving the offer also saves
       the coupon, ending the day after the offer ends.
    ════════════════════════════════════════════════════════════════════════ */
@@ -80,6 +80,33 @@ export async function joinStats() {
   return { periods: out, trials: { now: trialing, started: trialsAll, converted: fromTrial } };
 }
 
+/* ── Visitor's country, from their browser's time zone ───────────────
+   Free, needs no outside service and keeps nothing: the browser says its
+   time zone (for example Asia/Dubai) and we match it to a country. If the
+   site is later put behind Cloudflare, its CF-IPCountry header is used. */
+export const COUNTRIES = {
+  US: 'United States', GB: 'United Kingdom', CA: 'Canada', IE: 'Ireland', AU: 'Australia', NZ: 'New Zealand',
+  AE: 'UAE', SA: 'Saudi Arabia', QA: 'Qatar', KW: 'Kuwait', BH: 'Bahrain', OM: 'Oman',
+  IN: 'India', PK: 'Pakistan', BD: 'Bangladesh', SG: 'Singapore', MY: 'Malaysia', HK: 'Hong Kong', PH: 'Philippines',
+  DE: 'Germany', NL: 'Netherlands', CH: 'Switzerland', FR: 'France', EG: 'Egypt', ZA: 'South Africa', NG: 'Nigeria',
+};
+const TZ = {
+  'Europe/London': 'GB', 'Europe/Belfast': 'GB', 'Europe/Dublin': 'IE', 'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA', 'Asia/Qatar': 'QA', 'Asia/Kuwait': 'KW',
+  'Asia/Bahrain': 'BH', 'Asia/Muscat': 'OM', 'Asia/Kolkata': 'IN', 'Asia/Calcutta': 'IN', 'Asia/Karachi': 'PK', 'Asia/Dhaka': 'BD', 'Asia/Singapore': 'SG',
+  'Asia/Kuala_Lumpur': 'MY', 'Asia/Hong_Kong': 'HK', 'Asia/Manila': 'PH', 'Europe/Berlin': 'DE', 'Europe/Amsterdam': 'NL', 'Europe/Zurich': 'CH',
+  'Europe/Paris': 'FR', 'Africa/Cairo': 'EG', 'Africa/Johannesburg': 'ZA', 'Africa/Lagos': 'NG', 'Pacific/Auckland': 'NZ',
+  'America/Toronto': 'CA', 'America/Vancouver': 'CA', 'America/Edmonton': 'CA', 'America/Winnipeg': 'CA', 'America/Halifax': 'CA', 'America/St_Johns': 'CA', 'America/Regina': 'CA', 'America/Montreal': 'CA',
+};
+export function countryOf({ tz = '', header = '' } = {}) {
+  const h = String(header || '').toUpperCase();
+  if (/^[A-Z]{2}$/u.test(h) && h !== 'XX') return h;
+  const z = String(tz || '');
+  if (TZ[z]) return TZ[z];
+  if (/^Australia\//u.test(z)) return 'AU';
+  if (/^America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Anchorage|Detroit|Boise|Indiana|Kentucky|North_Dakota|Juneau|Sitka|Adak|Menominee|Nome)/u.test(z) || z === 'Pacific/Honolulu') return 'US';
+  return '';
+}
+
 /* ── 2. Offer pop-up ─────────────────────────────────────────────── */
 export const OCCASIONS = {
   ramadan: { name: 'Ramadan', headline: 'Ramadan offer', colours: ['#0b3d2e', '#1baf7a', '#f7d07c'], motif: 'crescent' },
@@ -88,7 +115,7 @@ export const OCCASIONS = {
   newyear: { name: 'New Year', headline: 'New Year, new money plan', colours: ['#0a1128', '#6250d6', '#f7d07c'], motif: 'stars' },
   blackfriday: { name: 'Black Friday', headline: 'Black Friday offer', colours: ['#0a1128', '#e5566f', '#f7d07c'], motif: 'tag' },
   founding: { name: 'Founding members', headline: 'Founding member offer', colours: ['#0a1128', '#2a78d6', '#f7d07c'], motif: 'crown' },
-  nationalday: { name: 'UAE National Day', headline: 'National Day offer', colours: ['#0a1128', '#1baf7a', '#f7d07c'], motif: 'stars' },
+  nationalday: { name: 'UAE National Day', headline: 'Eid Al Etihad offer', colours: ['#0a1128', '#1baf7a', '#f7d07c'], motif: 'stars' },
   summer: { name: 'Summer', headline: 'Summer offer', colours: ['#0a3d62', '#0fa3b1', '#f7d07c'], motif: 'sun' },
   custom: { name: 'Special offer', headline: 'Special offer', colours: ['#0a1128', '#5b2a9e', '#f7d07c'], motif: 'crown' },
 };
@@ -96,13 +123,14 @@ export const OCCASIONS = {
 function cleanPromo(raw = {}) {
   const occasion = OCCASIONS[raw.occasion] ? raw.occasion : 'custom';
   const percent = Math.max(5, Math.min(80, Math.round(Number(raw.percent) || 20)));
-  const code = String(raw.code || `${occasion.toUpperCase().slice(0, 10)}${percent}`).toUpperCase().replace(/[^A-Z0-9]/gu, '').slice(0, 20);
+  const SHORT = { ramadan: 'RAMADAN', eid: 'EID', diwali: 'DIWALI', newyear: 'NEWYEAR', blackfriday: 'BLACKFRIDAY', founding: 'FOUNDER', nationalday: 'UAE', summer: 'SUMMER', custom: 'PRO' };
+  const code = String(raw.code || `${SHORT[occasion] || 'PRO'}${percent}`).toUpperCase().replace(/[^A-Z0-9]/gu, '').slice(0, 20);
   const day = (v) => (/^\d{4}-\d{2}-\d{2}$/u.test(String(v || '')) ? String(v) : '');
   return {
     on: Boolean(raw.on),
     occasion,
     headline: clip(raw.headline || OCCASIONS[occasion].headline, 70),
-    text: clip(raw.text || `Get ${percent}% off Premium: every lesson and PDF workbook, the full Health Check, portfolio check and chart alerts.`, 220),
+    text: clip(raw.text || `Get ${percent}% off Pro: every lesson and PDF workbook, the full Health Check, portfolio check and chart alerts.`, 220),
     button: clip(raw.button || `Claim ${percent}% off`, 30),
     percent, code,
     duration: raw.duration === 'forever' ? 'forever' : 'once',
@@ -110,6 +138,7 @@ function cleanPromo(raw = {}) {
     endAt: day(raw.endAt) || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
     image: /^\/promo-images\/[\w.-]+$/u.test(String(raw.image || '')) ? raw.image : '',
     delay: Math.max(0, Math.min(30, Number(raw.delay ?? 2))),
+    countries: (Array.isArray(raw.countries) ? raw.countries : []).map((c) => String(c).toUpperCase()).filter((c) => COUNTRIES[c]).slice(0, 40),
   };
 }
 
@@ -118,7 +147,7 @@ export async function getPromoAdmin() {
   const p = store.settings?.promo || null;
   const stats = store.settings?.promoStats?.[p?.id] || { views: 0, clicks: 0 };
   const upgrades = (store.events || []).filter((e) => (e.type === 'trial' || e.type === 'upgrade') && e.via === 'popup' && p?.id && e.promo === p.id).length;
-  return { promo: p, stats: { ...stats, upgrades }, occasions: Object.fromEntries(Object.entries(OCCASIONS).map(([k, v]) => [k, v.name])) };
+  return { promo: p, stats: { ...stats, upgrades }, countries: COUNTRIES, occasions: Object.fromEntries(Object.entries(OCCASIONS).map(([k, v]) => [k, v.name])) };
 }
 
 /** Saves the offer and its coupon (ends the day after the offer ends). */
@@ -141,13 +170,15 @@ export async function savePromo(raw) {
 }
 
 /** The offer to show this visitor, or null. */
-export async function activePromo(user) {
+export async function activePromo(user, country = '') {
   const store = await readStore();
   const p = store.settings?.promo;
   if (!p?.on) return null;
   const today = new Date().toISOString().slice(0, 10);
   if (today < p.startAt || today > p.endAt) return null;
   if (user && (user.role === 'admin' || user.plan === 'premium')) return null;
+  // Only in the chosen countries (an empty list means everywhere)
+  if ((p.countries || []).length && !p.countries.includes(country)) return null;
   return { id: p.id, headline: p.headline, text: p.text, button: p.button, percent: p.percent, code: p.code, image: p.image, delay: p.delay, endAt: p.endAt, occasion: OCCASIONS[p.occasion]?.name || 'Offer' };
 }
 
@@ -162,40 +193,95 @@ export async function promoEvent(id, type) {
   });
 }
 
-/* Pictures: made here (an occasion design in our colours) or uploaded
-   (for example one downloaded from Social studio). Kept in data/promo. */
+/* Pictures: made here (each occasion has its own design) or uploaded (for
+   example one downloaded from Social studio). Kept in data/promo.
+   Note: pictures of the UAE's leaders, or other real people, are not drawn
+   here; in the UAE their images can't be used in advertising without
+   official permission. National Day uses the flag and colours instead. */
 const x = (t) => String(t ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;');
-function motifSvg(m, gold, accent) {
-  if (m === 'crescent') return `<circle cx="930" cy="170" r="95" fill="${gold}"/><circle cx="965" cy="140" r="88" fill="var(--bg)"/>
-    ${[[800, 90], [1040, 300], [860, 330], [700, 200]].map(([cx, cy], i) => `<circle cx="${cx}" cy="${cy}" r="${6 + (i % 2) * 4}" fill="${gold}"/>`).join('')}
-    <path d="M1040 40v90M1040 130l-22 26h44z" stroke="${gold}" stroke-width="5" fill="${gold}"/><rect x="1018" y="156" width="44" height="58" rx="10" fill="none" stroke="${gold}" stroke-width="5"/><circle cx="1040" cy="186" r="9" fill="${accent}"/>`;
-  if (m === 'lamps') return [[760, 300], [900, 250], [1040, 300]].map(([cx, cy]) => `<path d="M${cx - 55} ${cy} q55 60 110 0 z" fill="${gold}"/><path d="M${cx} ${cy - 10} c-18 -30 0 -60 0 -80 c0 20 18 50 0 80z" fill="${accent}"/>`).join('')
-    + [[720, 120], [850, 80], [1000, 110], [1100, 190]].map(([cx, cy]) => `<circle cx="${cx}" cy="${cy}" r="7" fill="${gold}"/>`).join('');
-  if (m === 'tag') return `<g transform="rotate(-18 930 200)"><path d="M800 120h220l70 80-70 80H800z" fill="${accent}"/><circle cx="1030" cy="200" r="14" fill="var(--bg)"/><text x="900" y="222" font-family="Lato" font-weight="900" font-size="64" fill="#fff" text-anchor="middle">SALE</text></g>`;
-  if (m === 'sun') return `<circle cx="940" cy="190" r="90" fill="${gold}"/>${Array.from({ length: 12 }, (_, i) => { const a = (i * Math.PI) / 6; return `<line x1="${940 + Math.cos(a) * 110}" y1="${190 + Math.sin(a) * 110}" x2="${940 + Math.cos(a) * 150}" y2="${190 + Math.sin(a) * 150}" stroke="${gold}" stroke-width="10" stroke-linecap="round"/>`; }).join('')}`;
-  if (m === 'stars') return [[760, 110, 1.4], [900, 220, 2], [1060, 120, 1.2], [1000, 320, 1], [820, 330, 0.9]].map(([cx, cy, s]) => `<path transform="translate(${cx} ${cy}) scale(${s})" d="M0-40 11-12 41-12 17 6 26 36 0 18-26 36-17 6-41-12-11-12z" fill="${gold}"/>`).join('')
-    + `<circle cx="1100" cy="240" r="10" fill="${accent}"/><circle cx="720" cy="250" r="8" fill="${accent}"/>`;
-  return `<path d="M780 290l40-150 75 80 65-130 65 130 75-80 40 150z" fill="${gold}"/><rect x="780" y="300" width="360" height="30" rx="10" fill="${gold}"/>`;
-}
+const star = (cx, cy, r, fill) => `<path transform="translate(${cx} ${cy}) scale(${r / 40})" d="M0-40 11-12 41-12 17 6 26 36 0 18-26 36-17 6-41-12-11-12z" fill="${fill}"/>`;
+
+/* Each design: background art on the right, colours for the words on the left. */
+const ART = {
+  nationalday: () => ({
+    bg: '#ffffff', ink: '#0a1128', big: '#00843d', sub: '#3a4256', pill: '#c8102e', pillInk: '#ffffff', tag: 'EID AL ETIHAD · UAE NATIONAL DAY', brand: '#00843d',
+    art: `<rect width="1200" height="800" fill="#ffffff"/>
+      <g transform="translate(790 0)"><rect x="0" y="0" width="110" height="800" fill="#c8102e"/>
+        <rect x="110" y="0" width="300" height="267" fill="#00843d"/><rect x="110" y="267" width="300" height="266" fill="#f4f4f4"/><rect x="110" y="533" width="300" height="267" fill="#000000"/></g>
+      <rect x="0" y="0" width="1200" height="12" fill="#c8102e"/><rect x="0" y="788" width="1200" height="12" fill="#00843d"/>`,
+  }),
+  ramadan: () => ({
+    bg: '#0b3d2e', ink: '#ffffff', big: '#f7d07c', sub: '#d6efe4', pill: '#f7d07c', pillInk: '#0b3d2e', tag: 'RAMADAN KAREEM', brand: '#f7d07c',
+    art: `<rect width="1200" height="800" fill="#0b3d2e"/><circle cx="1000" cy="380" r="420" fill="#13513d"/>
+      ${[[760, 0, 210], [880, 0, 300], [1010, 0, 180], [1120, 0, 260]].map(([cx, , len]) => `<line x1="${cx}" y1="0" x2="${cx}" y2="${len}" stroke="#f7d07c" stroke-width="3"/><path d="M${cx - 30} ${len + 20} l30 -26 l30 26 v70 q-30 26 -60 0 z" fill="#f7d07c"/><rect x="${cx - 18}" y="${len + 30}" width="36" height="46" rx="8" fill="#e8a33d"/>`).join('')}
+      <circle cx="930" cy="560" r="110" fill="#f7d07c"/><circle cx="975" cy="525" r="100" fill="#13513d"/>
+      ${star(1080, 470, 18, '#f7d07c')}${star(800, 640, 12, '#f7d07c')}${star(1120, 690, 10, '#f7d07c')}`,
+  }),
+  eid: () => ({
+    bg: '#0f4c5c', ink: '#ffffff', big: '#f7d07c', sub: '#d8eef2', pill: '#f7d07c', pillInk: '#0f4c5c', tag: 'EID MUBARAK', brand: '#f7d07c',
+    art: `<rect width="1200" height="800" fill="#0f4c5c"/>
+      ${Array.from({ length: 6 }, (_, i) => `<circle cx="${760 + (i % 3) * 170}" cy="${150 + Math.floor(i / 3) * 400}" r="120" fill="none" stroke="#1d6b7d" stroke-width="18"/>`).join('')}
+      <circle cx="940" cy="400" r="170" fill="#f7d07c"/><circle cx="1010" cy="350" r="160" fill="#0f4c5c"/>
+      ${star(1080, 520, 30, '#f7d07c')}${star(820, 200, 16, '#ffffff')}${star(1130, 180, 12, '#ffffff')}${star(760, 640, 14, '#f7d07c')}`,
+  }),
+  diwali: () => ({
+    bg: '#3d0c1e', ink: '#ffffff', big: '#ffb347', sub: '#f5d9c9', pill: '#ffb347', pillInk: '#3d0c1e', tag: 'HAPPY DIWALI', brand: '#ffb347',
+    art: `<rect width="1200" height="800" fill="#3d0c1e"/>
+      <g transform="translate(960 330)">${Array.from({ length: 16 }, (_, i) => `<ellipse rx="34" ry="120" fill="${i % 2 ? '#e8730c' : '#c2185b'}" opacity=".85" transform="rotate(${i * 22.5}) translate(0 -110)"/>`).join('')}<circle r="90" fill="#ffb347"/><circle r="50" fill="#3d0c1e"/><circle r="22" fill="#ffd27a"/></g>
+      ${[760, 880, 1000, 1120].map((cx) => `<path d="M${cx - 50} 690 q50 60 100 0 z" fill="#c25b0a"/><path d="M${cx} 680 c-20 -34 0 -66 0 -90 c0 24 20 56 0 90z" fill="#ffd27a"/>`).join('')}`,
+  }),
+  newyear: () => ({
+    bg: '#0a1128', ink: '#ffffff', big: '#f7d07c', sub: '#cfd5f2', pill: '#f7d07c', pillInk: '#0a1128', tag: `HAPPY NEW YEAR ${new Date().getUTCMonth() >= 9 ? new Date().getUTCFullYear() + 1 : new Date().getUTCFullYear()}`, brand: '#f7d07c',
+    art: `<rect width="1200" height="800" fill="#0a1128"/>
+      ${[[880, 230, '#f7d07c', 150], [1080, 420, '#8a4fd8', 120], [820, 560, '#1baf7a', 100], [1110, 130, '#e5566f', 80]].map(([cx, cy, c, r]) => Array.from({ length: 18 }, (_, i) => { const a = (i * Math.PI) / 9; return `<line x1="${cx + Math.cos(a) * r * 0.25}" y1="${cy + Math.sin(a) * r * 0.25}" x2="${cx + Math.cos(a) * r}" y2="${cy + Math.sin(a) * r}" stroke="${c}" stroke-width="6" stroke-linecap="round"/><circle cx="${cx + Math.cos(a) * r * 1.08}" cy="${cy + Math.sin(a) * r * 1.08}" r="5" fill="${c}"/>`; }).join('')).join('')}`,
+  }),
+  blackfriday: () => ({
+    bg: '#111111', ink: '#ffffff', big: '#ff3b5c', sub: '#d9d9d9', pill: '#ff3b5c', pillInk: '#ffffff', tag: 'BLACK FRIDAY', brand: '#f7d07c',
+    art: `<rect width="1200" height="800" fill="#111111"/>
+      ${Array.from({ length: 9 }, (_, i) => `<rect x="${640 + i * 80}" y="-100" width="36" height="1000" fill="#ff3b5c" opacity="${0.12 + (i % 3) * 0.08}" transform="rotate(20 ${640 + i * 80} 400)"/>`).join('')}
+      <g transform="rotate(-14 950 400)"><path d="M800 300h260l90 100-90 100H800z" fill="#ff3b5c"/><circle cx="1070" cy="400" r="18" fill="#111"/><text x="930" y="425" font-family="Lato" font-weight="900" font-size="70" fill="#fff" text-anchor="middle">SALE</text></g>`,
+  }),
+  founding: () => ({
+    bg: '#0a1128', ink: '#ffffff', big: '#f7d07c', sub: '#cfd5f2', pill: '#f7d07c', pillInk: '#0a1128', tag: 'FOUNDING MEMBERS', brand: '#f7d07c',
+    art: `<rect width="1200" height="800" fill="#0a1128"/><circle cx="960" cy="400" r="260" fill="none" stroke="#c9a227" stroke-width="10"/><circle cx="960" cy="400" r="220" fill="#16204a"/>
+      <path d="M840 470l30-130 60 60 30-100 30 100 60-60 30 130z" fill="#f7d07c"/><rect x="840" y="480" width="240" height="26" rx="8" fill="#f7d07c"/>
+      <text x="960" y="580" font-family="Lato" font-weight="900" font-size="30" fill="#f7d07c" text-anchor="middle" letter-spacing="6">PRICE LOCKED</text>`,
+  }),
+  summer: () => ({
+    bg: '#e8f6ff', ink: '#0a1128', big: '#0a6c9e', sub: '#2c3650', pill: '#0a6c9e', pillInk: '#ffffff', tag: 'SUMMER OFFER', brand: '#0a6c9e',
+    art: `<rect width="1200" height="800" fill="#e8f6ff"/><circle cx="980" cy="240" r="120" fill="#ffc94a"/>
+      ${Array.from({ length: 12 }, (_, i) => { const a = (i * Math.PI) / 6; return `<line x1="${980 + Math.cos(a) * 140}" y1="${240 + Math.sin(a) * 140}" x2="${980 + Math.cos(a) * 190}" y2="${240 + Math.sin(a) * 190}" stroke="#ffc94a" stroke-width="12" stroke-linecap="round"/>`; }).join('')}
+      <path d="M600 600 q75 -50 150 0 t150 0 t150 0 t150 0 v200 H600z" fill="#7cc6ec"/><path d="M600 660 q75 -50 150 0 t150 0 t150 0 t150 0 v140 H600z" fill="#0a6c9e"/>`,
+  }),
+  custom: () => ({
+    bg: '#2a1050', ink: '#ffffff', big: '#f7d07c', sub: '#e1d4f7', pill: '#f7d07c', pillInk: '#2a1050', tag: 'SPECIAL OFFER', brand: '#f7d07c',
+    art: `<rect width="1200" height="800" fill="#2a1050"/><circle cx="1000" cy="200" r="260" fill="#5b2a9e"/><circle cx="880" cy="640" r="180" fill="#8a4fd8" opacity=".6"/>`,
+  }),
+};
+ART.eid_al_adha = ART.eid;
 
 export async function makePromoImage(raw) {
   const p = cleanPromo(raw);
-  const o = OCCASIONS[p.occasion];
-  const [bg, accent, gold] = o.colours;
+  const d = (ART[p.occasion] || ART.custom)();
+  const { loadFonts, width } = await import('./socialCardService.js');
+  const f = await loadFonts();
   const until = new Date(`${p.endAt}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" style="--bg:${bg}">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="${accent}" stop-opacity="0.55"/></linearGradient></defs>
-  <rect width="1200" height="800" fill="${bg}"/><rect width="1200" height="800" fill="url(#g)"/>
-  <rect x="0" y="0" width="1200" height="14" fill="${gold}"/><rect x="0" y="786" width="1200" height="14" fill="${gold}"/>
-  ${motifSvg(o.motif, gold, accent).replace(/var\(--bg\)/gu, bg)}
-  <text x="70" y="120" font-family="Libre Baskerville" font-weight="700" font-size="40" fill="${gold}">Dr MoneyWise</text>
-  <text x="70" y="200" font-family="Lato" font-weight="900" font-size="30" fill="#ffffff" letter-spacing="4">${x(o.name.toUpperCase())}</text>
-  <text x="66" y="430" font-family="Lato" font-weight="900" font-size="230" fill="${gold}">${p.percent}%</text>
-  <text x="70" y="510" font-family="Libre Baskerville" font-weight="700" font-size="56" fill="#ffffff">off Premium</text>
-  <text x="70" y="585" font-family="Lato" font-size="30" fill="#e8ecf8">Every lesson and PDF workbook · Health Check in full</text>
-  <text x="70" y="625" font-family="Lato" font-size="30" fill="#e8ecf8">Portfolio check · Chart alerts · No adverts</text>
-  <rect x="70" y="672" width="520" height="76" rx="38" fill="${gold}"/>
-  <text x="330" y="722" font-family="Lato" font-weight="900" font-size="32" fill="${bg}" text-anchor="middle">Code ${x(p.code)} · until ${x(until)}</text>
+  // The code pill is sized to its words, so nothing spills out
+  const pillText = `Code ${p.code} · until ${until}`;
+  let pillSize = 32;
+  while (pillSize > 20 && width(f.black, pillText, pillSize) > 600) pillSize -= 1;
+  const pillW = Math.ceil(width(f.black, pillText, pillSize)) + 64;
+  const lines = ['Every lesson and PDF workbook · Health Check in full', 'Portfolio check · Chart alerts · No adverts'];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  ${d.art}
+  <text x="70" y="110" font-family="Libre Baskerville" font-weight="700" font-size="40" fill="${d.brand}">Dr MoneyWise</text>
+  <text x="70" y="180" font-family="Lato" font-weight="900" font-size="26" fill="${d.ink}" letter-spacing="4">${x(d.tag)}</text>
+  <text x="62" y="410" font-family="Lato" font-weight="900" font-size="220" fill="${d.big}">${p.percent}%</text>
+  <text x="70" y="490" font-family="Libre Baskerville" font-weight="700" font-size="56" fill="${d.ink}">off Pro</text>
+  <text x="70" y="565" font-family="Lato" font-size="24" fill="${d.sub}">${x(lines[0])}</text>
+  <text x="70" y="600" font-family="Lato" font-size="24" fill="${d.sub}">${x(lines[1])}</text>
+  <rect x="70" y="650" width="${pillW}" height="80" rx="40" fill="${d.pill}"/>
+  <text x="${70 + pillW / 2}" y="${690 + pillSize * 0.36}" font-family="Lato" font-weight="900" font-size="${pillSize}" fill="${d.pillInk}" text-anchor="middle">${x(pillText)}</text>
 </svg>`;
   const { svgToPng } = await import('./socialCardService.js');
   return savePromoFile(svgToPng(svg), 'png');

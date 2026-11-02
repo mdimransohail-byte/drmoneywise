@@ -356,7 +356,8 @@ export async function discoverArticleCandidates({ regions = ['global'], interest
    image field changes, nothing else about the article is touched.
    ════════════════════════════════════════════════════════════════════════ */
 export async function attachPexelsImage(articleId, query) {
-  const image = await searchPexelsImage(query);
+  const used = (await readStore()).articles.map((a) => a.heroImage?.url).filter(Boolean);
+  const image = await searchPexelsImage(query, { avoid: used });
   if (!image) {
     return null;
   }
@@ -584,7 +585,7 @@ export async function autoGenerateTrendingLearningPoint({ accessTier = 'free', r
   const saved = await saveAdminArticle({
     headline: generated.headline,
     contentType: 'learning',
-    accessTier: level === 'technical' ? 'regular' : accessTier, // Chart Readers lessons are for members
+    accessTier: level === 'technical' ? 'regular' : accessTier, // Chart reading lessons are for members
     region,
     interest,
     status: quality.ok ? 'scheduled' : 'draft',
@@ -751,11 +752,11 @@ function learnFields(generated, level) {
     chart: generated.chart || { points: [] },
     format: sections ? 2 : 1,
     readingTime: `${Math.max(3, Math.round(wordsCount / 200))} min read`,
-    styleVersion: 2, // 2 = the simpler Premium style (Nov 2026); older Lords lessons are rewritten in it
+    styleVersion: 2, // 2 = the simpler Pro style (Nov 2026); older Advanced lessons are rewritten in it
   };
 }
 
-/* Chart Readers lessons get a drawn diagram (src/services/taDiagrams.js) */
+/* Chart reading lessons get a drawn diagram (src/services/taDiagrams.js) */
 function diagramFor(article) {
   const lesson = lessonForArticle(article);
   return lesson?.level === 'technical' ? taDiagramHtml(lesson.id) : '';
@@ -772,8 +773,8 @@ function toFullArticle(article, plan) {
     lockedMessage: accessible
       ? ''
       : article.accessTier === 'premium'
-        ? 'Upgrade to Premium to read the full article, visual breakdown, and learning extras.'
-        : 'Upgrade to Regular or Premium to read the full article and member extras.',
+        ? 'Upgrade to Pro to read the full article, visual breakdown, and learning extras.'
+        : 'Upgrade to Plus or Pro to read the full article and member extras.',
     visibleSections: accessible ? sections : sections.slice(0, 1),
     visibleTakeaways,
     visibleJargon: accessible ? article.jargonBuster || [] : (article.jargonBuster || []).slice(0, 1),
@@ -880,8 +881,8 @@ export async function upgradeOldLearningArticle() {
   return fields ? old.headline : null;
 }
 
-/* ── Deeper explainers (Premium) — data engine job "deeper" ──────────────
-   Writes one Premium explainer from DEEPER_TOPICS (src/data/explainerTopics.js)
+/* ── Deeper explainers (Pro) — data engine job "deeper" ──────────────
+   Writes one Pro explainer from DEEPER_TOPICS (src/data/explainerTopics.js)
    in the paid-tier style. Topics are used once before any repeats; quality
    checks decide whether it goes live or waits as a draft. */
 /** What the writer is told about a course lesson: headline, scope, must-cover points and (sector lessons) real figures. */
@@ -919,13 +920,13 @@ export async function writeDeeperExplainer() {
   const { DEEPER_TOPICS } = await import('../data/explainerTopics.js');
   const { lessonsInOrder, lessonForArticle } = await import('../data/learnCourse.js');
   const store = await readStore();
-  // Next Lords lesson in course order that hasn't been written yet
+  // Next Advanced lesson in course order that hasn't been written yet
   const done = new Set(store.articles.map((a) => lessonForArticle(a)?.id).filter(Boolean));
   const lesson = lessonsInOrder().find((l) => l.level === 'lords' && !done.has(l.id)) || null;
   // Course complete: back to one extra deeper piece every 3 days
   if (!lesson) {
     const lastDeeper = store.articles.filter((x) => x.source === 'deeper-auto').map((x) => new Date(x.createdAt || x.publishAt).getTime()).sort().at(-1) || 0;
-    if (Date.now() - lastDeeper < 3 * 86400000) return { ok: true, skipped: true, message: 'Lords course complete; next extra lesson in a few days' };
+    if (Date.now() - lastDeeper < 3 * 86400000) return { ok: true, skipped: true, message: 'Advanced course complete; next extra lesson in a few days' };
   }
   const used = store.articles.filter((a) => a.source === 'deeper-auto' && a.trendingTopic).map((a) => a.trendingTopic);
   const unused = DEEPER_TOPICS.filter((t) => !used.includes(t));
@@ -964,16 +965,16 @@ export async function writeDeeperExplainer() {
     return s2;
   });
   try { await attachPexelsImage(saved.id, generated.headline); } catch (error) { console.error('[articleService] Photo for deeper explainer failed:', error.message); }
-  return { ok: true, message: quality.ok ? `Written: "${generated.headline}" (Premium)` : `Written but held as a draft for a read: "${generated.headline}" (${quality.issues.join('; ')})` };
+  return { ok: true, message: quality.ok ? `Written: "${generated.headline}" (Pro)` : `Written but held as a draft for a read: "${generated.headline}" (${quality.issues.join('; ')})` };
 }
 
 
-/* ── Market review every two weeks (Premium) — data engine job "review" ──
+/* ── Market review every two weeks (Pro) — data engine job "review" ──
    Trends, sectors and themes from the last 14 days, written only from our
    own figures: share indexes and sector funds (daily prices), the economy,
    commodities, bond yields, results, dividends and bosses' trades. Every
    number is checked against those figures; if any doesn't match, the review
-   waits as a draft for a read in Admin. Featured in the Premium newsletter. */
+   waits as a draft for a read in Admin. Featured in the Pro newsletter. */
 const REVIEW_FUNDS = [
   ['SPY', 'S&P 500 (large US companies)', 'index'], ['QQQ', 'Nasdaq 100 (big technology companies)', 'index'], ['DIA', 'Dow Jones (30 US giants)', 'index'], ['IWM', 'Russell 2000 (smaller US companies)', 'index'],
   ['XLK', 'Technology', 'sector'], ['XLF', 'Banks and finance', 'sector'], ['XLE', 'Energy', 'sector'], ['XLV', 'Healthcare', 'sector'], ['XLY', 'Shops, cars and leisure', 'sector'],

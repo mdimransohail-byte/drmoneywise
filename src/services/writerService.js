@@ -94,7 +94,7 @@ function buildLearnPrompt({ headline, sourceNotes, level, sections = null, rules
   const reader = level === 'technical'
     ? 'Reader: an investor learning technical analysis (reading price charts). Assume they know what a share is but have never studied charts. Explain each chart idea with a concrete example using real-looking but clearly hypothetical prices (for example a share at $50 rising to $60), describe what it would look like on a chart, how traders use it, and how often it fails. Be balanced: chart signals are probabilities, not certainties, and costs and discipline matter.'
     : level === 'lords'
-    ? 'Reader: a Premium member who wants the professional view but may be new to investing and to financial words. Teach the deeper idea in simple steps: start each idea with an everyday comparison (a corner shop, a household budget, a car loan), then give the professional version. Explain every financial term in everyday words the first time it appears, in the same sentence, and introduce no more than three new terms per section. Short sentences (mostly under 20 words), no unexplained abbreviations (write "price to earnings (P/E)" the first time), and small round numbers in worked examples (for example a shop with £100,000 of sales) so the sums are easy to follow. Show each calculation one step per line in words. Cover the limits and traps, kindly.'
+    ? 'Reader: a Pro member who wants the professional view but may be new to investing and to financial words. Teach the deeper idea in simple steps: start each idea with an everyday comparison (a corner shop, a household budget, a car loan), then give the professional version. Explain every financial term in everyday words the first time it appears, in the same sentence, and introduce no more than three new terms per section. Short sentences (mostly under 20 words), no unexplained abbreviations (write "price to earnings (P/E)" the first time), and small round numbers in worked examples (for example a shop with £100,000 of sales) so the sums are easy to follow. Show each calculation one step per line in words. Cover the limits and traps, kindly.'
     : level === 'intermediate'
     ? 'Reader: a mid-level investor. They already know what a share, a fund, a bond, a dividend and an interest rate are, so do not explain those from scratch. Go one level deeper: show how professionals think about the idea, work through one or two useful ratios or calculations with real numbers, and point out second-order effects.'
     : 'Reader: a complete beginner. Assume they know nothing about investing. Use everyday comparisons (shopping, a salary, a savings jar), explain every money word the first time it appears, and keep sentences short.';
@@ -721,7 +721,7 @@ export async function summarizeHeadlines({ subject = '', headlines = [] }) {
 /* ════════════════════════════════════════════════════════════════════════
    COMPANY RESULTS — turns a company's results press release (from its SEC
    filing) into: a headline, "In simple words", up to 4 key numbers (free)
-   and "What it means" (Premium). Only figures stated in the release.
+   and "What it means" (Pro). Only figures stated in the release.
    About 1–2 US cents per result. Returns null if no service answered.
    ════════════════════════════════════════════════════════════════════════ */
 export async function explainResults({ company = '', ticker = '', text = '' }) {
@@ -766,7 +766,7 @@ function cleanDividend(d, clean) {
 /* ════════════════════════════════════════════════════════════════════════
    DIVIDEND ANNOUNCEMENTS — reads a company announcement that mentions a
    dividend and says whether it was raised, cut, kept, started, stopped or a
-   one-off special payment. For dividend alerts (Regular and Premium).
+   one-off special payment. For dividend alerts (Plus and Pro).
    ════════════════════════════════════════════════════════════════════════ */
 export async function explainDividend({ company = '', ticker = '', text = '' }) {
   const prompt = [
@@ -822,7 +822,7 @@ export async function writeReportSummary({ month, facts }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   FORTNIGHTLY MARKET REVIEW (Premium) — trends, sectors and themes from the
+   FORTNIGHTLY MARKET REVIEW (Pro) — trends, sectors and themes from the
    last two weeks, in the lesson format, written ONLY from our own figures.
    ════════════════════════════════════════════════════════════════════════ */
 export async function writeMarketReview({ period, facts }) {

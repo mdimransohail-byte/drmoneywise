@@ -1,14 +1,14 @@
 /* ════════════════════════════════════════════════════════════════════════
    MEMBER EMAILS — sent with Resend (the same service as the health email).
    ───────────────────────────────────────────────────────────────────────
-     Dividend alerts   Regular + Premium   a company on your watchlist raises,
+     Dividend alerts   Plus + Pro   a company on your watchlist raises,
                                            cuts, starts or stops its dividend
-     Weekly email      Regular + Premium   Saturday morning (Dubai time): your
+     Weekly email      Plus + Pro   Saturday morning (Dubai time): your
                                            watchlist's week, the week's biggest
                                            results, the economy, new explainers
-     Big-fund alerts   Premium             a famous fund bought or sold a company
+     Big-fund alerts   Pro             a famous fund bought or sold a company
                                            on your watchlist (each quarter)
-     Chart alerts      Premium             a chart sign (golden cross, RSI above 70,
+     Chart alerts      Pro             a chart sign (golden cross, RSI above 70,
                                            new 52-week high...) on a company in your
                                            watchlist or portfolio, after each close
    Members switch each one on or off on Membership → Your plan, or with the
@@ -40,7 +40,7 @@ export const EMAIL_KINDS = {
   funds: { label: 'Big-fund alerts', plan: 'premium', about: 'When a famous fund buys or sells a company on your watchlist (each quarter).' },
   report: { label: 'Monthly research report', plan: 'premium', about: 'On the 1st of each month: the month in figures, with a link to the full report.' },
   welcome: { label: 'Getting-started emails', plan: 'free', about: 'Five short emails in your first ten days, each showing one useful part of the site.' },
-  newsletter: { label: 'Saturday newsletter', plan: 'free', about: 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons in one email. Premium members get an extra section with their own portfolio and companies.' },
+  newsletter: { label: 'Saturday newsletter', plan: 'free', about: 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons in one email. Pro members get an extra section with their own portfolio and companies.' },
 };
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
@@ -184,7 +184,7 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
     if (ok) for (const d of mine) mark(`div:${user.id}:${d.id}`);
   }
 
-  // 2. Big-fund alerts (Premium), once per quarter per member
+  // 2. Big-fund alerts (Pro), once per quarter per member
   const funds = await readJson(path.join(DIR, 'funds.json'), null);
   const period = funds?.funds?.map((f) => f.period).sort().at(-1);
   if (period && !testOnly) {
@@ -203,7 +203,7 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
     }
   }
 
-  // 2a. Chart alerts (Premium): signs on the latest trading day for the
+  // 2a. Chart alerts (Pro): signs on the latest trading day for the
   //     companies each member watches or holds; one email a day at most.
   if (!testOnly) {
     try {
@@ -224,14 +224,14 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
         if (!mine.length) continue;
         const items = mine.slice(0, 20).map((e) => line(`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${DOT[e.tone] || '#8a8576'};margin-right:6px"></span><strong><a href="${esc(site)}/technical/${esc(e.t)}" style="color:#0a1128">${esc(e.t)}: ${esc(e.title)}</a></strong><br>${esc(e.text)}`)).join('');
         const ok = await send(user, 'charts', mine.length === 1 ? `Chart alert: ${mine[0].t} ${mine[0].title.toLowerCase()}` : `Chart alerts for ${new Set(mine.map((e) => e.t)).size} of your companies`,
-          'Chart alerts from your watchlist and portfolio', `Signs that appeared on the chart on ${esc(mine[0].date)}, from closing prices. Each one is explained in our Chart Readers course. Chart signs are often wrong: this is information, not advice to buy or sell.`,
+          'Chart alerts from your watchlist and portfolio', `Signs that appeared on the chart on ${esc(mine[0].date)}, from closing prices. Each one is explained in our Chart reading course. Chart signs are often wrong: this is information, not advice to buy or sell.`,
           [section('What appeared', items + line(`<a href="${esc(site)}/learn/technical" style="color:#1a2a9e;font-weight:700">Learn what each sign means</a>`))]);
         if (ok) for (const e of mine) mark(`chart:${user.id}:${e.t}:${e.key}:${e.date}`);
       }
     } catch (error) { console.error(`[alerts] chart alerts: ${error.message}`); }
   }
 
-  // 2b. Monthly research report (Premium), once per finished report
+  // 2b. Monthly research report (Pro), once per finished report
   if (!testOnly) {
     const { listReports } = await import('./reportService.js');
     const latest = (await listReports()).find((r) => !r.partial);
@@ -261,7 +261,7 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
       if (ok && !forceWeeklyTo) mark(`weekly:${user.id}:${week}`);
     }
   }
-  // Premium idea lists: on Sundays (after the Saturday newsletter has listed
+  // Pro idea lists: on Sundays (after the Saturday newsletter has listed
   // the week's new matches), remember today's matches so next week can say what's new
   if (now.getUTCDay() === 0 && !forceWeeklyTo && !testUser) {
     const { ideasFor, rememberMatches } = await import('./ideasService.js');

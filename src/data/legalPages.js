@@ -42,7 +42,7 @@ export const INFO_PAGES = {
       {
         heading: 'How we make money',
         paragraphs: [
-          'Most of the site is free. Members who want more depth pay for a Regular or Premium plan. In future we may also show advertising or earn a fee when readers sign up with partner services; when we do, we will label it clearly. Payments never change what we write.',
+          'Most of the site is free. Members who want more depth pay for a Plus or Pro plan. In future we may also show advertising or earn a fee when readers sign up with partner services; when we do, we will label it clearly. Payments never change what we write.',
         ],
       },
     ],

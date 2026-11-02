@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    /property/cities — rents, prices, rental yield and five years of history
    for big cities (src/data/propertyCities.js). Free for everyone.
-   Premium (from /api/property/cities-premium, public/citiesprem.js):
+   Pro (from /api/property/cities-premium, public/citiesprem.js):
    a 5-star scorecard for each city on five fixed rules, a ranking, and
    "if the last five years' pace continued" sums. Only ONS, Land Registry
    and BLS figures are used here (all free for commercial use); the BIS
@@ -56,7 +56,7 @@ export function cityFacts(c, d) {
   };
 }
 
-/* ── The Premium scorecard (rules in CITY_CRITERIA) ──────────────────── */
+/* ── The Pro scorecard (rules in CITY_CRITERIA) ──────────────────── */
 const step = (v, cuts) => { if (v === null || v === undefined) return null; let s = 1; cuts.forEach((c, i) => { if (v >= c) s = i + 2; }); return Math.min(5, s); };
 export function cityScore(f) {
   const stars = [
@@ -125,10 +125,10 @@ export async function renderPropertyCities(origin) {
           <div class="ct-us">${us.map((f) => `<div><strong>${esc(f.name)}</strong><span>Rents <b class="${toneOf(f.rent1y)}">${pct(f.rent1y)}</b> in a year, about ${f.rent5y !== null ? `${f.rent5y.toFixed(1)}%` : '—'} a year over five years</span></div>`).join('')}</div></div>` : ''}
 
         <div class="ct-prem" id="cityPremium">
-          <div class="ct-prem-head"><span class="pf-badge prem">★ Premium</span><h2>City scorecard: five stars, five tests</h2></div>
-          <p>Premium members see every city rated out of five stars on five fixed tests, a ranking of the cities that score best, and what rents and prices would be in five years if the last five years’ pace simply continued.</p>
+          <div class="ct-prem-head"><span class="pf-badge prem">★ Pro</span><h2>City scorecard: five stars, five tests</h2></div>
+          <p>Pro members see every city rated out of five stars on five fixed tests, a ranking of the cities that score best, and what rents and prices would be in five years if the last five years’ pace simply continued.</p>
           <ul class="ct-criteria">${CITY_CRITERIA.map(([k, v]) => `<li><b>${esc(k)}</b> ${esc(v)}</li>`).join('')}</ul>
-          <a class="mb-btn prem-btn" href="/membership">See Premium</a>
+          <a class="mb-btn prem-btn" href="/membership">See Pro</a>
         </div>
 
         <details class="pr-explain"><summary>Reading these figures</summary><ul>

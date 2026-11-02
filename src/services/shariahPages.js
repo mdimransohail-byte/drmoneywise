@@ -10,7 +10,7 @@
                            local Shariah list or index and the local funds
      /shariah/funds        Shariah ETFs, mutual funds and sukuk funds, with
                            real holdings from SEC reports for US funds
-   Free to read. Premium members also see each company's ratios and the
+   Free to read. Pro members also see each company's ratios and the
    share of dividends to give away (public/shariah.js, /api/shariah).
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -115,7 +115,7 @@ export async function renderShariahHub(origin) {
 
         <div class="sh-two">
           <div class="pf-panel"><h2>Shariah funds and ETFs</h2><p>Ready-made Shariah funds do the checking for you, under their own Shariah board. We list ${SHARIAH_FUNDS.length} across ${new Set(SHARIAH_FUNDS.map((f) => f.market)).size} groups, from the US and UK to Malaysia, Saudi Arabia and Pakistan, with the real holdings of the US ones from their reports to the SEC.</p><p><a class="pf-btn gold" href="/shariah/funds">See the funds</a></p></div>
-          <div class="pf-panel"><h2>Purification, simply</h2><p>If 2% of a company’s income comes from interest, many scholars ask you to give 2% of the dividends you receive from it to charity. Premium members see an estimate for each company on the market pages, from the interest income in its yearly report.</p><p><a href="/membership#plans">See Premium</a></p></div>
+          <div class="pf-panel"><h2>Purification, simply</h2><p>If 2% of a company’s income comes from interest, many scholars ask you to give 2% of the dividends you receive from it to charity. Pro members see an estimate for each company on the market pages, from the interest income in its yearly report.</p><p><a href="/membership#plans">See Pro</a></p></div>
         </div>
         <p class="pf-sub">You can also tick a Shariah standard in the <a href="/screener?shariah=any">stock screener</a> (members).</p>
         ${NOT_ADVICE}
@@ -147,7 +147,7 @@ export async function renderShariahMarket(origin, id) {
           <div class="sh-filter" role="group" aria-label="Show companies that pass">
             <span>Show:</span><button class="on" data-sh-filter="">All ${rows.length}</button>${METHODS.map((m) => `<button data-sh-filter="${m.id}" style="--c:${m.colour}">Passes ${esc(m.short)}</button>`).join('')}<button data-sh-filter="all5">Passes all five</button><button data-sh-filter="held">Held by a Shariah fund</button>
           </div>
-          <div class="sh-scroll"><table class="sh-table" data-sh-market="${esc(id)}"><thead><tr><th>Company</th>${METHODS.map((m) => `<th style="--c:${m.colour}">${esc(m.short)}</th>`).join('')}<th>Held by Shariah funds</th><th class="sh-prem-col">Debt / assets <span class="sc-prem">Premium</span></th><th class="sh-prem-col">Give to charity <span class="sc-prem">Premium</span></th></tr></thead><tbody>
+          <div class="sh-scroll"><table class="sh-table" data-sh-market="${esc(id)}"><thead><tr><th>Company</th>${METHODS.map((m) => `<th style="--c:${m.colour}">${esc(m.short)}</th>`).join('')}<th>Held by Shariah funds</th><th class="sh-prem-col">Debt / assets <span class="sc-prem">Pro</span></th><th class="sh-prem-col">Give to charity <span class="sc-prem">Pro</span></th></tr></thead><tbody>
           ${rows.map((r) => `<tr data-passes="${esc(r.passes.join(' '))}" data-held="${r.heldBy.length}" data-t="${esc(r.ticker)}">
             <td class="sc-co"><a href="/stock/${esc(r.ticker)}" class="wd-co">${companyLogo(companies?.[r.ticker] || { ticker: r.ticker }, r.name, 'sm')}<span><b>${esc(r.ticker)}</b> ${esc(r.name)}<small>${esc(r.business ? BUSINESS_WORDS[r.business] : r.sector)}</small></span></a></td>
             ${METHODS.map((m) => cell(m, r.results[m.id])).join('')}
@@ -155,7 +155,7 @@ export async function renderShariahMarket(origin, id) {
             <td class="sh-prem-col" data-ratio>🔒</td><td class="sh-prem-col" data-purify>🔒</td></tr>`).join('')}
           </tbody></table></div>
           <p class="sh-legend"><span><b class="pass">✓</b> Passes</span><span><b class="fail">✗</b> Fails (the small word says which test)</span><span><b class="out">⊘</b> Main business ruled out</span><span><b class="na">?</b> Not checked yet${pricesOn ? '' : ' (AAOIFI, Dow Jones and S&amp;P need share prices, which switch on soon)'}</span></p>
-          <p class="pf-sub" data-sh-prem-note>Premium members also see each company’s debt and cash ratios and the share of its dividends to give to charity. <a href="/membership#plans">See Premium</a></p>
+          <p class="pf-sub" data-sh-prem-note>Pro members also see each company’s debt and cash ratios and the share of its dividends to give to charity. <a href="/membership#plans">See Pro</a></p>
           ${rows.some((r) => r.foreign) ? '<p class="pf-sub">These companies’ US shares are usually ADRs (one ADR can stand for several local shares), so we check them with the two standards based on total assets: MSCI and FTSE.</p>' : ''}
         </div>` : '<div class="pf-panel"><p>We’re still collecting the figures for this market. Please check back soon.</p></div>';
   const body = `

@@ -11,7 +11,7 @@ import AdmZip from 'adm-zip';
    re-hosted. Attribution isn't strictly required by Pexels' terms, but we
    keep the photographer credit/link since it's their recommended practice.
    ════════════════════════════════════════════════════════════════════════ */
-export async function searchPexelsImage(query) {
+export async function searchPexelsImage(query, { avoid = [] } = {}) {
   if (!process.env.PEXELS_API_KEY) {
     console.warn('[visualsService] Skipping Pexels — PEXELS_API_KEY is not set.');
     return null;
@@ -19,7 +19,7 @@ export async function searchPexelsImage(query) {
 
   const url = new URL('https://api.pexels.com/v1/search');
   url.searchParams.set('query', query);
-  url.searchParams.set('per_page', '1');
+  url.searchParams.set('per_page', avoid.length ? '15' : '1');
   url.searchParams.set('orientation', 'landscape');
 
   // Pexels requires the raw key as the Authorization value — NOT "Bearer <key>".
@@ -33,7 +33,9 @@ export async function searchPexelsImage(query) {
   }
 
   const payload = await response.json();
-  const photo = payload.photos?.[0];
+  // Skip photos other articles already use, so lists don't show the same picture twice
+  const used = new Set(avoid);
+  const photo = (payload.photos || []).find((p) => !used.has(p.src?.large)) || payload.photos?.[0];
   if (!photo) {
     return null;
   }

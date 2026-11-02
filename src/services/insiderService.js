@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   COMPANY BOSSES BUYING OR SELLING THEIR OWN SHARES (Premium)
+   COMPANY BOSSES BUYING OR SELLING THEIR OWN SHARES (Pro)
    ───────────────────────────────────────────────────────────────────────
    Directors, top managers and 10%+ owners of US companies must report
    their trades in the company's shares within two business days, on SEC

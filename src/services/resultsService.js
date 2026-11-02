@@ -217,7 +217,7 @@ async function checkDividend(f) {
   }
 }
 
-/** Premium: "What it means" for the given result ids. */
+/** Pro: "What it means" for the given result ids. */
 export function impactsFor(ids) {
   const want = new Set(ids);
   return Object.fromEntries((cache.items || []).filter((r) => want.has(r.id) && r.impact).map((r) => [r.id, r.impact]));

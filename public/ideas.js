@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   Ideas that match your rules (Premium) — /ideas
+   Ideas that match your rules (Pro) — /ideas
    Each saved idea list: its rules as chips, how many companies match,
    which are new since last week, an area-of-the-economy donut and a card
    for every match. Ready-made lists can be added with one click.
@@ -56,7 +56,7 @@
   }
 
   function draw() {
-    var html = '<div class="sc-hero"><div><span class="pf-badge prem">★ Premium</span><h1>Ideas that match your rules</h1><p>Save up to ' + S.max + ' sets of rules. We check every company against them each day, and the Saturday email tells you which ones are new.</p></div>' +
+    var html = '<div class="sc-hero"><div><span class="pf-badge prem">★ Pro</span><h1>Ideas that match your rules</h1><p>Save up to ' + S.max + ' sets of rules. We check every company against them each day, and the Saturday email tells you which ones are new.</p></div>' +
       '<a class="pf-btn gold" href="/screener">Make a new list in the screener</a></div>';
     if (!S.ideas.length) html += '<div class="pf-panel id-empty"><h2>You haven’t saved an idea list yet</h2><p>Pick one of the ready-made lists below, or open the <a href="/screener">screener</a>, set the rules you like and press <strong>Save as an idea list</strong>.</p></div>';
     S.ideas.forEach(function (i, n) {
@@ -86,12 +86,12 @@
   }
 
   function locked(text) {
-    app.innerHTML = '<div class="sc-hero"><div><span class="pf-badge prem">★ Premium</span><h1>Ideas that match your rules</h1><p>Save your own rules and see every company that matches them, with what’s new each week.</p></div></div>' +
-      '<div class="pf-upsell"><strong>' + esc(text) + '</strong><a class="pf-btn gold" href="/membership#plans">See Premium</a></div>' +
+    app.innerHTML = '<div class="sc-hero"><div><span class="pf-badge prem">★ Pro</span><h1>Ideas that match your rules</h1><p>Save your own rules and see every company that matches them, with what’s new each week.</p></div></div>' +
+      '<div class="pf-upsell"><strong>' + esc(text) + '</strong><a class="pf-btn gold" href="/membership#plans">See Pro</a></div>' +
       '<div class="pf-panel in-locked"><h2>How it works</h2><ul class="plain-list"><li>Choose rules in the screener: dividend record, sales growth, profit margin, debt, score, region, area of the economy, big funds buying, company bosses buying</li><li>Save up to 5 lists with your own names</li><li>See every company that matches today, as colourful cards with its score</li><li>New matches are marked, and listed in your Saturday email</li></ul>' +
       '<div class="id-starters">' + ['Steady dividend raisers with low debt', 'Fast growers that make good money', 'Where big funds and bosses are buying', 'Top scores outside the US'].map(function (n, k) { return '<div class="id-starter" style="--c:' + PALETTE[(k + 3) % PALETTE.length] + '"><strong>' + esc(n) + '</strong><span>A ready-made list you can add with one click</span></div>'; }).join('') + '</div></div>';
   }
 
-  if (!token) { locked('Sign in with a Premium membership to use idea lists.'); return; }
-  api('GET').then(function (d) { take(d); draw(); }).catch(function (e) { locked(e.status === 403 ? 'Idea lists are part of Premium.' : 'Sign in with a Premium membership to use idea lists.'); });
+  if (!token) { locked('Sign in with a Pro membership to use idea lists.'); return; }
+  api('GET').then(function (d) { take(d); draw(); }).catch(function (e) { locked(e.status === 403 ? 'Idea lists are part of Pro.' : 'Sign in with a Pro membership to use idea lists.'); });
 }());

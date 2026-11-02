@@ -3,7 +3,7 @@
    Admin → Ads & partners. This file:
    • fills the spaces on the homepage and explainer pages
    • removes the bottom strip if the reader closed it this visit
-   • hides ads from Premium members (if that option is on)
+   • hides ads from Pro members (if that option is on)
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
   function runScripts(box) {

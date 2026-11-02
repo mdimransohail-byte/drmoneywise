@@ -37,7 +37,7 @@ export const HUBS = {
       ['How big should an emergency fund be?', 'Three to six months of essential spending is a common guide. People with irregular income or dependants often aim for more.'],
       ['How do I improve my credit score?', 'Pay every bill on time, keep card balances well below their limits, check your report for mistakes and avoid many credit applications in a short time.'],
     ],
-    related: [['/retirement', 'Retirement planning'], ['/child-education', 'Saving for a child’s education'], ['/insurance', 'Insurance'], ['/learn/beginners', 'The Young Guns course']],
+    related: [['/retirement', 'Retirement planning'], ['/child-education', 'Saving for a child’s education'], ['/insurance', 'Insurance'], ['/learn/beginners', 'The Beginners course']],
     news: 'personal-finance',
   },
   retirement: {
@@ -65,7 +65,7 @@ export const HUBS = {
       ['What is the 4% rule?', 'A guide from US research: taking 4% of your savings in the first year of retirement, then raising it with inflation, has lasted about 30 years in most past periods. It is a rule of thumb, not a promise.'],
       ['Should I pay off my mortgage or put more into my pension?', 'It depends on your mortgage rate, any employer match and tax relief. Many people take the full employer match first, as that is an instant gain.'],
     ],
-    related: [['/personal-finance', 'Personal finance'], ['/insurance', 'Insurance'], ['/top-10/dividend-stocks', 'Top 10 dividend stocks'], ['/learn/intermediate', 'The Knights course']],
+    related: [['/personal-finance', 'Personal finance'], ['/insurance', 'Insurance'], ['/top-10/dividend-stocks', 'Top 10 dividend stocks'], ['/learn/intermediate', 'The Intermediate course']],
     news: 'retirement',
   },
   'child-education': {
@@ -93,7 +93,7 @@ export const HUBS = {
       ['Is it better to invest or keep cash for a child?', 'Over 10 years or more, investing has usually grown faster than cash, but it can fall. Many parents invest early and move to cash as the start date gets close.'],
       ['What if my child doesn’t go to university?', 'Rules differ: some accounts become the child’s money at 18, others charge tax or a penalty if not used for education. Check before you choose.'],
     ],
-    related: [['/personal-finance', 'Personal finance'], ['/retirement', 'Retirement planning'], ['/tools/monthly-investing', 'Monthly investing calculator'], ['/learn/beginners', 'The Young Guns course']],
+    related: [['/personal-finance', 'Personal finance'], ['/retirement', 'Retirement planning'], ['/tools/monthly-investing', 'Monthly investing calculator'], ['/learn/beginners', 'The Beginners course']],
     news: 'child-education',
   },
   insurance: {
@@ -149,7 +149,7 @@ export const HUBS = {
       ['What is a pip?', 'The smallest usual move in an exchange rate, normally 0.0001. For the yen it is 0.01.'],
       ['Why is the dirham always 3.67 to the dollar?', 'The UAE has fixed its currency to the US dollar at about 3.6725 since 1997, and the central bank keeps it there.'],
     ],
-    related: [['/commodities', 'Commodities'], ['/bonds', 'Bonds and interest rates'], ['/stocks/world', 'Stocks around the world'], ['/learn/intermediate', 'The Knights course']],
+    related: [['/commodities', 'Commodities'], ['/bonds', 'Bonds and interest rates'], ['/stocks/world', 'Stocks around the world'], ['/learn/intermediate', 'The Intermediate course']],
     news: 'currencies',
     rates: true,
   },

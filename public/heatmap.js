@@ -37,6 +37,21 @@
     wrap.appendChild(s);
     box.appendChild(wrap);
   }
+  // Phones: the heat map's tiles are too small to read, so show today's
+  // biggest movers as a list instead (TradingView's market movers widget)
+  if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches) {
+    var head = box.closest('section');
+    var h2 = head && head.querySelector('h2'); if (h2) h2.textContent = 'Today’s biggest movers (US)';
+    var p = head && head.querySelector('.block-head p'); if (p) p.textContent = 'The US shares rising and falling most today, and the most traded. Tap a tab to switch.';
+    var lab = pick.closest('label'); if (lab) lab.hidden = true;
+    box.classList.add('hm-movers');
+    var wrapM = document.createElement('div'); wrapM.className = 'tradingview-widget-container'; wrapM.style.cssText = 'height:100%;width:100%';
+    var innerM = document.createElement('div'); innerM.className = 'tradingview-widget-container__widget'; wrapM.appendChild(innerM);
+    var sm = document.createElement('script'); sm.src = 'https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js'; sm.async = true;
+    sm.text = JSON.stringify({ colorTheme: 'light', dateRange: '1D', exchange: 'US', showChart: false, locale: 'en', isTransparent: true, showSymbolLogo: true, showFloatingTooltip: false, width: '100%', height: '100%' });
+    wrapM.appendChild(sm); box.appendChild(wrapM);
+    return;
+  }
   pick.addEventListener('change', function () {
     try { localStorage.setItem('dmw-heatmap', pick.value); } catch (e) { /* not saved */ }
     draw(pick.value);

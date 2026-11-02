@@ -6,7 +6,7 @@
      Day 2   The bank versus prices: the savings calculator
      Day 4   How healthy are your companies? (Health Check, watchlist)
      Day 7   Find your corner: Shariah, dividends, retirement, property
-     Day 10  Try Premium free for 7 days (members already paying get a
+     Day 10  Try Pro free for 7 days (members already paying get a
              "make the most of your plan" email instead)
    Only members who joined in the last 14 days get them (no backlog for
    older accounts), each email once. Members can turn them off in
@@ -44,7 +44,7 @@ async function email(step, user, site, trialDays) {
       title: 'Welcome: money and investing, simplified',
       intro: 'Thank you for joining. Over the next ten days we’ll send you four more short emails, each showing one useful part of the site. No jargon, and you can stop them at any time.',
       sections: [
-        section('Start here: your first three lessons', `${lessons || line('Our free course starts from the very beginning: what a share is, saving versus investing, and why time matters more than timing.')}${btn(`${site}/learn/beginners`, 'Open the Young Guns course')}`),
+        section('Start here: your first three lessons', `${lessons || line('Our free course starts from the very beginning: what a share is, saving versus investing, and why time matters more than timing.')}${btn(`${site}/learn/beginners`, 'Open the Beginners course')}`),
         section('Every Saturday at 6am (Dubai time)', line('Our newsletter brings the week’s company news, a few clear charts and that week’s lessons, all in one email.')),
       ],
     };
@@ -95,23 +95,23 @@ async function email(step, user, site, trialDays) {
       intro: 'Thank you for being a member. Three things members find most useful:',
       sections: [section('Worth a look', [
         line(`• ${a(`${site}/portfolio-health`, 'Portfolio health check')}: a score and heat map for every holding.`),
-        line(`• ${a(`${site}/learn/advanced`, 'The Lords course')}: deeper lessons, each with a printable PDF workbook.`),
+        line(`• ${a(`${site}/learn/advanced`, 'The Advanced course')}: deeper lessons, each with a printable PDF workbook.`),
         line(`• ${a(`${site}/membership`, 'Your emails')}: choose the alerts you want.`),
       ].join(''))],
     };
   }
   return {
-    subject: trialDays ? `Try Premium free for ${trialDays} days` : 'What Premium adds',
-    title: trialDays ? `Premium, free for ${trialDays} days` : 'What Premium adds',
-    intro: trialDays ? `See everything for ${trialDays} days, free. If it isn’t for you, cancel before the trial ends and you pay nothing. We’ll email you two days before.` : 'Premium is for readers who want to go deeper.',
+    subject: trialDays ? `Try Pro free for ${trialDays} days` : 'What Pro adds',
+    title: trialDays ? `Pro, free for ${trialDays} days` : 'What Pro adds',
+    intro: trialDays ? `See everything for ${trialDays} days, free. If it isn’t for you, cancel before the trial ends and you pay nothing. We’ll email you two days before.` : 'Pro is for readers who want to go deeper.',
     sections: [
       section('What you get', [
-        line('• Every Lords lesson, including the Intensive, each with a printable PDF workbook'),
+        line('• Every Advanced lesson, including the Intensive, each with a printable PDF workbook'),
         line('• The full Financial Health Check and your portfolio health check'),
         line('• Chart alerts on your own companies, big-fund and insider moves'),
-        line('• A market review every two weeks, and your own Premium section in the Saturday newsletter'),
+        line('• A market review every two weeks, and your own Pro section in the Saturday newsletter'),
         line('• No adverts'),
-      ].join('') + btn(`${site}/membership#plans`, trialDays ? `Start my free ${trialDays}-day trial` : 'See Premium')),
+      ].join('') + btn(`${site}/membership#plans`, trialDays ? `Start my free ${trialDays}-day trial` : 'See Pro')),
       line('<span style="color:#4a5170">$19.99 a month or $179 a year after the trial. Cancel any time.</span>'),
     ],
   };
@@ -151,7 +151,7 @@ export async function runWelcomeEmails() {
         const mail = {
           subject: `Your free trial ends on ${when}`,
           title: 'Your free trial ends soon',
-          intro: `Your Premium trial ends on ${when}. After that your plan continues and your first payment is taken, unless you cancel before then.`,
+          intro: `Your Pro trial ends on ${when}. After that your plan continues and your first payment is taken, unless you cancel before then.`,
           sections: [
             section('Keep it', line('Nothing to do: everything stays unlocked.')),
             section('Not for you?', `${line('Cancel in a few clicks and you won’t pay anything.')}${btn(`${site}/membership`, 'Manage my plan')}`),

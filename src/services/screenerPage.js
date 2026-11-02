@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════════════════
-   /screener — Stock screener (Regular) with Big-fund data and the Fund
-   explorer (Premium). public/screener.js draws everything from
+   /screener — Stock screener (Plus) with Big-fund data and the Fund
+   explorer (Pro). public/screener.js draws everything from
    /api/screener (members) or /api/site/screener-preview (everyone else).
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -16,7 +16,7 @@ export async function screenerPreview() {
 export function renderScreenerPage(origin) {
   const head = buildHeadTags({
     title: 'Stock screener: find companies by growth, profit, debt and dividends | Dr MoneyWise',
-    description: 'Filter large companies in the US and around the world by sales growth, profit, debt and dividend record, from their official filings. Premium adds what the big funds own.',
+    description: 'Filter large companies in the US and around the world by sales growth, profit, debt and dividend record, from their official filings. Pro adds what the big funds own.',
     canonical: `${origin}/screener`,
   });
   const body = `
@@ -28,7 +28,7 @@ export function renderScreenerPage(origin) {
           <li><strong>Sales growth</strong>: sales last year compared with the year before. <strong>Profit margin</strong>: cents of profit kept from every $1 of sales.</li>
           <li><strong>Debt (years)</strong>: years of cash from the business it would take to repay long-term debt. Lower is safer.</li>
           <li><strong>Dividend raises</strong>: years in a row the dividend went up.</li>
-          <li><strong>Big funds</strong> (Premium): how many of the ~20 famous funds we follow own it, how many bought or sold last quarter, the share of the company they own between them, and the fund with the biggest bet (the largest share of that fund’s own money). From their official 13F reports, filed up to 45 days after each quarter.</li>
+          <li><strong>Big funds</strong> (Pro): how many of the ~20 famous funds we follow own it, how many bought or sold last quarter, the share of the company they own between them, and the fund with the biggest bet (the largest share of that fund’s own money). From their official 13F reports, filed up to 45 days after each quarter.</li>
           <li>Screens find companies that match rules; they are not recommendations to buy or sell.</li>
         </ul></details>
       </section>

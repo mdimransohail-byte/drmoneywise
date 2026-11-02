@@ -33,13 +33,13 @@ function chips(name, label, options, hint = '', other = '') {
           </fieldset>`;
 }
 
-/* ── What Premium gets you: visible, with a working example for each ── */
+/* ── What Pro gets you: visible, with a working example for each ── */
 const PREMIUM_PERKS = [
-  ['♛', '#c9a227', 'Lords course and the Intensive', '17 weeks of deeper lessons: reading accounts, red flags, valuation, portfolio rules, sector deep dives. Every lesson as a printable PDF workbook.', '/learn/advanced', 'See the Lords lessons'],
+  ['♛', '#c9a227', 'Advanced course and the Pro Intensive', '17 weeks of deeper lessons: reading accounts, red flags, valuation, portfolio rules, sector deep dives. Every lesson as a printable PDF workbook.', '/learn/advanced', 'See the Advanced lessons'],
   ['⚡', '#e8730c', 'Chart alerts by email', 'Golden crosses, RSI extremes and new highs or lows on your own companies, the day they appear.', '/learn/technical', 'Learn the signs'],
   ['❤', '#e5566f', 'Financial Health Check in full', 'Every company scored, plus how it ranks against others in its industry.', '/health-check', 'See the health check'],
   ['◎', '#1baf7a', 'Portfolio health check', 'A score and heat map for each of your holdings and your whole portfolio.', '/portfolio-health', 'Try the example'],
-  ['✉', '#2a78d6', 'Premium Saturday newsletter', 'Everyone’s Saturday newsletter plus your portfolio’s week, your companies and results coming up.', '/newsletter', 'See past issues'],
+  ['✉', '#2a78d6', 'Pro Saturday newsletter', 'Everyone’s Saturday newsletter plus your portfolio’s week, your companies and results coming up.', '/newsletter', 'See past issues'],
   ['☪', '#0fa3b1', 'Shariah ratios', 'Screening ratios for every company under all five standards.', '/shariah', 'Open Shariah investing'],
   ['◆', '#6250d6', 'Big-fund and insider moves', 'What famous funds and company bosses are buying and selling.', '/insiders', 'See insider trades'],
   ['▤', '#e8a33d', 'Market review and monthly report', 'Trends, sectors and themes every two weeks, and the month in figures, with charts.', '/reports', 'Read a report'],
@@ -61,25 +61,25 @@ function premiumValueLine(plans) {
   const y = num(p?.billingOptions?.find((o) => o.id.includes('annual'))?.priceText);
   if (!m || !y) return 'Everything on the site, with the tools confident investors use.';
   const save = m * 12 - y;
-  return `Yearly Premium works out at ${Math.round((y / 365) * 100)} cents a day${save > 0 ? `: $${save.toFixed(2)} less than paying monthly` : ''}. Each benefit below links to a real example.`;
+  return `Yearly Pro works out at ${Math.round((y / 365) * 100)} cents a day${save > 0 ? `: $${save.toFixed(2)} less than paying monthly` : ''}. Each benefit below links to a real example.`;
 }
 
 const COMPARE = [
-  ['Plain-English lessons for Young Guns and Knights', 1, 1, 1],
+  ['Plain-English Beginners and Intermediate courses', 1, 1, 1],
   ['Company report cards and Financial Health Check score', 1, 1, 1],
   ['Calculators, glossary, Top 10 lists', 1, 1, 1],
   ['The deeper look on companies, ETFs and bonds', 0, 1, 1],
   ['Stock screener and watchlist review', 0, 1, 1],
-  ['Chart Readers course and the full Chart check (technical analysis)', 0, 1, 1],
+  ['Chart reading course and the full Chart check (technical analysis)', 0, 1, 1],
   ['Saturday newsletter with company news, charts and lessons', 1, 1, 1],
   ['Dividend alerts on your watchlist', 0, 1, 1],
-  ['Lords: 17 weeks of deeper lessons, including the Intensive', 0, 0, 1],
+  ['Advanced: 17 weeks of deeper lessons, including the Intensive', 0, 0, 1],
   ['A printable PDF workbook for every lesson and every week', 0, 0, 1],
   ['Market review every two weeks: trends, sectors and themes', 0, 0, 1],
   ['Chart alerts on your watchlist and portfolio', 0, 0, 1],
   ['Health Check in full, with industry ranking', 0, 0, 1],
   ['Portfolio health check', 0, 0, 1],
-  ['Premium section in the Saturday newsletter: your portfolio and companies', 0, 0, 1],
+  ['Pro section in the Saturday newsletter: your portfolio and companies', 0, 0, 1],
   ['Shariah ratios, big-fund and insider moves', 0, 0, 1],
   ['Monthly research report', 0, 0, 1],
   ['No adverts', 0, 0, 1],
@@ -169,7 +169,7 @@ export function renderMembershipPage(origin, { trialDays = 7 } = {}) {
         </div>
         <div class="pp-box">
           <div class="pp-head"><span class="ax-crown big" aria-hidden="true"><svg viewBox="0 0 24 24" width="60%" height="60%"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#0a1128"/></svg></span>
-            <div><h2>What Premium gets you</h2><p>${esc(premiumValueLine(plans))}</p></div></div>
+            <div><h2>What Pro gets you</h2><p>${esc(premiumValueLine(plans))}</p></div></div>
           ${premiumPerksHtml()}
         </div>
         <div class="table-scroll"><table class="pp-table">

@@ -141,8 +141,8 @@ export async function pickEvergreenTopic({ excludeTopics = [] } = {}) {
     }
   } catch { /* no economy file yet */ }
 
-  // 2. The next free course lesson not written yet (Week 1 of Young Guns and
-  //    Knights first, then Week 2…; src/data/learnCourse.js)
+  // 2. The next free course lesson not written yet (Week 1 of Beginners and
+  //    Intermediate first, then Week 2…; src/data/learnCourse.js)
   try {
     const { lessonsInOrder, lessonForArticle } = await import('./learnCourse.js');
     const { readStore } = await import('../services/storeService.js');
@@ -157,7 +157,7 @@ export async function pickEvergreenTopic({ excludeTopics = [] } = {}) {
   return { label, sampleHeadline: label, score: 1 };
 }
 
-/* ── Deeper explainers (Premium) ──────────────────────────────────────
+/* ── Deeper explainers (Pro) ──────────────────────────────────────
    For confident readers: written in the paid-tier style (second-order
    effects, what professionals watch). One is written every 3 days by the
    data engine ("deeper" job), each topic once before any repeats. */

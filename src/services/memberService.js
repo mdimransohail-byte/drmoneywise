@@ -76,6 +76,9 @@ export async function saveMemberPortfolio(token, holdings) {
           weight: String(holding.weight || '').trim(),
           cost: String(holding.cost || '').trim(),
           note: String(holding.note || '').trim(),
+          ...(Number(holding.shares) > 0 ? { shares: Number(holding.shares) } : {}),
+          ...(Number(holding.buyPrice) > 0 ? { buyPrice: Number(holding.buyPrice) } : {}),
+          ...(/^[A-Z]{3}$/u.test(String(holding.currency || '')) ? { currency: String(holding.currency) } : {}),
         }))
         .filter((holding) => holding.ticker)
         .slice(0, 20)
@@ -129,7 +132,7 @@ export async function getPortfolioReview(token) {
     return {
       accessible: false,
       title: 'Upgrade to unlock portfolio review',
-      summary: 'Free members can save a watchlist. Regular and Premium members can unlock the full portfolio review.',
+      summary: 'Free members can save a watchlist. Plus and Pro members can unlock the full portfolio review.',
       strengths: [],
       risks: [],
       actions: [],
@@ -300,7 +303,7 @@ export async function getAudienceSummary() {
 }
 
 
-/* ── Portfolio health check (Premium): holdings with shares + price paid ── */
+/* ── Portfolio health check (Pro): holdings with shares + price paid ── */
 export async function saveHoldings(userId, holdings) {
   const clean = (Array.isArray(holdings) ? holdings : []).map((h) => {
     const ticker = String(h?.ticker || '').toUpperCase().replace(/[^A-Z0-9.-]/gu, '').slice(0, 10);

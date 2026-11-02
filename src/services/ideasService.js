@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   IDEAS THAT MATCH YOUR RULES (Premium)
+   IDEAS THAT MATCH YOUR RULES (Pro)
    A member saves up to 5 sets of screener rules ("idea lists"). /ideas
    shows the companies that match each one today, marks the ones that are
    new since last week, and the Saturday email lists them.

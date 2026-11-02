@@ -202,7 +202,7 @@ async function refreshPortfolioReview() {
       <div class="review-column rv-guest" style="--c:#2a78d6">
         <span class="rv-icon" aria-hidden="true">→</span>
         <h3>Next steps</h3>
-        <p>Plain-English points to check, never buy or sell tips. <a href="#join" class="rv-join">Create a free account</a> to save your list; Regular and Premium members get the full review.</p>
+        <p>Plain-English points to check, never buy or sell tips. <a href="#join" class="rv-join">Create a free account</a> to save your list; Plus and Pro members get the full review.</p>
       </div>
     `;
     return;
@@ -261,10 +261,17 @@ function renderAccountState() {
   elements.signOutButton.classList.toggle('hidden', !state.user);
   elements.headerSignInButton?.classList.toggle('hidden', Boolean(state.user));
 
+  const jt = document.querySelector('#joinTitle'); const jl = document.querySelector('#joinLede');
+  document.querySelector('#joinWho')?.classList.toggle('hidden', !state.user);
+  document.querySelector('#joinLinks')?.classList.toggle('hidden', !state.user);
+  if (jt) jt.textContent = state.user ? 'Your account' : (state.authMode === 'signin' ? 'Sign in' : 'Join free');
+  if (jl) jl.textContent = state.user
+    ? `You’re on the ${planName} plan. Your topics, watchlist and portfolio save automatically.`
+    : 'Save your topics, region, watchlist and portfolio, and read more explainers.';
   if (state.user) {
     elements.signupForm.classList.add('hidden');
     elements.signinForm.classList.add('hidden');
-    elements.authMessage.textContent = `${state.user.name}, your region, interests, watchlist, and portfolio save automatically.`;
+    elements.authMessage.textContent = '';
     return;
   }
 
@@ -551,7 +558,7 @@ function renderLearningPoints() {
           <span class="topic">${badge}</span>
           <div>
             <h3>${escapeHtml(article.headline)}</h3>
-            ${article.accessible ? `<p>${escapeHtml(description)}</p>` : '<p class="lock-label">Members</p>'}
+            <p>${escapeHtml(description)}</p>${article.accessible ? '' : `<span class="lock-chip">${article.accessTier === 'premium' ? 'Pro' : 'Plus'} · opening free to read</span>`}
           </div>
         </a>
       `;
@@ -562,7 +569,11 @@ function renderLearningPoints() {
 function renderWatchlist() {
   const watchlist = getCurrentWatchlist();
   if (!watchlist.length) {
-    elements.watchlistList.innerHTML = '<span class="helper-note">No watchlist names yet. Add a ticker to get started.</span>';
+    elements.watchlistList.innerHTML = `<div class="empty-guide">
+        <strong>Follow the companies you care about</strong>
+        <p>Type a company name above (for example Apple or Coca-Cola) and choose it from the list. You’ll see its latest price here, its results explained simply the day they come out${state.user ? '' : ', and, once you join free, they’re saved to your account'}.</p>
+        <p class="eg-try">Try: ${['AAPL', 'MSFT', 'KO', 'NVDA'].map((t) => `<button type="button" class="mini-add" data-quick-watch="${t}">+ ${t}</button>`).join(' ')}</p>
+      </div>`;
     return;
   }
 
@@ -618,8 +629,8 @@ function renderPortfolio() {
     elements.portfolioList.innerHTML = `
       <div class="list-row">
         <div>
-          <strong>No holdings added yet</strong>
-          <div class="helper-note">Add your holdings to build your saved portfolio.</div>
+          <strong>No holdings yet</strong>
+          <div class="helper-note">Add what you own, one company at a time: choose it from the list, then (if you like) how many shares you have and what you paid for each. You’ll see what it’s worth today, your gain or loss, and a health check of the whole portfolio below. Nothing is shared or linked to your bank or broker.</div>
         </div>
       </div>
     `;
@@ -639,7 +650,7 @@ function renderPortfolio() {
         <div class="list-row">
           <div>
             <strong>${escapeHtml(holding.ticker)}${holding.name ? ` · ${escapeHtml(holding.name)}` : ''}</strong>
-            <div class="helper-note">${escapeHtml(holding.weight || 'Weight not set')} · Cost ${escapeHtml(holding.cost || 'n/a')}${priceLine}</div>
+            <div class="helper-note">${holding.shares ? `${escapeHtml(String(holding.shares))} share${Number(holding.shares) === 1 ? '' : 's'}` : escapeHtml(holding.weight || 'Shares not set')}${holding.buyPrice || holding.cost ? ` · paid ${escapeHtml(holding.currency && holding.currency !== 'USD' ? `${holding.currency} ` : '$')}${escapeHtml(String(holding.buyPrice || holding.cost))} each` : ''}${priceLine}</div>
           </div>
           <button class="button secondary" type="button" data-remove-holding="${holding.id}">Remove</button>
         </div>
@@ -796,7 +807,7 @@ function renderStoryCard(article, options = {}) {
   const actionLabel = options.actionLabel || 'Read';
   const currentPlan = state.user?.plan || 'free';
   const saved = Boolean(state.user?.savedArticleSlugs?.includes(article.slug));
-  const accessTag = article.accessTier === 'free' ? 'Free' : article.accessTier === 'regular' ? 'Regular' : 'Premium';
+  const accessTag = article.accessTier === 'free' ? 'Free' : article.accessTier === 'regular' ? 'Plus' : 'Pro';
   const regionLabel = getLookupLabel(state.bootstrap.regions, article.region);
   const interestLabel = getLookupLabel(state.bootstrap.interests, article.interest);
   const saveButton = state.user
@@ -912,7 +923,16 @@ function goToSignIn() {
 function goBackAfterSignIn() {
   let back = '';
   try { back = sessionStorage.getItem('dmw-back') || ''; sessionStorage.removeItem('dmw-back'); } catch { back = ''; }
-  if (/^\/[^/]/u.test(back) && back !== '/') window.location.href = back;
+  if (/^\/[^/]/u.test(back) && back !== '/') { window.location.href = back; return; }
+  // Signed in on the homepage: start again from the top, with a short welcome
+  try { history.replaceState(null, '', '/'); } catch { /* ignore */ }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const note = document.createElement('div');
+  note.className = 'signed-in-toast';
+  note.textContent = `Welcome${state.user?.name ? `, ${String(state.user.name).split(' ')[0]}` : ''}! You’re signed in.`;
+  document.body.appendChild(note);
+  setTimeout(() => note.classList.add('off'), 3500);
+  setTimeout(() => note.remove(), 4200);
 }
 
 async function finishAuth(session, message) {
@@ -1008,6 +1028,12 @@ async function handleAddWatchlist(event) {
 }
 
 async function handleRemoveWatchlist(event) {
+  const quick = event.target.closest('[data-quick-watch]');
+  if (quick) {
+    elements.watchlistTickerInput.value = quick.dataset.quickWatch;
+    await handleAddWatchlist({ preventDefault() {} });
+    return;
+  }
   const button = event.target.closest('[data-remove-watchlist]');
   if (!button) {
     return;
@@ -1031,10 +1057,12 @@ async function handleAddPortfolioHolding(event) {
   const holding = {
     id: cryptoId(),
     ticker: elements.portfolioTickerInput.value.trim().toUpperCase(),
-    name: elements.portfolioNameInput.value.trim(),
-    weight: elements.portfolioWeightInput.value.trim(),
-    cost: elements.portfolioCostInput.value.trim(),
+    name: (document.querySelector('#portfolioForm [data-suggest-name]')?.textContent || elements.portfolioNameInput.value || '').trim(),
+    shares: Number(elements.portfolioWeightInput.value) || null,
+    buyPrice: Number(elements.portfolioCostInput.value) || null,
+    currency: document.querySelector('#portfolioCurrencyInput')?.value || 'USD',
   };
+  holding.cost = holding.buyPrice ? String(holding.buyPrice) : '';
 
   if (!holding.ticker) {
     return;
@@ -1052,6 +1080,8 @@ async function handleAddPortfolioHolding(event) {
   }
 
   elements.portfolioForm.reset();
+  const nameNote = document.querySelector('#portfolioForm [data-suggest-name]');
+  if (nameNote) nameNote.textContent = '';
   await refreshPortfolioQuotes();
   await refreshPortfolioReview();
 }

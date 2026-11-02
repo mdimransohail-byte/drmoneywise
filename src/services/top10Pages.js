@@ -8,6 +8,7 @@ import { formatPercent } from './reportCardService.js';
 import { rankingBarsHtml } from './infographicService.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 import { DIVIDEND_RULE, getDividendTop10, getEtfTop10, monthLabel } from './top10Service.js';
+import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 const GRADE_ICON = { good: '✓', okay: '–' };
@@ -41,8 +42,10 @@ export async function renderTop10Hub(origin) {
           <span class="go">See the list</span>
         </a>`;
   const top = div.rows[0];
+  const photo = await getPhoto('page:top10-hub', PAGE_PHOTO_QUERIES['top10-hub']);
   const body = `
       <section class="block">
+        ${photoFigure(photo, 'Charts on a desk', 'page-photo wide')}
         <div class="block-head"><div><h1 style="font-size:36px;margin:0">Top 10 lists</h1>
           <p>Each list shows exactly how it's ranked. They are a starting point for learning, not a shopping list.</p></div></div>
         <div class="tens">
@@ -66,15 +69,18 @@ export async function renderDividendTop10(origin) {
   });
 
   const years = (row) => `${row.yearsAtLeast ? 'at least ' : ''}${row.years} years`;
+  // Bars must tell rows apart: if every company has the same record (our
+  // filings history caps the count), compare the yearly dividend instead.
+  const sameYears = !byYield && new Set(list.rows.map((r) => r.years)).size <= 1;
   const infographic = list.rows.length
     ? rankingBarsHtml({
-      title: byYield ? 'Dividend yield' : 'Years of dividend raises',
-      subtitle: byYield ? 'Yearly dividend as a share of today’s price' : 'Years in a row the dividend went up',
+      title: byYield ? 'Dividend yield' : sameYears ? 'Yearly dividend per share' : 'Years of dividend raises',
+      subtitle: byYield ? 'Yearly dividend as a share of today’s price' : sameYears ? `All ten have raised their dividend for ${list.rows[0].yearsAtLeast ? 'at least ' : ''}${list.rows[0].years} years in a row; this is what each pays a year for one share` : 'Years in a row the dividend went up',
       rows: list.rows.map((row) => ({
         label: row.ticker,
         sublabel: row.name,
-        value: byYield ? row.yield : row.years,
-        display: byYield ? formatPercent(row.yield) : `${row.years} yrs`,
+        value: byYield ? row.yield : sameYears ? row.dividendPerShare : row.years,
+        display: byYield ? formatPercent(row.yield) : sameYears ? `$${row.dividendPerShare.toFixed(2)}` : `${row.years} yrs`,
       })),
       source: `Source: SEC filings${list.pricesAsOf ? '; prices from Marketstack' : ''}. List for ${month}.`,
     })
@@ -84,7 +90,7 @@ export async function renderDividendTop10(origin) {
           <li class="pick">
             <div class="pick-head">
               <span class="pick-rank">${i + 1}</span>
-              <div><h3>${esc(row.name)} <span class="pick-ticker">${esc(row.ticker)}</span></h3>
+              <div><h3><a href="/stock/${encodeURIComponent(row.ticker)}">${esc(row.name)}</a> <span class="pick-ticker">${esc(row.ticker)}</span></h3>
               ${row.industry ? `<p class="pick-kind">${esc(row.industry)}</p>` : ''}</div>
             </div>
             <dl class="pick-facts">
@@ -93,11 +99,14 @@ export async function renderDividendTop10(origin) {
               <div><dt>Dividend per share</dt><dd>$${row.dividendPerShare.toFixed(2)} a year</dd></div>
               <div><dt>Raised</dt><dd>${years(row)} in a row</dd></div>
             </dl>
+            <p class="pick-link"><a href="/stock/${encodeURIComponent(row.ticker)}">See ${esc(row.ticker)}'s full report card</a></p>
             <p class="pick-safety"><span class="ig-grade ${row.safety.grade}">${GRADE_ICON[row.safety.grade]} ${row.safety.text}</span> ${esc(row.safety.plain)}${row.cashCovered === false ? ' Last year its dividends were bigger than its spare cash.' : ''}</p>
           </li>`).join('');
 
+  const photo = await getPhoto('page:top10-dividends', PAGE_PHOTO_QUERIES['top10-dividends']);
   const body = `
       <section class="block">
+        ${photoFigure(photo, 'Coins saved in a jar', 'page-photo wide')}
         <p class="dateline-dark">Top 10 · ${month}</p>
         <h1 style="font-size:38px;margin:0 0 10px">Top 10 dividend stocks</h1>
         <p class="lede-dark">US companies that have raised the cash they pay shareholders every year for at least a decade, ${byYield ? 'ranked by how much they pay compared with their share price.' : 'ranked by the length of their record.'}</p>
@@ -128,12 +137,28 @@ export async function renderEtfTop10(origin) {
     description: 'Ten simple, broad ETFs for new investors, ranked by lowest yearly fee, with what each one holds explained in plain English.',
     canonical: `${origin}/top-10/etfs`,
   });
+  // Compared with the average equity mutual fund, so the bars say something
+  // even where several funds charge the same (ICI, 2025: 0.40% a year).
   const infographic = rankingBarsHtml({
-    title: 'Yearly fee for every $1,000 invested',
-    subtitle: 'Lower fees leave more of your money growing',
-    rows: etf.rows.map((row) => ({ label: row.ticker, sublabel: row.kind, value: row.feePer1000, display: `$${row.feePer1000.toFixed(2)}` })),
-    source: etf.source,
+    title: 'Yearly fee on $10,000 invested',
+    subtitle: 'Each fund compared with the average US share fund (0.40% a year). Lower fees leave more of your money growing.',
+    rows: [
+      ...etf.rows.map((row) => ({ label: row.ticker, sublabel: row.kind, value: row.expenseRatio * 100, display: `$${(row.expenseRatio * 100).toFixed(0)}` })),
+      { label: 'Average share fund', sublabel: 'Average US equity mutual fund, 2025 (ICI)', value: 40, display: '$40' },
+    ],
+    source: `${etf.source}. Average fund fee: Investment Company Institute, 2025.`,
   });
+  const abroad = `
+        <div class="surface abroad-box">
+          <h2 style="font-size:22px;margin:0 0 8px">Investing from outside the US?</h2>
+          <p>These are US-listed funds. In the UK and EU, ordinary investors often can’t buy them because of European product-document rules, and in many other countries non-US investors can face US estate tax on US-based funds above $60,000. Most people abroad use the Irish-based (“UCITS”) versions instead, listed in London and elsewhere:</p>
+          <table class="abroad-table"><thead><tr><th>Instead of</th><th>Irish-based version</th><th>Yearly fee</th></tr></thead><tbody>
+            <tr><td>VOO (S&amp;P 500)</td><td>iShares Core S&amp;P 500 UCITS ETF (CSPX) or Vanguard S&amp;P 500 UCITS ETF (VUAA)</td><td>0.07%</td></tr>
+            <tr><td>VT (whole world)</td><td>Vanguard FTSE All-World UCITS ETF (VWRA / VWRL)</td><td>0.14%</td></tr>
+            <tr><td>Developed countries only</td><td>iShares Core MSCI World UCITS ETF (IWDA / SWDA)</td><td>0.20%</td></tr>
+          </tbody></table>
+          <p class="helper-note">Fees as published by the fund companies, checked October 2026. “Acc” versions reinvest dividends; “Dist” versions pay them out. Check what your broker offers and your country’s tax rules. This is general information, not advice.</p>
+        </div>`;
   const items = etf.rows.map((row, i) => `
           <li class="pick">
             <div class="pick-head">
@@ -150,8 +175,10 @@ export async function renderEtfTop10(origin) {
             <p><strong>Who it may suit:</strong> ${esc(row.suits)}</p>
           </li>`).join('');
 
+  const photo = await getPhoto('page:top10-etfs', PAGE_PHOTO_QUERIES['top10-etfs']);
   const body = `
       <section class="block">
+        ${photoFigure(photo, 'A basket of fruit, like a basket of investments', 'page-photo wide')}
         <p class="dateline-dark">Top 10 · Fees checked ${esc(new Date(etf.checkedOn).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }))}</p>
         <h1 style="font-size:38px;margin:0 0 10px">Top 10 ETFs for beginners</h1>
         <p class="lede-dark">Ten simple funds that each hold hundreds or thousands of investments, ranked by the lowest yearly fee.</p>
@@ -162,6 +189,7 @@ export async function renderEtfTop10(origin) {
         )}
         ${infographic}
         <ol class="picks">${items}</ol>
+        ${abroad}
         <div class="surface" style="margin-top:24px">
           <h2 style="font-size:22px;margin:0 0 8px">How we rank</h2>
           <p>We picked ten widely held, low-cost funds that cover the main building blocks (US shares, world shares, bonds, dividends, gold and property) and ranked them by their yearly fee, lowest first. Where fees are equal, they are listed alphabetically.</p>

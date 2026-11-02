@@ -1,5 +1,5 @@
 /* Chart check: fills "What the chart shows" from /api/technical.
-   Everyone sees the headline signals; Regular and Premium see them all,
+   Everyone sees the headline signals; Plus and Pro see them all,
    with support and resistance and the annotated chart. */
 (function () {
   var box = document.getElementById('taRead');
@@ -22,7 +22,7 @@
         head += '<div class="ta-picture ' + (d.picture === 'Mostly positive' ? 'good' : d.picture === 'Mostly negative' ? 'weak' : 'okay') + '"><strong>' + esc(d.picture) + '</strong><span>' + d.good + ' positive and ' + d.weak + ' negative signs</span></div>';
       }
       box.innerHTML = head + '<ul class="ta-list">' + d.signals.map(sig).join('') + '</ul>' +
-        (d.full ? '' : '<div class="ta-lock"><span class="pf-badge mem">Members</span><p><b>' + d.hidden + ' more signs</b>, support and resistance levels, an overall reading and our annotated chart are for Regular and Premium members.</p><a class="pf-btn gold" href="/membership">See membership</a></div>');
+        (d.full ? '' : '<div class="ta-lock"><span class="pf-badge mem">Plus</span><p><b>' + d.hidden + ' more signs</b>, support and resistance levels, an overall reading and our annotated chart are for Plus and Pro members.</p><a class="pf-btn gold" href="/membership">See membership</a></div>');
       if (d.full && full) {
         full.innerHTML = '<div class="ta-full"><h2>Our annotated chart</h2><p class="calc-hint">The last 180 trading days: price with its 50- and 200-day averages and Bollinger bands, support and resistance lines, then RSI and MACD.</p>' + d.chart + '</div>';
       }

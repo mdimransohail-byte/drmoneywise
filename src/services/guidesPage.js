@@ -10,7 +10,7 @@ const MORE = [
   ['/health-check', 'Financial Health Check', '❤', '#e5566f', 'Every company we cover scored out of 100, with stars and a simple rating.'],
   ['/shariah', 'Shariah-compliant investing', '☪', '#0f8a76', 'The five main Shariah standards side by side, with companies, funds and ETFs.'],
   ['/property', 'Property', '⌂', '#2a78d6', 'Home prices and rents around the world, from official figures.'],
-  ['/learn', 'Learn, week by week', '✦', '#1baf7a', 'Courses for Young Guns, Knights and Lords, from the basics up.'],
+  ['/learn', 'Learn, week by week', '✦', '#1baf7a', 'Beginner, intermediate, chart-reading and advanced courses, from the basics up.'],
   ['/tools', 'Calculators', '▦', '#6250d6', 'Savings, retirement, debt, education, life cover, currencies and more.'],
 ];
 

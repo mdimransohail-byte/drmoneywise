@@ -387,7 +387,7 @@ export async function renderStockPage(origin, rawTicker) {
       </section>
 
       <section class="block members-box" id="membersFinancials" data-ticker="${esc(ticker)}">
-        <div class="block-head"><div><h2>Deeper look <span class="members-badge">Members</span></h2>
+        <div class="block-head"><div><h2>Deeper look <span class="members-badge">Plus</span></h2>
           <p>What the big funds are doing, "what if" growth scenarios, and ten years of results from ${esc(name)}'s official filings.</p></div></div>
         <div id="membersContent" class="members-teaser">
           <ul class="plain-list">

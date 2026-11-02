@@ -4,7 +4,7 @@
 export const BUSINESS_SETTINGS = {
   // Raise this number when you change any plan's features or tagline below,
   // so the live site picks up the new wording.
-  featuresVersion: 12,
+  featuresVersion: 13,
   // Raise this number when you change a price below, so the live site
   // shows the new price even if prices were saved earlier in Admin.
   // (Stripe charges whatever its payment links say: make new links too.)
@@ -42,15 +42,15 @@ export const BUSINESS_SETTINGS = {
     },
     regular: {
       id: 'regular',
-      name: 'Paid Regular',
-      shortName: 'Regular',
+      name: 'Plus',
+      shortName: 'Plus',
       priceLabel: '$10',
       billingLabel: '/month or $99/year',
       tagline: 'The deeper look, plus alerts and tools',
       articleLimit: 24,
       learningLimit: 12,
       smartReview: true,
-      cta: 'Upgrade to Regular',
+      cta: 'Upgrade to Plus',
       highlight: true,
       billingOptions: [
         {
@@ -74,22 +74,22 @@ export const BUSINESS_SETTINGS = {
         'The Saturday newsletter: company news, charts and the week’s lessons',
         'Stock screener: filter companies in the US and around the world by growth, profit, debt and dividends',
         'Ask Dr MoneyWise: send us up to 3 money questions a month',
-        'Chart Readers course and the full Chart check on any company',
+        'Chart reading course and the full Chart check on any company',
         'Price alerts (coming soon)',
         'Reply in the members’ forum (when it opens)',
       ],
     },
     premium: {
       id: 'premium',
-      name: 'Paid Premium',
-      shortName: 'Premium',
+      name: 'Pro',
+      shortName: 'Pro',
       priceLabel: '$19.99',
       billingLabel: '/month or $179/year (save 25%)',
-      tagline: 'The full toolkit: Lords lessons, health scores, portfolio check, research and no adverts',
+      tagline: 'The full toolkit: Advanced lessons, health scores, portfolio check, research and no adverts',
       articleLimit: 60,
       learningLimit: 60,
       smartReview: true,
-      cta: 'Upgrade to Premium',
+      cta: 'Upgrade to Pro',
       highlight: false,
       billingOptions: [
         {
@@ -106,14 +106,14 @@ export const BUSINESS_SETTINGS = {
         },
       ],
       features: [
-        'Everything in Regular',
-        'Lords: 17 weeks of deeper lessons, including the Lords Intensive (accounts, red flags, valuation, portfolio rules, sector deep dives)',
+        'Everything in Plus',
+        'Advanced: 17 weeks of deeper lessons, including the Pro Intensive (accounts, red flags, valuation, portfolio rules, sector deep dives)',
         'A printable PDF workbook for every lesson and every week of the course',
-        'A market review every two weeks: trends, sectors and themes, also in your Premium newsletter',
+        'A market review every two weeks: trends, sectors and themes, also in your Pro newsletter',
         'Chart alerts by email: golden and death crosses, RSI extremes, new highs and lows on your watchlist and portfolio',
         'Financial Health Check in full: how each company compares with others in its industry',
         'Portfolio health check: a score and heat map for every holding and your whole portfolio',
-        'An extra Premium section in the Saturday newsletter: your portfolio’s week, your companies and results coming up',
+        'An extra Pro section in the Saturday newsletter: your portfolio’s week, your companies and results coming up',
         'What each company’s results mean: what changed, what it expects next and what to watch',
         'No adverts anywhere on the site',
         'Big-fund alerts: when famous investors buy or sell your companies',

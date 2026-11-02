@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   MONTHLY RESEARCH REPORT (Premium) — /reports and /reports/<YYYY-MM>
+   MONTHLY RESEARCH REPORT (Pro) — /reports and /reports/<YYYY-MM>
    ───────────────────────────────────────────────────────────────────────
    Built by the data engine ("report" job) on the 1st of each month for
    the month just ended, from the figures the site already collects:

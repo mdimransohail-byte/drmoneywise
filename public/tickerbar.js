@@ -30,7 +30,7 @@
   }
   var chosen = load();
 
-  bar.innerHTML = '<div class="tk-tape" id="tkTape"></div><button type="button" class="tk-choose" aria-expanded="false" aria-controls="tkPanel">Choose</button>' +
+  bar.innerHTML = '<div class="tk-tape" id="tkTape"></div><button type="button" class="tk-choose" aria-expanded="false" aria-controls="tkPanel" title="Choose which prices scroll past">⚙ Choose prices</button>' +
     '<div class="tk-panel" id="tkPanel" hidden><div class="tk-panel-head"><strong>Choose what scrolls past</strong><span>Up to 12. Remembered on this device.</span></div>' +
     GROUPS.map(function (g) { return '<fieldset><legend>' + g[0] + '</legend>' + g[1].map(function (s) { return '<label><input type="checkbox" value="' + s[0] + '"> ' + s[1] + '</label>'; }).join('') + '</fieldset>'; }).join('') +
     '<div class="tk-actions"><button type="button" data-tk="save" class="tk-save">Show these</button><button type="button" data-tk="reset">Back to the usual</button><span class="tk-msg" aria-live="polite"></span></div></div>';
@@ -50,7 +50,7 @@
     s.async = true;
     s.text = JSON.stringify({
       symbols: chosen.map(function (k) { return { proName: k, title: ALL[k] }; }),
-      showSymbolLogo: true, isTransparent: true, displayMode: 'adaptive', colorTheme: 'dark', locale: 'en',
+      showSymbolLogo: true, isTransparent: true, displayMode: 'compact', colorTheme: 'dark', locale: 'en',
     });
     wrap.appendChild(s);
     tape.appendChild(wrap);

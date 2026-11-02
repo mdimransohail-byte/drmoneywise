@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════════════════
-   /insiders — Company bosses buying or selling their own shares (Premium)
-   public/insiders.js draws the page from /api/insiders (Premium) or
+   /insiders — Company bosses buying or selling their own shares (Pro)
+   public/insiders.js draws the page from /api/insiders (Pro) or
    /api/site/insiders-preview (totals only, for everyone else). The same
    script fills the small box on each US company page.
    ════════════════════════════════════════════════════════════════════════ */
@@ -19,7 +19,7 @@ export function insiderBoxHtml(ticker, name) {
   const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/"/gu, '&quot;');
   return `
       <section class="block members-box in-box" id="insidersBox" data-ticker="${esc(ticker)}">
-        <div class="block-head"><div><h2>Company bosses’ trades <span class="sc-prem">Premium</span></h2>
+        <div class="block-head"><div><h2>Company bosses’ trades <span class="sc-prem">Pro</span></h2>
           <p>When ${esc(name)}’s directors and top managers bought or sold its shares with their own money in the last 6 months, from their official Form 4 reports.</p></div></div>
         <div id="insidersContent"><div class="pf-loading">Loading…</div></div>
       </section>

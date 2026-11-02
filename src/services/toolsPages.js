@@ -210,13 +210,13 @@ export async function renderToolsHub(origin) {
           ${[
             ['/technical', 'Chart check', 'Free; full check for members', 'Type any company to see what its price chart shows: trend, RSI, MACD, moving averages, support and resistance, explained simply.'],
             ['/compare', 'Compare two companies', 'Free', 'Any two US-listed companies side by side: health scores, sales, profit, debt and dividends.'],
-            ['/screener', 'Stock screener', 'Regular and Premium', 'Filter companies in the US and around the world by growth, profit, debt and dividends. Premium adds what the big funds own.'],
-            ['/ideas', 'Ideas that match your rules', 'Premium', 'Save up to 5 sets of rules and see every company that matches, with new matches in your Saturday email.'],
-            ['/portfolio-health', 'Portfolio health check', 'Premium', 'A score and colour heat map for every holding and for your whole portfolio.'],
+            ['/screener', 'Stock screener', 'Plus and Pro', 'Filter companies in the US and around the world by growth, profit, debt and dividends. Pro adds what the big funds own.'],
+            ['/ideas', 'Ideas that match your rules', 'Pro', 'Save up to 5 sets of rules and see every company that matches, with new matches in your Saturday email.'],
+            ['/portfolio-health', 'Portfolio health check', 'Pro', 'A score and colour heat map for every holding and for your whole portfolio.'],
             ['/shariah', 'Shariah-compliant investing', 'Free', 'Which big companies pass the five main Shariah standards, with Shariah funds and ETFs. Members can also filter the screener by standard.'],
-            ['/insiders', 'Company bosses’ trades', 'Premium', 'When directors and top managers buy or sell their own company’s shares.'],
-            ['/reports', 'Monthly research report', 'Premium', 'The month in figures: economy, markets, results, and what bosses and big funds did.'],
-            ['/ask', 'Ask Dr MoneyWise', 'Regular and Premium', 'Send us your money questions; read the answers to other readers’ questions.'],
+            ['/insiders', 'Company bosses’ trades', 'Pro', 'When directors and top managers buy or sell their own company’s shares.'],
+            ['/reports', 'Monthly research report', 'Pro', 'The month in figures: economy, markets, results, and what bosses and big funds did.'],
+            ['/ask', 'Ask Dr MoneyWise', 'Plus and Pro', 'Send us your money questions; read the answers to other readers’ questions.'],
             ['/learn/path', 'Your learning path', 'Free', 'Short steps from your first savings to running a portfolio, with your progress saved.'],
           ].map(([href, title, plan, text]) => `
           <a class="ten hub" href="${href}">
@@ -466,7 +466,7 @@ export async function renderGlossaryTerm(origin, slug) {
           <a href="/glossary">All words</a>
           ${next ? `<a href="/glossary/${slugify(next.term)}">${esc(next.term)} →</a>` : '<span></span>'}
         </nav>
-        <p class="note-box">Start the free <a href="/learn/beginners">Young Guns course</a>, try our <a href="/tools">money calculators</a>, or browse all <a href="/guides">money guides</a>.</p>
+        <p class="note-box">Start the free <a href="/learn/beginners">Beginners course</a>, try our <a href="/tools">money calculators</a>, or browse all <a href="/guides">money guides</a>.</p>
       </section>`;
   return pageShell({ head, body, active: 'learn' });
 }

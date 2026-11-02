@@ -1,15 +1,15 @@
 /* ════════════════════════════════════════════════════════════════════════
    /learn/beginners, /learn/intermediate, /learn/advanced — the three levels
-   (names set in Admin → APIs & More; defaults Young Guns, Knights, Lords)
+   (names set in Admin → APIs & More; defaults Beginners, Intermediate, Advanced)
    Each page: who it's for, then the course week by week (Week 1 has five
    lessons, later weeks four; src/data/learnCourse.js). Lessons not written
    yet are listed as "coming soon", so each week is complete at a glance.
-   Then other lessons at that level, the next level, Premium, newsletter.
+   Then other lessons at that level, the next level, Pro, newsletter.
    ════════════════════════════════════════════════════════════════════════ */
 
 import { LEVELS, levelEmblem, levelNames, levelOf } from '../data/learnLevels.js';
 import { COURSE, courseArticleMap, lessonForArticle } from '../data/learnCourse.js';
-import { buildHeadTags, getPublishedLearningArticles, pageShell } from './seoService.js';
+import { buildHeadTags, getPublishedLearningArticles, lessonThumb, pageShell } from './seoService.js';
 import { newsletterSignupBox } from './newsletterPage.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
@@ -21,21 +21,23 @@ export function levelBySlug(slug) {
   return Object.values(LEVELS).find((l) => l.slug === slug) || null;
 }
 
+let SEEN = new Set();
 function weekBlock(L, week, map, i) {
   const c = WEEK_COLOURS[i % WEEK_COLOURS.length];
   const ready = week.lessons.filter((l) => map.has(l.id)).length;
   const rows = week.lessons.map((lesson, n) => {
     const a = map.get(lesson.id);
     if (!a) return `<li class="wk-l soon"><span class="wk-n">${n + 1}</span><div><strong>${esc(lesson.headline)}</strong><em>Coming soon</em></div></li>`;
-    return `<li class="wk-l" data-lesson="${esc(a.slug)}"><a href="/learn/${esc(a.slug)}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="wk-n">${n + 1}</span>`}<div><strong>${esc(a.headline)}</strong><em>${esc(a.readingTime || '5 min read')}${a.format === 2 ? ' · infographic and quiz' : ''}${L.premium ? ' · Premium' : ''}</em></div></a></li>`;
+    return `<li class="wk-l" data-lesson="${esc(a.slug)}"><a href="/learn/${esc(a.slug)}">${a.heroImage?.url && !SEEN.has(a.heroImage.url) ? (SEEN.add(a.heroImage.url), `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">`) : `<span class="wk-n">${n + 1}</span>`}<div><strong>${esc(a.headline)}</strong><em>${esc(a.readingTime || '5 min read')}${a.format === 2 ? ' · infographic and quiz' : ''}${L.premium ? ' · Pro' : ''}</em></div></a></li>`;
   }).join('');
   return `<section class="wk" id="week-${week.week}" style="--c:${c}">
-          <div class="wk-head"><span class="wk-badge">Week ${week.week}</span><h3>${week.module ? `<span class="wk-mod">${esc(week.module)}</span>` : ''}${esc(week.title)}</h3><span class="wk-count">${ready} of ${week.lessons.length} ready</span><span class="wk-mine" hidden></span>${ready ? `<button type="button" class="wk-pdf" data-pdf-week="${esc(L.id)}:${week.week}" title="Every lesson of this week in one printable workbook">⬇ Week PDF <b>Premium</b></button>` : ''}</div>
+          <div class="wk-head"><span class="wk-badge">Week ${week.week}</span><h3>${week.module ? `<span class="wk-mod">${esc(week.module)}</span>` : ''}${esc(week.title)}</h3><span class="wk-count">${ready} of ${week.lessons.length} ready</span><span class="wk-mine" hidden></span>${ready ? `<button type="button" class="wk-pdf" data-pdf-week="${esc(L.id)}:${week.week}" title="Every lesson of this week in one printable workbook">⬇ Week PDF <b>Pro</b></button>` : ''}</div>
           <ol class="wk-list">${rows}</ol>
         </section>`;
 }
 
 export async function renderLevelPage(slug, origin) {
+  SEEN = new Set();
   const L = levelBySlug(slug);
   if (!L) return null;
   const names = await levelNames();
@@ -70,14 +72,14 @@ export async function renderLevelPage(slug, origin) {
 
   const extraCards = extra.map((a) => `
           <a class="lv-card" href="/learn/${esc(a.slug)}">
-            ${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="lv-card-ph" style="--c:${L.colour}">${levelEmblem(L.id, 48)}</span>`}
+            ${lessonThumb(a, SEEN)}
             <div><strong>${esc(a.headline)}</strong><span>${esc(String(a.summary || '').slice(0, 130))}${String(a.summary || '').length > 130 ? '…' : ''}</span><em>${esc(a.readingTime || '5 min read')}</em></div>
           </a>`).join('');
 
   const promos = [
     prev ? `<a class="ax-promo" href="/learn/${prev.slug}" style="--c:${prev.colour}">${levelEmblem(prev.id, 44)}<span><b>Need a refresher?</b>The ${esc(names[prev.id])} lessons cover the ground before this level.</span></a>` : '',
     next && !next.premium ? `<a class="ax-promo" href="/learn/${next.slug}" style="--c:${next.colour}">${levelEmblem(next.id, 44)}<span><b>Ready for the next level?</b>Join the ${esc(names[next.id])}: ${esc(next.tagline.charAt(0).toLowerCase() + next.tagline.slice(1))} ${next.paid ? 'For members.' : 'Free.'}</span></a>` : '',
-    !L.premium ? `<a class="ax-promo prem" href="/learn/advanced"><span class="ax-crown" aria-hidden="true">${CROWN}</span><span><b>Become a ${esc(names.lords.replace(/s$/u, ''))}</b>The ${esc(names.lords)} lessons go deeper: valuing a company, the economy’s warning lights and advanced portfolio craft. Premium.</span></a>` : `<a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true">${CROWN}</span><span><b>Premium: $19.99 a month or $179 a year</b>Every ${esc(names.lords)} lesson, the Financial Health Check in full, the portfolio check and no adverts.</span></a>`,
+    !L.premium ? `<a class="ax-promo prem" href="/learn/advanced"><span class="ax-crown" aria-hidden="true">${CROWN}</span><span><b>Become a ${esc(names.lords.replace(/s$/u, ''))}</b>The ${esc(names.lords)} lessons go deeper: valuing a company, the economy’s warning lights and advanced portfolio craft. Pro.</span></a>` : `<a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true">${CROWN}</span><span><b>Pro: $19.99 a month or $179 a year</b>Every ${esc(names.lords)} lesson, the Financial Health Check in full, the portfolio check and no adverts.</span></a>`,
   ].filter(Boolean).join('');
 
   const body = `
@@ -86,7 +88,7 @@ export async function renderLevelPage(slug, origin) {
         <div class="lvp-hero${L.premium ? ' prem' : ''}">
           <div class="lvp-emblem">${levelEmblem(L.id, 96)}</div>
           <div class="lvp-text">
-            <span class="pf-badge ${L.premium ? 'prem' : L.paid ? 'mem' : 'free'}">${L.premium ? 'Premium' : L.paid ? 'Members' : 'Free'} · ${esc(L.who)}</span>
+            <span class="pf-badge ${L.premium ? 'prem' : L.paid ? 'mem' : 'free'}">${L.premium ? 'Pro' : L.paid ? 'Plus' : 'Free'} · ${esc(L.who)}</span>
             <h1>${esc(name)}</h1>
             <p class="lvp-tag">${esc(L.tagline)}</p>
             <p>${esc(L.intro)}</p>
@@ -106,11 +108,11 @@ export async function renderLevelPage(slug, origin) {
         ${L.id === 'technical' ? `<form class="ta-form lv-ta" onsubmit="var t=this.t.value.trim().toUpperCase();if(t){location.href='/technical/'+encodeURIComponent(t)}return false"><label for="lvTa">Try it now: the Chart check for any US-listed company</label><input id="lvTa" name="t" placeholder="e.g. AAPL" maxlength="10" required><button class="pf-btn gold" type="submit">Check the chart</button></form>` : ''}
         <nav class="wk-jump" aria-label="Weeks">${weeks.map((w, i) => `<a href="#week-${w.week}" style="--c:${WEEK_COLOURS[i % 6]}">Week ${w.week}<span>${esc(w.title)}</span></a>`).join('')}</nav>
         <div class="wk-grid">${weeks.filter((w) => !w.module).map((w, i) => weekBlock(L, w, map, i)).join('')}</div>
-        ${weeks.some((w) => w.module) ? `<div class="wk-intensive"><span class="pf-badge prem">Premium</span><h2>The ${esc(name)} Intensive</h2><p>Longer, worked lessons in ${new Set(weeks.filter((w) => w.module).map((w) => w.module)).size} modules: reading accounts like an analyst, spotting accounting red flags, valuing any kind of business, designing a portfolio with clear buying and selling rules, charts for long-term owners, honest short-term trading, sector deep dives with real company figures, and researching faster with smart tools. Every lesson and every week comes as a printable PDF workbook.</p></div>
+        ${weeks.some((w) => w.module) ? `<div class="wk-intensive"><span class="pf-badge prem">Pro</span><h2>The ${esc(name)} Intensive</h2><p>Longer, worked lessons in ${new Set(weeks.filter((w) => w.module).map((w) => w.module)).size} modules: reading accounts like an analyst, spotting accounting red flags, valuing any kind of business, designing a portfolio with clear buying and selling rules, charts for long-term owners, honest short-term trading, sector deep dives with real company figures, and researching faster with smart tools. Every lesson and every week comes as a printable PDF workbook.</p></div>
         <div class="wk-grid">${weeks.filter((w) => w.module).map((w) => weekBlock(L, w, map, weeks.indexOf(w))).join('')}</div>` : ''}
-        <p class="lvp-tip">${L.premium ? 'Premium members can read every lesson. Others can read the opening of each one.' : L.paid ? 'Regular and Premium members can read every lesson; others can read the opening. Try each idea on a real company with the <a href="/technical">Chart check</a>.' : 'One week at a time works well: read a lesson a day, take the quick check at the end, then move on.'} Our free newsletter features one week of the course in every issue.</p>
+        <p class="lvp-tip">${L.premium ? 'Pro members can read every lesson. Others can read the opening of each one.' : L.paid ? 'Plus and Pro members can read every lesson; others can read the opening. Try each idea on a real company with the <a href="/technical">Chart check</a>.' : 'One week at a time works well: read a lesson a day, take the quick check at the end, then move on.'} Our free newsletter features one week of the course in every issue.</p>
 
-        ${L.id === 'lords' ? `<h2 class="lvp-h">Market review, every two weeks</h2><p class="lvp-tip">Trends, sectors and themes from the past fortnight, explained with our own figures. Also sent in the Premium newsletter.</p>${reviews.length ? `<div class="lv-cards">${reviews.map((a) => `<a class="lv-card" href="/learn/${esc(a.slug)}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="lv-card-ph" style="--c:${L.colour}">${levelEmblem(L.id, 48)}</span>`}<div><strong>${esc(a.headline)}</strong><span>${esc(String(a.summary || '').slice(0, 130))}</span><em>${esc(a.readingTime || '6 min read')}</em></div></a>`).join('')}</div>` : '<p class="note-box">The first review is published within two weeks of launch.</p>'}` : ''}
+        ${L.id === 'lords' ? `<h2 class="lvp-h">Market review, every two weeks</h2><p class="lvp-tip">Trends, sectors and themes from the past fortnight, explained with our own figures. Also sent in the Pro newsletter.</p>${reviews.length ? `<div class="lv-cards">${reviews.map((a) => `<a class="lv-card" href="/learn/${esc(a.slug)}">${a.heroImage?.url ? `<img src="${esc(a.heroImage.url)}" alt="" loading="lazy">` : `<span class="lv-card-ph" style="--c:${L.colour}">${levelEmblem(L.id, 48)}</span>`}<div><strong>${esc(a.headline)}</strong><span>${esc(String(a.summary || '').slice(0, 130))}</span><em>${esc(a.readingTime || '6 min read')}</em></div></a>`).join('')}</div>` : '<p class="note-box">The first review is published within two weeks of launch.</p>'}` : ''}
         ${extraCards ? `<h2 class="lvp-h">More ${esc(name)} lessons</h2><div class="lv-cards">${extraCards}</div>` : ''}
 
         <div class="ax-row">${promos}</div>
@@ -131,7 +133,7 @@ export async function levelChooserHtml() {
     const lessons = all.filter((a) => levelOf(a) === L.id).length;
     const weeks = (COURSE[L.id] || []).length;
     return `<a class="lc-card${L.premium ? ' prem' : ''}" href="/learn/${L.slug}" style="--c:${L.colour};--c2:${L.colour2}">
-          ${levelEmblem(L.id, 64)}<span class="lc-free">${L.premium ? 'Premium' : L.paid ? 'Members' : 'Free'}</span><strong>${esc(names[L.id])}</strong><em>${esc(L.who)}</em><span>${esc(L.tagline)}</span><b>${weeks}-week course · ${lessons} lesson${lessons === 1 ? '' : 's'} →</b><span class="lc-mine" data-level-mine="${L.id}" hidden></span></a>`;
+          ${levelEmblem(L.id, 64)}<span class="lc-free">${L.premium ? 'Pro' : L.paid ? 'Plus' : 'Free'}</span><strong>${esc(names[L.id])}</strong><em>${esc(L.who)}</em><span>${esc(L.tagline)}</span><b>${weeks}-week course · ${lessons} lesson${lessons === 1 ? '' : 's'} →</b><span class="lc-mine" data-level-mine="${L.id}" hidden></span></a>`;
   };
   return `<h2 class="lvp-h">Choose your level</h2>
         <div class="lc-row lc-4">${card(LEVELS.beginner)}${card(LEVELS.intermediate)}${card(LEVELS.technical)}${card(LEVELS.lords)}</div>`;

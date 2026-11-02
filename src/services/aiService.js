@@ -199,7 +199,7 @@ function createLocalMarketBrief({ news, preferences, plan, mode }) {
     ],
     upgradeNote:
       canAccess(plan, 'premium') || mode === 'live'
-        ? 'Regular and Premium tiers add deeper scenario notes, more articles, and stronger learning tracks.'
+        ? 'Plus and Pro tiers add deeper scenario notes, more articles, and stronger learning tracks.'
         : 'Connect API keys for live news and upgrade to a paid plan for deeper analysis.',
     engine: 'Local AI fallback',
     mode: process.env.OPENAI_API_KEY ? 'fallback' : 'local',
@@ -231,7 +231,7 @@ function createLocalLearningGuide({ track, preferences, plan }) {
       'Keep a tiny journal: thesis, trigger, and what would change your mind.',
       canAccess(plan, 'premium')
         ? 'Use the AI desk note to summarize what you learned at the end of each session.'
-        : 'Upgrade to unlock paid and premium learning paths.',
+        : 'Upgrade to Plus or Pro to unlock more learning paths.',
     ],
     mode: 'local',
     engine: 'Local AI fallback',
@@ -251,7 +251,7 @@ function humanizeTier(accessTier = 'free') {
   }
 
   if (accessTier === 'premium') {
-    return 'Premium';
+    return 'Pro';
   }
 
   return 'Free';
