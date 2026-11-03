@@ -425,7 +425,8 @@ export async function renderArticlePage(template, slug, origin) {
           <header class="article-header">
             ${levelChip(level, names, (await import('../data/learnCourse.js')).lessonForArticle(stored))}
             <h1 class="article-title">${escapeHtml(article.headline)}</h1>
-            <div class="article-meta"><span>Dr MoneyWise Team</span><span>${formatDate(article.publishAt)}</span><span>${escapeHtml(article.readingTime || '')}</span></div>
+            <div class="article-meta"><span>Dr MoneyWise Team</span>${article.contentType === 'learning' ? '' : `<span>${formatDate(article.publishAt)}</span>`}<span>${escapeHtml(article.readingTime || '')}</span></div>
+            ${article.contentType === 'learning' ? `<p class="mission-line">Helping you become a financially healthy, wealthy and wise investor.</p>` : ''}
             <p>${escapeHtml(article.summary || '')}</p>
           </header>
           ${article.heroImage?.url ? `<figure class="article-hero-image"><img src="${escapeAttr(article.heroImage.url)}" alt="${escapeAttr(article.headline)}" />${article.heroImage.photographer ? `<figcaption>Photo by ${escapeHtml(article.heroImage.photographer)} on Pexels</figcaption>` : ''}</figure>` : ''}
@@ -575,7 +576,7 @@ export function pageShell({ head, body, active }) {
   <body>
     <header class="site-header">
       <div class="wrap bar">
-        <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Your financial health, simplified.</small></a>
+        <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Become financially healthy, wealthy and wise.</small></a>
         <nav class="main-nav" aria-label="Main">
           ${links}
         </nav>
@@ -597,7 +598,7 @@ export function pageShell({ head, body, active }) {
     <footer class="site-footer">
       <div class="wrap">
         <div class="foot-grid">
-          <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Your financial health, simplified.</small></a>
+          <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Become financially healthy, wealthy and wise.</small></a>
           <div class="foot-links">
             <a href="/about">About</a>
             <a href="/contact">Contact</a>

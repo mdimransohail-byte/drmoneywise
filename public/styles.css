@@ -2380,3 +2380,7 @@ body.has-ad-strip { padding-bottom: 52px; }
 .trial-note a { display: inline-block; background: #0a1128; color: #fff !important; font-weight: 700; text-decoration: none; padding: 9px 16px; border-radius: 999px; white-space: nowrap; }
 .trial-note a:hover { background: #1a2a9e; }
 @media (max-width: 1240px) { .main-nav .nd > a::after { display: none; } }
+
+/* Mission line under a lesson's title */
+.mission-line { margin: 6px 0 10px; font: italic 600 15px var(--serif, Georgia, serif); color: #9a7a12; }
+@media (max-width: 480px) { .site-header .brand .brand-tag { white-space: normal; max-width: 170px; font-size: 10px; line-height: 1.25; } }

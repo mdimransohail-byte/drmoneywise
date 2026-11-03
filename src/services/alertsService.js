@@ -129,14 +129,14 @@ function layout({ title, intro, sections, site, user, kind, token }) {
     unsub,
     html: `<div style="background:#f1e8d6;padding:20px 0;font-family:Arial,Helvetica,sans-serif;color:#0a1128">
   <div style="max-width:620px;margin:0 auto;background:#fbf7ef;border-radius:14px;overflow:hidden;border:1px solid #d9ccb2">
-    <div style="background:#0a1128;padding:16px 22px"><a href="${esc(site || '#')}" style="color:#c9a227;font:700 22px Georgia,serif;text-decoration:none">Dr MoneyWise</a><div style="color:#c9d0e6;font:12px Arial,Helvetica,sans-serif;margin-top:2px">Your financial health, simplified.</div></div>
+    <div style="background:#0a1128;padding:16px 22px"><a href="${esc(site || '#')}" style="color:#c9a227;font:700 22px Georgia,serif;text-decoration:none">Dr MoneyWise</a><div style="color:#c9d0e6;font:12px Arial,Helvetica,sans-serif;margin-top:2px">Become financially healthy, wealthy and wise.</div></div>
     <div style="padding:20px 22px">
       <h1 style="font:700 22px Georgia,serif;margin:0 0 8px">${esc(title)}</h1>
       <p style="margin:0 0 16px;color:#4a5170">${intro}</p>
       ${sections.join('')}
     </div>
     <div style="padding:14px 22px;background:#f3ead6;font-size:12px;color:#4a5170">
-      <strong style="color:#0a1128">Dr MoneyWise</strong> · Your financial health, simplified.<br>For education only, not financial advice. You get this because you are a Dr MoneyWise member${user.name ? ` (${esc(user.name)})` : ''}.
+      <strong style="color:#0a1128">Dr MoneyWise</strong> · Helping you become a financially healthy, wealthy and wise investor.<br>For education only, not financial advice. You get this because you are a Dr MoneyWise member${user.name ? ` (${esc(user.name)})` : ''}.
       ${site ? `<a href="${esc(site)}/membership" style="color:#1a2a9e">Change your emails</a>${unsub ? ` · <a href="${esc(unsub)}" style="color:#1a2a9e">Unsubscribe from these</a>` : ''}` : ''}${address}
     </div>
   </div></div>`,

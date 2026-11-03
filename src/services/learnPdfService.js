@@ -17,7 +17,8 @@ import path from 'node:path';
 import PDFDocument from 'pdfkit';
 
 const FONTS = path.join(process.cwd(), 'assets', 'fonts');
-const TAGLINE = 'Your financial health, simplified.';
+const TAGLINE = 'Become financially healthy, wealthy and wise.';
+const MISSION = 'Helping you become a financially healthy, wealthy and wise investor.';
 /* The logo mark, drawn (no picture files): a gold coin with a navy $ */
 function logoMark(doc, x, y, size) {
   const r = size / 2;
@@ -262,8 +263,8 @@ function logoBlock(doc) {
   logoMark(doc, x, y + 10, 64);
   const tx = x + 78;
   doc.font('serif').fontSize(26).fillColor(NAVY).text('Dr MoneyWise', tx, y + 18, { lineBreak: false });
-  doc.font('bold').fontSize(11).fillColor(GOLD).text(TAGLINE.toUpperCase(), tx + 2, y + 54, { characterSpacing: 1.4, lineBreak: false });
-  doc.font('body').fontSize(9.5).fillColor(GREY).text('drmoneywise.com', tx + 2, y + 72, { lineBreak: false });
+  doc.font('bold').fontSize(9.5).fillColor(GOLD).text(TAGLINE.toUpperCase(), tx + 2, y + 54, { characterSpacing: 1, lineBreak: false });
+  doc.font('body').fontSize(9.5).fillColor(GREY).text(`${MISSION} · drmoneywise.com`, tx + 2, y + 72, { lineBreak: false });
   doc.x = x; doc.y = y + 96;
 }
 
@@ -282,7 +283,8 @@ export async function weekPdf({ levelName, week, lessons, forWho = '', site = 'h
   // Big logo on the cover: the gold mark, the name and the tagline
   logoMark(doc, x, 64, 56);
   doc.font('serif').fontSize(30).fillColor(GOLD).text('Dr MoneyWise', x + 70, 68, { lineBreak: false });
-  doc.font('bold').fontSize(10).fillColor('#d9dcf0').text(TAGLINE.toUpperCase(), x + 72, 106, { characterSpacing: 1.4, lineBreak: false });
+  doc.font('bold').fontSize(9.5).fillColor('#d9dcf0').text(TAGLINE.toUpperCase(), x + 72, 106, { characterSpacing: 1, lineBreak: false });
+  doc.font('body').fontSize(12).fillColor(GOLD).text(MISSION, x, doc.page.height * 0.62 + 52, { width: w });
   // Contents
   doc.addPage();
   heading(doc, 'In this workbook', GOLD);

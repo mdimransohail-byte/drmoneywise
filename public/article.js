@@ -100,8 +100,9 @@ function renderArticle() {
       <h1 class="article-title">${escapeHtml(article.headline)}</h1>
       <div class="article-meta">
         <span>${escapeHtml(/auto$|Learning Point/u.test(article.source || '') || !article.source ? 'Dr MoneyWise Team' : article.source)}</span>
-        <span>${formatDate(article.publishAt)}</span>
+        ${article.contentType === 'learning' ? '' : `<span>${formatDate(article.publishAt)}</span>`}
       </div>
+      ${article.contentType === 'learning' ? '<p class="mission-line">Helping you become a financially healthy, wealthy and wise investor.</p>' : ''}
       <p>${escapeHtml(article.summary)}</p>
       <div class="button-row">
         ${
