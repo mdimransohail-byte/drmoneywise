@@ -24,7 +24,14 @@ function logoMark(doc, x, y, size) {
   const r = size / 2;
   doc.save().circle(x + r, y + r, r).fill(GOLD).restore();
   doc.save().circle(x + r, y + r, r * 0.8).lineWidth(Math.max(0.8, size / 30)).stroke('#8a6a10').restore();
-  doc.font('serif').fontSize(size * 0.62).fillColor(NAVY).text('$', x, y + size * 0.16, { width: size, align: 'center', lineBreak: false });
+  // Growing bars and a rising arrow (drawn in a 100-unit box)
+  const k = size / 100;
+  const P = (px, py) => [x + px * k, y + py * k];
+  doc.save().fillColor(NAVY);
+  [[26, 58, 16], [41, 47, 27], [56, 36, 38]].forEach(([bx, by, bh]) => doc.roundedRect(...P(bx, by), 11 * k, bh * k, 2 * k).fill(NAVY));
+  doc.restore();
+  doc.save().moveTo(...P(24, 50)).lineTo(...P(44, 36)).lineTo(...P(56, 42)).lineTo(...P(74, 26)).lineWidth(4.5 * k).lineCap('round').lineJoin('round').stroke(NAVY).restore();
+  doc.save().polygon(P(66, 24), P(78, 22), P(76, 34)).fill(NAVY).restore();
 }
 const NAVY = '#0a1128';
 const GOLD = '#c9a227';
@@ -249,6 +256,13 @@ export async function lessonPdf(article, { kicker = 'Pro lesson', forWho = '', s
   const doc = newDoc(clean(article.headline));
   logoBlock(doc);
   const answers = lessonBody(doc, article, { kicker });
+  // Closing line: what Dr MoneyWise is for
+  doc.moveDown(1.2); room(doc, 70);
+  { const x = L(doc); const w = W(doc); const y = doc.y;
+    doc.save().moveTo(x + w * 0.3, y).lineTo(x + w * 0.7, y).lineWidth(0.8).stroke(GOLD).restore();
+    doc.font('serif').fontSize(13).fillColor(NAVY).text(MISSION, x, y + 12, { width: w, align: 'center' });
+    doc.save().moveTo(x + w * 0.3, doc.y + 10).lineTo(x + w * 0.7, doc.y + 10).lineWidth(0.8).stroke(GOLD).restore();
+    doc.x = x; doc.y += 22; }
   doc.moveDown(0.6); room(doc, 40);
   doc.font('bold').fontSize(9.5).fillColor(PREM).text(`Read it online, with the interactive check: ${site}/learn/${article.slug}`, L(doc), doc.y, { width: W(doc), link: `${site}/learn/${article.slug}`, underline: true });
   answersPage(doc, answers);
@@ -264,7 +278,7 @@ function logoBlock(doc) {
   const tx = x + 78;
   doc.font('serif').fontSize(26).fillColor(NAVY).text('Dr MoneyWise', tx, y + 18, { lineBreak: false });
   doc.font('bold').fontSize(9.5).fillColor(GOLD).text(TAGLINE.toUpperCase(), tx + 2, y + 54, { characterSpacing: 1, lineBreak: false });
-  doc.font('body').fontSize(9.5).fillColor(GREY).text(`${MISSION} · drmoneywise.com`, tx + 2, y + 72, { lineBreak: false });
+  doc.font('body').fontSize(9.5).fillColor(GREY).text('drmoneywise.com', tx + 2, y + 72, { lineBreak: false });
   doc.x = x; doc.y = y + 96;
 }
 

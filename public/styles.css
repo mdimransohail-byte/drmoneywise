@@ -2384,3 +2384,7 @@ body.has-ad-strip { padding-bottom: 52px; }
 /* Mission line under a lesson's title */
 .mission-line { margin: 6px 0 10px; font: italic 600 15px var(--serif, Georgia, serif); color: #9a7a12; }
 @media (max-width: 480px) { .site-header .brand .brand-tag { white-space: normal; max-width: 170px; font-size: 10px; line-height: 1.25; } }
+
+/* Logo mark (gold coin with growing bars) beside the name */
+.brand { position: relative; padding-left: 52px; min-height: 44px; justify-content: center; background: url(/logo-mark.svg) left center / 42px 42px no-repeat; }
+@media (max-width: 480px) { .brand { padding-left: 42px; background-size: 34px 34px; } }

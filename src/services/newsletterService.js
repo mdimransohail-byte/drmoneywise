@@ -49,7 +49,7 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
 <div style="display:none;max-height:0;overflow:hidden">${esc(issue.preheader || '')}</div>
 <div style="background:#f1e8d6;padding:20px 0;font-family:Arial,Helvetica,sans-serif;color:#0a1128">
   <div style="max-width:620px;margin:0 auto;background:#fbf7ef;border-radius:14px;overflow:hidden;border:1px solid #d9ccb2">
-    <div style="background:#0a1128;padding:16px 22px"><a href="${esc(site || '#')}" style="color:#c9a227;font:700 22px Georgia,serif;text-decoration:none">Dr MoneyWise</a>
+    <div style="background:#0a1128;padding:16px 22px"><img src="${esc(site || '')}/logo-mark.png" width="42" height="42" alt="" style="float:left;margin:0 12px 0 0;border:0;display:block"><a href="${esc(site || '#')}" style="color:#c9a227;font:700 22px Georgia,serif;text-decoration:none">Dr MoneyWise</a>
       <span style="float:right;color:#c9d0e6;font-size:12px;line-height:28px">${esc(issue.dateLabel || '')}</span><div style="color:#c9d0e6;font-size:12px;margin-top:2px">Become financially healthy, wealthy and wise.</div></div>
     <div style="padding:22px">
       <h1 style="font:700 24px Georgia,serif;margin:0 0 12px">${esc(issue.subject || '')}</h1>
