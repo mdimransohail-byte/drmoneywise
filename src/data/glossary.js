@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   GLOSSARY — plain-English money words. One page each at /glossary/<slug>.
+   GLOSSARY — simple money words. One page each at /glossary/<slug>.
    Each entry: term, plain (one or two short sentences), example (an
    everyday example), related (other terms, by name). Add a term by
    copying an entry; the page and sitemap pick it up automatically.

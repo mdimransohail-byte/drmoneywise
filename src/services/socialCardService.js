@@ -325,7 +325,7 @@ function toJpeg(svg) {
 }
 
 function captionFor(c) {
-  if (c.kind === 'picture') return `More plain-English money guides at ${c.site.domain}\n\n#PersonalFinance #Investing`;
+  if (c.kind === 'picture') return `More simple money guides at ${c.site.domain}\n\n#PersonalFinance #Investing`;
   const lines = [c.title];
   if (c.sub) lines.push('', cut(c.sub, 220));
   if (c.stats?.length) lines.push('', ...c.stats.slice(0, 4).map((s) => `• ${s.label}: ${s.value}${s.note ? ` (${s.note})` : ''}`));

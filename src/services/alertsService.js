@@ -257,7 +257,7 @@ export async function runAlerts({ forceWeeklyTo = '', testUser = null } = {}) {
       if (forceWeeklyTo && user.email !== forceWeeklyTo) continue;
       if (!forceWeeklyTo && (!emailPrefsFor(user).weekly.on || log[`weekly:${user.id}:${week}`])) continue;
       const sections = await weeklySections(user, content, site);
-      const ok = await send(user, 'weekly', `Your week in money${user.name ? `, ${user.name.split(' ')[0]}` : ''}`, 'Your week in money', 'The week’s money news that matters to you, in plain English.', sections);
+      const ok = await send(user, 'weekly', `Your week in money${user.name ? `, ${user.name.split(' ')[0]}` : ''}`, 'Your week in money', 'The week’s money news that matters to you, in simple terms.', sections);
       if (ok && !forceWeeklyTo) mark(`weekly:${user.id}:${week}`);
     }
   }

@@ -14,7 +14,7 @@ export const FORUM_STARTERS = [
   },
   {
     section: 'stocks', ticker: 'KO', title: 'Why do people call Coca-Cola a "defensive" stock?',
-    question: 'Coca-Cola (KO) is often described as defensive. What does that mean in plain English?',
+    question: 'Coca-Cola (KO) is often described as defensive. What does that mean in simple terms?',
     answer: 'A defensive company sells things people keep buying in good times and bad: drinks, toothpaste, electricity. Its sales usually fall less in a recession, so its share price tends to swing less than the market as a whole. Coca-Cola also has a long record of raising its dividend every year, which appeals to people who want income. The trade-off is that defensive companies usually grow more slowly, so in strong markets they can lag behind faster-growing companies. Defensive means steadier, not safe: the share price can still fall.',
   },
   {

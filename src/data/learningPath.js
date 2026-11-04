@@ -2,7 +2,7 @@
    YOUR LEARNING PATH (free) — /learn/path
    Three levels, each a short list of steps. A member starts at the level
    that fits the investing experience they gave in their profile; anyone
-   can switch level. Each step: a short plain-English lesson (written here,
+   can switch level. Each step: a short simple lesson (written here,
    so the page is never empty), the matching explainer if we've published
    one (matched by its topic in src/data/explainerTopics.js), money words
    from the glossary, and something to try on the site.

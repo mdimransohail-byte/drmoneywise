@@ -17,7 +17,7 @@ const MORE = [
 export async function renderGuidesIndex(origin) {
   const head = buildHeadTags({
     title: 'Money guides: budgeting, retirement, insurance, currencies and more | Dr MoneyWise',
-    description: 'Free plain-English money guides: budgeting and debt, retirement planning, saving for a child’s education, insurance, currencies and commodities, each with lessons, calculators and companies.',
+    description: 'Free simple money guides: budgeting and debt, retirement planning, saving for a child’s education, insurance, currencies and commodities, each with lessons, calculators and companies.',
     canonical: `${origin}/guides`,
   });
   const cards = [
@@ -26,7 +26,7 @@ export async function renderGuidesIndex(origin) {
   ].map(([href, name, icon, colour, text]) => `<a class="gd-card" href="${href}" style="--c:${colour}"><span class="gd-ico" aria-hidden="true">${icon}</span><strong>${esc(name)}</strong><span>${esc(text)}</span><em>Open the guide →</em></a>`).join('');
   const body = `
       <section class="block">
-        <div class="gd-hero"><h1>Money guides</h1><p>Everything on one topic in one place: the big ideas in plain English, lessons from our courses, calculators, the companies involved and answers to common questions.</p></div>
+        <div class="gd-hero"><h1>Money guides</h1><p>Everything on one topic in one place: the big ideas in simple terms, lessons from our courses, calculators, the companies involved and answers to common questions.</p></div>
         <div class="gd-grid">${cards}</div>
       </section>`;
   return pageShell({ head, body, active: 'guides' });

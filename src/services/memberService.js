@@ -292,12 +292,12 @@ export async function getAudienceSummary() {
   const answered = (f) => (fields[f] || []).some((x) => x.n > 0);
   const parts = [answered('knowledge') && newerKnow, answered('experience') && newerExp].filter((v) => v !== false);
   const level = parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length) : 0;
-  let suggestion = 'Not enough profiles yet to judge. Keep the current plain-English style.';
+  let suggestion = 'Not enough profiles yet to judge. Keep the current simple style.';
   let tone = 'wait';
   if (withProfile.length >= 5) {
     if (level >= 60) { tone = 'simple'; suggestion = `Most readers are newer to investing (${newerKnow}% beginner or basic knowledge; ${newerExp}% investing under 3 years). Keep explainers simple: short sentences, every term explained.`; }
     else if (level <= 40) { tone = 'deeper'; suggestion = 'Most readers know their way around. Explainers can use more market terms and go deeper into the numbers, while still explaining key words.'; }
-    else { tone = 'mixed'; suggestion = 'Readers are a mix of levels. Keep the plain-English base, and add a short "Going deeper" part for confident readers.'; }
+    else { tone = 'mixed'; suggestion = 'Readers are a mix of levels. Keep the simple base, and add a short "Going deeper" part for confident readers.'; }
   }
   return { members: members.length, withProfile: withProfile.length, fields, typed, suggestion, tone, newerPct: withProfile.length ? level : null };
 }

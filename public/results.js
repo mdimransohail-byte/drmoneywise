@@ -17,10 +17,15 @@
     fetch('/api/site/results-strip').then(function (r) { return r.ok ? r.json() : { items: [] }; }).then(function (d) {
       var items = (d && d.items) || [];
       if (!items.length) { strip.remove(); return; }
-      var links = items.map(function (x) { return '<a href="/results#r-' + esc(x.id) + '"><b>' + esc(x.ticker) + '</b> ' + esc(x.headline) + '</a>'; }).join('<span aria-hidden="true">•</span>');
+      var links = items.map(function (x) {
+        if (x.kind === 'news') return '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.headline) + (x.source ? ' <small>' + esc(x.source) + '</small>' : '') + '</a>';
+        return '<a href="/results#r-' + esc(x.id) + '"><b>' + esc(x.ticker) + '</b> ' + esc(x.headline) + '</a>';
+      }).join('<span aria-hidden="true">•</span>');
+      var label = (d && d.label) || 'Latest results';
+      var labelHref = label === 'Business news' ? '/markets' : '/results';
       // Only scroll when there are enough results to fill the strip
       var moving = items.length >= 4;
-      strip.innerHTML = '<div class="wrap rs-strip-inner"><a class="rs-strip-label" href="/results">Latest results</a><div class="rs-strip-scroll"><div class="rs-strip-track' + (moving ? '' : ' still') + '">' + links + (moving ? '<span aria-hidden="true">•</span>' + links.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ') : '') + '</div></div></div>';
+      strip.innerHTML = '<div class="wrap rs-strip-inner"><a class="rs-strip-label" href="' + labelHref + '">' + esc(label) + '</a><div class="rs-strip-scroll"><div class="rs-strip-track' + (moving ? '' : ' still') + '">' + links + (moving ? '<span aria-hidden="true">•</span>' + links.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ') : '') + '</div></div></div>';
       strip.hidden = false;
     }).catch(function () { strip.remove(); });
   }
@@ -30,7 +35,7 @@
   if (home) {
     fetch('/api/site/results-strip?cards=1').then(function (r) { return r.ok ? r.json() : { cards: '' }; }).then(function (d) {
       if (!d || !d.cards) { home.remove(); return; }
-      home.innerHTML = '<div class="block-head"><div><h2>Latest results from the biggest companies</h2><p>Explained in plain English, the day they come out. <a href="/results">See all results</a></p></div></div>' + d.cards;
+      home.innerHTML = '<div class="block-head"><div><h2>Latest results from the biggest companies</h2><p>Explained in simple terms, the day they come out. <a href="/results">See all results</a></p></div></div>' + d.cards;
       home.hidden = false;
       unlock();
     }).catch(function () { home.remove(); });

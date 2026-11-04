@@ -202,7 +202,7 @@ async function refreshPortfolioReview() {
       <div class="review-column rv-guest" style="--c:#2a78d6">
         <span class="rv-icon" aria-hidden="true">→</span>
         <h3>Next steps</h3>
-        <p>Plain-English points to check, never buy or sell tips. <a href="#join" class="rv-join">Create a free account</a> to save your list; Plus and Pro members get the full review.</p>
+        <p>Simple points to check, never buy or sell tips. <a href="#join" class="rv-join">Create a free account</a> to save your list; Plus and Pro members get the full review.</p>
       </div>
     `;
     return;
@@ -829,7 +829,7 @@ function renderStoryCard(article, options = {}) {
       <p>${escapeHtml(description)}</p>
       ${
         options.includeSource
-          ? `<div class="helper-note">${escapeHtml(article.source || 'Dr MoneyWise')} · ${formatDate(article.publishAt)}</div>`
+          ? `<div class="helper-note">${escapeHtml(article.source || 'Dr MoneyWise')}${article.contentType === 'learning' ? '' : ` · ${formatDate(article.publishAt)}`}</div>`
           : ''
       }
       <div class="button-row">

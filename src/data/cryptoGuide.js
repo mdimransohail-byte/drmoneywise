@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   CRYPTO GUIDE — plain-English notes for the coins usually found in the
+   CRYPTO GUIDE — simple notes for the coins usually found in the
    top 10 by total value. The live ranking and prices on /top-10/crypto come
    from the TradingView crypto widget; these notes explain what each coin is.
    Review every few months: the top 10 changes over time. Add a coin by

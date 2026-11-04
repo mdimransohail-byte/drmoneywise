@@ -15,15 +15,25 @@ export const CONTACT_EMAIL = 'hello@drmoneywise.com';
 
 export const INFO_PAGES = {
   about: {
-    title: 'About Dr MoneyWise',
-    description: 'Dr MoneyWise turns the noise of the markets into plain-English explanations for everyday investors.',
-    intro: 'Dr MoneyWise is a plain-English guide to money and investing for ordinary people. We take the daily noise of the markets and explain what happened, why it matters, and what, if anything, it means for you.',
+    title: 'About us',
+    description: 'Dr MoneyWise explains money and investing so simply that anyone can follow. Our rule: if we can’t explain it simply, we haven’t understood it well enough.',
+    intro: 'Dr MoneyWise exists for one reason: to help you become financially healthy, wealthy and wise. We take the noise of the markets and explain what happened, why it matters and what, if anything, it means for you, in words anyone can follow.',
+    quote: 'If you can’t explain it to a five-year-old, you don’t really understand it.',
+    quoteBy: 'An idea often linked to the physicist Richard Feynman, and the rule we write by',
     sections: [
+      {
+        heading: 'Our philosophy: explain it simply',
+        paragraphs: [
+          'Richard Feynman, the Nobel Prize-winning physicist, was famous for making the hardest ideas sound simple. He believed that if you truly understand something, you can explain it with everyday words and a good example. Jargon, he thought, often hides the fact that nobody has really understood the idea.',
+          'Money is full of jargon: yields, margins, valuations, basis points. We believe none of it is too difficult for you. It has just rarely been explained well. So before anything goes on Dr MoneyWise, we ask: could a curious child follow the main idea? If not, we write it again.',
+          'Simple is not the same as shallow. Our Pro lessons go deep, into company accounts, valuation and portfolio building, but each step is explained in simple terms, with a real example and the numbers shown.',
+        ],
+      },
       {
         heading: 'What we do',
         paragraphs: [
-          'We publish short daily market summaries, simple explainers on money ideas, easy-to-read company report cards, Top 10 lists with the ranking rule shown on the page, and free calculators.',
-          'Everything is written for someone who has never studied finance. If a word needs a dictionary, we explain it or link to our glossary.',
+          'We publish short market summaries, simple explainers on money ideas, easy-to-read company report cards, Top 10 lists with the ranking rule shown on the page, free calculators and a step-by-step course from complete beginner to advanced.',
+          'If a word needs a dictionary, we explain it on the spot or link to our list of money words.',
         ],
       },
       {
@@ -43,6 +53,12 @@ export const INFO_PAGES = {
         heading: 'How we make money',
         paragraphs: [
           'Most of the site is free. Members who want more depth pay for a Plus or Pro plan. In future we may also show advertising or earn a fee when readers sign up with partner services; when we do, we will label it clearly. Payments never change what we write.',
+        ],
+      },
+      {
+        heading: 'Talk to us',
+        paragraphs: [
+          'Questions, ideas or a correction? Email hello@drmoneywise.com. We read every message.',
         ],
       },
     ],

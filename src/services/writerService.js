@@ -99,7 +99,7 @@ function buildLearnPrompt({ headline, sourceNotes, level, sections = null, rules
     ? 'Reader: a mid-level investor. They already know what a share, a fund, a bond, a dividend and an interest rate are, so do not explain those from scratch. Go one level deeper: show how professionals think about the idea, work through one or two useful ratios or calculations with real numbers, and point out second-order effects.'
     : 'Reader: a complete beginner. Assume they know nothing about investing. Use everyday comparisons (shopping, a salary, a savings jar), explain every money word the first time it appears, and keep sentences short.';
   return [
-    'You write clear, detailed money explainers for a plain-English education website. British spelling.',
+    'You write clear, detailed money explainers for a simple education website. British spelling.',
     reader,
     ...(sections || [
       'Write SIX sections, each with its own short, specific heading (not generic headings like "Introduction" or "Conclusion"). Each section has a different job:',
@@ -638,7 +638,7 @@ function createLocalLearningDraft(topic, accessTier, region, interest) {
     infographic: {
       title: `${toTitleCase(topic)} at a glance`,
       items: [
-        { label: 'What it is', value: 'Simple', context: 'Plain-English meaning' },
+        { label: 'What it is', value: 'Simple', context: 'Simple meaning' },
         { label: 'Why it matters', value: accessTier.toUpperCase(), context: 'Useful to your plan' },
         { label: 'What to do', value: 'Watch', context: 'One next step' },
       ],
@@ -674,7 +674,7 @@ export async function moderateForumPost({ title = '', body = '' }) {
     '- BLOCK: hate, harassment, threats, sexual content, illegal activity, scams, sharing personal contact details, spam/advertising, attempts to get people to message privately or join paid groups.',
     '- REVIEW (a human will check): pumping a specific coin or share ("will 10x", "buy now before it moons"), promises of guaranteed returns, claims that sound like insider information, accusations against named people or companies, anything that looks like personal financial advice given as certain fact, or off-topic content.',
     '- ALLOW: genuine questions, opinions, experiences and explanations about money, investing, markets, saving, retirement, taxes and the economy, even if blunt or mistaken.',
-    'Reply with JSON only: {"verdict":"allow"|"review"|"block","reason":"one short sentence in plain English"}',
+    'Reply with JSON only: {"verdict":"allow"|"review"|"block","reason":"one short sentence in simple terms"}',
     `Title: ${String(title).slice(0, 300)}`,
     `Post: ${String(body).slice(0, 4000)}`,
   ].join('\n');
@@ -691,7 +691,7 @@ export async function moderateForumPost({ title = '', body = '' }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   "WHAT THE HEADLINES SAY" — 2–3 plain-English sentences written ONLY from
+   "WHAT THE HEADLINES SAY" — 2–3 simple sentences written ONLY from
    a list of recent headlines (never from the articles themselves), for the
    "In the news" box on stock, ETF, commodity, bond and property pages.
    About 0.1 US cent each; at most once a day per page.
@@ -700,7 +700,7 @@ export async function moderateForumPost({ title = '', body = '' }) {
 export async function summarizeHeadlines({ subject = '', headlines = [] }) {
   if (headlines.length < 3) return null;
   const prompt = [
-    'You write for Dr MoneyWise, a plain-English money education site for everyday readers.',
+    'You write for Dr MoneyWise, a simple money education site for everyday readers.',
     `Below are recent news headlines about ${String(subject).slice(0, 120)}.`,
     'Write 2 or 3 short sentences (60 words at most) saying what the headlines are mainly about.',
     'Rules: use only what the headlines say; do not add facts, numbers or reasons that are not in them; do not predict prices; do not tell anyone to buy, sell or hold; say "headlines report" or "news this week focused on" rather than stating things as certain; British spelling; simple words; no jargon without a short explanation; do not mention how this text was written.',
@@ -726,7 +726,7 @@ export async function summarizeHeadlines({ subject = '', headlines = [] }) {
    ════════════════════════════════════════════════════════════════════════ */
 export async function explainResults({ company = '', ticker = '', text = '' }) {
   const prompt = [
-    'You write for Dr MoneyWise, a plain-English money education site for everyday readers (many are beginners).',
+    'You write for Dr MoneyWise, a simple money education site for everyday readers (many are beginners).',
     `Below is the results press release from ${String(company).slice(0, 80)} (${ticker}), taken from its official filing.`,
     'Using ONLY facts and figures stated in the release, reply with JSON only:',
     '{"headline":"max 80 characters, e.g. \\"Sales up 6% as more customers bought phones\\" (no company name)",',
@@ -772,7 +772,7 @@ export async function explainDividend({ company = '', ticker = '', text = '' }) 
   const prompt = [
     `Below is an announcement from ${String(company).slice(0, 80)} (${ticker}), taken from its official filing.`,
     'If it declares or changes a dividend, reply with JSON only:',
-    '{"action":"raised|cut|kept|started|stopped|special|none","amount":"e.g. $0.52 a share","previous":"previous amount if stated","payable":"payment date if stated","summary":"one or two short sentences in plain English"}',
+    '{"action":"raised|cut|kept|started|stopped|special|none","amount":"e.g. $0.52 a share","previous":"previous amount if stated","payable":"payment date if stated","summary":"one or two short sentences in simple terms"}',
     'Use "none" if the announcement does not declare a dividend. Only use facts stated in the text. British spelling. Do not tell anyone to buy, sell or hold.',
     '--- ANNOUNCEMENT ---',
     String(text).slice(0, 8000),
@@ -796,7 +796,7 @@ export async function explainDividend({ company = '', ticker = '', text = '' }) 
    ════════════════════════════════════════════════════════════════════════ */
 export async function writeReportSummary({ month, facts }) {
   const prompt = [
-    'You write for Dr MoneyWise, a plain-English money education site for everyday investors.',
+    'You write for Dr MoneyWise, a simple money education site for everyday investors.',
     `Write the opening of our monthly research report for ${month}, using ONLY the figures below.`,
     'Return JSON only: {"headline":"...","summary":["...","...","..."],"watch":["...","...","..."]}',
     '- headline: under 80 characters, the month’s main theme.',
@@ -834,7 +834,7 @@ export async function writeMarketReview({ period, facts }) {
       'Write SIX sections, each with its own short, specific heading that names what happened (not generic headings). Each section has a different job:',
       '1. The fortnight in brief (120-170 words): the main story the figures tell.',
       '2. The markets (150-220 words): what the share indexes did and what that means.',
-      '3. Sectors: leaders and laggards (180-240 words): which sectors rose and fell most and plain-English reasons that are true in general for such sectors (for example, energy shares tend to follow oil prices), without inventing news.',
+      '3. Sectors: leaders and laggards (180-240 words): which sectors rose and fell most and simple reasons that are true in general for such sectors (for example, energy shares tend to follow oil prices), without inventing news.',
       '4. Themes to understand (180-240 words): interest rates, inflation, bond yields, commodities and currencies, using the figures.',
       '5. Company news that mattered (120-180 words): results, dividends and bosses’ trades from the figures.',
       '6. What to watch in the next fortnight (100-150 words): which of these figures to keep an eye on and why. No forecasts of prices.',
@@ -858,7 +858,7 @@ export async function writeMarketReview({ period, facts }) {
    ════════════════════════════════════════════════════════════════════════ */
 export async function writeAskDraft({ question, topic }) {
   const prompt = [
-    'You help the Dr MoneyWise team answer questions from members of a plain-English money education site.',
+    'You help the Dr MoneyWise team answer questions from members of a simple money education site.',
     `Topic: ${String(topic).slice(0, 60)}`,
     `Member’s question: ${String(question).slice(0, 1200)}`,
     'Write a draft answer of 150-300 words that the team will check and edit before sending.',

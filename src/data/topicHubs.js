@@ -4,7 +4,7 @@
    words, latest news and common questions.
      /personal-finance   /retirement   /child-education   /insurance
      /currencies         (and the trading section on /commodities)
-   Written here in plain English: general, long-standing facts only; no
+   Written here in simple terms: general, long-standing facts only; no
    product names, no advice. Country examples cover the UK, US, India and
    the UAE, where most of our readers are.
    lessons: course lesson ids (src/data/learnCourse.js) shown in this order,
@@ -15,7 +15,7 @@ export const HUBS = {
   'personal-finance': {
     name: 'Personal finance', icon: '◈', colour: '#1baf7a', colour2: '#7be0b8',
     seoTitle: 'Personal finance made simple: budgeting, saving, debt and credit scores',
-    description: 'Plain-English personal finance: how to budget, build an emergency fund, beat inflation, clear debt and improve your credit score, with free calculators.',
+    description: 'Simple personal finance: how to budget, build an emergency fund, beat inflation, clear debt and improve your credit score, with free calculators.',
     intro: 'Getting your everyday money in order comes before any investing. Here is how to budget, build a safety net, keep up with rising prices and get on top of debt.',
     ideas: [
       ['Spend less than you earn', 'It sounds obvious, but everything else depends on it. A simple split such as 50% needs, 30% wants and 20% saving gives you a starting point you can adjust.'],
@@ -99,7 +99,7 @@ export const HUBS = {
   insurance: {
     name: 'Insurance', icon: '⛨', colour: '#6250d6', colour2: '#b3a8ff',
     seoTitle: 'Insurance explained simply: life, health, income and home cover',
-    description: 'Which insurance do you really need? Life, health, income protection, home and car insurance explained in plain English, with a free life cover calculator.',
+    description: 'Which insurance do you really need? Life, health, income protection, home and car insurance explained in simple terms, with a free life cover calculator.',
     intro: 'Insurance swaps a small, certain cost for protection against a large, uncertain one. Here is which cover matters most, how much you might need and how to avoid paying for cover you don’t need.',
     ideas: [
       ['Insure what would hurt most', 'Cover the losses you could not afford: your income, your home, your health and your family’s needs if you died. Small losses are often cheaper to pay yourself.'],

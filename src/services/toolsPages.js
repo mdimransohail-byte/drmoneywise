@@ -367,7 +367,7 @@ function letterOf(term) {
 export async function renderGlossaryIndex(origin) {
   const head = buildHeadTags({
     title: 'Money words explained simply — glossary | Dr MoneyWise',
-    description: `${GLOSSARY.length} money and investing words explained in plain English, each with an everyday example.`,
+    description: `${GLOSSARY.length} money and investing words explained in simple terms, each with an everyday example.`,
     canonical: `${origin}/glossary`,
   });
   const groups = new Map();

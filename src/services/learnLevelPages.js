@@ -56,7 +56,7 @@ export async function renderLevelPage(slug, origin) {
 
   const head = buildHeadTags({
     title: `${name}: ${L.premium ? 'advanced' : 'free'} money lessons for ${L.who.toLowerCase()}, week by week | Dr MoneyWise`,
-    description: `${L.tagline} A ${weeks.length}-week course of plain-English lessons with worked examples, infographics and a quick check at the end of each.`,
+    description: `${L.tagline} A ${weeks.length}-week course of simple lessons with worked examples, infographics and a quick check at the end of each.`,
     canonical: `${origin}/learn/${L.slug}`,
     jsonLd: {
       '@context': 'https://schema.org',

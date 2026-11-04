@@ -1,7 +1,7 @@
 export const learningTracks = [
   {
     id: 'starter-equities',
-    title: 'Equities in Plain English',
+    title: 'Equities in Simple Terms',
     subtitle: 'Build a working mental model for stock news and earnings reactions',
     asset: 'equities',
     experience: 'beginner',

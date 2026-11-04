@@ -8,7 +8,7 @@
    members only: the numbers are fetched by public/members.js from
    /api/stock/details, so they are never in the free page's HTML.
 
-   Every number comes from the saved SEC data; the "In plain English"
+   Every number comes from the saved SEC data; the "In simple terms"
    paragraph is written by code from those numbers (no writing engine, no
    cost, never out of step with the figures). Chart and news are free
    TradingView widgets.
@@ -77,7 +77,7 @@ export function foreignNote(company) {
   return `${cur !== 'USD' && fx?.rate ? `${company.displayName || company.ticker} reports in ${CURRENCY_WORDS[cur] || cur}. We show its figures in US dollars at the European Central Bank rate${fx.date ? ` of ${fx.date}` : ''} (1 ${cur} = $${fx.rate < 0.01 ? fx.rate.toFixed(5) : fx.rate.toFixed(4)}), the same rate for every year, so growth and profit margins are exactly as reported. ` : ''}Per-share figures are for one local share. Its US-listed shares are usually ADRs, and one ADR can stand for several local shares, so we don't work out a dividend yield from the US price.`;
 }
 
-/** The "In plain English" paragraph — built only from the numbers. */
+/** The "In simple terms" paragraph — built only from the numbers. */
 export function plainEnglishSummary(company) {
   const d = company.derived || {};
   const name = nameOf(company);
@@ -201,7 +201,7 @@ export async function renderStocksIndex(origin, query = '') {
   const photo = await getPhoto('page:stocks', PAGE_PHOTO_QUERIES.stocks);
   const head = buildHeadTags({
     title: 'Largest companies in each sector, explained simply | Dr MoneyWise',
-    description: 'The 10 largest US companies in each sector with their latest share price, plus a plain-English report card for any US-listed company, from official SEC filings.',
+    description: 'The 10 largest US companies in each sector with their latest share price, plus a simple report card for any US-listed company, from official SEC filings.',
     canonical: `${origin}/stocks`,
   });
 
@@ -347,7 +347,7 @@ export async function renderStockPage(origin, rawTicker) {
             <h1 style="font-size:38px;margin:0 0 6px">${esc(name)} <span class="pick-ticker" style="font-size:18px">${esc(ticker)}</span></h1>
             ${company.industry ? `<p class="pick-kind" style="font-size:17px">${esc(company.industry)}</p>` : ''}
             <div class="plain-box">
-              <h2>In plain English</h2>
+              <h2>In simple terms</h2>
               <p>${esc(plainEnglishSummary(company))}</p>
             </div>
             ${compareLinksHtml(ticker)}
@@ -364,7 +364,7 @@ export async function renderStockPage(origin, rawTicker) {
 
       <section class="block stock-grid">
         <div>
-          ${reportCardHtml({ title: 'Report card', subtitle: 'Five plain-English checks on the business', ratings, source })}
+          ${reportCardHtml({ title: 'Report card', subtitle: 'Five simple checks on the business', ratings, source })}
         </div>
         <div>
           <h2 style="font-size:22px;margin:0 0 8px">Share price, last 12 months</h2>
@@ -392,7 +392,7 @@ export async function renderStockPage(origin, rawTicker) {
         <div id="membersContent" class="members-teaser">
           <ul class="plain-list">
             <li><strong>What the big funds are doing:</strong> which of about 20 famous investors (Buffett's Berkshire Hathaway, Bridgewater, Pershing Square and others) own it, and whether they bought or sold last quarter, from their official SEC reports</li>
-            <li><strong>"What if" growth scenarios:</strong> where sales, profit and dividends would be in 1, 3 and 5 years if the company keeps its past pace, slows to half, or stops growing</li>
+            <li><strong>"What if" growth scenarios:</strong> where sales, profit, dividends and the share price would be in 1, 3 and 5 years if the company keeps its past pace, slows to half, or stops growing, plus a link to professional analysts' price targets</li>
             <li>Sales, gross profit, operating profit and net profit for up to 10 years</li>
             <li>Earnings per share, cash from operations, investment spending and spare cash each year</li>
             <li>The last few quarters, so you see the newest results first</li>
@@ -474,6 +474,24 @@ export function whatIfScenarios(company) {
   ];
 }
 
+/* Share price "what if": if the price keeps the same multiple of earnings
+   (price ÷ earnings per share) as today, it moves with earnings per share.
+   Simple arithmetic, not a forecast. US-dollar companies only (overseas
+   companies' per-share figures are for local shares, not the US price). */
+async function priceScenarios(company) {
+  if (company.foreignFiler) return null;
+  const { prices } = await readPrices();
+  const p = prices?.[company.ticker];
+  const eps = whatIfScenarios(company).find((x) => x.label === 'Earnings per share');
+  if (!p?.price || !eps?.available || !(eps.base > 0)) return null;
+  const pe = p.price / eps.base;
+  if (!(pe > 0 && pe < 200)) return null;
+  return {
+    price: p.price, priceDate: p.date || '', pe, baseYear: eps.baseYear,
+    cases: eps.cases.map((c) => ({ name: c.name, rate: c.rate, points: [1, 3, 5].map((n) => ({ years: n, value: p.price * Math.pow(1 + c.rate, n) })) })),
+  };
+}
+
 /* ── Members-only numbers (served by /api/stock/details) ─────────────── */
 export async function stockDetailsFor(rawTicker) {
   const company = await getCompany(rawTicker);
@@ -504,6 +522,8 @@ export async function stockDetailsFor(rawTicker) {
     name: nameOf(company),
     funds: await fundsForTicker(company.ticker),
     scenarios: whatIfScenarios(company),
+    priceScenarios: await priceScenarios(company),
+    analystsUrl: company.foreignFiler ? '' : `https://www.nasdaq.com/market-activity/stocks/${encodeURIComponent(String(company.ticker).toLowerCase())}/analyst-research`,
     years: rows,
     quarters: company.quarters || { revenue: [], netIncome: [], eps: [] },
     balance: {

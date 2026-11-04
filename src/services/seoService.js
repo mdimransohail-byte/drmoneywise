@@ -311,7 +311,7 @@ export async function renderLearnIndex(origin) {
   const articles = await getPublishedLearningArticles();
   const head = buildHeadTags({
     title: 'Learn investing and money, week by week: free courses | Dr MoneyWise',
-    description: 'Free plain-English money courses for beginners and mid-level investors, plus advanced lessons for confident investors. Inflation, saving, shares, ETFs, dividends and more.',
+    description: 'Free simple money courses for beginners and mid-level investors, plus advanced lessons for confident investors. Inflation, saving, shares, ETFs, dividends and more.',
     canonical: `${origin}/learn`,
   });
   const everyday = articles;
@@ -332,7 +332,7 @@ export async function renderLearnIndex(origin) {
         </div>
         ${chooser}
         ${list}
-        <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge mem">Plus</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in plain English. Read other readers’ answers too.</span><em>Ask a question →</em></a>
+        <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge mem">Plus</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in simple terms. Read other readers’ answers too.</span><em>Ask a question →</em></a>
         <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge free">Free</span><strong>Shariah-compliant investing</strong><span>How Islamic screening works, the five main standards side by side, and Shariah funds and ETFs.</span><em>Read the guide →</em></a>
         <a class="lp-banner" href="/learn/path"><span class="pf-badge free">Free</span><strong>Your learning path</strong><span>Short steps from your first savings to running a portfolio. Tick them off as you go.</span><em>Start the path →</em></a>
         ${(await import('./newsletterPage.js')).newsletterSignupBox('learn')}
@@ -467,6 +467,7 @@ export function renderInfoPage(slug, origin) {
           <h1 class="article-title">${escapeHtml(page.title)}</h1>
           ${showDate ? `<p class="helper-note">Last updated ${escapeHtml(LEGAL_UPDATED)}</p>` : ''}
           <p style="font-size:19px;color:var(--ink-2)">${linkEmails(escapeHtml(page.intro))}</p>
+          ${page.quote ? `<blockquote class="about-quote"><p>“${escapeHtml(page.quote)}”</p><cite>${escapeHtml(page.quoteBy || '')}</cite></blockquote>` : ''}
           <div class="article-body">${sections}
           </div>
         </div>
@@ -600,7 +601,7 @@ export function pageShell({ head, body, active }) {
         <div class="foot-grid">
           <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Become financially healthy, wealthy and wise.</small></a>
           <div class="foot-links">
-            <a href="/about">About</a>
+            <a href="/about">About us</a>
             <a href="/contact">Contact</a>
             <a href="/disclaimer">Disclaimer</a>
             <a href="/newsletter">Newsletter</a>

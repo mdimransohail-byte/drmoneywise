@@ -105,6 +105,19 @@
       <p class="helper-note">From each fund's official 13F report to the SEC, filed up to 45 days after the quarter ends, so it shows what they held then, not today. Not a reason to buy or sell on its own.</p>`;
   }
 
+  function priceBlock(ps, url, ticker) {
+    const link = url ? `<p class="wi-analysts">🔎 <strong>What do professional analysts expect?</strong> Analysts at banks and research firms publish <em>12-month</em> share price targets (they don't publish 3- or 5-year ones). <a href="${esc(url)}" target="_blank" rel="noopener">See the latest analyst targets and the list of analysts covering ${esc(ticker)} on Nasdaq.com →</a></p>` : '';
+    if (!ps) return link;
+    return `
+      <h4>Share price <small>(today ${perShare(ps.price)}${ps.priceDate ? `, ${esc(String(ps.priceDate).slice(0, 10))} close` : ''}; ${ps.pe.toFixed(1)} times its ${ps.baseYear} earnings per share)</small></h4>
+      <div class="table-scroll"><table class="members-table">
+        <thead><tr><th>If earnings per share…</th><th class="num">In 1 year</th><th class="num">In 3 years</th><th class="num">In 5 years</th></tr></thead>
+        <tbody>${ps.cases.map((c) => `<tr><th scope="row">${esc(c.name)} (${pct(c.rate)} a year)</th>${c.points.map((p) => `<td class="num">${perShare(p.value)}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>
+      <p class="helper-note">This assumes investors keep paying the same multiple of earnings as today, so the price moves in step with earnings per share. In real life the multiple changes all the time, so prices can be far higher or lower.</p>
+      ${link}`;
+  }
+
   function scenariosBlock(list) {
     const usable = (list || []).filter((x) => x.available);
     if (!usable.length) return '<h3>"What if" growth scenarios</h3><p class="helper-note">Not enough steady history in the filings to work these out.</p>';
@@ -130,7 +143,7 @@
       }
       if (!res.ok) return; // signed out or error: keep the teaser
       content.classList.remove('members-teaser');
-      content.innerHTML = `${fundsTable(data.funds)}${scenariosBlock(data.scenarios)}<h3 style="margin-top:28px">Full financial results</h3>${yearTable(data)}${quarterTable(data.quarters || {})}${balanceTable(data.balance || {})}
+      content.innerHTML = `${fundsTable(data.funds)}${scenariosBlock(data.scenarios)}${priceBlock(data.priceScenarios, data.analystsUrl, data.ticker)}<h3 style="margin-top:28px">Full financial results</h3>${yearTable(data)}${quarterTable(data.quarters || {})}${balanceTable(data.balance || {})}
         <p class="helper-note">Source: ${esc(data.source)}. Negative numbers (losses, cash going out) show with a minus sign.</p>`;
     })
     .catch(() => { /* network problem: keep the teaser */ });

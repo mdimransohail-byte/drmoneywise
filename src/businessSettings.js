@@ -4,7 +4,7 @@
 export const BUSINESS_SETTINGS = {
   // Raise this number when you change any plan's features or tagline below,
   // so the live site picks up the new wording.
-  featuresVersion: 13,
+  featuresVersion: 14,
   // Raise this number when you change a price below, so the live site
   // shows the new price even if prices were saved earlier in Admin.
   // (Stripe charges whatever its payment links say: make new links too.)
@@ -31,7 +31,7 @@ export const BUSINESS_SETTINGS = {
         },
       ],
       features: [
-        'Plain-English explainers, new ones every two days',
+        'Simple explainers, new ones every two days',
         'Company results explained in simple words, the day they come out',
         'A report card for any US-listed company and big companies around the world, plus ETFs, bonds, commodities and property',
         'The latest news on every page',

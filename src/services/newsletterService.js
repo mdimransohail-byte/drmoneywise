@@ -101,7 +101,7 @@ export async function subscribe(rawEmail, { ip = '', source = 'site', admin = fa
   if (resend) {
     const site = await siteUrl();
     const link = `${site}/newsletter/confirm?t=${sub.token}`;
-    const html = newsletterHtml({ subject: 'Please confirm your newsletter sign-up', intro: `${admin ? 'You’ve been invited to the Dr MoneyWise newsletter' : 'Thanks for signing up to the Dr MoneyWise newsletter'}: our best plain-English explainers, the biggest company results and new research, about once a week.\n\nPlease confirm by clicking the button below. If you don’t want it, ignore this email and you won't hear from us.`, items: [{ heading: '', text: '', url: link, button: 'Yes, send me the newsletter' }] }, { site, why: 'You get this because your address was entered for the Dr MoneyWise newsletter. Nothing more will be sent unless you confirm.' });
+    const html = newsletterHtml({ subject: 'Please confirm your newsletter sign-up', intro: `${admin ? 'You’ve been invited to the Dr MoneyWise newsletter' : 'Thanks for signing up to the Dr MoneyWise newsletter'}: our best simple explainers, the biggest company results and new research, about once a week.\n\nPlease confirm by clicking the button below. If you don’t want it, ignore this email and you won't hear from us.`, items: [{ heading: '', text: '', url: link, button: 'Yes, send me the newsletter' }] }, { site, why: 'You get this because your address was entered for the Dr MoneyWise newsletter. Nothing more will be sent unless you confirm.' });
     const r = await sendEmail({ to: email, subject: 'Please confirm your Dr MoneyWise newsletter sign-up', html });
     if (!r.ok) console.error(`[newsletter] confirmation email to ${email} failed: ${r.message}`);
   }
@@ -545,7 +545,7 @@ export async function addSubscribers(text, mode = 'invite', rawPlan = 'free') {
     out.added += 1;
     const html = newsletterHtml({
       subject: plan === 'premium' ? 'A free subscription to the Dr MoneyWise newsletter, Pro edition' : 'A free subscription to the Dr MoneyWise newsletter',
-      intro: (plan === 'premium' ? 'Someone thought you’d enjoy the Pro edition of the Dr MoneyWise newsletter, so you now get it for free, including the extra Pro section each week: ' : 'Someone thought you’d enjoy the Dr MoneyWise newsletter, so you now get it for free: ') + 'our best plain-English explainers on saving and investing, the biggest company results and new research, about once a week.\n\nIf you’d rather not get it, use the unsubscribe link at the bottom of this email and you won’t hear from us again.',
+      intro: (plan === 'premium' ? 'Someone thought you’d enjoy the Pro edition of the Dr MoneyWise newsletter, so you now get it for free, including the extra Pro section each week: ' : 'Someone thought you’d enjoy the Dr MoneyWise newsletter, so you now get it for free: ') + 'our best simple explainers on saving and investing, the biggest company results and new research, about once a week.\n\nIf you’d rather not get it, use the unsubscribe link at the bottom of this email and you won’t hear from us again.',
       items: [{ heading: '', text: '', url: `${site}/newsletter`, button: 'See past issues' }],
     }, { site, unsubscribeUrl: `${site}/newsletter/unsubscribe?t=${sub.token}` });
     const r = await sendEmail({ to: email, subject: 'You’ve been given the Dr MoneyWise newsletter', html, unsubscribeUrl: `${site}/newsletter/unsubscribe?t=${sub.token}` });

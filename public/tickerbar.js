@@ -5,9 +5,16 @@
   var bar = document.getElementById('tickerBar');
   if (!bar) return;
   var GROUPS = [
-    ['Stock markets', [
+    ['Americas', [
       ['FOREXCOM:SPXUSD', 'S&P 500'], ['FOREXCOM:NSXUSD', 'Nasdaq 100'], ['FOREXCOM:DJI', 'Dow Jones'],
-      ['FOREXCOM:UKXGBP', 'FTSE 100'], ['INDEX:DEU40', 'DAX'], ['INDEX:NKY', 'Nikkei 225'],
+      ['TSX:TSX', 'Canada S&P/TSX'],
+    ]],
+    ['Europe', [
+      ['FOREXCOM:UKXGBP', 'FTSE 100 (UK)'], ['INDEX:DEU40', 'DAX (Germany)'], ['SIX:SMI', 'SMI (Switzerland)'], ['BME:IBC', 'IBEX 35 (Spain)'],
+    ]],
+    ['Asia and Pacific', [
+      ['CITYINDEX:INDIA50CFD', 'Nifty 50 (India)'], ['BSE:SENSEX', 'Sensex (India, daily close)'], ['INDEX:NKY', 'Nikkei 225 (Japan)'],
+      ['HSI:HSI', 'Hang Seng (Hong Kong, daily close)'], ['SSE:000001', 'Shanghai Composite (daily close)'], ['ASX:XJO', 'ASX 200 (Australia)'],
     ]],
     ['Currencies', [
       ['FX:EURUSD', 'EUR/USD'], ['FX:GBPUSD', 'GBP/USD'], ['FX:USDJPY', 'USD/JPY'], ['FX:USDCHF', 'USD/CHF'],
@@ -22,7 +29,7 @@
   ];
   var ALL = {};
   GROUPS.forEach(function (g) { g[1].forEach(function (s) { ALL[s[0]] = s[1]; }); });
-  var DEFAULT = ['FOREXCOM:SPXUSD', 'FOREXCOM:NSXUSD', 'FOREXCOM:DJI', 'FOREXCOM:UKXGBP', 'TVC:GOLD', 'TVC:UKOIL', 'FX:EURUSD', 'FX:GBPUSD', 'BITSTAMP:BTCUSD'];
+  var DEFAULT = ['FOREXCOM:SPXUSD', 'FOREXCOM:NSXUSD', 'FOREXCOM:DJI', 'FOREXCOM:UKXGBP', 'INDEX:DEU40', 'CITYINDEX:INDIA50CFD', 'BSE:SENSEX', 'INDEX:NKY', 'TVC:GOLD', 'TVC:UKOIL', 'FX:EURUSD', 'BITSTAMP:BTCUSD'];
   var KEY = 'dmw-ticker';
   function load() {
     try { var v = JSON.parse(localStorage.getItem(KEY) || 'null'); if (Array.isArray(v) && v.length) return v.filter(function (s) { return ALL[s]; }).slice(0, 12); } catch (e) { /* default */ }
@@ -30,8 +37,8 @@
   }
   var chosen = load();
 
-  bar.innerHTML = '<div class="tk-tape" id="tkTape"></div><button type="button" class="tk-choose" aria-expanded="false" aria-controls="tkPanel" title="Choose which prices scroll past">⚙ Choose prices</button>' +
-    '<div class="tk-panel" id="tkPanel" hidden><div class="tk-panel-head"><strong>Choose what scrolls past</strong><span>Up to 12. Remembered on this device.</span></div>' +
+  bar.innerHTML = '<div class="tk-tape" id="tkTape"></div><button type="button" class="tk-choose" aria-expanded="false" aria-controls="tkPanel" title="Choose which indices and prices scroll past">⚙ Choose index</button>' +
+    '<div class="tk-panel" id="tkPanel" hidden><div class="tk-panel-head"><strong>Choose the indices and prices that scroll past</strong><span>Up to 12. Remembered on this device.</span></div>' +
     GROUPS.map(function (g) { return '<fieldset><legend>' + g[0] + '</legend>' + g[1].map(function (s) { return '<label><input type="checkbox" value="' + s[0] + '"> ' + s[1] + '</label>'; }).join('') + '</fieldset>'; }).join('') +
     '<div class="tk-actions"><button type="button" data-tk="save" class="tk-save">Show these</button><button type="button" data-tk="reset">Back to the usual</button><span class="tk-msg" aria-live="polite"></span></div></div>';
   var tape = bar.querySelector('#tkTape');
@@ -49,7 +56,7 @@
     s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
     s.async = true;
     s.text = JSON.stringify({
-      symbols: chosen.map(function (k) { return { proName: k, title: ALL[k] }; }),
+      symbols: chosen.map(function (k) { return { proName: k, title: String(ALL[k]).replace(/ \(.*\)$/, '') }; }),
       showSymbolLogo: true, isTransparent: true, displayMode: 'compact', colorTheme: 'dark', locale: 'en',
     });
     wrap.appendChild(s);

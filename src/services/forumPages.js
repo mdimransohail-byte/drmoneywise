@@ -114,7 +114,7 @@ const NOT_ADVICE = '<p class="fa-note">Forum posts are readers’ own views and 
 export async function renderForumHome(origin) {
   const [stats, latest] = await Promise.all([forumStats(), listThreads({ limit: 12 })]);
   const head = buildHeadTags({
-    title: 'Community forum: money questions answered in plain English | Dr MoneyWise',
+    title: 'Community forum: money questions answered in simple terms | Dr MoneyWise',
     description: 'Ask questions about stocks, ETFs, dividends, bonds, crypto, retirement and the economy, and learn from other everyday investors.',
     canonical: `${origin}/forum`,
   });
@@ -134,7 +134,7 @@ export async function renderForumHome(origin) {
       <section class="fa-hero">
         <div>
           <p class="fa-kicker">Community forum</p>
-          <h1>Ask, learn and share, in plain English</h1>
+          <h1>Ask, learn and share, in simple terms</h1>
           <p>Questions about money, answered by everyday investors and our team. Organised by topic and region, and checked by our moderators.</p>
           ${searchBox()}
         </div>

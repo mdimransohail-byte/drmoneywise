@@ -95,7 +95,7 @@ export async function renderPropertyHub(origin) {
   const withData = facts.filter((x) => x.f);
   const head = buildHeadTags({
     title: 'Property prices around the world: US, UK, India and more | Dr MoneyWise',
-    description: 'How home prices and rents are changing in the US, UK, India, Thailand and more, in plain English, from official figures.',
+    description: 'How home prices and rents are changing in the US, UK, India, Thailand and more, in simple terms, from official figures.',
     canonical: `${origin}/property`,
   });
 
@@ -137,7 +137,7 @@ export async function renderPropertyHub(origin) {
         <div class="pr-hero">
           <div>
             <h1>Property prices around the world</h1>
-            <p class="lede-dark">How home prices and rents are changing, in plain English, from official figures. Pick a place to see the full picture.</p>
+            <p class="lede-dark">How home prices and rents are changing, in simple terms, from official figures. Pick a place to see the full picture.</p>
           </div>
           ${picker()}
         </div>
@@ -164,7 +164,7 @@ export async function renderPropertyPlace(origin, slug) {
   const f = placeFacts(place, d);
   const head = buildHeadTags({
     title: `${place.name} property prices and rents: latest figures | Dr MoneyWise`,
-    description: `How home prices${place.extras.includes('bls-rent') || place.oecd ? ' and rents' : ''} are changing in ${place.name}, in plain English: yearly changes, after inflation, and the trend over ten years.`,
+    description: `How home prices${place.extras.includes('bls-rent') || place.oecd ? ' and rents' : ''} are changing in ${place.name}, in simple terms: yearly changes, after inflation, and the trend over ten years.`,
     canonical: `${origin}/property/${slug}`,
   });
   const top = `
@@ -255,7 +255,7 @@ async function renderManualPlace(origin, place) {
   const rows = manual[place.slug]?.rows || [];
   const head = buildHeadTags({
     title: `${place.name} property: sales and prices each quarter | Dr MoneyWise`,
-    description: `How many homes sold in ${place.name} each quarter and their total value, in plain English, from official announcements.`,
+    description: `How many homes sold in ${place.name} each quarter and their total value, in simple terms, from official announcements.`,
     canonical: `${origin}/property/${place.slug}`,
   });
   const top = `

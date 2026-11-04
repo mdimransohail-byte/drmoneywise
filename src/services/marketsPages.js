@@ -4,7 +4,7 @@
      /commodities, /commodities/<slug>     World Bank monthly prices
      /bonds, /bonds/<slug>                 US Treasury + OECD yields
      /etfs, /etfs/<ticker>                 SEC holdings reports (N-PORT)
-   Each page: a free part (summary, tiles, charts, plain-English facts)
+   Each page: a free part (summary, tiles, charts, simple facts)
    and a members-only "Deeper look" that public/markets-members.js loads
    from /api/markets/details for paying members.
    Summaries are filled in from the figures by fixed rules; nothing is
@@ -95,7 +95,7 @@ export async function renderMarketsHub(origin) {
   const us10 = bondSeries(BOND_PLACES[0], bonds)?.long?.at(-1);
   const head = buildHeadTags({
     title: 'Markets explained: stocks, ETFs, bonds and commodities | Dr MoneyWise',
-    description: 'Plain-English report cards for companies, ETFs, government bonds and commodities such as gold, oil and coffee, from official figures.',
+    description: 'Simple report cards for companies, ETFs, government bonds and commodities such as gold, oil and coffee, from official figures.',
     canonical: `${origin}/markets`,
   });
   const cards = [
@@ -119,7 +119,7 @@ export async function renderMarketsHub(origin) {
   ];
   const body = `
       <section class="block pr-page">
-        <div class="pr-hero"><div><h1>Markets, explained simply</h1><p class="lede-dark">Choose what you want to look at. Every page uses official figures and plain English.</p></div></div>
+        <div class="pr-hero"><div><h1>Markets, explained simply</h1><p class="lede-dark">Choose what you want to look at. Every page uses official figures, explained in simple terms.</p></div></div>
         <div class="mk-cards">${cards.map(([href, name, text, stat]) => `<a class="mk-card" href="${href}"><strong>${esc(name)}</strong><span>${esc(text)}</span><em>${esc(stat)}</em></a>`).join('')}</div>
         ${adSlot('in-content')}
       </section>`;
@@ -177,7 +177,7 @@ export async function renderCommodity(origin, slug) {
   const unit = unitWords(item?.unit);
   const head = buildHeadTags({
     title: `${c.name} price today and over 10 years, explained | Dr MoneyWise`,
-    description: `${c.name} price in plain English: the latest monthly price, change over a year and ten years, what it is used for, where it comes from and what moves the price.`,
+    description: `${c.name} price in simple terms: the latest monthly price, change over a year and ten years, what it is used for, where it comes from and what moves the price.`,
     canonical: `${origin}/commodities/${slug}`,
   });
   const top = `
@@ -277,7 +277,7 @@ function commodityMembersHtml(slug, data) {
    BONDS
    ════════════════════════════════════════════════════════════════════ */
 const BOND_EXPLAIN = `
-        <details class="pr-explain" open><summary>How government bonds work, in plain English</summary><ul>
+        <details class="pr-explain" open><summary>How government bonds work, in simple terms</summary><ul>
           <li>A government bond is a loan you make to a government. It pays you interest every year and gives your money back on a set date.</li>
           <li>The <strong>yield</strong> is the interest rate you get if you buy the bond today and keep it to the end. When yields rise, the price of existing bonds falls — and the other way round.</li>
           <li>Longer loans usually pay more than short ones. When short loans pay more (an “inverted” curve), it has often come before a slowdown in the economy.</li>
@@ -359,7 +359,7 @@ export async function renderBondsPlace(origin, slug) {
   const s = bondSeries(place, data);
   const head = buildHeadTags({
     title: `${place.name} 10-year bond yield, explained | Dr MoneyWise`,
-    description: `What ${place.called} pays to borrow for 10 years, in plain English: the latest yield, how it has changed, and how it compares with short-term rates.`,
+    description: `What ${place.called} pays to borrow for 10 years, in simple terms: the latest yield, how it has changed, and how it compares with short-term rates.`,
     canonical: `${origin}/bonds/${slug}`,
   });
   const top = `
@@ -543,7 +543,7 @@ export async function renderEtf(origin, rawTicker) {
   const name = curated?.name || d?.name || ticker;
   const head = buildHeadTags({
     title: `${ticker}: ${name} — holdings, fee and returns explained | Dr MoneyWise`,
-    description: `What is inside ${name} (${ticker}) in plain English: top holdings, what it invests in, yearly fee and recent returns, from the fund’s own reports.`,
+    description: `What is inside ${name} (${ticker}) in simple terms: top holdings, what it invests in, yearly fee and recent returns, from the fund’s own reports.`,
     canonical: `${origin}/etfs/${ticker}`,
   });
   const hasData = d?.count > 0;

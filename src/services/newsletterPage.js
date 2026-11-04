@@ -13,7 +13,7 @@ const COLOURS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#6250d6', '#e34948
 
 export function newsletterSignupBox(where = 'page') {
   return `<form class="nl-box" data-nl-form data-source="${esc(where)}">
-          <div class="nl-text"><span class="nl-icon" aria-hidden="true">✉</span><div><strong>Get the free weekly newsletter</strong><span>Our best plain-English explainers, the biggest company results and new research. About once a week, easy to stop.</span></div></div>
+          <div class="nl-text"><span class="nl-icon" aria-hidden="true">✉</span><div><strong>Get the free weekly newsletter</strong><span>Our best simple explainers, the biggest company results and new research. About once a week, easy to stop.</span></div></div>
           <div class="nl-fields"><label class="sr-only" for="nl-${esc(where)}">Your email</label><input id="nl-${esc(where)}" type="email" name="email" required maxlength="160" placeholder="Your email address" autocomplete="email"><button class="pf-btn gold" type="submit">Sign me up</button></div>
           <p class="nl-msg" aria-live="polite"></p>
         </form>`;
@@ -23,12 +23,12 @@ export async function renderNewsletterPage(origin) {
   const issues = await publicIssues();
   const head = buildHeadTags({
     title: 'Free weekly money newsletter | Dr MoneyWise',
-    description: 'Sign up for the free Dr MoneyWise newsletter: plain-English explainers, the biggest company results and new research, about once a week.',
+    description: 'Sign up for the free Dr MoneyWise newsletter: simple explainers, the biggest company results and new research, about once a week.',
     canonical: `${origin}/newsletter`,
   });
   const body = `
       <section class="block nl-page">
-        <div class="ak-hero"><div><span class="pf-badge free">Free</span><h1>The Dr MoneyWise newsletter</h1><p>About once a week we send our best plain-English explainers, the biggest company results and what’s new on the site. It’s free, and every email has a one-click unsubscribe link.</p></div><div class="ak-mark" aria-hidden="true">✉</div></div>
+        <div class="ak-hero"><div><span class="pf-badge free">Free</span><h1>The Dr MoneyWise newsletter</h1><p>About once a week we send our best simple explainers, the biggest company results and what’s new on the site. It’s free, and every email has a one-click unsubscribe link.</p></div><div class="ak-mark" aria-hidden="true">✉</div></div>
         ${newsletterSignupBox('newsletter-page')}
         <div class="nl-promise">
           <div style="--c:#2a78d6"><b>1</b><span>email about once a week</span></div>

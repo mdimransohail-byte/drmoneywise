@@ -80,7 +80,7 @@ export async function generateGammaInfographic({ headline, infographic, summary 
     ...base,
     ...(await gammaThemeId() ? { themeId: await gammaThemeId() } : {}),
     additionalInstructions: GAMMA_STYLE,
-    textOptions: { amount: 'brief', tone: 'clear, friendly, plain English', audience: 'everyday savers and new investors', language: 'en-gb' },
+    textOptions: { amount: 'brief', tone: 'clear, friendly, simple words', audience: 'everyday savers and new investors', language: 'en-gb' },
     imageOptions: { source: 'noImages' },
     cardOptions: { dimensions },
   };

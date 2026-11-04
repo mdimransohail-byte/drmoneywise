@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════════════════
    "IN THE NEWS" — recent free articles about each stock, ETF, commodity,
-   bond market and property market, with a short plain-English summary.
+   bond market and property market, with a short simple summary.
    ───────────────────────────────────────────────────────────────────────
    Headlines: the GDELT Project's free news index (gdeltproject.org), which
    lists articles from thousands of news sites. Its terms allow any use,

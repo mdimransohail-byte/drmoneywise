@@ -55,7 +55,7 @@ function promiseNotWarning(text, pattern) {
   return null;
 }
 
-/** Returns { ok, issues: [plain-English reasons] } */
+/** Returns { ok, issues: [simple reasons] } */
 export function checkArticle(article) {
   const issues = [];
   const text = articleText(article);

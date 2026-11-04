@@ -2388,3 +2388,8 @@ body.has-ad-strip { padding-bottom: 52px; }
 /* Logo mark (gold coin with growing bars) beside the name */
 .brand { position: relative; padding-left: 52px; min-height: 44px; justify-content: center; background: url(/logo-mark.svg) left center / 42px 42px no-repeat; }
 @media (max-width: 480px) { .brand { padding-left: 42px; background-size: 34px 34px; } }
+.rs-strip-track a small { opacity: .7; font-size: .85em; margin-left: 4px; }
+.about-quote { margin: 26px 0 10px; padding: 26px 28px; border-radius: 18px; background: linear-gradient(135deg, #0a1128, #1a2a6e); color: #fff; border-left: 6px solid var(--gold); }
+.about-quote p { margin: 0 0 10px; font: 700 26px/1.35 var(--serif); color: #fff; }
+.about-quote cite { font-style: normal; color: #e9c55a; font-size: 15px; }
+.wi-analysts { margin: 16px 0 6px; padding: 14px 16px; border-radius: 12px; background: #eef4ff; border: 1px solid #b9cdf5; color: #0a1128; }

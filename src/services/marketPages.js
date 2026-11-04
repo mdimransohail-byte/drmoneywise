@@ -198,7 +198,7 @@ export async function renderCryptoTop10(origin) {
   const month = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const head = buildHeadTags({
     title: `Top 10 Crypto by Size — ${month}, explained simply | Dr MoneyWise`,
-    description: 'The largest cryptocurrencies by total value, with live prices and a plain-English note on what each coin is and how risky it is.',
+    description: 'The largest cryptocurrencies by total value, with live prices and a simple note on what each coin is and how risky it is.',
     canonical: `${origin}/top-10/crypto`,
   });
   const cards = CRYPTO_GUIDE.map((coin) => `
@@ -231,7 +231,7 @@ export async function renderCryptoTop10(origin) {
 
       <section class="block">
         <div class="block-head"><div><h2>What the biggest coins are</h2>
-          <p>Plain-English notes on the coins usually found at the top of the list (reviewed ${esc(new Date(CRYPTO_REVIEWED_ON).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}).</p></div></div>
+          <p>Simple notes on the coins usually found at the top of the list (reviewed ${esc(new Date(CRYPTO_REVIEWED_ON).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))}).</p></div></div>
         <ol class="picks">${cards}</ol>
       </section>
 

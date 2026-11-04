@@ -166,7 +166,7 @@ export async function renderRegionPage(origin, id) {
   const fx = await getFxRates().catch(() => null);
   const head = buildHeadTags({
     title: `${region.name} stocks explained simply: biggest companies and report cards | Dr MoneyWise`,
-    description: `${region.intro.split('. ')[0]}. See the biggest ${region.name} companies with plain-English report cards, prices and news.`,
+    description: `${region.intro.split('. ')[0]}. See the biggest ${region.name} companies with simple report cards, prices and news.`,
     canonical: `${origin}/stocks/world/${region.id}`,
   });
   const totalSales = rows.reduce((a, r) => a + (r.sales || 0), 0);

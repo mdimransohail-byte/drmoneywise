@@ -18,7 +18,7 @@ export async function renderLearningPath(origin) {
   const total = PATH_LEVELS.reduce((a, l) => a + l.steps.length, 0);
   const head = buildHeadTags({
     title: 'Your learning path: investing step by step | Dr MoneyWise',
-    description: `${total} short steps from your first savings to running a portfolio, in plain English, with explainers, money words and tools to try. Free.`,
+    description: `${total} short steps from your first savings to running a portfolio, in simple terms, with explainers, money words and tools to try. Free.`,
     canonical: `${origin}/learn/path`,
   });
   const levels = PATH_LEVELS.map((level, li) => `

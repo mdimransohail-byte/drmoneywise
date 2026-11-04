@@ -135,7 +135,7 @@ async function buildScenes(c, format, url) {
   const short = format === 'short';
   const s = c.site;
   const scenes = [];
-  const close = scene('cta', 'Learn more, free', `For more plain-English money guides, visit ${s.domain.replace(/\./gu, ' dot ')}. ${short ? 'Follow for more.' : 'And sign up for our free weekly newsletter.'}`, { screen: `${s.domain}${c.kind === 'explainer' || c.kind === 'company' ? `/${c.link.split('/').slice(1).join('/')}` : ''}` });
+  const close = scene('cta', 'Learn more, free', `For more simple money guides, visit ${s.domain.replace(/\./gu, ' dot ')}. ${short ? 'Follow for more.' : 'And sign up for our free weekly newsletter.'}`, { screen: `${s.domain}${c.kind === 'explainer' || c.kind === 'company' ? `/${c.link.split('/').slice(1).join('/')}` : ''}` });
   if (c.kind === 'explainer') {
     const store = await readStore();
     const slug = c.link.split('/').pop();
@@ -146,7 +146,7 @@ async function buildScenes(c, format, url) {
       for (const p of pts) scenes.push(scene('point', '', p));
       if (a.everydayExample && words(scenes.map((x) => x.text).join(' ')) < 90) scenes.push(scene('point', 'Everyday example', clip(sentences(a.everydayExample).slice(0, 2).join(' '), 220)));
     } else {
-      if (a.plainEnglish) chunk(a.plainEnglish, 45).forEach((t) => scenes.push(scene('point', 'In plain English', t)));
+      if (a.plainEnglish) chunk(a.plainEnglish, 45).forEach((t) => scenes.push(scene('point', 'In simple terms', t)));
       for (const b of a.bodySections || []) chunk(b.body, 45).forEach((t, i) => scenes.push(scene('point', i ? '' : b.heading, t)));
       if (a.whyItMatters) chunk(a.whyItMatters, 45).forEach((t, i) => scenes.push(scene('point', i ? '' : 'Why it matters', t)));
       if (a.everydayExample) chunk(a.everydayExample, 45).forEach((t, i) => scenes.push(scene('point', i ? '' : 'An everyday example', t)));
@@ -155,7 +155,7 @@ async function buildScenes(c, format, url) {
       if (take.length) scenes.push(scene('list', 'To remember', `To remember: ${take.slice(0, 4).join(' ')}`, { list: take.slice(0, 4) }));
     }
   } else if (c.kind === 'company') {
-    scenes.push(scene('title', c.badge, `Let's look at ${c.title.replace(/\s*\([A-Z0-9.-]+\)$/u, '')}, in plain English, using its own yearly report.`, { screen: c.title }));
+    scenes.push(scene('title', c.badge, `Let's look at ${c.title.replace(/\s*\([A-Z0-9.-]+\)$/u, '')}, in simple terms, using its own yearly report.`, { screen: c.title }));
     if (c.stats?.length) scenes.push(scene('stats', 'The numbers', c.stats.map((x) => `${x.label}: ${x.value}.`).join(' '), { stats: c.stats }));
     for (const p of (c.points || []).slice(0, short ? 3 : 6)) scenes.push(scene('point', '', p));
   } else if (c.kind === 'results') {

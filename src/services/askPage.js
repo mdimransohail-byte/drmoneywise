@@ -16,12 +16,12 @@ export async function renderAskPage(origin) {
   const colour = Object.fromEntries(ASK_TOPICS.map(([id], i) => [id, COLOURS[i % COLOURS.length]]));
   const head = buildHeadTags({
     title: 'Ask Dr MoneyWise: your money questions, answered simply | Dr MoneyWise',
-    description: 'Members send us their money questions and our team answers in plain English. Read the answers to questions other readers have asked.',
+    description: 'Members send us their money questions and our team answers in simple terms. Read the answers to questions other readers have asked.',
     canonical: `${origin}/ask`,
   });
   const body = `
       <section class="block ak-page">
-        <div class="ak-hero"><div><span class="pf-badge">Plus &amp; Pro</span><h1>Ask Dr MoneyWise</h1><p>Send us a question about saving, investing or the economy and our team will answer it in plain English, usually within a few days. Plus members can ask 3 questions a month, Pro members 10.</p></div><div class="ak-mark" aria-hidden="true">?</div></div>
+        <div class="ak-hero"><div><span class="pf-badge">Plus &amp; Pro</span><h1>Ask Dr MoneyWise</h1><p>Send us a question about saving, investing or the economy and our team will answer it in simple terms, usually within a few days. Plus members can ask 3 questions a month, Pro members 10.</p></div><div class="ak-mark" aria-hidden="true">?</div></div>
         <div id="akApp"><div class="pf-panel"><p>Members can send a question here. <a href="/#join" onclick="try{sessionStorage.setItem('dmw-back','/ask')}catch(e){}">Sign in</a> or <a href="/membership#plans">see the plans</a>.</p></div></div>
         <div class="ak-public">
           <h2>Questions other readers asked</h2>

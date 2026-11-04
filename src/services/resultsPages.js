@@ -26,7 +26,7 @@ export function resultCardHtml(r, { showCompany = true } = {}) {
             <span class="rs-date">Results filed ${esc(day(r.filed))}${r.period ? ` · ${esc(r.period)}` : ''}</span>
           </header>
           <h3>${r.simple ? `<a href="${resultPathOf(r)}">${esc(r.headline)}</a>` : esc(r.headline)}</h3>
-          ${r.simple ? `<p class="rs-simple"><strong>In simple words:</strong> ${esc(r.simple)}</p>` : '<p class="rs-simple">A plain-English explanation is on its way. Meanwhile, read the company’s own announcement below.</p>'}
+          ${r.simple ? `<p class="rs-simple"><strong>In simple words:</strong> ${esc(r.simple)}</p>` : '<p class="rs-simple">A simple explanation is on its way. Meanwhile, read the company’s own announcement below.</p>'}
           ${numbers}
           ${r.simple ? `<div class="rs-impact" data-impact-for="${esc(r.id)}"><h4>What it means <span class="members-badge prem">Pro</span></h4><p>Pro members see what changed, what the company expects next, and what to keep an eye on. <a href="/membership">See Pro</a></p></div>` : ''}
           <p class="rs-source"><a href="${esc(r.url)}" target="_blank" rel="noopener">Read the company’s announcement</a> (official filing with the US Securities and Exchange Commission). Not advice.</p>
@@ -65,9 +65,20 @@ async function bigResults(n, days) {
   return (top.length >= Math.min(3, n) ? top : all).slice(0, n);
 }
 
-/** Small JSON for the scrolling strip (biggest companies only). */
+/** Small JSON for the scrolling strip (biggest companies only).
+   Results show only while they are fresh (filed in the last 4 days, so the
+   strip is busy in results season and quiet in between). When there are
+   fewer than 3 fresh results, the latest business headlines fill it. */
 export async function resultsStripData() {
-  return (await bigResults(14, 21)).map((r) => ({ id: r.id, ticker: r.ticker, headline: r.headline, filed: r.filed }));
+  const results = (await bigResults(14, 4)).map((r) => ({ kind: 'result', id: r.id, ticker: r.ticker, headline: r.headline, filed: r.filed }));
+  if (results.length >= 3) return { label: 'Latest results', items: results };
+  let news = [];
+  try {
+    const { getLiveHeadlines } = await import('./newsService.js');
+    news = ((await getLiveHeadlines()).items || []).filter((n) => n.title && /^https?:\/\//u.test(n.url || '')).slice(0, 10)
+      .map((n) => ({ kind: 'news', headline: n.title, url: n.url, source: n.source || '' }));
+  } catch { /* no headlines */ }
+  return { label: results.length ? 'Results and news' : 'Business news', items: [...results, ...news] };
 }
 
 /** Homepage: 3 compact cards side by side (biggest companies only). */
@@ -90,13 +101,13 @@ export async function renderResultsPage(origin) {
   const items = (data.items || []).slice(0, 60);
   const head = buildHeadTags({
     title: 'Company results today, explained simply | Dr MoneyWise',
-    description: 'The latest results from large US companies, explained in plain English the day they come out: sales, profit and what changed.',
+    description: 'The latest results from large US companies, explained in simple terms the day they come out: sales, profit and what changed.',
     canonical: `${origin}/results`,
   });
   const body = `
       <section class="block pr-page">
         <p class="crumbs"><a href="/markets">Markets</a> › Company results</p>
-        <div class="pr-hero"><div><h1>Company results, explained simply</h1><p class="lede-dark">When a big company tells the world how it did, we explain it in plain English the same day: what it sold, what it earned, and how that compares with a year earlier.</p></div></div>
+        <div class="pr-hero"><div><h1>Company results, explained simply</h1><p class="lede-dark">When a big company tells the world how it did, we explain it in simple terms the same day: what it sold, what it earned, and how that compares with a year earlier.</p></div></div>
         ${items.length ? items.map((r) => resultCardHtml(r)).join('') : '<p class="note-box">No company has reported results in the last few days. The next ones appear here within an hour of being announced. Most big US companies report in the weeks after each quarter ends (January, April, July and October).</p>'}
         ${adSlot('in-content')}
         <p class="helper-note">From each company’s own results announcement (Form 8-K, item 2.02) filed with the US Securities and Exchange Commission. We check for new results every hour. For education only; not a recommendation to buy or sell.</p>

@@ -65,7 +65,7 @@ function premiumValueLine(plans) {
 }
 
 const COMPARE = [
-  ['Plain-English Beginners and Intermediate courses', 1, 1, 1],
+  ['Simple Beginners and Intermediate courses', 1, 1, 1],
   ['Company report cards and Financial Health Check score', 1, 1, 1],
   ['Calculators, glossary, Top 10 lists', 1, 1, 1],
   ['The deeper look on companies, ETFs and bonds', 0, 1, 1],

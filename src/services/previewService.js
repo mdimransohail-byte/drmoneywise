@@ -40,7 +40,7 @@ export async function renderInfographicPreview(requestedTicker) {
       ['Dividend yield', yieldText],
     ];
     companyBlock = `
-      ${reportCard({ title: `${company.name} (${ticker})`, subtitle: 'Report card — five plain-English checks', ratings, source: secSource })}
+      ${reportCard({ title: `${company.name} (${ticker})`, subtitle: 'Report card — five simple checks', ratings, source: secSource })}
       
       ${yearBars({ title: 'Sales each year', subtitle: 'Money coming in from customers', series: company.revenue, format: (v) => formatMoney(v).replace(' billion', 'bn').replace(' trillion', 'tn').replace(' million', 'm'), source: secSource })}
       ${company.dividendsPerShare.length ? `${yearBars({ title: 'Dividend per share each year', subtitle: 'Cash paid to shareholders for each share they own', series: company.dividendsPerShare, format: (v) => `$${v.toFixed(2)}`, source: secSource })}` : ''}

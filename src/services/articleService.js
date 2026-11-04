@@ -687,7 +687,7 @@ async function upsertNewsArticle(item, { defaultStatus = 'candidate' } = {}) {
       infographic: generated.infographic,
       bodySections: [
         { heading: 'What happened', body: generated.summary },
-        { heading: 'In plain English', body: generated.plainEnglish },
+        { heading: 'In simple terms', body: generated.plainEnglish },
         { heading: 'Why readers should care', body: generated.whyItMatters },
       ],
       tags: [...new Set([item.asset, item.region, ...(item.topics || [])].filter(Boolean))],
@@ -838,7 +838,7 @@ export async function runLearningAutopilot() {
   const writeFailed = topUp.wanted > 0 && topUp.written === 0;
   return {
     ok: active.length > 0 && !writeFailed,
-    message: `${writeFailed ? 'Could not write new explainers — check the writing-service keys (Railway log lines starting [writerService] say why). ' : topUp.written ? `Wrote ${topUp.written} new. ` : ''}${upgraded ? `Rewrote “${upgraded}” in the longer format. ` : ''}${active.length} explainers on the homepage, ${waiting} waiting for the next change${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
+    message: `${writeFailed ? 'Could not write new explainers — check the writing-service keys (Railway log lines starting [writerService] say why). ' : topUp.written ? `Wrote ${topUp.written} new. ` : ''}${upgraded ? `Rewrote “${upgraded}” (newer format or a scheduled refresh). ` : ''}${active.length} explainers on the homepage, ${waiting} waiting for the next change${held ? `, ${held} held for review` : ''}${nextRotation ? `; next change ${nextRotation.slice(0, 16).replace('T', ' ')} UTC` : ''}`,
   };
 }
 
@@ -846,20 +846,34 @@ export async function runLearningAutopilot() {
    One per autopilot run: the oldest free explainer still in the short
    three-part format is written again (same web address, same headline,
    same photo). If the rewrite fails the checks, the old text stays. */
+/* Lessons are also kept fresh: Plus and Pro lessons are written again
+   with up-to-date examples and figures 6 months after they were last
+   written, free lessons after 12 months (same web address and headline). */
+const MONTH = 30.44 * 86400000;
+function refreshDue(a) {
+  if ((a.tags || []).includes('market-review')) return false; // reviews describe their own fortnight
+  const last = new Date(a.refreshedAt || a.publishAt || a.createdAt || 0).getTime();
+  return Date.now() - last > ((a.accessTier || 'free') === 'free' ? 12 : 6) * MONTH;
+}
+
 export async function upgradeOldLearningArticle() {
   const store = await readStore();
   const weekAgo = Date.now() - 7 * 86400000;
-  const old = (store.articles || [])
-    .filter((a) => a.contentType === 'learning' && a.status === 'published'
-      && ((a.accessTier || 'free') === 'free' || (a.tags || []).includes('deeper'))
-      && (a.format !== 2 || ((a.tags || []).includes('deeper') && (a.styleVersion || 0) < 2 && !(a.tags || []).includes('market-review')))
+  const candidates = (store.articles || [])
+    .filter((a) => a.contentType === 'learning' && a.status === 'published' && !(a.tags || []).includes('market-review')
       && new Date(a.upgradeTriedAt || 0).getTime() < weekAgo)
-    .sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt))[0];
+    .map((a) => ({ a, style: a.format !== 2 || ((a.tags || []).includes('deeper') && (a.styleVersion || 0) < 2), fresh: refreshDue(a) }))
+    .filter((x) => x.style || x.fresh)
+    // Older format or style first, then the lesson written longest ago
+    .sort((x, y) => (y.style - x.style) || (new Date(x.a.refreshedAt || x.a.publishAt) - new Date(y.a.refreshedAt || y.a.publishAt)));
+  const old = candidates[0]?.a;
   if (!old) return null;
   const level = levelOf(old);
   const { lessonForArticle } = await import('../data/learnCourse.js');
   const lesson = lessonForArticle(old);
-  const generated = await createLearningArticleFromTopic(lesson ? await lessonBrief(lesson) : (old.trendingTopic || old.headline), level === 'lords' ? 'premium' : level === 'technical' ? 'regular' : 'free', old.region || 'global', old.interest || 'equities', '', '', level);
+  const today = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const freshNote = ` Use up-to-date examples and the latest widely published figures available in ${today}; replace anything that is out of date. Do not mention dates of writing or updating.`;
+  const generated = await createLearningArticleFromTopic(`${lesson ? await lessonBrief(lesson) : (old.trendingTopic || old.headline)}${freshNote}`, level === 'lords' ? 'premium' : level === 'technical' ? 'regular' : 'free', old.region || 'global', old.interest || 'equities', '', '', level);
   const quality = generated.provider === 'local-fallback' || generated.format !== 2 ? { ok: false } : checkArticle(generated);
   const fields = quality.ok ? learnFields(generated, level) : null;
   await updateStore((s) => {
@@ -871,7 +885,7 @@ export async function upgradeOldLearningArticle() {
         summary: generated.summary || a.summary,
         plainEnglish: generated.plainEnglish, whyItMatters: generated.whyItMatters, everydayExample: generated.everydayExample,
         takeaways: generated.takeaways || a.takeaways, jargonBuster: generated.jargonBuster || a.jargonBuster,
-        infographic: generated.infographic || a.infographic, updatedAt: new Date().toISOString(),
+        infographic: generated.infographic || a.infographic, updatedAt: new Date().toISOString(), refreshedAt: new Date().toISOString(),
         // Same web address; the course's attention-grabbing headline
         ...(lesson ? { headline: lesson.headline, courseId: lesson.id } : {}),
       });

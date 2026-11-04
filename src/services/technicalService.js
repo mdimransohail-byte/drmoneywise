@@ -4,7 +4,7 @@
      moving averages (20, 50, 200 days), RSI (14), MACD (12, 26, 9),
      Bollinger bands (20, 2), 52-week range, volume, support and
      resistance (recent lows and highs).
-   Each signal is described in plain English with a colour. A description
+   Each signal is described in simple terms with a colour. A description
    of the chart, not a forecast and not advice to buy or sell.
    Free readers get 3 headline signals; Plus and Pro get all.
    ════════════════════════════════════════════════════════════════════════ */

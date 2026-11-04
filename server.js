@@ -651,7 +651,7 @@ export const server = http.createServer(async (request, response) => {
         const { homeResultCards } = await import('./src/services/resultsPages.js');
         return sendJson(response, 200, { cards: await homeResultCards() });
       }
-      return sendJson(response, 200, { items: await resultsStripData() });
+      return sendJson(response, 200, await resultsStripData());
     }
 
     // "What it means" for results — Pro only

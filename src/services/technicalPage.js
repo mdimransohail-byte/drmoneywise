@@ -41,7 +41,7 @@ export async function renderTechnical(origin, raw = '') {
         <p class="crumbs"><a href="/tools">Tools</a> › Chart check${ticker ? ` › ${esc(ticker)}` : ''}</p>
         <div class="ta-hero"><div><span class="pf-badge free">Free</span> <span class="pf-badge mem">Full check: Plus</span>
           <h1>${ticker ? `${esc(name)}: chart check` : 'Chart check'}</h1>
-          <p>Technical analysis looks at a share’s price chart rather than the business: which way the trend is going, how strong the moves are, and where buyers and sellers have stepped in before. We explain each sign in plain English.</p></div>
+          <p>Technical analysis looks at a share’s price chart rather than the business: which way the trend is going, how strong the moves are, and where buyers and sellers have stepped in before. We explain each sign in simple terms.</p></div>
           ${formHtml(ticker)}</div>
         ${ticker ? `
         <div class="ta-grid">

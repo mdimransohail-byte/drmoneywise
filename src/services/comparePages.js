@@ -2,7 +2,7 @@
    /compare/<A>-vs-<B> — two companies side by side, from official figures:
    Financial Health score and its seven checks, sales, profit, margins,
    growth, debt, spare cash, dividends, and six years of sales and profit.
-   Short plain-English lines say who leads on what. Free (people search
+   Short simple lines say who leads on what. Free (people search
    "Coca-Cola vs Pepsi" a lot). Not advice to buy or sell either.
    /compare (no pair) shows a picker and popular match-ups.
    ════════════════════════════════════════════════════════════════════════ */

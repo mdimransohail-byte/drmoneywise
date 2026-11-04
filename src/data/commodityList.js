@@ -8,7 +8,7 @@
    credit link). Only symbols that TradingView's free widgets carry are
    listed; the others show the monthly World Bank price instead.
    Facts below are general, long-standing knowledge (uses, main producers,
-   what moves the price) written in plain English.
+   what moves the price) written in simple terms.
    ════════════════════════════════════════════════════════════════════════ */
 
 export const COMMODITY_GROUPS = [
