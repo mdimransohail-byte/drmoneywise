@@ -404,7 +404,7 @@ export async function renderArticlePage(template, slug, origin) {
       description,
       datePublished: article.publishAt,
       dateModified: article.updatedAt || article.publishAt,
-      author: { '@type': 'Organization', name: 'Dr MoneyWise Team' },
+      author: stored?.guest?.author ? { '@type': 'Person', name: stored.guest.author, ...(stored.guest.url ? { url: stored.guest.url } : {}) } : { '@type': 'Organization', name: 'Dr MoneyWise Team' },
       publisher: { '@type': 'Organization', name: 'Dr MoneyWise' },
       mainEntityOfPage: canonical,
       ...(article.heroImage?.url ? { image: [article.heroImage.url] } : {}),
@@ -415,7 +415,7 @@ export async function renderArticlePage(template, slug, origin) {
   const names = await levelNames();
   const level = article.level || levelOf(article);
   const sections = (article.visibleSections || [])
-    .map((section) => `<h2 class="ab-h">${escapeHtml(section.heading || '')}</h2>${paragraphsHtml(section.body)}`)
+    .map((section) => `${section.heading ? `<h2 class="ab-h">${escapeHtml(section.heading)}</h2>` : ''}${paragraphsHtml(section.body)}`)
     .join('');
   const jargon = (article.visibleJargon || []).length
     ? `<section class="article-block"><h3>Money words in this lesson</h3><ul>${article.visibleJargon.map((j) => `<li><strong>${escapeHtml(j.term)}:</strong> ${escapeHtml(j.meaning)}</li>`).join('')}</ul></section>` : '';
@@ -425,7 +425,7 @@ export async function renderArticlePage(template, slug, origin) {
           <header class="article-header">
             ${levelChip(level, names, (await import('../data/learnCourse.js')).lessonForArticle(stored))}
             <h1 class="article-title">${escapeHtml(article.headline)}</h1>
-            <div class="article-meta"><span>Dr MoneyWise Team</span>${article.contentType === 'learning' ? '' : `<span>${formatDate(article.publishAt)}</span>`}<span>${escapeHtml(article.readingTime || '')}</span></div>
+            <div class="article-meta"><span>${escapeHtml(stored.guest?.author ? `By ${stored.guest.author}` : 'Dr MoneyWise Team')}</span>${article.contentType === 'learning' ? '' : `<span>${formatDate(article.publishAt)}</span>`}<span>${escapeHtml(article.readingTime || '')}</span></div>
             ${article.contentType === 'learning' ? `<p class="mission-line">Helping you become a financially healthy, wealthy and wise investor.</p>` : ''}
             <p>${escapeHtml(article.summary || '')}</p>
           </header>

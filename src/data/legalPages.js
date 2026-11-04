@@ -22,6 +22,22 @@ export const INFO_PAGES = {
     quoteBy: 'Our take on an idea often linked to the physicist Richard Feynman, and the rule we write by',
     sections: [
       {
+        heading: 'What “financially healthy, wealthy and wise” means',
+        paragraphs: [
+          'Our tagline borrows an old saying, “healthy, wealthy and wise”, and applies all three words to your money.',
+          'Financially healthy: your day-to-day money is in good shape. You spend less than you earn, keep an emergency fund, keep debt under control and know where your money goes. Like good health, it is the base everything else is built on.',
+          'Financially wealthy: your money grows over time. You invest regularly, let time and compounding do the heavy lifting, and build savings that can pay for the things that matter to you, from a home to a comfortable retirement.',
+          'Financially wise: you make good decisions. You understand what you own and why, you can tell real risk from noise in the news, you avoid get-rich-quick schemes, and you know when to sit still.',
+        ],
+      },
+      {
+        heading: 'A doctor for your money, not your body',
+        paragraphs: [
+          'The “Dr” in Dr MoneyWise is about checking the health of your finances, not your body. We are money and investing educators, not medical professionals, and nothing on this site is medical or health advice.',
+          'Our focus is money: investing, saving and the companies and markets behind them. Our “Financial Health Check”, for example, scores a company’s finances from its official figures; it has nothing to do with medicine.',
+        ],
+      },
+      {
         heading: 'Our philosophy: explain it simply',
         paragraphs: [
           'Richard Feynman, the Nobel Prize-winning physicist, was famous for making the hardest ideas sound simple. He believed that if you truly understand something, you can explain it with everyday words and a good example. Jargon, he thought, often hides the fact that nobody has really understood the idea.',

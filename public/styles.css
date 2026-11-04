@@ -2382,7 +2382,7 @@ body.has-ad-strip { padding-bottom: 52px; }
 @media (max-width: 1240px) { .main-nav .nd > a::after { display: none; } }
 
 /* Mission line under a lesson's title */
-.mission-line { margin: 6px 0 10px; font: italic 600 15px var(--serif, Georgia, serif); color: #9a7a12; }
+.mission-line { margin: 6px 0 16px; font: italic 600 15px var(--serif, Georgia, serif); color: #9a7a12; }
 @media (max-width: 480px) { .site-header .brand .brand-tag { white-space: normal; max-width: 170px; font-size: 10px; line-height: 1.25; } }
 
 /* Logo mark (gold coin with growing bars) beside the name */
@@ -2393,3 +2393,4 @@ body.has-ad-strip { padding-bottom: 52px; }
 .about-quote p { margin: 0 0 10px; font: 700 26px/1.35 var(--serif); color: #fff; }
 .about-quote cite { font-style: normal; color: #e9c55a; font-size: 15px; }
 .wi-analysts { margin: 16px 0 6px; padding: 14px 16px; border-radius: 12px; background: #eef4ff; border: 1px solid #b9cdf5; color: #0a1128; }
+.guest-box { background: #f3f7ff; border: 1px solid #c9d8f5; border-left: 5px solid #2a78d6; border-radius: 14px; }

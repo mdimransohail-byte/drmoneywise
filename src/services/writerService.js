@@ -794,6 +794,40 @@ export async function explainDividend({ company = '', ticker = '', text = '' }) 
    written only from the figures we pass in (reportService.js then checks
    every number in the text against those figures).
    ════════════════════════════════════════════════════════════════════════ */
+/* Guest expert article → Dr MoneyWise house style, keeping the author's
+   facts, figures and opinions (articleService.saveGuestArticle). */
+export async function simplifyGuestArticle({ headline = '', text = '', author = '' }) {
+  const prompt = [
+    'You edit for Dr MoneyWise, a money education site for everyday investors, many of them beginners.',
+    `Below is an article by a guest expert, ${author}. Rewrite it in our house style so a beginner can follow it.`,
+    'Return JSON only: {"headline":"...","summary":"...","sections":[{"heading":"...","body":"..."}],"takeaways":["..."],"jargonBuster":[{"term":"...","meaning":"..."}]}',
+    '- headline: clear, under 80 characters' + (headline ? `; keep close to the author’s title: "${headline}"` : '') + '.',
+    '- summary: 1-2 sentences saying what the reader will learn.',
+    '- sections: follow the author’s own order and argument; short headings; short paragraphs (2-4 sentences) separated by a blank line.',
+    '- takeaways: 3-5 short points. jargonBuster: up to 6 money words from the article, each explained in under 20 words.',
+    'Rules: keep EVERY fact, figure, example, opinion and conclusion of the author, and do not add any new facts, figures or opinions; where the author gives an opinion, keep it clearly as the author’s view; use simple everyday words, explain jargon the first time it appears; British spelling; do not tell readers to buy, sell or hold anything unless the author does, and then keep it as the author’s view; do not mention editing, rewriting or how this text was produced.',
+    'The article:',
+    text.slice(0, 40000),
+  ].join('\n');
+  const order = ['claude', 'openai', 'gemini', 'perplexity'].filter((p) => process.env[KEY_ENV[p]]).slice(0, 3);
+  const clean = (t) => String(t || '').replace(/<[^>]+>/gu, '').trim();
+  for (const provider of order) {
+    const r = await requestStructuredWriting({ slot: provider, provider, model: process.env[MODEL_ENV_KEYS[provider]] || '' }, prompt).catch(() => null);
+    const sections = (Array.isArray(r?.sections) ? r.sections : []).map((x) => ({ heading: clean(x.heading).slice(0, 120), body: clean(x.body) })).filter((x) => x.body.length > 40);
+    if (r?.headline && sections.length) {
+      return {
+        headline: clean(r.headline).slice(0, 120),
+        summary: clean(r.summary).slice(0, 400),
+        sections,
+        takeaways: (Array.isArray(r.takeaways) ? r.takeaways : []).map(clean).filter(Boolean).slice(0, 6),
+        jargonBuster: (Array.isArray(r.jargonBuster) ? r.jargonBuster : []).filter((j) => j?.term && j?.meaning).map((j) => ({ term: clean(j.term), meaning: clean(j.meaning) })).slice(0, 8),
+        provider,
+      };
+    }
+  }
+  return null;
+}
+
 export async function writeReportSummary({ month, facts }) {
   const prompt = [
     'You write for Dr MoneyWise, a simple money education site for everyday investors.',

@@ -9,7 +9,7 @@
     Array.prototype.forEach.call(forms, function (f) {
       var note = document.createElement('div');
       note.className = 'nl-member';
-      note.innerHTML = '<strong>✓ You get our Saturday newsletter as a member.</strong> <span>Every Saturday at 6am (Dubai time): company news, charts and the week’s lessons.</span> <a href="/membership">Change your emails</a>';
+      note.innerHTML = '<strong>✓ You get our Saturday newsletter as a member.</strong> <span>Every Saturday morning: company news, charts and the week’s lessons.</span> <a href="/membership">Change your emails</a>';
       f.parentNode.replaceChild(note, f);
     });
     return;

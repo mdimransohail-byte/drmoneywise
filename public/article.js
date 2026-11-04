@@ -92,7 +92,7 @@ function renderArticle() {
           <span class="tag gold">${escapeHtml(accessTag)}</span>
           <span class="tag">${escapeHtml(getLookupLabel(state.bootstrap.regions, article.region))}</span>
           <span class="tag">${escapeHtml(getLookupLabel(state.bootstrap.interests, article.interest))}</span>
-          <span class="tag">${escapeHtml(article.contentType === 'learning' ? 'Learning Point' : 'News')}</span>
+          <span class="tag">${escapeHtml(article.guest ? 'Guest expert' : article.contentType === 'learning' ? 'Learning Point' : 'News')}</span>
         </div>
         <span class="subtle-chip">${escapeHtml(article.readingTime || '4 min read')}</span>
       </div>
@@ -132,6 +132,7 @@ function renderArticle() {
       ${article.contentType === 'learning' ? '' : renderJargon(article)}
       ${article.quizHtml || ''}
       ${article.contentType === 'learning' && article.accessible ? '<section class="ls-prog" id="lessonProgress" aria-live="polite"></section>' : ''}
+      ${article.guest ? renderGuestBox(article.guest) : ''}
       ${article.accessible ? '' : renderLockedPanel(article)}
     </div>
   `;
@@ -254,7 +255,7 @@ function renderArticleBody(article) {
           // "Everyday example" reads as a natural continuation of the
           // article rather than its own labeled section — no heading,
           // just the paragraph, right after "Why this matters."
-          return `<h2 class="ab-h">${escapeHtml(section.heading || 'Section')}</h2>${paragraphs(section.body)}`;
+          return `${section.heading ? `<h2 class="ab-h">${escapeHtml(section.heading)}</h2>` : ''}${paragraphs(section.body)}`;
         })
         .join('')}
     </div>
@@ -301,6 +302,20 @@ function renderInfographic(article) {
 /** Only rendered when the article is actually locked — no more duplicate
  * "why readers keep this saved" panel for articles the reader can already
  * read in full. */
+/** Guest expert articles: who wrote it and how we published it. */
+function renderGuestBox(g) {
+  const how = g.mode === 'verbatim'
+    ? 'Published as written by the author.'
+    : 'Edited by Dr MoneyWise into simple terms, keeping all of the author’s facts and views.';
+  return `
+    <section class="article-block guest-box">
+      <h3>About the author</h3>
+      <p><strong>${escapeHtml(g.author || '')}</strong>${g.bio ? ` · ${escapeHtml(g.bio)}` : ''}</p>
+      ${g.url ? `<p><a href="${escapeAttribute(g.url)}" target="_blank" rel="noopener nofollow">More from ${escapeHtml(g.author || 'the author')} →</a></p>` : ''}
+      <p class="helper-note">${how} The views are the author’s own and are not financial advice.</p>
+    </section>`;
+}
+
 function renderLockedPanel(article) {
   const plans = (state.bootstrap?.plans || []).filter((plan) => plan.id !== 'free');
   return `

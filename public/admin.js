@@ -781,7 +781,57 @@ function render_writer() {
       </div>
 
     </div>
+    ${render_guestCard()}
   `;
+}
+
+/* ── Guest article from an invited expert ───────────────────────────── */
+function render_guestCard() {
+  const g = STATE.guest || (STATE.guest = { mode: 'simplify', tier: 'free', status: 'draft' });
+  const v = (k) => h(g[k] || '');
+  return `
+    <div class="card" style="margin-top:14px;grid-column:1/-1">
+      <div class="card-title">✍ Article from a guest expert</div>
+      <p style="font-size:.8rem;color:#4a5570;margin:0 0 12px">Paste an article an expert has written for you. Choose <strong>Simplify</strong> to have it rewritten in our simple style (all of their facts and views kept), or <strong>Publish as written</strong> to show it word for word. The author is credited at the top and in an “About the author” box, and guest articles are never rewritten by the automatic refresh.</p>
+      <div class="form-row">
+        <div><label class="field" for="gAuthor">Author’s name *</label><input id="gAuthor" value="${v('authorName')}" placeholder="e.g. Sarah Khan, CFA"></div>
+        <div><label class="field" for="gUrl">Author’s link (optional)</label><input id="gUrl" value="${v('authorUrl')}" placeholder="https://www.linkedin.com/in/…"></div>
+      </div>
+      <div><label class="field" for="gBio">One-line bio (optional)</label><input id="gBio" value="${v('authorBio')}" placeholder="e.g. Portfolio manager with 20 years in Gulf markets"></div>
+      <div><label class="field" for="gHead">Title (optional; their own title is kept or improved)</label><input id="gHead" value="${v('headline')}"></div>
+      <div><label class="field" for="gText">The article *</label><textarea id="gText" rows="12" placeholder="Paste the whole article here. Copy from Word or Google Docs; headings on their own line are kept.">${v('text')}</textarea></div>
+      <div class="form-row">
+        <div><label class="field" for="gMode">How to publish</label>
+          <select id="gMode"><option value="simplify" ${g.mode !== 'verbatim' ? 'selected' : ''}>Simplify into our style</option><option value="verbatim" ${g.mode === 'verbatim' ? 'selected' : ''}>Publish as written (word for word)</option></select></div>
+        <div><label class="field" for="gTier">Who can read it</label>
+          <select id="gTier"><option value="free" ${g.tier === 'free' ? 'selected' : ''}>Free</option><option value="regular" ${g.tier === 'regular' ? 'selected' : ''}>Plus</option><option value="premium" ${g.tier === 'premium' ? 'selected' : ''}>Pro</option></select></div>
+        <div><label class="field" for="gStatus">When saved</label>
+          <select id="gStatus"><option value="draft" ${g.status !== 'published' ? 'selected' : ''}>Keep as a draft so I can read it first</option><option value="published" ${g.status === 'published' ? 'selected' : ''}>Publish straight away</option></select></div>
+      </div>
+      <button class="btn btn-gold" id="gSave" ${g.busy ? 'disabled' : ''}>${g.busy ? '<span class="cursor">Saving</span>' : '✍ Save guest article'}</button>
+      ${g.msg ? `<div class="writer-status">${g.msg}</div>` : ''}
+    </div>`;
+}
+
+function bind_guestCard() {
+  const g = STATE.guest || (STATE.guest = {});
+  const map = { gAuthor: 'authorName', gUrl: 'authorUrl', gBio: 'authorBio', gHead: 'headline', gText: 'text', gMode: 'mode', gTier: 'tier', gStatus: 'status' };
+  Object.entries(map).forEach(([id, k]) => {
+    const el = qs('#' + id); if (!el) return;
+    el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', (e) => { g[k] = e.target.value; });
+  });
+  qs('#gSave')?.addEventListener('click', async () => {
+    g.busy = true; g.msg = g.mode === 'verbatim' ? 'Saving…' : 'Simplifying: this takes about a minute…';
+    setMain(render_writer()); bind_writer();
+    try {
+      const r = await API.post('/api/admin/guest-article', { authorName: g.authorName, authorUrl: g.authorUrl, authorBio: g.authorBio, headline: g.headline, text: g.text, mode: g.mode, accessTier: g.tier, status: g.status });
+      const a = r.article || {};
+      STATE.guest = { mode: g.mode, tier: g.tier, status: g.status, msg: `✓ Saved${a.status === 'published' ? ' and published' : ' as a draft'}: <a href="/learn/${encodeURIComponent(a.slug || '')}" target="_blank" rel="noopener">${h(a.headline || 'open it')}</a>. ${a.status === 'published' ? '' : 'Find it in Article Inventory to read and publish.'}` };
+    } catch (e) {
+      g.busy = false; g.msg = '⚠ ' + h(e.message || 'Could not save.');
+    }
+    setMain(render_writer()); bind_writer();
+  });
 }
 
 function bind_writer() {
@@ -795,6 +845,7 @@ function bind_writer() {
   qs('#wrInterest')?.addEventListener('change', e => STATE.writerInterest = e.target.value);
 
   qs('#genBtn')?.addEventListener('click', generateArticle);
+  bind_guestCard();
 
   qs('#genTrendingBtn')?.addEventListener('click', async () => {
     STATE.trendingBusy = true;
@@ -1639,7 +1690,7 @@ function render_health() {
             • Every new explainer is checked for banned words (for example "AI", tool names, promises of returns) and missing parts. Anything that fails is kept as a draft in Inventory for you to read.<br/>
             • Daily: economy numbers, Top 10 lists, photos, and this health check (emailed).<br/>
             • Hourly: new company results and dividend announcements (SEC), then member alert emails.<br/>
-            • Saturdays 07:00 Dubai time: the weekly members' email.<br/>
+            • Saturday morning: the newsletter (one issue for everyone, with extra sections for paid members).<br/>
             • Weekly: company financials, property, commodities, bonds, ETF holdings.<br/>
             Run any job by hand in APIs &amp; More → Data engine.</p>
         </div>
@@ -2169,7 +2220,7 @@ function render_newsletter() {
           <p style="font-size:.7rem;color:#4a5570;margin-top:8px"><b>Once:</b> they get this one email only and aren't added to the list. <b>Invite:</b> they get a "please confirm" email and join only if they click it. <b>Gift:</b> they're added straight away and get a short email saying someone gave them the newsletter, with an unsubscribe link. Only gift it to people you know would welcome it.</p>
         </div>
         <div class="card" style="border-left:5px solid #1baf7a"><h2 style="margin-top:0">Automatic Saturday newsletter</h2>
-          <p style="font-size:.8rem">Every Saturday from 6am (Dubai time) the one newsletter builds itself from the site and goes to everyone: company results and business news first, then charts of the week (the stock market this year, the Big Seven, the economy), then the week’s lessons. Free and Plus readers get the same email; Pro readers also get their own section with more data. You get a copy by email. (There is no separate weekly members’ email any more.)</p>
+          <p style="font-size:.8rem">Every Saturday morning the one newsletter builds itself from the site and goes to everyone: company results and business news first, then charts of the week (the stock market this year, the Big Seven, the economy), then the week’s lessons. Free and Plus readers get the same email; Pro readers also get their own section with more data. You get a copy by email. (There is no separate weekly members’ email any more.)</p>
           <label style="display:flex;gap:8px;align-items:center;margin:8px 0;font-weight:600"><input type="checkbox" name="nlAuto" ${st.autoNewsletter !== false ? 'checked' : ''}> Send automatically every Saturday</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-green" data-nl="auto">Save</button><button class="btn" data-nl="auto-now" title="Builds and sends this week’s issue now, even if it isn’t Saturday">Build and send this week’s issue now</button></div>
         </div>

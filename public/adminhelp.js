@@ -29,6 +29,7 @@
     ['Suggested writing level', 'How simple or deep the writing should be, based on readers’ experience.'],
     // Writer
     ['🔥 Trending', 'Topics people are searching for right now. Press one to write about it.'],
+    ['✍ Article from a guest expert', 'Paste an expert’s article, choose Simplify or Publish as written, and save. It is credited to them and never rewritten automatically.'],
     // APIs & More
     ['AI & News API keys', 'Keys for the writing services, news, photos, logos and prices. Paste each key once and press Save; it stays saved.'],
     ['Learn level names', 'The names of the course levels (Beginners, Intermediate, Advanced…). Changing them doesn’t break any links.'],
@@ -66,7 +67,7 @@
     // Newsletter
     ['Preview', 'Exactly how the email will look. Check the links and pictures before sending.'],
     ['Add people by hand', 'Paste email addresses to invite people, send them one issue, or gift a subscription. Choose Free, Plus or Pro for them.'],
-    ['Automatic Saturday newsletter', 'Leave this ticked and the newsletter goes out every Saturday at 6am (Dubai) without you. A copy comes to your inbox.'],
+    ['Automatic Saturday newsletter', 'Leave this ticked and the newsletter goes out every Saturday morning without you. A copy comes to your inbox.'],
     ['Sending speed', 'How many newsletter emails go out per day. Raise it when you move to a paid Resend plan.'],
     ['Past and current newsletters', 'Every issue, with how many were sent. A big list carries on by itself the next day.'],
     ['New newsletter', 'Write your own issue: a subject, a short intro and a few stories with links.'],

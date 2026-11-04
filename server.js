@@ -782,6 +782,13 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, await saveAdminArticle(await parseJsonBody(request)));
     }
 
+    // Guest article from an invited expert (simplified or as written)
+    if (requestUrl.pathname === '/api/admin/guest-article' && request.method === 'POST') {
+      await requireAdminUser(token);
+      const { saveGuestArticle } = await import('./src/services/articleService.js');
+      try { return sendJson(response, 200, { ok: true, article: await saveGuestArticle(await parseJsonBody(request)) }); } catch (e) { return sendJson(response, 400, { error: e.message }); }
+    }
+
     if (requestUrl.pathname === '/api/admin/articles' && request.method === 'DELETE') {
       await requireAdminUser(token);
       const id = requestUrl.searchParams.get('id') || '';

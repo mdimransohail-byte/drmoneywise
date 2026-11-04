@@ -764,11 +764,13 @@ function diagramFor(article) {
 
 function toFullArticle(article, plan) {
   const accessible = canAccess(plan, article.accessTier || 'free');
-  const sections = cleanSections(article, article.bodySections || []);
+  // Guest articles published as written are shown exactly as the author wrote them
+  const sections = article.guest?.mode === 'verbatim' ? (article.bodySections || []) : cleanSections(article, article.bodySections || []);
   const visibleTakeaways = accessible ? article.takeaways || [] : (article.takeaways || []).slice(0, 1);
   const visual = { ...article, visibleTakeaways };
   return {
     ...article,
+    ...(article.guest ? { guest: { mode: article.guest.mode, author: article.guest.author, bio: article.guest.bio, url: article.guest.url } } : {}),
     accessible,
     lockedMessage: accessible
       ? ''
@@ -860,7 +862,7 @@ export async function upgradeOldLearningArticle() {
   const store = await readStore();
   const weekAgo = Date.now() - 7 * 86400000;
   const candidates = (store.articles || [])
-    .filter((a) => a.contentType === 'learning' && a.status === 'published' && !(a.tags || []).includes('market-review')
+    .filter((a) => a.contentType === 'learning' && a.status === 'published' && !(a.tags || []).includes('market-review') && !a.guest
       && new Date(a.upgradeTriedAt || 0).getTime() < weekAgo)
     .map((a) => ({ a, style: a.format !== 2 || ((a.tags || []).includes('deeper') && (a.styleVersion || 0) < 2), fresh: refreshDue(a) }))
     .filter((x) => x.style || x.fresh)
@@ -1049,4 +1051,102 @@ export async function writeFortnightlyReview({ force = false } = {}) {
   });
   try { await attachPexelsImage(saved.id, 'stock market trading screens'); } catch { /* photo is optional */ }
   return { ok: true, message: ok ? `Market review written: "${headline}"` : `Market review held as a draft for a read: ${[...quality.issues, ...badNumbers.map((n) => `unmatched figure ${n}`)].slice(0, 4).join('; ')}` };
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   GUEST ARTICLES from invited experts (Admin → AI Writer → "Article from a
+   guest expert"). Two ways:
+     simplify  — our writing service rewrites it in the house style (simple
+                 words, short paragraphs, money words explained), keeping
+                 every fact, figure and opinion of the author's
+     verbatim  — published exactly as written; we only split it into
+                 headings and paragraphs
+   Either way the author is credited, with their short bio and link, and
+   guest articles are never rewritten by the automatic refresh.
+   ════════════════════════════════════════════════════════════════════════ */
+function splitGuestText(text) {
+  const lines = String(text || '').replace(/\r/gu, '').split('\n').map((l) => l.trim());
+  const sections = [];
+  let cur = { heading: '', paras: [] };
+  let buf = [];
+  const flush = () => { if (buf.length) { cur.paras.push(buf.join(' ')); buf = []; } };
+  const isHeading = (l, next) => /^#{1,4}\s+/u.test(l) || (l.length <= 90 && !/[.!?:;,"”’)]$/u.test(l) && /^[A-Z0-9“"‘]/u.test(l) && next !== undefined && l.split(/\s+/u).length <= 14);
+  lines.forEach((l, i) => {
+    if (!l) { flush(); return; }
+    if (isHeading(l, lines[i + 1])) {
+      flush();
+      if (cur.heading || cur.paras.length) sections.push(cur);
+      cur = { heading: l.replace(/^#{1,4}\s+/u, ''), paras: [] };
+      return;
+    }
+    // A pasted line ending a sentence usually ends a paragraph
+    buf.push(l);
+    if (/[.!?"”]$/u.test(l)) flush();
+  });
+  flush();
+  if (cur.heading || cur.paras.length) sections.push(cur);
+  return sections.filter((x) => x.paras.length).map((x) => ({ heading: x.heading, body: x.paras.join('\n\n') }));
+}
+
+export async function saveGuestArticle(payload = {}) {
+  const author = String(payload.authorName || '').trim();
+  const text = String(payload.text || '').trim();
+  if (!author) throw new Error('Please add the author’s name.');
+  if (text.split(/\s+/u).length < 120) throw new Error('The article looks too short. Paste the whole article (at least 120 words).');
+  const mode = payload.mode === 'verbatim' ? 'verbatim' : 'simplify';
+  const guest = {
+    mode,
+    author,
+    bio: String(payload.authorBio || '').trim().slice(0, 400),
+    url: /^https?:\/\//u.test(String(payload.authorUrl || '')) ? String(payload.authorUrl).trim() : '',
+    receivedAt: new Date().toISOString(),
+  };
+  let fields;
+  if (mode === 'verbatim') {
+    const sections = splitGuestText(text);
+    // The author's title on the first line becomes the headline, not a heading
+    let title = String(payload.headline || '').trim();
+    if (sections[0]?.heading && (!title || sections[0].heading.toLowerCase() === title.toLowerCase())) { title = title || sections[0].heading; sections[0].heading = ''; }
+    // The opening paragraph becomes the introduction under the title (moved, not changed)
+    let summary = String(payload.summary || '').trim();
+    if (!summary && sections[0]) {
+      const paras = sections[0].body.split('\n\n');
+      summary = paras.shift() || '';
+      if (paras.length) sections[0].body = paras.join('\n\n'); else sections.shift();
+    }
+    const words = text.split(/\s+/u).length;
+    fields = {
+      headline: title || 'Guest article',
+      summary,
+      bodySections: sections,
+      takeaways: [], jargonBuster: [], format: 2, styleVersion: 2,
+      readingTime: `${Math.max(2, Math.round(words / 200))} min read`,
+    };
+  } else {
+    const { simplifyGuestArticle } = await import('./writerService.js');
+    const g = await simplifyGuestArticle({ headline: payload.headline || '', text, author });
+    if (!g) throw new Error('The writing service didn’t answer. Check the writing keys in APIs & More, or try “Publish as written”.');
+    const words = g.sections.reduce((n, x) => n + String(x.body).split(/\s+/u).length, 0);
+    fields = {
+      headline: g.headline, summary: g.summary, bodySections: g.sections,
+      takeaways: g.takeaways, jargonBuster: g.jargonBuster, format: 2, styleVersion: 2,
+      readingTime: `${Math.max(2, Math.round(words / 200))} min read`,
+    };
+    guest.original = text.slice(0, 60000); // kept so you can compare or switch to "as written" later
+  }
+  const saved = await saveAdminArticle({
+    ...fields,
+    contentType: 'learning',
+    accessTier: ['free', 'regular', 'premium'].includes(payload.accessTier) ? payload.accessTier : 'free',
+    region: payload.region || 'global',
+    interest: payload.interest || 'equities',
+    status: payload.status === 'published' ? 'published' : 'draft',
+    publishAt: new Date().toISOString(),
+    source: `By ${author}`,
+    tags: ['learning', 'guest'],
+    heroMood: payload.interest || 'equities',
+  });
+  await updateStore((st) => { const a = st.articles.find((x) => x.id === saved.id); if (a) a.guest = guest; return st; });
+  return { ...saved, guest };
 }

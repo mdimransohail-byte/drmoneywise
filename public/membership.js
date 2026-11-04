@@ -87,7 +87,7 @@
   /* ── Your emails ── */
   var EMAILS = [
     ['welcome', 'Getting-started emails', 'Five short emails in your first ten days, each showing one useful part of the site.', 'free'],
-    ['newsletter', 'Saturday newsletter', 'Every Saturday at 6am (Dubai time): the week’s company news, charts and lessons. Pro members get an extra section with their own portfolio and companies.', 'free'],
+    ['newsletter', 'Saturday newsletter', 'Every Saturday morning: the week’s company news, charts and lessons. Pro members get an extra section with their own portfolio and companies.', 'free'],
     ['dividends', 'Dividend alerts', 'When a company on your watchlist raises, cuts, starts or stops its dividend.', 'regular'],
     ['charts', 'Chart alerts', 'When a chart sign appears on a company in your watchlist or portfolio: golden or death cross, RSI above 70 or below 30, a new 52-week high or low.', 'premium'],
     ['funds', 'Big-fund alerts', 'When a famous fund buys or sells a company on your watchlist (each quarter).', 'premium'],

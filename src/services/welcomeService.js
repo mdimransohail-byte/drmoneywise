@@ -45,7 +45,7 @@ async function email(step, user, site, trialDays) {
       intro: 'Thank you for joining. Over the next ten days we’ll send you four more short emails, each showing one useful part of the site. No jargon, and you can stop them at any time.',
       sections: [
         section('Start here: your first three lessons', `${lessons || line('Our free course starts from the very beginning: what a share is, saving versus investing, and why time matters more than timing.')}${btn(`${site}/learn/beginners`, 'Open the Beginners course')}`),
-        section('Every Saturday at 6am (Dubai time)', line('Our newsletter brings the week’s company news, a few clear charts and that week’s lessons, all in one email.')),
+        section('Every Saturday morning', line('Our newsletter brings the week’s company news, a few clear charts and that week’s lessons, all in one email.')),
       ],
     };
   }
