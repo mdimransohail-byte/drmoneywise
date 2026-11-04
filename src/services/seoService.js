@@ -458,7 +458,7 @@ export function renderInfoPage(slug, origin) {
   const showDate = ['disclaimer', 'privacy', 'terms'].includes(slug);
   const sections = page.sections
     .map((section) => `
-          <h2 style="font-size:24px;margin:30px 0 8px">${escapeHtml(section.heading)}</h2>
+          <h2 id="${escapeHtml(String(section.heading).toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, ''))}" style="font-size:24px;margin:30px 0 8px">${escapeHtml(section.heading)}</h2>
           ${section.paragraphs.map((text) => `<p>${linkEmails(escapeHtml(text))}</p>`).join('\n          ')}`)
     .join('');
   const body = `

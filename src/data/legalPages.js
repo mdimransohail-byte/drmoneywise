@@ -10,7 +10,7 @@
    These are sensible starting points, not legal advice.
    ════════════════════════════════════════════════════════════════════════ */
 
-export const LEGAL_UPDATED = '19 October 2026';
+export const LEGAL_UPDATED = '4 November 2026';
 export const CONTACT_EMAIL = 'hello@drmoneywise.com';
 
 export const INFO_PAGES = {
@@ -206,7 +206,7 @@ export const INFO_PAGES = {
 
   terms: {
     title: 'Terms of use',
-    description: 'The rules for using Dr MoneyWise and its free and paid memberships.',
+    description: 'The rules for using Dr MoneyWise and its memberships, including automatic renewal, the free trial, cancelling and refunds.',
     intro: 'By using Dr MoneyWise you agree to these terms. Please read them together with our Disclaimer and Privacy policy.',
     sections: [
       {
@@ -217,11 +217,45 @@ export const INFO_PAGES = {
         ],
       },
       {
-        heading: 'Memberships and payments',
+        heading: 'Plans and prices',
         paragraphs: [
-          'Paid plans renew automatically each month or year until you cancel. You can cancel at any time with "Manage my plan"; you keep access until the end of the period you have paid for.',
-          'Payments are not refundable for partial periods, except where the law requires otherwise. If something has gone wrong with a charge, email us within 14 days and we will look into it.',
-          'We may change prices in future. Any change will apply from your next renewal, and we will tell you before it does.',
+          'Dr MoneyWise has three plans: Free, Plus and Pro. Plus and Pro can be paid monthly or yearly. The current prices are shown on the Membership page before you pay, in US dollars. Your bank may add its own charge for paying in a foreign currency.',
+          'Payments are handled securely by Stripe. We never see or store your full card number.',
+        ],
+      },
+      {
+        heading: 'Automatic renewal',
+        paragraphs: [
+          'Paid plans renew automatically at the end of each month or year, and the same card is charged the plan price at that time, until you cancel. Your next renewal date is shown under "Your plan" on the Membership page.',
+          'We may change prices in future. A change applies from your next renewal, and we will email you at least 14 days before it does, so you can cancel first if you wish.',
+        ],
+      },
+      {
+        heading: 'Free trial of Pro',
+        paragraphs: [
+          'New Pro members may be offered a free trial. The length of the trial (currently 7 days) is shown on the Membership page and at checkout. You give your card details when the trial starts, but you are not charged during the trial.',
+          'We email you about 2 days before the trial ends. If you do not cancel before the trial ends, your Pro plan starts automatically and the first payment for the plan you chose (monthly or yearly) is taken on the day the trial ends. It then renews as above.',
+          'If you cancel during the trial, you pay nothing, and your Pro access ends when the trial ends. The free trial is limited to one per person.',
+        ],
+      },
+      {
+        heading: 'Discount codes',
+        paragraphs: [
+          'Discount codes are shown with their terms, for example how long the discount lasts. Unless a code says otherwise, it applies to your first payment only (the first month, or the first year), and later renewals are charged at the normal price. Only one code can be used at a time, and codes cannot be exchanged for cash.',
+        ],
+      },
+      {
+        heading: 'Cancelling',
+        paragraphs: [
+          'You can cancel at any time in a few clicks with "Manage my plan" on the Membership page, or by emailing hello@drmoneywise.com. When you cancel, you are not charged again, and you keep your paid plan until the end of the period you have already paid for. After that, your account moves to the Free plan; your saved lessons, watchlist and settings stay.',
+        ],
+      },
+      {
+        heading: 'Refunds',
+        paragraphs: [
+          'Because members get instant access to all the content of their plan, payments are generally not refundable, including for unused parts of a month or year, except where the law requires otherwise.',
+          'If you were charged by mistake, charged twice, or forgot to cancel and have not used your paid plan since the renewal, email hello@drmoneywise.com within 14 days of the charge and we will look into it and, where fair, refund it. Refunds go back to the card you paid with and usually take 5 to 10 working days to appear.',
+          'If a payment fails, we will try again over the following days and email you. If it still cannot be taken, your account moves to the Free plan.',
         ],
       },
       {

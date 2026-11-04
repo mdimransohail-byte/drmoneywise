@@ -111,13 +111,15 @@ export function renderMembershipPage(origin, { trialDays = 7 } = {}) {
                 ? '<a class="mb-btn plain" href="/#join">Create a free account</a>'
                 : (plan.billingOptions || []).map((o) => `<button type="button" class="mb-btn${plan.highlight ? ' gold' : ' navy'}" data-plan-id="${esc(plan.id)}" data-cycle="${o.id.includes('annual') ? 'annual' : 'monthly'}">${plan.id === 'premium' && trialDays ? `<span data-trial-word>Free ${trialDays}-day trial, then </span>` : ''}${esc(o.label)} ${esc(o.priceText || '')}</button>`).join('')}
             </div>
+            ${plan.id === 'free' ? '' : `<p class="mb-renew">Renews automatically until you cancel. Cancel any time in “Manage my plan”. By joining you agree to our <a href="/terms">Terms</a>.</p>`}
           </article>`;
   }).join('');
 
   const faq = [
     ['Can I cancel at any time?', 'Yes. Press "Manage my plan" and choose Cancel. You keep everything until the end of the period you paid for and are not charged again.'],
     ['Is my payment safe?', 'Payments are handled by Stripe. We never see or store your card number.'],
-    ['Do you offer refunds?', 'Payments are not refundable for partial periods, except where the law requires. If something went wrong with a charge, email us within 14 days. See our <a href="/terms">Terms</a>.'],
+    ...(trialDays ? [['How does the free trial work?', `You can try Pro free for ${trialDays} days. You add your card, but nothing is charged during the trial, and we email you 2 days before it ends. Cancel before then and you pay nothing; otherwise Pro starts and your first payment is taken when the trial ends. One trial per person.`]] : []),
+    ['Do you offer refunds?', 'Payments are generally not refundable for unused time, except where the law requires. If you were charged by mistake, or forgot to cancel and haven’t used your plan since, email us within 14 days and we’ll look into it. See our <a href="/terms#refunds">Terms</a>.'],
   ];
 
   const profileForm = `
