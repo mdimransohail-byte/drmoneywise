@@ -16,16 +16,16 @@ export const CONTACT_EMAIL = 'hello@drmoneywise.com';
 export const INFO_PAGES = {
   about: {
     title: 'About us',
-    description: 'Dr MoneyWise explains money and investing so simply that anyone can follow. Our rule: if we can’t explain it simply, we haven’t understood it well enough.',
+    description: 'Dr MoneyWise explains money and investing so simply that anyone can follow. Our rule: when we can explain it simply, we have truly understood it.',
     intro: 'Dr MoneyWise exists for one reason: to help you become financially healthy, wealthy and wise. We take the noise of the markets and explain what happened, why it matters and what, if anything, it means for you, in words anyone can follow.',
-    quote: 'If you can’t explain it to a five-year-old, you don’t really understand it.',
-    quoteBy: 'An idea often linked to the physicist Richard Feynman, and the rule we write by',
+    quote: 'If you can explain it to a five-year-old, you have truly understood it.',
+    quoteBy: 'Our take on an idea often linked to the physicist Richard Feynman, and the rule we write by',
     sections: [
       {
         heading: 'Our philosophy: explain it simply',
         paragraphs: [
           'Richard Feynman, the Nobel Prize-winning physicist, was famous for making the hardest ideas sound simple. He believed that if you truly understand something, you can explain it with everyday words and a good example. Jargon, he thought, often hides the fact that nobody has really understood the idea.',
-          'Money is full of jargon: yields, margins, valuations, basis points. We believe none of it is too difficult for you. It has just rarely been explained well. So before anything goes on Dr MoneyWise, we ask: could a curious child follow the main idea? If not, we write it again.',
+          'Money is full of jargon: yields, margins, valuations, basis points. We believe none of it is too difficult for you. It has just rarely been explained well. So before anything goes on Dr MoneyWise, we ask one question: could a curious child follow the main idea? Only when the answer is yes does it go on the site.',
           'Simple is not the same as shallow. Our Pro lessons go deep, into company accounts, valuation and portfolio building, but each step is explained in simple terms, with a real example and the numbers shown.',
         ],
       },
