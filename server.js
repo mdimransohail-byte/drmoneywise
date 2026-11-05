@@ -31,6 +31,11 @@ import { trackEvent } from './src/services/analyticsService.js';
 import { getInterestHeadlines, getLiveHeadlines } from './src/services/newsService.js';
 import { saveHoldings, saveLearningDone, getAudienceSummary, saveMemberProfile, saveMemberPortfolio, saveMemberPreferences, saveMemberWatchlist, toggleSavedArticle, getMemberProfile, getPortfolioReview, getMembersForAdmin } from './src/services/memberService.js';
 import { ensureStore, readStore, updateStore } from './src/services/storeService.js';
+
+/* Keep the website running if one background task fails unexpectedly
+   (otherwise Node stops the whole site and visitors see "502"). */
+process.on('unhandledRejection', (reason) => { console.error('[server] A background task failed:', reason?.stack || reason); });
+process.on('uncaughtException', (error) => { console.error('[server] Unexpected error (site kept running):', error?.stack || error); });
 import { getWatchlistSnapshot } from './src/services/watchlistService.js';
 import { getPortfolioSnapshot } from './src/services/portfolioService.js';
 import { getDataStatus, runJob, startDataEngine } from './src/services/dataEngine.js';

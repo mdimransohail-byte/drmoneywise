@@ -274,8 +274,9 @@ export async function makePromoImage(raw) {
   const lines = ['Every lesson and PDF workbook · Health Check in full', 'Portfolio check · Chart alerts · No adverts'];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
   ${d.art}
-  <text x="70" y="104" font-family="Libre Baskerville" font-weight="700" font-size="40" fill="${d.brand}">Dr MoneyWise</text>
-  <text x="72" y="136" font-family="Lato" font-size="22" fill="${d.sub}">Become financially healthy, wealthy and wise.</text>
+  <g transform="translate(70 62) scale(0.8)"><circle cx="50" cy="50" r="50" fill="#c9a227"/><circle cx="50" cy="50" r="40" fill="none" stroke="#8a6a10" stroke-width="3"/><g fill="#0a1128"><rect x="26" y="58" width="11" height="16" rx="2"/><rect x="41" y="47" width="11" height="27" rx="2"/><rect x="56" y="36" width="11" height="38" rx="2"/></g><path d="M24 50 L44 36 L56 42 L74 26" fill="none" stroke="#0a1128" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M66 24 L78 22 L76 34 Z" fill="#0a1128"/></g>
+  <text x="166" y="104" font-family="Libre Baskerville" font-weight="700" font-size="40" fill="${d.brand}">Dr MoneyWise</text>
+  <text x="168" y="136" font-family="Lato" font-size="22" fill="${d.sub}">Become financially healthy, wealthy and wise.</text>
   <text x="70" y="192" font-family="Lato" font-weight="900" font-size="26" fill="${d.ink}" letter-spacing="4">${x(d.tag)}</text>
   <text x="62" y="410" font-family="Lato" font-weight="900" font-size="220" fill="${d.big}">${p.percent}%</text>
   <text x="70" y="490" font-family="Libre Baskerville" font-weight="700" font-size="56" fill="${d.ink}">off Pro</text>

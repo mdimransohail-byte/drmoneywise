@@ -35,6 +35,10 @@ export const SIZES = {
 };
 const C = { navy: '#0a1128', navy2: '#1a2a6e', gold: '#c9a227', gold2: '#f7d07c', cream: '#fbf7ef', ink: '#0a1128', grey: '#c9d0e6' };
 const TILE_COLOURS = ['#2a78d6', '#1baf7a', '#eb6834', '#eda100', '#6250d6', '#e34948'];
+const TAGLINE = 'Become financially healthy, wealthy and wise.';
+// The logo mark (gold coin with growing bars), drawn in a 100-unit box
+const MARK = `<circle cx="50" cy="50" r="50" fill="#c9a227"/><circle cx="50" cy="50" r="40" fill="none" stroke="#8a6a10" stroke-width="3"/><g fill="#0a1128"><rect x="26" y="58" width="11" height="16" rx="2"/><rect x="41" y="47" width="11" height="27" rx="2"/><rect x="56" y="36" width="11" height="38" rx="2"/></g><path d="M24 50 L44 36 L56 42 L74 26" fill="none" stroke="#0a1128" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M66 24 L78 22 L76 34 Z" fill="#0a1128"/>`;
+const mark = (x0, y0, size) => `<g transform="translate(${x0} ${y0}) scale(${size / 100})">${MARK}</g>`;
 
 /* ── Fonts and text measuring ─────────────────────────────────────── */
 let fonts = null;
@@ -203,7 +207,7 @@ function footer(W, H, s, link, f) {
     ${textLines([s.domain], { x0: 48, y0: top - 4, size: big, kind: 'black', fill: C.gold2 })}
     ${textLines(['For education only, not financial advice'], { x0: 48, y0: top + big + gap, size: small, fill: C.grey })}
     ${textLines([s.email], { x0: W - 48, y0: top - 4, size: Math.round(big * 0.82), kind: 'bold', fill: '#ffffff', anchor: 'end' })}
-    ${textLines(['Money, explained simply'], { x0: W - 48, y0: top + big + gap, size: small, fill: C.grey, anchor: 'end' })}`;
+    ${textLines(['Financially healthy, wealthy and wise'], { x0: W - 48, y0: top + big + gap, size: small, fill: C.grey, anchor: 'end' })}`;
 }
 
 async function drawCard(content, sizeKey, { style = 'auto', photoData = null } = {}) {
@@ -223,12 +227,14 @@ async function drawCard(content, sizeKey, { style = 'auto', photoData = null } =
   else bg += `<circle cx="${W - 60}" cy="80" r="${Math.round(W * 0.28)}" fill="${C.gold}" opacity="0.08"/><circle cx="60" cy="${H - fh - 40}" r="${Math.round(W * 0.2)}" fill="#2a78d6" opacity="0.10"/>`;
 
   // Header: name and badge
-  let head = textLines([s.name], { x0: pad, y0: pad - 6, size: 40, kind: 'serif', fill: C.gold });
+  let head = mark(pad, pad - 8, 70)
+    + textLines([s.name], { x0: pad + 84, y0: pad - 10, size: 40, kind: 'serif', fill: C.gold })
+    + textLines([TAGLINE], { x0: pad + 86, y0: pad + 38, size: 19, kind: 'bold', fill: '#e8ecf8' });
   if (content.badge) {
     const bs = 24; const bw = width(f.black, content.badge.toUpperCase(), bs) + 40;
     head += `<rect x="${W - pad - bw}" y="${pad}" width="${bw}" height="46" rx="23" fill="${C.gold}"/>${textLines([content.badge.toUpperCase()], { x0: W - pad - bw / 2, y0: pad + 7, size: bs, kind: 'black', fill: C.navy, anchor: 'middle' })}`;
   }
-  const top = pad + 90;
+  const top = pad + 104;
   const bottom = H - fh - pad;
   const maxW = W - pad * 2;
   const stats = content.stats || [];
@@ -301,7 +307,11 @@ async function drawFramed(content, sizeKey, { title = '' } = {}) {
     <rect width="${W}" height="${H - fh}" fill="#0a1128" opacity="0.35"/>`;
   // Name at the top left (and an optional title under it)
   const hb = Math.round(H * (H > W ? 0.06 : 0.09));
-  svg += `<rect width="${W}" height="${hb}" fill="${C.navy}" opacity="0.92"/>` + textLines([s.name], { x0: 40, y0: (hb - Math.round(hb * 0.5)) / 2 - 4, size: Math.round(hb * 0.5), kind: 'serif', fill: C.gold });
+  const ms = Math.round(hb * 0.72);
+  const ns = Math.round(hb * 0.4);
+  svg += `<rect width="${W}" height="${hb}" fill="${C.navy}" opacity="0.92"/>` + mark(32, Math.round((hb - ms) / 2), ms)
+    + textLines([s.name], { x0: 32 + ms + 14, y0: Math.round(hb * 0.1) - 4, size: ns, kind: 'serif', fill: C.gold })
+    + textLines([TAGLINE], { x0: 32 + ms + 16, y0: Math.round(hb * 0.1) + ns + 2, size: Math.round(hb * 0.19), kind: 'bold', fill: '#e8ecf8' });
   top = hb;
   if (title) {
     const t = fit(f.serif, title, W > H ? 44 : 56, 30, W - 112, 2);
