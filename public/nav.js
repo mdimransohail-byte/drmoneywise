@@ -34,7 +34,7 @@
   if (window.__dmwMenus) return; window.__dmwMenus = true;
   var MENUS = {
     '/learn': [['Beginners', '/learn/beginners'], ['Intermediate', '/learn/intermediate'], ['Advanced', '/learn/advanced'], ['Chart reading', '/learn/technical'], ['The learning path', '/learn/path'], ['Money words', '/glossary']],
-    '/guides': [['Personal finance', '/personal-finance'], ['Retirement', '/retirement'], ['Child’s education', '/child-education'], ['Insurance', '/insurance'], ['Currencies', '/currencies'], ['Commodities', '/commodities'], ['Shariah investing', '/shariah'], ['All guides', '/guides']],
+    '/guides': [['Personal finance', '/personal-finance'], ['Retirement', '/retirement'], ['Child’s education', '/child-education'], ['Insurance', '/insurance'], ['Currencies', '/currencies'], ['Commodities', '/commodities'], ['Shariah investing', '/shariah'], ['Islamic finance guide', '/shariah/islamic-finance'], ['All guides', '/guides']],
     '/top-10': [['Dividend stocks', '/top-10/dividend-stocks'], ['ETFs', '/top-10/etfs'], ['Crypto', '/top-10/crypto'], ['All Top 10 lists', '/top-10']],
     '/markets': [['Markets explained', '/markets'], ['The economy today', '/today'], ['Company results', '/results'], ['Largest companies by sector', '/stocks'], ['Stocks around the world', '/stocks/world'], ['ETFs', '/etfs'], ['Bonds', '/bonds'], ['Financial Health Check', '/health-check'], ['Stock screener', '/screener'], ['Chart check', '/technical'], ['Compare companies', '/compare'], ['Company bosses’ trades', '/insiders'], ['Monthly research', '/reports']],
     '/property': [['Property prices', '/property'], ['City rents and yields', '/property/cities']],

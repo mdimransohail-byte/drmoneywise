@@ -2396,3 +2396,38 @@ body.has-ad-strip { padding-bottom: 52px; }
 .guest-box { background: #f3f7ff; border: 1px solid #c9d8f5; border-left: 5px solid #2a78d6; border-radius: 14px; }
 .mb-renew { font-size: 12.5px; color: #5a6478; margin: 10px 0 0; line-height: 1.4; }
 .hero-grid > * { min-width: 0; } .hc-box { box-sizing: border-box; max-width: 100%; }
+
+/* ── Islamic finance guide (/shariah/islamic-finance) ──────────────── */
+.ifp-promo { display: flex; align-items: center; gap: 16px; margin: 8px 0 22px; padding: 16px 20px; border-radius: 16px; background: linear-gradient(135deg, #0f5c4a, #1baf7a); color: #fff; text-decoration: none; }
+.ifp-promo > span { font-size: 34px; } .ifp-promo b { display: block; font-size: 18px; } .ifp-promo small { color: #dff7ee; font-size: 14px; } .ifp-promo em { margin-left: auto; font-style: normal; font-weight: 700; white-space: nowrap; color: #ffe9a8; }
+.ifp-jump { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 18px 0 8px; }
+.ifp-jump a { --c: #2a78d6; display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: #fff; border: 2px solid var(--c); color: #0a1128; text-decoration: none; font-weight: 700; }
+.ifp-jump b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--c); color: #fff; flex: none; }
+.ifp-lvl { --c: #2a78d6; display: inline-block; font: 800 13px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--c); padding: 4px 10px; border-radius: 999px; vertical-align: middle; margin-right: 8px; }
+.ifp-principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 14px 0; }
+.ifp-principles > div { --c: #2a78d6; background: #fff; border-radius: 16px; padding: 16px; border-top: 6px solid var(--c); }
+.ifp-principles i { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: var(--c); color: #fff; font: 800 18px var(--sans); font-style: normal; }
+.ifp-principles h3 { margin: 10px 0 6px; font-size: 18px; } .ifp-principles p { margin: 0; font-size: 15px; color: #3a4260; }
+.ifp-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+.ifp-vs { display: grid; gap: 10px; } .ifp-vs > div { padding: 12px 14px; border-radius: 12px; } .ifp-vs b { display: block; } .ifp-vs .bad { background: #fde8ea; border-left: 5px solid #e34948; } .ifp-vs .good { background: #e3f6ee; border-left: 5px solid #1baf7a; }
+.ifp-words { margin: 0; display: grid; gap: 6px; } .ifp-words div { display: grid; grid-template-columns: 130px 1fr; gap: 8px; font-size: 14.5px; } .ifp-words dt { font-weight: 800; color: #0f5c4a; } .ifp-words dd { margin: 0; color: #3a4260; }
+.ifp-contracts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+.ifp-contracts > div { --c: #2a78d6; background: #fff; border-radius: 16px; padding: 16px 18px; border-left: 6px solid var(--c); }
+.ifp-contracts h3 { margin: 0 0 6px; color: var(--c); font-size: 20px; } .ifp-contracts h3 small { display: block; color: #4a5170; font: 700 13px var(--sans); text-transform: uppercase; letter-spacing: .05em; }
+.ifp-contracts p { margin: 0 0 8px; font-size: 15px; color: #2c3650; } .ifp-use { color: #4a5170 !important; font-size: 14px !important; }
+.ifp-invest { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+.ifp-invest > div { --c: #2a78d6; background: #fff; border-radius: 16px; padding: 16px 18px; border-top: 6px solid var(--c); } .ifp-invest h3 { margin: 0 0 8px; } .ifp-invest p { margin: 0 0 8px; font-size: 15px; color: #2c3650; }
+.ifp-example { background: #fff6d8; border: 1px solid #e9c55a; } .ifp-links { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 6px; }
+.ifp-adv { display: grid; gap: 10px; margin: 14px 0 18px; }
+.ifp-adv details { background: #fff; border-radius: 14px; padding: 4px 18px; border: 1px solid #e3dccb; } .ifp-adv summary { cursor: pointer; font-weight: 800; font-size: 17px; padding: 12px 0; color: #0a1128; } .ifp-adv details p { margin: 0 0 14px; font-size: 15.5px; color: #2c3650; line-height: 1.55; }
+.ifp-schools { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; } .ifp-schools div { background: #f3f7ff; border-radius: 12px; padding: 12px; } .ifp-schools b { display: block; color: #1a2a9e; } .ifp-schools span { font-size: 14.5px; color: #2c3650; }
+.ifp-timeline { list-style: none; margin: 16px 0; padding: 0 0 0 10px; border-left: 4px solid #e3dccb; display: grid; gap: 14px; }
+.ifp-timeline li { --c: #2a78d6; position: relative; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; background: #fff; border-radius: 16px; padding: 16px 18px; margin-left: 16px; border-top: 5px solid var(--c); }
+.ifp-timeline li::before { content: ''; position: absolute; left: -27px; top: 22px; width: 16px; height: 16px; border-radius: 50%; background: var(--c); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--c); }
+.ifp-year { font: 900 22px var(--sans); color: var(--c); } .ifp-timeline h3 { margin: 0 0 4px; } .ifp-who { margin: 0 0 8px !important; font-size: 14px !important; color: #4a5170 !important; } .ifp-timeline p { margin: 0 0 8px; font-size: 15px; color: #2c3650; } .ifp-timeline a { font-size: 14px; font-weight: 700; color: #1a2a9e; }
+@media (max-width: 760px) { .ifp-jump { grid-template-columns: 1fr 1fr; } .ifp-two { grid-template-columns: 1fr; } .ifp-timeline li { grid-template-columns: 1fr; gap: 4px; } .ifp-promo { flex-wrap: wrap; } .ifp-promo em { margin-left: 0; } .ifp-words div { grid-template-columns: 1fr; gap: 0; } }
+.ifp .ifp-vs { grid-template-columns: 1fr 1fr; }
+.ifp .ifp-words { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); column-gap: 26px; }
+.ifp .ifp-words div { grid-template-columns: 120px 1fr; }
+.ifp > .pf-panel { margin: 16px 0; }
+@media (max-width: 760px) { .ifp .ifp-vs { grid-template-columns: 1fr; } .ifp .ifp-words div { grid-template-columns: 1fr; } }

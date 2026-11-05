@@ -93,6 +93,8 @@ export async function renderShariahHub(origin) {
           <p>Islamic investing avoids companies whose main business is forbidden (such as alcohol, gambling or interest-based banking) and companies that borrow or hold too much interest-bearing money. Here’s how the checks work, how the five best-known standards differ, which big companies pass each one, and the Shariah funds and ETFs you can buy.</p></div>
           <div class="sh-mark" aria-hidden="true">⚖</div></div>
 
+        <a class="ifp-promo" href="/shariah/islamic-finance"><span aria-hidden="true">☪</span><div><b>New: Islamic finance, from the basics to advanced</b><small>Riba, the main contracts (murabaha, ijara, musharaka, sukuk), halal investing, zakat on shares, and the rulings of the Fiqh Academy, AAOIFI and leading scholars.</small></div><em>Read the guide →</em></a>
+
         <h2>How a company is checked</h2>
         <div class="sh-steps">
           <div style="--c:#2a78d6"><b>1</b><h3>What does it do?</h3><p>Companies whose main business is conventional banking or insurance, alcohol, pork, gambling, tobacco or adult entertainment are ruled out. Some standards also rule out weapons, music, cinema and hotels.</p></div>
@@ -273,7 +275,7 @@ function renderFundCountry(origin, mk, fundData) {
 }
 
 export function shariahSitemapEntries(origin, today) {
-  return [`${origin}/shariah`, `${origin}/shariah/funds`, ...SHARIAH_MARKETS.map((m) => `${origin}/shariah/${m.id}`)].map((loc) => ({ loc, lastmod: today, priority: '0.6' }));
+  return [`${origin}/shariah`, `${origin}/shariah/funds`, `${origin}/shariah/islamic-finance`, ...SHARIAH_MARKETS.map((m) => `${origin}/shariah/${m.id}`)].map((loc) => ({ loc, lastmod: today, priority: '0.6' }));
 }
 
 /** Small box for a company page. */

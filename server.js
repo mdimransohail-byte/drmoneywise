@@ -1201,6 +1201,7 @@ async function handlePublicPage(requestUrl, request, response) {
   // Shariah-compliant investing
   if (pathname === '/shariah') return sendHtml(response, 200, await renderShariahHub(origin));
   if (pathname === '/shariah/funds') return sendHtml(response, 200, await renderShariahFunds(origin));
+  if (pathname === '/shariah/islamic-finance') return sendHtml(response, 200, (await import('./src/services/islamicFinancePage.js')).renderIslamicFinance(origin));
   const shariahMatch = pathname.match(/^\/shariah\/([a-z-]{2,20})$/u);
   if (shariahMatch) {
     const html = await renderShariahMarket(origin, shariahMatch[1]);
