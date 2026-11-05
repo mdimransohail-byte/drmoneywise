@@ -794,6 +794,29 @@ export async function explainDividend({ company = '', ticker = '', text = '' }) 
    written only from the figures we pass in (reportService.js then checks
    every number in the text against those figures).
    ════════════════════════════════════════════════════════════════════════ */
+/* Video maker: one picture idea per scene (videoService.planVisuals).
+   Returns [{ i, visual: 'diagram'|'bars'|'photo'|'none', diagram, query, bars }]. */
+export async function planVideoVisuals({ title = '', scenes = [], diagrams = [] }) {
+  const prompt = [
+    'You choose pictures for a short educational money video. For each scene below, pick the ONE visual that best matches what the narration is talking about.',
+    'Return JSON only: {"scenes":[{"i":0,"visual":"diagram|bars|photo|none","diagram":"id","query":"...","bars":[{"label":"...","value":"..."}]}]}',
+    '- "diagram": only when the scene is about one of these chart ideas; give its id. Available: ' + diagrams.map((d) => `${d.id} = ${d.about}`).join('; ') + '.',
+    '- "bars": only when the scene itself states 2 to 5 comparable numbers (same unit). Copy each number EXACTLY as written in the scene text, with a 1-3 word label. Never invent or estimate numbers.',
+    '- "photo": otherwise, a 2-5 word search for a free stock photo that shows what is being talked about, concretely (e.g. "power lines utility", "small business owner", "stock market screen", "family saving money jar"). No brand names, no people’s names, no text.',
+    '- "none": only for very abstract scenes where no picture would help.',
+    'Prefer a different photo idea for each scene. Use every scene index.',
+    `Video title: ${title}`,
+    'Scenes:',
+    ...scenes.map((x) => `${x.i}: ${String(x.text).slice(0, 600)}`),
+  ].join('\n');
+  const order = ['claude', 'gemini', 'openai'].filter((p) => process.env[KEY_ENV[p]]);
+  for (const provider of order) {
+    const r = await requestStructuredWriting({ slot: provider, provider, model: process.env[MODEL_ENV_KEYS[provider]] || '' }, prompt).catch(() => null);
+    if (Array.isArray(r?.scenes) && r.scenes.length) return r.scenes;
+  }
+  return null;
+}
+
 /* Guest expert article → Dr MoneyWise house style, keeping the author's
    facts, figures and opinions (articleService.saveGuestArticle). */
 export async function simplifyGuestArticle({ headline = '', text = '', author = '' }) {

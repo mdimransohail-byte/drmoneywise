@@ -54,6 +54,10 @@ export const VOICES = [
 const defaultVoice = () => (process.env.GEMINI_API_KEY ? 'gemini:Sulafat' : 'openai:marin');
 const providerOf = (v) => (String(v || '').startsWith('gemini:') ? 'gemini' : 'openai');
 const WORDS_PER_SECOND = 2.5;
+// The logo mark (gold coin with growing bars) in a 100-unit box, and the tagline
+const MARK = `<circle cx="50" cy="50" r="50" fill="#c9a227"/><circle cx="50" cy="50" r="40" fill="none" stroke="#8a6a10" stroke-width="3"/><g fill="#0a1128"><rect x="26" y="58" width="11" height="16" rx="2"/><rect x="41" y="47" width="11" height="27" rx="2"/><rect x="56" y="36" width="11" height="38" rx="2"/></g><path d="M24 50 L44 36 L56 42 L74 26" fill="none" stroke="#0a1128" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M66 24 L78 22 L76 34 Z" fill="#0a1128"/>`;
+const mark = (x0, y0, size) => `<g transform="translate(${x0} ${y0}) scale(${size / 100})">${MARK}</g>`;
+const TAGLINE = 'Become financially healthy, wealthy and wise.';
 // How the computer voices should sound. Both companies' voices follow these
 // directions; 'us' suits our mostly American audience.
 export const ACCENTS = {
@@ -482,8 +486,115 @@ function photoQuery(p) {
   return w.slice(0, 3).join(' ') || 'money finance';
 }
 
+/* ── A matching picture for each scene ────────────────────────────────
+   One request to the writing service reads every scene and suggests, for
+   each, a chart diagram (RSI, moving averages…), a small bar chart of the
+   numbers the scene itself says, or a free Pexels photo search. Without a
+   writing key, simple word matching does the same job. Scenes with nothing
+   fitting keep the plain Dr MoneyWise background. */
+const STOP = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'on', 'for', 'is', 'are', 'was', 'be', 'it', 'its', 'this', 'that', 'with', 'as', 'at', 'by', 'from', 'you', 'your', 'can', 'will', 'may', 'more', 'than', 'what', 'when', 'which', 'who', 'how', 'why', 'not', 'but', 'if', 'so', 'do', 'does', 'one', 'each', 'every', 'any', 'all', 'some', 'they', 'their', 'them', 'there', 'about', 'into', 'over', 'also', 'just', 'like', 'very', 'much', 'many', 'most', 'other', 'another', 'same', 'such', 'only', 'often', 'tends', 'would', 'could', 'should', 'has', 'have', 'had', 'been', 'being', 'were', 'our', 'we', 'us', 'here', 'way', 'means', 'mean', 'say', 'says', 'said', 'thing', 'things', 'mistake', 'question', 'without', 'default']);
+function keywordQuery(text, fallback) {
+  const w = String(text || '').toLowerCase().replace(/[^a-z\s-]/gu, ' ').split(/\s+/u).filter((x) => x.length > 3 && !STOP.has(x));
+  const counts = new Map(); w.forEach((x) => counts.set(x, (counts.get(x) || 0) + 1));
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length).slice(0, 2).map(([x]) => x);
+  return top.length ? `${top.join(' ')} finance` : fallback;
+}
+function numberOf(v) {
+  const m = String(v).replace(/,/gu, '').match(/-?\d+(\.\d+)?/u);
+  return m ? Number(m[0]) : null;
+}
+function unitOf(v) { return String(v).replace(/[\d.,\s-]/gu, '').toLowerCase(); }
+/** Bars only when every number is really in the scene's own words, all in the same unit. */
+function checkBars(bars, text) {
+  const t = String(text || '').replace(/,/gu, '');
+  const list = (Array.isArray(bars) ? bars : []).slice(0, 5).map((b) => ({ label: String(b.label || '').slice(0, 28), value: String(b.value || '').slice(0, 16) }))
+    .filter((b) => b.label && numberOf(b.value) !== null && t.includes(String(b.value).replace(/,/gu, '').replace(/[^\d.-]/gu, '').replace(/\.$/u, '')));
+  if (list.length < 2 || new Set(list.map((b) => unitOf(b.value))).size > 1 || list.some((b) => numberOf(b.value) < 0)) return null;
+  return list;
+}
+async function planVisuals(p, orientation, step) {
+  const { TA_TOPICS, taDiagramSvg } = await import('./taDiagrams.js');
+  const sc = p.scenes;
+  const wanted = sc.map((x, i) => ({ i, text: `${x.heading ? `${x.heading}. ` : ''}${x.text}` })).filter((x) => ['point', 'list', 'title'].includes(sc[x.i].kind));
+  const key = crypto.createHash('sha1').update(JSON.stringify(wanted)).digest('hex');
+  let plan = p.visualPlan?.key === key ? p.visualPlan.plan : null;
+  if (!plan) {
+    try {
+      const { planVideoVisuals } = await import('./writerService.js');
+      plan = await planVideoVisuals({ title: p.title, scenes: wanted, diagrams: TA_TOPICS.map(([id, about]) => ({ id, about })) });
+    } catch { plan = null; }
+    if (plan) p.visualPlan = { key, plan };
+  }
+  const byI = new Map((plan || []).map((x) => [Number(x.i), x]));
+  const out = sc.map(() => null);
+  const usedPhotos = new Set(); const credits = []; const cache = new Map();
+  const photo = async (query) => {
+    if (!process.env.PEXELS_API_KEY || !query) return null;
+    if (!cache.has(query)) cache.set(query, await pexelsPhotos(query, orientation));
+    const ph = cache.get(query).find((x) => !usedPhotos.has(x.page));
+    if (!ph) return null;
+    const img = await fetchImage(ph.url);
+    if (!img?.data) return null;
+    usedPhotos.add(ph.page); credits.push(ph);
+    return { type: 'photo', data: img.data, credit: ph.photographer };
+  };
+  let n = 0;
+  for (const w of wanted) {
+    n += 1;
+    if (step) await step(`Finding a matching picture for scene ${n} of ${wanted.length}`, 32 + Math.round((n / wanted.length) * 3));
+    const idea = byI.get(w.i) || {};
+    let v = null;
+    if (idea.visual === 'diagram' || !plan) {
+      const id = idea.visual === 'diagram' ? idea.diagram : (TA_TOPICS.find(([, , re]) => re.test(w.text)) || [])[0];
+      const d = id ? taDiagramSvg(id) : null;
+      if (d) v = { type: 'diagram', ...d };
+    }
+    if (!v && idea.visual === 'bars') {
+      const bars = checkBars(idea.bars, sc[w.i].text);
+      if (bars) v = { type: 'bars', bars };
+    }
+    if (!v && idea.visual !== 'none') {
+      const q = String(idea.query || '').replace(/[^\w\s-]/gu, ' ').trim().slice(0, 60);
+      v = await photo(q || keywordQuery(w.text, photoQuery(p)));
+      if (!v && q) v = await photo(keywordQuery(w.text, ''));
+    }
+    out[w.i] = v;
+  }
+  return { visuals: out, credits };
+}
+
+/* The picture panel for a scene: a photo, a chart diagram or a bar chart */
+function visualPanel(v, x, y, w, h, f) {
+  const clip = `vp${Math.round(x)}${Math.round(y)}`;
+  const frame = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="28" fill="#ffffff"/>`;
+  if (v.type === 'photo') {
+    return `<defs><clipPath id="${clip}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="28"/></clipPath></defs>
+      <image href="${v.data}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clip})"/>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="28" fill="none" stroke="${C.gold}" stroke-width="5"/>
+      ${v.credit ? `<rect x="${x + w - Math.min(w - 20, 26 + String(v.credit).length * 11 + 130)}" y="${y + h - 44}" width="${Math.min(w - 20, 26 + String(v.credit).length * 11 + 130) - 10}" height="32" rx="10" fill="#0a1128" opacity="0.7"/>` + textLines([`Photo: ${v.credit} / Pexels`], { x0: x + w - 22, y0: y + h - 42, size: 20, fill: '#ffffff', anchor: 'end' }) : ''}`;
+  }
+  if (v.type === 'diagram') {
+    const th = 70; const ih = h - th - 20; const iw = Math.min(w - 40, ih * (v.vw / v.vh)); const ix = x + (w - iw) / 2;
+    return `${frame}${textLines([v.title], { x0: x + 30, y0: y + 18, size: 34, kind: 'serif', fill: C.navy })}
+      <svg x="${ix}" y="${y + th}" width="${iw}" height="${ih}" viewBox="0 0 ${v.vw} ${v.vh}">${v.inner}</svg>
+      ${textLines(['Illustration'], { x0: x + w - 26, y0: y + 24, size: 20, kind: 'bold', fill: '#8a8576', anchor: 'end' })}`;
+  }
+  // Bars: the numbers said in this scene
+  const vals = v.bars.map((b) => numberOf(b.value)); const max = Math.max(...vals) || 1;
+  const n = v.bars.length; const gap = 26; const top = y + 60; const base = y + h - 90; const bw = (w - 60 - gap * (n - 1)) / n;
+  return frame + v.bars.map((b, k) => {
+    const bh = Math.max(8, ((base - top - 50) * vals[k]) / max); const bx = x + 30 + k * (bw + gap); const col = TILE_COLOURS[k % TILE_COLOURS.length];
+    const val = fit(f.black, b.value, 44, 22, bw, 1); const lab = wrap(f.bold, b.label, 24, bw, 2);
+    return `<rect x="${bx}" y="${base - bh}" width="${bw}" height="${bh}" rx="12" fill="${col}"/>`
+      + textLines(val.lines, { x0: bx + bw / 2, y0: base - bh - val.size - 14, size: val.size, kind: 'black', fill: col, anchor: 'middle' })
+      + textLines(lab.lines, { x0: bx + bw / 2, y0: base + 10, size: 24, kind: 'bold', fill: '#4a5170', anchor: 'middle', lh: 1.15 });
+  }).join('');
+}
+
 /* ── Drawing the frames ───────────────────────────────────────────── */
-async function drawScene(p, sc, i, n, W, H, photoData) {
+async function drawScene(p, sc, i, n, W, H, visual = null) {
+  const photoData = sc.kind === 'title' && visual?.type === 'photo' ? visual.data : null;
+  const panel = sc.kind !== 'title' && visual ? visual : null;
   const f = await loadFonts();
   const portrait = H > W;
   const pad = portrait ? 80 : 110;
@@ -494,7 +605,8 @@ async function drawScene(p, sc, i, n, W, H, photoData) {
   if (photoData) svg += `<image href="${photoData}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/><rect width="${W}" height="${H}" fill="url(#shade)"/>`;
   else svg += `<circle cx="${W - 80}" cy="120" r="${Math.round(Math.min(W, H) * 0.35)}" fill="${C.gold}" opacity="0.07"/><circle cx="80" cy="${H - 120}" r="${Math.round(Math.min(W, H) * 0.28)}" fill="#2a78d6" opacity="0.09"/>`;
   // Small brand mark and scene progress
-  svg += textLines([site.name], { x0: pad, y0: portrait ? 150 : 60, size: portrait ? 40 : 36, kind: 'serif', fill: C.gold });
+  const ms = portrait ? 64 : 58;
+  svg += mark(pad, (portrait ? 150 : 60) - 4, ms) + textLines([site.name], { x0: pad + ms + 16, y0: portrait ? 150 : 60, size: portrait ? 40 : 36, kind: 'serif', fill: C.gold });
   const dotW = Math.min(46, (W - pad * 2) / n - 6);
   for (let k = 0; k < n; k += 1) svg += `<rect x="${pad + k * (dotW + 6)}" y="${portrait ? 216 : 118}" width="${dotW}" height="6" rx="3" fill="${k <= i ? C.gold : '#ffffff'}" opacity="${k <= i ? 1 : 0.25}"/>`;
 
@@ -524,6 +636,23 @@ async function drawScene(p, sc, i, n, W, H, photoData) {
     blocks.push({ h: t.lines.length * t.size * 1.2 + 40, draw: (y) => textLines(t.lines, { x0: pad, y0: y, size: t.size, kind: 'serif', lh: 1.2 }) });
     blocks.push({ h: link.lines.length * link.size * 1.25 + 40, draw: (y) => textLines(link.lines, { x0: pad, y0: y, size: link.size, kind: 'black', fill: C.gold2, lh: 1.25 }) });
     blocks.push({ h: 120, draw: (y) => textLines(['Free weekly newsletter · ' + site.email], { x0: pad, y0: y, size: portrait ? 34 : 34, fill: '#e8ecf8' }) });
+  } else if (panel) {
+    // A point with a matching picture: the picture large, the words beside it (landscape) or under it (Short)
+    const col = TILE_COLOURS[i % TILE_COLOURS.length];
+    const textW = portrait ? maxW - 40 : Math.round(maxW * 0.46) - 40;
+    const t = fit(f.bold, sc.screen || sc.text, portrait ? 60 : 50, 30, textW, portrait ? 8 : 10);
+    const h = Math.round(t.lines.length * t.size * 1.3);
+    if (portrait) {
+      const ph = panel.type === 'diagram' ? Math.min(660, Math.round(110 + (maxW - 40) * (panel.vh / panel.vw))) : 660;
+      blocks.push({ h: ph + 40, draw: (y) => visualPanel(panel, pad, y, maxW, ph, f) });
+      blocks.push({ h: h + 10, draw: (y) => `<rect x="${pad}" y="${y + 8}" width="12" height="${h}" rx="6" fill="${col}"/>` + textLines(t.lines, { x0: pad + 40, y0: y, size: t.size, kind: 'bold', lh: 1.3 }) });
+    } else {
+      const panelX = pad + Math.round(maxW * 0.5); const panelW = maxW - Math.round(maxW * 0.5); const panelH = panel.type === 'diagram' ? Math.min(720, Math.round(110 + (panelW - 40) * (panel.vh / panel.vw))) : Math.min(720, H - 170 - 150);
+      blocks.push({ h: Math.max(h + 10, panelH), draw: (y) => {
+        const ty = y + Math.max(0, (panelH - h) / 2);
+        return `<rect x="${pad}" y="${ty + 8}" width="12" height="${h}" rx="6" fill="${col}"/>` + textLines(t.lines, { x0: pad + 40, y0: ty, size: t.size, kind: 'bold', lh: 1.3 }) + visualPanel(panel, panelX, y, panelW, panelH, f);
+      } });
+    }
   } else {
     // A point: the narration itself, big, so it can be read without sound
     const col = TILE_COLOURS[i % TILE_COLOURS.length];
@@ -548,13 +677,13 @@ async function brandFrame(kind, W, H) {
   const cx = W / 2; const cy = H / 2;
   const name = fit(f.serif, site.name, portrait ? 120 : 130, 60, W - 160, 1);
   let svg = `<defs><radialGradient id="g" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#1f2b66"/><stop offset="1" stop-color="${C.navy}"/></radialGradient></defs><rect width="${W}" height="${H}" fill="url(#g)"/>`;
-  svg += `<circle cx="${cx}" cy="${cy - (portrait ? 260 : 210)}" r="${portrait ? 90 : 80}" fill="${C.gold}"/>`;
-  svg += textLines(['$'], { x0: cx, y0: cy - (portrait ? 260 : 210) - (portrait ? 70 : 62), size: portrait ? 120 : 108, kind: 'black', fill: C.navy, anchor: 'middle' });
+  const ms = portrait ? 190 : 170;
+  svg += mark(cx - ms / 2, cy - (portrait ? 260 : 210) - ms / 2, ms);
   svg += textLines(name.lines, { x0: cx, y0: cy - name.size * 0.7, size: name.size, kind: 'serif', fill: C.gold, anchor: 'middle' });
   const line = cy + name.size * 0.8;
   svg += `<rect x="${cx - 120}" y="${line}" width="240" height="8" rx="4" fill="${C.gold}"/>`;
   if (kind === 'open') {
-    svg += textLines(['Money, explained simply'], { x0: cx, y0: line + 36, size: portrait ? 50 : 48, fill: '#e8ecf8', anchor: 'middle' });
+    svg += textLines([TAGLINE], { x0: cx, y0: line + 36, size: portrait ? 40 : 46, fill: '#e8ecf8', anchor: 'middle' });
   } else {
     svg += textLines([site.domain], { x0: cx, y0: line + 36, size: portrait ? 60 : 56, kind: 'black', fill: C.gold2, anchor: 'middle' });
     svg += textLines([`${site.email}  ·  Free weekly newsletter`], { x0: cx, y0: line + 126, size: portrait ? 34 : 32, fill: '#c9d0e6', anchor: 'middle' });
@@ -573,7 +702,7 @@ async function stillToClip(png, out, secs, W, H, fps, { zoomIn = true, fade = 0.
 async function brandClip(kind, W, H, fps) {
   const dir = path.join(ROOT, 'brand');
   await fs.mkdir(dir, { recursive: true });
-  const out = path.join(dir, `${kind}-${W}x${H}-${fps}-v2.mp4`);
+  const out = path.join(dir, `${kind}-${W}x${H}-${fps}-v3.mp4`); // v3: new logo and tagline
   try { await fs.access(out); return out; } catch { /* make it */ }
   const png = path.join(dir, `${kind}-${W}x${H}.png`);
   await fs.writeFile(png, svgToPng(await brandFrame(kind, W, H)));
@@ -666,19 +795,10 @@ async function render(p) {
   const lens = secs.map((x) => Math.max(2.5, x + gap));
 
   // 2. Photos
-  await step('Finding photos', 32);
+  await step('Choosing a matching picture for each scene', 32);
   const orientation = H > W ? 'portrait' : 'landscape';
-  let photos = await pexelsPhotos(photoQuery(p), orientation);
-  if (photos.length < 3) photos = photos.concat(await pexelsPhotos('money finance', orientation));
-  const used = [];
-  const photoFor = async (i) => {
-    if (sc[i].kind === 'cta' || sc[i].kind === 'stats') return null; // plain brand background keeps figures easy to read
-    const ph = photos.length ? photos[i % photos.length] : null;
-    if (!ph) return null;
-    const img = await fetchImage(ph.url);
-    if (img && !used.some((u) => u.page === ph.page)) used.push(ph);
-    return img?.data || null;
-  };
+  const { visuals, credits: used } = await planVisuals(p, orientation, step);
+  const photoFor = async (i) => visuals[i] || null;
 
   // 3. Clips
   const clips = [await brandClip('open', W, H, fps)];

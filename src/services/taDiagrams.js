@@ -136,3 +136,30 @@ export function taDiagramHtml(courseId) {
   if (!f) return '';
   try { return f(); } catch { return ''; }
 }
+
+/* For the Video maker: the diagram as a plain SVG (no HTML around it), and
+   what each one shows, so a scene about RSI can show the RSI diagram. */
+export const TA_TOPICS = [
+  ['ta-1-1', 'a price chart with volume', /price chart|chart (shows|tells)|volume bars/iu],
+  ['ta-1-2', 'candlesticks', /candle/iu],
+  ['ta-1-3', 'trends and trendlines', /\btrend(s|line)?\b|higher highs|higher lows/iu],
+  ['ta-1-4', 'support and resistance', /support|resistance/iu],
+  ['ta-1-5', 'trading volume', /\bvolume\b/iu],
+  ['ta-2-1', 'moving averages', /moving average|\b(50|200)-day\b/iu],
+  ['ta-2-2', 'golden cross and death cross', /golden cross|death cross/iu],
+  ['ta-2-3', 'RSI, overbought and oversold', /\bRSI\b|overbought|oversold|relative strength/iu],
+  ['ta-2-4', 'MACD momentum', /\bMACD\b|momentum/iu],
+  ['ta-3-1', 'Bollinger bands', /bollinger|volatility band/iu],
+  ['ta-3-2', 'head and shoulders, double tops', /head and shoulders|double top|double bottom/iu],
+  ['ta-3-3', 'breakouts and fakeouts', /breakout|fakeout|false break/iu],
+  ['ta-3-4', 'daily, weekly and monthly timeframes', /timeframe|weekly chart|monthly chart/iu],
+  ['ta-4-1', 'stop-losses and position size', /stop-?loss|position size/iu],
+];
+export function taDiagramSvg(id) {
+  const html = taDiagramHtml(id);
+  const m = html.match(/<svg[^>]*viewBox="([^"]+)"[^>]*>([\s\S]*)<\/svg>/u);
+  if (!m) return null;
+  const title = (html.match(/<figcaption><strong>([^<]*)<\/strong>/u) || [])[1] || '';
+  const [, , vw, vh] = m[1].split(/\s+/u).map(Number);
+  return { inner: m[2], vw, vh, title };
+}
