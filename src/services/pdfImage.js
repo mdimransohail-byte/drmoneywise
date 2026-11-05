@@ -26,7 +26,7 @@ export async function renderFirstPage(pdfBuffer, targetWidth = 2000) {
   const { createRequire } = await import('node:module');
   const path = await import('node:path');
   const fonts = `${path.dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json'))}/standard_fonts/`;
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfBuffer), isEvalSupported: false, useSystemFonts: false, disableFontFace: true, standardFontDataUrl: fonts }).promise;
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfBuffer), isEvalSupported: false, useSystemFonts: false, disableFontFace: true, standardFontDataUrl: fonts, isOffscreenCanvasSupported: false, isImageDecoderSupported: false }).promise;
   try {
     const page = await doc.getPage(1);
     const base = page.getViewport({ scale: 1 });
@@ -51,7 +51,7 @@ export async function renderPages(pdfBuffer, targetWidth = 800, count = 2) {
   // Path2D, DOMMatrix and ImageData, or fills fail ("not a valid CanvasFillRule")
   for (const k of ['Path2D', 'DOMMatrix', 'ImageData']) if (canvasLib[k]) globalThis[k] = canvasLib[k];
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfBuffer), isEvalSupported: false, disableFontFace: true }).promise;
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfBuffer), isEvalSupported: false, disableFontFace: true, isOffscreenCanvasSupported: false, isImageDecoderSupported: false }).promise;
   const out = [];
   try {
     for (let n = 1; n <= Math.min(count, doc.numPages); n += 1) {
@@ -80,11 +80,17 @@ async function inHelper(pdfBuffer, mode, width, count) {
     await fs.writeFile(path.join(dir, 'in.pdf'), pdfBuffer);
     const worker = fileURLToPath(new URL('../workers/pdf2png.mjs', import.meta.url));
     const err = await new Promise((resolve) => {
-      const child = spawn(process.execPath, ['--max-old-space-size=384', worker, dir, mode, String(width), String(count)], { stdio: ['ignore', 'ignore', 'pipe'] });
+      const child = spawn(process.execPath, ['--max-old-space-size=1536', worker, dir, mode, String(width), String(count)], { stdio: ['ignore', 'ignore', 'pipe'] });
       let msg = '';
       const timer = setTimeout(() => { msg = 'took too long'; child.kill('SIGKILL'); }, 90000);
       child.stderr.on('data', (d) => { msg += d.toString(); });
-      child.on('close', (code) => { clearTimeout(timer); resolve(code === 0 ? '' : (msg.trim().split('\n').pop() || `stopped (code ${code})`)); });
+      child.on('close', (code, signal) => {
+        clearTimeout(timer);
+        if (code === 0) return resolve('');
+        const text = msg.trim();
+        const memory = /heap out of memory|Allocation failed|ENOMEM/iu.test(text) || signal === 'SIGKILL' || signal === 'SIGABRT';
+        resolve(memory ? 'not enough memory' : (text.split('\n').find((l) => /error/iu.test(l)) || text.split('\n').pop() || `stopped (${signal || code})`));
+      });
       child.on('error', (e) => { clearTimeout(timer); resolve(e.message); });
     });
     if (err) throw new Error(`Couldn’t turn Gamma’s PDF into a picture: ${err.slice(0, 200)}`);
@@ -98,7 +104,12 @@ async function inHelper(pdfBuffer, mode, width, count) {
 }
 
 export async function pdfFirstPageToPng(pdfBuffer, targetWidth = 2000) {
-  return (await inHelper(pdfBuffer, 'first', targetWidth, 1))[0];
+  // If a big picture runs out of memory, try again smaller (still sharp for social media)
+  let last;
+  for (const w of [targetWidth, 1400, 1080].filter((v, i, a) => v <= targetWidth && a.indexOf(v) === i)) {
+    try { return (await inHelper(pdfBuffer, 'first', w, 1))[0]; } catch (e) { last = e; console.warn(`[pdfImage] ${w}px failed: ${e.message}`); }
+  }
+  throw last;
 }
 
 /** The first `count` pages as PNGs (theme samples). */
