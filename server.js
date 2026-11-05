@@ -473,7 +473,7 @@ export const server = http.createServer(async (request, response) => {
           return true;
         }
         if (sub === '/voice-sample' && request.method === 'GET') {
-          const buf = await video.voiceSample(String(requestUrl.searchParams.get('voice') || ''));
+          const buf = await video.voiceSample(String(requestUrl.searchParams.get('voice') || ''), String(requestUrl.searchParams.get('accent') || 'us'));
           response.writeHead(200, { 'Content-Type': 'audio/wav', 'Content-Length': buf.length });
           response.end(buf);
           return true;

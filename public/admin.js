@@ -2572,10 +2572,7 @@ function render_video() {
         <div class="card">
           <h2 style="margin-top:0">Voice</h2>
           <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#2c3650"><input type="radio" name="voice" value="computer" ${p.voice === 'computer' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>Computer voice</b>: quickest. Google’s voices sound the most natural and use your Gemini key (it has a free allowance).${d.computerVoice ? '' : ' <span style="color:#c62f3f">Needs the Gemini or OpenAI key (APIs & More).</span>'}<br><span style="color:#4a5570">The description will say “Narration voice is computer-generated”, as the voice providers’ rules ask.</span></span></label>
-          <div style="display:flex;gap:8px;align-items:end;margin:4px 0 10px 26px"><label style="flex:1"><span class="field">Which voice</span><select name="voiceName">
-            <optgroup label="Google (most natural)${d.voiceKeys?.gemini ? '' : ': needs the Gemini key'}">${(d.voices || []).filter((v) => v.provider === 'gemini').map((v) => `<option value="${h(v.id)}" ${p.voiceName === v.id ? 'selected' : ''}>${h(v.label)}</option>`).join('')}</optgroup>
-            <optgroup label="OpenAI${d.voiceKeys?.openai ? '' : ': needs the OpenAI key'}">${(d.voices || []).filter((v) => v.provider === 'openai').map((v) => `<option value="${h(v.id)}" ${p.voiceName === v.id || p.voiceName === v.id.split(':')[1] ? 'selected' : ''}>${h(v.label)}</option>`).join('')}</optgroup>
-          </select></label><button class="btn" data-vm="listen">▶ Listen</button></div>
+          ${vmVoicePickers(d, p)}
           <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:.8rem;color:#2c3650"><input type="radio" name="voice" value="own" ${p.voice === 'own' ? 'checked' : ''} style="width:auto;margin-top:3px"><span><b>My own voice</b>: record each scene with the ● Record buttons (allow the microphone), or upload one recording of the whole script below.</span></label>
           <div class="vm-own" style="display:${p.voice === 'own' ? 'block' : 'none'};margin:8px 0 0 26px">
             <label class="btn" style="cursor:pointer">Upload the whole script as one file<input type="file" accept="audio/*" data-vm="file" data-id="all" style="display:none"></label>
@@ -2613,6 +2610,34 @@ function render_video() {
     </div>`;
 }
 
+function vmVoicePickers(d, p) {
+  const list = (p.voices && p.voices.length > 1) ? p.voices : [p.voiceName];
+  const count = (VM.voiceCountFor === p.id && VM.voiceCount) || list.length || 1;
+  const opts = (sel) => `<optgroup label="Google (most natural)${d.voiceKeys?.gemini ? '' : ': needs the Gemini key'}">${(d.voices || []).filter((v) => v.provider === 'gemini').map((v) => `<option value="${h(v.id)}" ${sel === v.id ? 'selected' : ''}>${h(v.label)}</option>`).join('')}</optgroup>
+            <optgroup label="OpenAI${d.voiceKeys?.openai ? '' : ': needs the OpenAI key'}">${(d.voices || []).filter((v) => v.provider === 'openai').map((v) => `<option value="${h(v.id)}" ${sel === v.id || sel === v.id.split(':')[1] ? 'selected' : ''}>${h(v.label)}</option>`).join('')}</optgroup>`;
+  // Extra voices start as clearly different ones (warm, informative, firm…), never a repeat
+  const fallback = ['gemini:Sulafat', 'gemini:Charon', 'gemini:Kore', 'openai:marin', 'openai:cedar', 'openai:coral'];
+  const chosen = [];
+  for (let k = 0; k < count; k += 1) chosen.push(list[k] && !chosen.includes(list[k]) ? list[k] : fallback.find((v) => !chosen.includes(v) && !list.includes(v)));
+  const pickers = Array.from({ length: count }, (_, k) => {
+    const sel = chosen[k];
+    return `<div style="display:flex;gap:8px;align-items:end;margin:4px 0 6px 26px"><label style="flex:1"><span class="field">${count > 1 ? ['First', 'Second', 'Third'][k] + ' voice' : 'Which voice'}</span><select name="voiceName" data-k="${k}">${opts(sel)}</select></label><button class="btn" data-vm="listen" data-k="${k}">▶ Listen</button></div>`;
+  }).join('');
+  const ac = p.accent || 'us';
+  return `<div style="display:flex;gap:10px;margin:4px 0 6px 26px;flex-wrap:wrap">
+      <label style="flex:1;min-width:150px"><span class="field">Accent</span><select name="accent">
+        <option value="us" ${ac === 'us' ? 'selected' : ''}>American English</option>
+        <option value="uk" ${ac === 'uk' ? 'selected' : ''}>British English</option>
+        <option value="neutral" ${ac === 'neutral' ? 'selected' : ''}>Neutral international</option></select></label>
+      <label style="flex:1;min-width:150px"><span class="field">Voices in this video</span><select name="voiceCount">
+        <option value="1" ${count === 1 ? 'selected' : ''}>1 voice</option>
+        <option value="2" ${count === 2 ? 'selected' : ''}>2 voices, taking turns</option>
+        <option value="3" ${count === 3 ? 'selected' : ''}>3 voices, taking turns</option></select></label>
+    </div>
+    ${pickers}
+    ${count > 1 ? '<p style="font-size:.72rem;color:#4a5570;margin:0 0 10px 26px">Each scene (paragraph) is read by the next voice in turn: first, second' + (count > 2 ? ', third' : '') + ', then first again. Pick voices that sound clearly different, for example one warm and one firm.</p>' : ''}`;
+}
+
 async function load_video() {
   try { STATE.video = await API.get('/api/admin/video'); } catch (e) { STATE.video = { projects: [], voices: [] }; }
   setMain(render_video()); bind_video();
@@ -2624,6 +2649,8 @@ function vmRead() {
     scenes: qsa('#vmScript [data-sc]').map((el) => ({ id: el.dataset.sc, heading: el.querySelector('[name=heading]').value, text: el.querySelector('[name=text]').value })),
     voice: (qs('[name=voice]:checked') || {}).value || p.voice,
     voiceName: (qs('[name=voiceName]') || {}).value || p.voiceName,
+    voices: qsa('[name=voiceName]').map((el) => el.value),
+    accent: (qs('[name=accent]') || {}).value || p.accent || 'us',
   };
 }
 async function vmRefresh() { STATE.video = await API.get('/api/admin/video'); setMain(render_video()); bind_video(); }
@@ -2647,6 +2674,12 @@ function vmPoll() {
 function bind_video() {
   const msg = qs('#vmMsg');
   const say = (t, bad) => { if (msg) { msg.textContent = t; msg.style.color = bad ? '#c62f3f' : '#0f8a5a'; } };
+  qs('[name=voiceCount]')?.addEventListener('change', (e) => {
+    const keep = vmRead();
+    VM.voiceCount = Number(e.target.value) || 1; VM.voiceCountFor = STATE.vp.id;
+    STATE.vp = { ...STATE.vp, scenes: STATE.vp.scenes.map((sc) => { const k = keep.scenes.find((x) => x.id === sc.id); return k ? { ...sc, heading: k.heading, text: k.text } : sc; }), voices: keep.voices, voiceName: keep.voices[0] || STATE.vp.voiceName, accent: keep.accent };
+    setMain(render_video()); bind_video();
+  });
   qsa('[name=voice]').forEach((r) => r.addEventListener('change', () => qsa('.vm-own').forEach((el) => { el.style.display = r.value === 'own' && r.checked ? (el.tagName === 'DIV' && el.closest('[data-sc]') ? 'flex' : 'block') : 'none'; })));
   if (STATE.vp?.status === 'done') {
     soVideo();
@@ -2670,9 +2703,10 @@ function bind_video() {
         await vmRefresh(); return;
       }
       if (act === 'listen') {
-        const v = qs('[name=voiceName]').value; btn.disabled = true; btn.textContent = '…';
+        const v = (qs(`[name=voiceName][data-k="${btn.dataset.k || 0}"]`) || qs('[name=voiceName]')).value; btn.disabled = true; btn.textContent = '…';
+        const ac = (qs('[name=accent]') || {}).value || 'us';
         try {
-          const r = await fetch('/api/admin/video/voice-sample?voice=' + encodeURIComponent(v), { headers: { 'x-session-token': STATE.token } });
+          const r = await fetch('/api/admin/video/voice-sample?voice=' + encodeURIComponent(v) + '&accent=' + encodeURIComponent(ac), { headers: { 'x-session-token': STATE.token } });
           if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Sample not available'); }
           new Audio(URL.createObjectURL(await r.blob())).play();
         } finally { btn.disabled = false; btn.textContent = '▶ Listen'; }
