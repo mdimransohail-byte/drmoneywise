@@ -2395,3 +2395,4 @@ body.has-ad-strip { padding-bottom: 52px; }
 .wi-analysts { margin: 16px 0 6px; padding: 14px 16px; border-radius: 12px; background: #eef4ff; border: 1px solid #b9cdf5; color: #0a1128; }
 .guest-box { background: #f3f7ff; border: 1px solid #c9d8f5; border-left: 5px solid #2a78d6; border-radius: 14px; }
 .mb-renew { font-size: 12.5px; color: #5a6478; margin: 10px 0 0; line-height: 1.4; }
+.hero-grid > * { min-width: 0; } .hc-box { box-sizing: border-box; max-width: 100%; }
