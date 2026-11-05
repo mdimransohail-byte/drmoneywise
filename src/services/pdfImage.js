@@ -7,8 +7,21 @@
    the PDF; @napi-rs/canvas (MIT licence) draws it.
    ════════════════════════════════════════════════════════════════════════ */
 
+import { createRequire as makeRequire } from 'node:module';
+
+/* pdf.js needs process.getBuiltinModule, which only exists in Node 20.16+
+   and 22.3+. On an older Node (Railway's default can be older), add it. */
+if (typeof process.getBuiltinModule !== 'function') {
+  const req = makeRequire(import.meta.url);
+  process.getBuiltinModule = (name) => req(String(name).replace(/^node:/u, ''));
+}
+
 export async function pdfFirstPageToPng(pdfBuffer, targetWidth = 2000) {
-  const { createCanvas } = await import('@napi-rs/canvas');
+  const canvasLib = await import('@napi-rs/canvas');
+  const { createCanvas } = canvasLib;
+  // pdf.js draws shapes with Path2D; give it the same canvas library's
+  // Path2D, DOMMatrix and ImageData, or fills fail ("not a valid CanvasFillRule")
+  for (const k of ['Path2D', 'DOMMatrix', 'ImageData']) if (canvasLib[k]) globalThis[k] = canvasLib[k];
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const { createRequire } = await import('node:module');
   const path = await import('node:path');
@@ -32,7 +45,11 @@ export async function pdfFirstPageToPng(pdfBuffer, targetWidth = 2000) {
 
 /** The first `count` pages as PNGs (theme samples). */
 export async function pdfPagesToPng(pdfBuffer, targetWidth = 800, count = 2) {
-  const { createCanvas } = await import('@napi-rs/canvas');
+  const canvasLib = await import('@napi-rs/canvas');
+  const { createCanvas } = canvasLib;
+  // pdf.js draws shapes with Path2D; give it the same canvas library's
+  // Path2D, DOMMatrix and ImageData, or fills fail ("not a valid CanvasFillRule")
+  for (const k of ['Path2D', 'DOMMatrix', 'ImageData']) if (canvasLib[k]) globalThis[k] = canvasLib[k];
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfBuffer), isEvalSupported: false, disableFontFace: true }).promise;
   const out = [];
