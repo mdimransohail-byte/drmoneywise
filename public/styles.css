@@ -2431,3 +2431,15 @@ body.has-ad-strip { padding-bottom: 52px; }
 .ifp .ifp-words div { grid-template-columns: 120px 1fr; }
 .ifp > .pf-panel { margin: 16px 0; }
 @media (max-width: 760px) { .ifp .ifp-vs { grid-template-columns: 1fr; } .ifp .ifp-words div { grid-template-columns: 1fr; } }
+
+/* ── Stock Top 10 lists ───────────────────────────────────────────── */
+.t10-group { --c: #2a78d6; display: inline-block; margin: 18px 0 10px; padding: 5px 14px; border-radius: 999px; background: var(--c); color: #fff; font: 800 14px var(--sans); letter-spacing: .05em; text-transform: uppercase; }
+.t10-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.t10-card { --c: #2a78d6; display: block; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid #e3dccb; border-left: 6px solid var(--c); text-decoration: none; color: #0a1128; }
+.t10-card:hover { box-shadow: 0 6px 18px rgba(10,17,40,.12); }
+.t10-card b { display: block; font-size: 17px; margin-bottom: 4px; } .t10-card span { font-size: 13.5px; color: #4a5170; }
+.t10-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; margin: 18px 0; font-size: 15px; }
+.t10-table th { background: #0a1128; color: #fff; text-align: left; padding: 10px 12px; font-size: 13px; }
+.t10-table td { padding: 10px 12px; border-bottom: 1px solid #eee6d6; vertical-align: top; } .t10-table tr:nth-child(even) td { background: #faf7f0; }
+.t10-table .num { text-align: right; white-space: nowrap; } .t10-table td small { display: block; color: #6a6f85; font-size: 12.5px; }
+.t10-table a { color: #0a1128; text-decoration: none; } .t10-table a b { color: #1a2a9e; }

@@ -9,6 +9,7 @@ import { rankingBarsHtml } from './infographicService.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 import { DIVIDEND_RULE, getDividendTop10, getEtfTop10, monthLabel } from './top10Service.js';
 import { getPhoto, PAGE_PHOTO_QUERIES, photoFigure } from './imageService.js';
+import { buildStockList, stockListSummaries, STOCK_LISTS } from './stockTop10.js';
 
 const esc = (v) => String(v ?? '').replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;').replace(/"/gu, '&quot;');
 const GRADE_ICON = { good: '✓', okay: '–' };
@@ -29,8 +30,8 @@ function notAdvice(extra = '') {
 export async function renderTop10Hub(origin) {
   const [div, etf] = await Promise.all([getDividendTop10(), getEtfTop10()]);
   const head = buildHeadTags({
-    title: 'Top 10 lists — dividend stocks, ETFs and crypto | Dr MoneyWise',
-    description: 'Simple Top 10 lists for everyday investors, each with the ranking rule shown: dividend stocks, beginner ETFs and the largest cryptocurrencies.',
+    title: 'Top 10 lists: largest companies, best performers, fastest growers, dividends, ETFs and crypto | Dr MoneyWise',
+    description: 'Simple Top 10 lists for everyday investors, each with its ranking rule: largest companies, best and worst 1-year returns, 52-week highs and lows, fastest growers, lowest P/E, dividend stocks, ETFs and crypto.',
     canonical: `${origin}/top-10`,
   });
   const card = (href, title, rule, first, extra = '') => `
@@ -43,6 +44,15 @@ export async function renderTop10Hub(origin) {
         </a>`;
   const top = div.rows[0];
   const photo = await getPhoto('page:top10-hub', PAGE_PHOTO_QUERIES['top10-hub']);
+  // Stock lists built from company accounts and prices, grouped
+  const lists = await stockListSummaries().catch(() => []);
+  const GROUP_COLOURS = { 'Size': '#2a78d6', 'Growth and profit': '#1baf7a', 'Price moves': '#eb6834', 'Value': '#eda100', 'Mixed lists': '#6250d6' };
+  const groups = [...new Set(lists.map((x) => x.group))];
+  const stockGroups = lists.length ? `
+        <h2 style="font-size:28px;margin:34px 0 6px">Stock lists</h2>
+        <p class="helper-note" style="margin:0 0 14px">Large US companies, ranked from their official accounts and share prices. Some lists mix two or three measures.</p>
+        ${groups.map((g) => `<h3 class="t10-group" style="--c:${GROUP_COLOURS[g] || '#2a78d6'}">${esc(g)}</h3>
+        <div class="t10-grid">${lists.filter((x) => x.group === g).map((x) => `<a class="t10-card" href="/top-10/stocks/${x.slug}" style="--c:${GROUP_COLOURS[g] || '#2a78d6'}"><b>${esc(x.short)}</b><span>No. 1: ${esc(x.first.name)} (${esc(x.first.ticker)}) · ${esc(x.firstLabel)}</span></a>`).join('')}</div>`).join('')}` : '';
   const body = `
       <section class="block">
         ${photoFigure(photo, 'Charts on a desk', 'page-photo wide')}
@@ -53,6 +63,7 @@ export async function renderTop10Hub(origin) {
           ${card('/top-10/etfs', 'ETFs for beginners', 'Simple, broad funds, ranked by lowest yearly fee.', `Cheapest: ${esc(etf.rows[0].ticker)} at $${etf.rows[0].feePer1000.toFixed(2)} a year per $1,000.`)}
           <a class="ten hub crypto" href="/top-10/crypto"><h2>Crypto by size</h2><p class="rule">The 10 largest coins by total value, live.</p><span class="risk-note">High risk: prices can halve in months</span><p class="meaning">What each coin is, in simple terms, with a risk note.</p><span class="go">See the list</span></a>
         </div>
+        ${stockGroups}
       </section>`;
   return pageShell({ head, body, active: 'top10' });
 }
@@ -196,6 +207,55 @@ export async function renderEtfTop10(origin) {
           <p class="helper-note">${esc(etf.source)}.</p>
         </div>
         ${notAdvice('Fund prices go down as well as up. ')}
+      </section>`;
+  return pageShell({ head, body, active: 'top10' });
+}
+
+/* ── /top-10/stocks/<list> ───────────────────────────────────────────── */
+export async function renderStockTop10(origin, slug) {
+  const built = await buildStockList(slug);
+  if (!built) return null;
+  const { list: l, rows, ready, facts } = built;
+  const head = buildHeadTags({
+    title: `Top 10 ${l.title.charAt(0).toLowerCase()}${l.title.slice(1)} | Dr MoneyWise`,
+    description: `${l.title}: the top 10 large US companies. ${l.rule}`.slice(0, 300),
+    canonical: `${origin}/top-10/stocks/${slug}`,
+  });
+  const max = rows.length ? Math.max(...rows.map((r) => (l.barValue ? l.barValue(r, Math.max(...rows.map((x) => l.value(x)))) : l.value(r)))) : 1;
+  const sources = [
+    'Company accounts: SEC filings',
+    l.needs === 'prices' && facts.pricesAsOf ? `prices: Marketstack, last close ${facts.pricesAsOf}` : '',
+    l.needs === 'history' && facts.historyAsOf ? `daily prices: Marketstack, to ${facts.historyAsOf}` : '',
+  ].filter(Boolean).join('; ');
+  const infographic = rows.length ? rankingBarsHtml({
+    title: l.short,
+    subtitle: l.rule,
+    rows: rows.map((r) => ({ label: r.ticker, sublabel: r.name, value: Math.max(0.0001, l.barValue ? l.barValue(r, Math.max(...rows.map((x) => l.value(x)))) : l.value(r)), display: l.barLabel(r) })),
+    source: `Source: ${sources}.`,
+  }) : '';
+  void max;
+  const table = rows.length ? `
+        <div class="table-scroll"><table class="t10-table">
+          <thead><tr><th>#</th><th>Company</th>${l.show.map(([h]) => `<th class="num">${esc(h)}</th>`).join('')}</tr></thead>
+          <tbody>${rows.map((r, i) => `<tr><td>${i + 1}</td><td><a href="/stock/${encodeURIComponent(r.ticker)}"><b>${esc(r.ticker)}</b> ${esc(r.name)}</a>${r.sector ? `<small>${esc(r.sector)}</small>` : ''}</td>${l.show.map(([, f]) => `<td class="num">${esc(f(r))}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table></div>` : '';
+  const others = STOCK_LISTS.filter((x) => x.slug !== slug && (x.group === l.group || x.group === 'Mixed lists')).slice(0, 8);
+  const body = `
+      <section class="block">
+        <p class="nl-back"><a href="/top-10">← All Top 10 lists</a></p>
+        <p class="dateline-dark">Top 10 · ${esc(l.group)}${facts.pricesAsOf && l.needs ? ` · prices to ${esc(l.needs === 'history' ? facts.historyAsOf : facts.pricesAsOf)}` : ''}</p>
+        <h1 style="font-size:36px;margin:0 0 10px">${esc(l.title)}</h1>
+        <p class="lede-dark">${esc(l.why)}</p>
+        ${rows.length && rows.length < 10 ? `<p class="note-box" style="margin:0 0 18px">Only ${rows.length} companies meet every condition right now, so this list has ${rows.length}. We don't pad lists with companies that don't qualify.</p>` : ''}
+        ${rows.length ? `${infographic}${table}` : `<p class="note-box">${ready ? 'No company meets every condition right now.' : 'This list needs share prices, which are still being collected. It will appear here automatically within a few days.'}</p>`}
+        <div class="surface" style="margin-top:24px">
+          <h2 style="font-size:22px;margin:0 0 8px">How this list is made</h2>
+          <p>${esc(l.rule)}</p>
+          <p class="helper-note">We cover about 125 large US companies (overseas companies are left out because their per-share figures are for local shares). Figures update automatically: accounts when companies file them, prices every trading day.</p>
+        </div>
+        <h2 style="font-size:22px;margin:26px 0 10px">More lists</h2>
+        <div class="t10-grid">${others.map((x) => `<a class="t10-card" href="/top-10/stocks/${x.slug}"><b>${esc(x.short)}</b><span>${esc(x.group)}</span></a>`).join('')}</div>
+        ${notAdvice('Past performance does not tell you what happens next, and share prices go down as well as up. ')}
       </section>`;
   return pageShell({ head, body, active: 'top10' });
 }

@@ -1181,6 +1181,12 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, await renderDividendTop10(origin));
   }
 
+  if (pathname.startsWith('/top-10/stocks/')) {
+    const { renderStockTop10 } = await import('./src/services/top10Pages.js');
+    const html = await renderStockTop10(origin, decodeURIComponent(pathname.slice('/top-10/stocks/'.length)).replace(/\/$/u, ''));
+    if (html) return sendHtml(response, 200, html);
+  }
+
   if (pathname === '/top-10/etfs') {
     return sendHtml(response, 200, await renderEtfTop10(origin));
   }

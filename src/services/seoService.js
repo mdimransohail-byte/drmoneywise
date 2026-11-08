@@ -118,6 +118,10 @@ export async function buildSitemapXml(origin) {
       priority: '0.6',
     })),
   ];
+  try {
+    const { stockListSummaries } = await import('./stockTop10.js');
+    urls.push(...(await stockListSummaries()).map((x) => ({ loc: `${origin}/top-10/stocks/${x.slug}`, lastmod: today, priority: '0.7' })));
+  } catch (error) { console.error('[seo] Stock Top 10 lists left out of sitemap:', error.message); }
   if (isForumEnabled()) try {
     const { forumSitemapEntries } = await import('./forumService.js');
     urls.push({ loc: `${origin}/forum`, lastmod: today, priority: '0.7' }, ...(await import('../data/forumConfig.js')).FORUM_SECTIONS.map((sec) => ({ loc: `${origin}/forum/${sec.id}`, lastmod: today, priority: '0.6' })), ...(await forumSitemapEntries(origin)));

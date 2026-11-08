@@ -258,7 +258,7 @@ async function latestPricesInner(tickers, { fresh = false } = {}) {
    protect the monthly allowance for watchlists and portfolios. */
 const HISTORY_DIR = path.join(process.cwd(), 'data', 'market', 'history');
 const historyDay = { key: '', count: 0 };
-export async function getPriceHistory(rawTicker) {
+export async function getPriceHistory(rawTicker, { bulk = false } = {}) {
   const ticker = String(rawTicker || '').toUpperCase().replace(/[^A-Z0-9.-]/gu, '').slice(0, 10);
   if (!ticker) return { ok: false, reason: 'ticker' };
   const file = path.join(HISTORY_DIR, `${ticker}.json`);
@@ -268,8 +268,8 @@ export async function getPriceHistory(rawTicker) {
   if (!isPaidTier() || !process.env.MARKETSTACK_API_KEY) return saved ? { ok: true, ...saved, stale: true } : { ok: false, reason: 'prices-off' };
   const today = new Date().toISOString().slice(0, 10);
   if (historyDay.key !== today) { historyDay.key = today; historyDay.count = 0; }
-  if (historyDay.count >= 30 || getQuotaStatus().remaining <= 0) return saved ? { ok: true, ...saved, stale: true } : { ok: false, reason: 'busy' };
-  historyDay.count += 1;
+  if ((!bulk && historyDay.count >= 30) || getQuotaStatus().remaining <= 0) return saved ? { ok: true, ...saved, stale: true } : { ok: false, reason: 'busy' };
+  if (!bulk) historyDay.count += 1;
   try {
     const url = new URL(`${MARKETSTACK_BASE_URL}/eod`);
     url.searchParams.set('access_key', process.env.MARKETSTACK_API_KEY);
@@ -316,4 +316,21 @@ export async function appendDailyCloses(prices = {}) {
     } catch { /* skip this one */ }
   }
   return n;
+}
+
+/* For the Top 10 stock lists (1-year returns, 52-week highs and lows):
+   make sure every company we cover has a saved price history. Fetches
+   only the missing ones, at most `max` a day (one request each); after
+   that, appendDailyCloses keeps them up to date for free. */
+export async function fillMissingHistories(tickers = [], max = 40) {
+  let have = new Set();
+  try { have = new Set((await fs.readdir(HISTORY_DIR)).map((f) => f.replace(/\.json$/u, ''))); } catch { /* none yet */ }
+  const missing = tickers.filter((t) => !have.has(t));
+  let added = 0;
+  for (const t of missing.slice(0, max)) {
+    if (getQuotaStatus().remaining <= 200) break; // keep plenty for members' look-ups
+    const r = await getPriceHistory(t, { bulk: true });
+    if (r.ok) added += 1;
+  }
+  return { added, missing: Math.max(0, missing.length - added) };
 }

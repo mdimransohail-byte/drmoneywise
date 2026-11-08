@@ -212,6 +212,14 @@ async function runPrices({ manual = false } = {}) {
     const n = await appendDailyCloses(full);
     if (n) console.log(`[data] Prices: ${n} chart histories brought up to date`);
   } catch (error) { console.error('[data] Chart histories:', error.message); }
+  // Price histories for the Top 10 stock lists (40 new companies a day until all are in)
+  try {
+    const { fillMissingHistories } = await import('./marketstackClient.js');
+    const { companies } = await readCompanies();
+    const us = Object.values(companies || {}).filter((c) => c?.ticker && !c.foreignFiler).map((c) => c.ticker);
+    const h = await fillMissingHistories(us, 40);
+    if (h.added || h.missing) console.log(`[data] Prices: ${h.added} price histories added for the Top 10 lists, ${h.missing} still to come`);
+  } catch (error) { console.error('[data] Price histories:', error.message); }
   // Keep a short daily history so the Pro newsletter can show the week's change
   try {
     const { savePriceSnapshot } = await import('./premiumWeekService.js');
