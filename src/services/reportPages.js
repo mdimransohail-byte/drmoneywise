@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    /reports and /reports/<YYYY-MM> — the monthly research report.
    Everyone sees the cover, the key numbers and the first paragraph of the
-   summary (written into the page). Pro members get the full report:
+   summary (written into the page). Premium members get the full report:
    public/reports.js swaps in the HTML from /api/reports/<id>.
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -49,13 +49,13 @@ function cover(r, full) {
   ].filter(Boolean).join('');
   const paras = full ? r.text.summary : r.text.summary.slice(0, 1);
   return `
-        <div class="rp-cover"><div><span class="pf-badge prem">★ Pro research</span><p class="rp-month">${esc(r.month)}${r.partial ? ` · so far, to ${esc(day(r.to))}` : ''}</p><h1>${esc(r.text.headline)}</h1></div>
+        <div class="rp-cover"><div><span class="pf-badge prem">★ Premium research</span><p class="rp-month">${esc(r.month)}${r.partial ? ` · so far, to ${esc(day(r.to))}` : ''}</p><h1>${esc(r.text.headline)}</h1></div>
           <div class="rp-stamp"><strong>${esc(r.month.split(' ')[0].slice(0, 3))}</strong><span>${esc(r.id.slice(0, 4))}</span></div></div>
         <div class="pr-tiles">${tiles}</div>
         <div class="pf-panel rp-summary"><h2>Executive summary</h2>${paras.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`;
 }
 
-/** Everything after the cover (Pro). */
+/** Everything after the cover (Premium). */
 function sections(r) {
   const d = r.data;
   const out = [];
@@ -116,11 +116,11 @@ export function reportFullHtml(r) { return cover(r, true) + sections(r); }
 
 export async function renderReportsIndex(origin) {
   const reports = await listReports();
-  const head = buildHeadTags({ title: 'Monthly research report | Dr MoneyWise', description: 'Each month in figures: the economy, commodities, bond yields, company results, dividends, what company bosses and big funds did, and the strongest report cards. For Pro members.', canonical: `${origin}/reports` });
+  const head = buildHeadTags({ title: 'Monthly research report | Dr MoneyWise', description: 'Each month in figures: the economy, commodities, bond yields, company results, dividends, what company bosses and big funds did, and the strongest report cards. For Premium members.', canonical: `${origin}/reports` });
   const body = `
       <section class="block rp-page">
         <p class="crumbs"><a href="/markets">Markets</a> › Monthly research report</p>
-        <div class="rp-cover"><div><span class="pf-badge prem">★ Pro research</span><h1>Monthly research report</h1><p class="rp-lede">Each month in figures, explained simply: the economy, commodities, bond yields, company results and dividends, what company bosses and the big funds did, and the strongest report cards. Out on the 1st of every month.</p></div></div>
+        <div class="rp-cover"><div><span class="pf-badge prem">★ Premium research</span><h1>Monthly research report</h1><p class="rp-lede">Each month in figures, explained simply: the economy, commodities, bond yields, company results and dividends, what company bosses and the big funds did, and the strongest report cards. Out on the 1st of every month.</p></div></div>
         ${reports.length ? `<div class="rp-cards">${reports.map((r, i) => `<a class="rp-card" href="/reports/${esc(r.id)}" style="--c:${PALETTE[i % PALETTE.length]}"><span>${esc(r.month)}${r.partial ? ' · so far' : ''}</span><strong>${esc(r.text.headline)}</strong><em>${esc(String(r.text.summary[0] || '').slice(0, 160))}…</em></a>`).join('')}</div>`
           : '<div class="pf-panel"><p>The first report is being prepared and will appear here soon.</p></div>'}
       </section>`;
@@ -137,7 +137,7 @@ export async function renderReportPage(origin, id) {
         <p class="crumbs"><a href="/reports">Monthly research report</a> › ${esc(r.month)}</p>
         <div id="rpApp" data-id="${esc(r.id)}">
           ${cover(r, false)}
-          <div class="pf-upsell" id="rpLock"><strong>The full report is for Pro members: ${lockedList.length} sections with charts.</strong><a class="pf-btn gold" href="/membership#plans">See Pro</a></div>
+          <div class="pf-upsell" id="rpLock"><strong>The full report is for Premium members: ${lockedList.length} sections with charts.</strong><a class="pf-btn gold" href="/membership#plans">See Premium</a></div>
           <div class="pf-panel in-locked"><h2>Inside this report</h2><ol class="rp-toc">${lockedList.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>
         </div>
       </section>

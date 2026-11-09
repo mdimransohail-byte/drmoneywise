@@ -3,8 +3,8 @@
    ───────────────────────────────────────────────────────────────────────
      beginner      Beginners   free     6 weeks
      intermediate  Intermediate      free     6 weeks
-     technical     Chart reading Plus and Pro (technical analysis) 4 weeks
-     lords         Advanced        Pro  17 weeks (weeks 9-17: the Pro Intensive)
+     technical     Chart reading Regular and Premium (technical analysis) 4 weeks
+     lords         Advanced        Premium  17 weeks (weeks 9-17: the Premium Intensive)
    Week 1 has 5 lessons, later weeks 4. Each lesson:
      id        stays the same forever (it is saved on the article)
      headline  the attention-grabbing title the article is published with
@@ -174,7 +174,7 @@ export const COURSE = {
       { id: 'lo-8-3', headline: 'Bonds, REITs and dividend shares: mixing income sources', match: 'Building an income portfolio from bonds, REITs and dividend shares' },
       { id: 'lo-8-4', headline: 'Drawing an income without running out', match: 'Withdrawal strategies in retirement: fixed, flexible and bucket approaches' },
     ] },
-    /* ── Weeks 9 to 17: the Pro Intensive ───────────────────────────
+    /* ── Weeks 9 to 17: the Premium Intensive ───────────────────────────
        Longer, worked lessons with a downloadable PDF workbook per lesson
        and per week (src/services/learnPdfService.js). "brief" tells the
        writer what the lesson must cover; "companies" (sector lessons) are

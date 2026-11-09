@@ -157,7 +157,7 @@ export async function pickEvergreenTopic({ excludeTopics = [] } = {}) {
   return { label, sampleHeadline: label, score: 1 };
 }
 
-/* ── Deeper explainers (Pro) ──────────────────────────────────────
+/* ── Deeper explainers (Premium) ──────────────────────────────────────
    For confident readers: written in the paid-tier style (second-order
    effects, what professionals watch). One is written every 3 days by the
    data engine ("deeper" job), each topic once before any repeats. */

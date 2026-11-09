@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    /technical and /technical/<TICKER> — the Chart check.
    Everyone: TradingView's live chart (with moving averages, RSI and MACD
-   drawn on) and the headline reading of the chart. Plus and Pro:
+   drawn on) and the headline reading of the chart. Regular and Premium:
    every signal, support and resistance, and our annotated chart, from
    /api/technical (public/technical.js). Linked to the Chart reading course.
    ════════════════════════════════════════════════════════════════════════ */
@@ -39,7 +39,7 @@ export async function renderTechnical(origin, raw = '') {
   const body = `
       <section class="block ta-page">
         <p class="crumbs"><a href="/tools">Tools</a> › Chart check${ticker ? ` › ${esc(ticker)}` : ''}</p>
-        <div class="ta-hero"><div><span class="pf-badge free">Free</span> <span class="pf-badge mem">Full check: Plus</span>
+        <div class="ta-hero"><div><span class="pf-badge free">Free</span> <span class="pf-badge mem">Full check: Regular</span>
           <h1>${ticker ? `${esc(name)}: chart check` : 'Chart check'}</h1>
           <p>Technical analysis looks at a share’s price chart rather than the business: which way the trend is going, how strong the moves are, and where buyers and sellers have stepped in before. We explain each sign in simple terms.</p></div>
           ${formHtml(ticker)}</div>

@@ -114,7 +114,7 @@ export const PATH_LEVELS = [
         plain: 'Your asset allocation is how you split money between shares, bonds and cash. Over time the parts that grow fastest take up more of your portfolio; rebalancing means trimming them back to your plan, perhaps once a year.',
         points: ['Your mix matters more to your results than any single pick', 'Rebalancing makes you sell high and buy low, by rule', 'Many people hold more bonds as they near retirement'],
         topic: 'Rebalancing: keeping your mix of investments on plan', words: ['Asset allocation', 'Rebalancing', 'Portfolio'],
-        tryIt: ['Check your portfolio’s health (Pro)', '/portfolio-health'],
+        tryIt: ['Check your portfolio’s health (Premium)', '/portfolio-health'],
       },
       {
         id: 'cashflow', title: 'Follow the cash, not just the profit',
@@ -128,7 +128,7 @@ export const PATH_LEVELS = [
         plain: 'Large US funds must report their holdings each quarter (Form 13F), and company bosses must report trades in their own shares within two business days (Form 4). These show what experienced investors did, though often weeks later and without their reasons.',
         points: ['Fund reports come up to 45 days after the quarter ends', 'Bosses buying with their own money is rarer than selling', 'Many sales are planned months ahead and say little'],
         topic: null, words: ['Fund manager', 'SEC', 'Buyback'],
-        tryIt: ['See company bosses’ trades (Pro)', '/insiders'],
+        tryIt: ['See company bosses’ trades (Premium)', '/insiders'],
       },
       {
         id: 'behaviour', title: 'Your own behaviour is the biggest risk',

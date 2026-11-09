@@ -88,7 +88,7 @@ async function sidebar() {
             <ul class="fa-who">
               <li><strong>Everyone</strong> can read.</li>
               <li><strong>Free account:</strong> ask questions.</li>
-              <li><strong>Plus and Pro members:</strong> reply, edit and join every conversation.</li>
+              <li><strong>Regular and Premium members:</strong> reply, edit and join every conversation.</li>
             </ul>
             <a class="fa-btn gold" href="/forum/new">Ask a question</a>
           </div>
@@ -387,7 +387,7 @@ export function renderForumRules(origin) {
         <ol>${rules.map(([h, p]) => `<li><strong>${esc(h)}.</strong> ${esc(p)}</li>`).join('')}</ol>
         <h2 class="fa-h2">How it works</h2>
         <ul>
-          <li><strong>Anyone</strong> can read. With a <strong>free account</strong> you can ask questions. <strong>Plus and Pro members</strong> can also reply and edit their posts.</li>
+          <li><strong>Anyone</strong> can read. With a <strong>free account</strong> you can ask questions. <strong>Regular and Premium members</strong> can also reply and edit their posts.</li>
           <li>New posts usually appear within seconds. Some are held for a moderator to check first.</li>
           <li>Posts reported by two readers are hidden until a moderator reviews them.</li>
           <li>Moderators may edit or remove posts and block accounts that break the rules. You are responsible for what you post (see our <a href="/terms">Terms</a>).</li>

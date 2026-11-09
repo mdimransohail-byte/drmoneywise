@@ -134,7 +134,7 @@ export async function buildSitemapXml(origin) {
   urls.push({ loc: `${origin}/insiders`, lastmod: today, priority: '0.6' });
   try {
     const { reportSitemapEntries } = await import('./reportPages.js');
-    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/advanced`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/technical`, lastmod: today, priority: '0.7' }, { loc: `${origin}/technical`, lastmod: today, priority: '0.7' }, { loc: `${origin}/health-check`, lastmod: today, priority: '0.8' }, { loc: `${origin}/guides`, lastmod: today, priority: '0.8' }, { loc: `${origin}/property/cities`, lastmod: today, priority: '0.8' }, ...(await import('./comparePages.js')).compareSitemapEntries(origin), ...(await import('./newsPages.js')).resultSitemapEntries(origin), ...(await import('./topicHubPages.js')).hubSitemapEntries(origin));
+    urls.push(...(await reportSitemapEntries(origin)), { loc: `${origin}/learn/path`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/beginners`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/intermediate`, lastmod: today, priority: '0.8' }, { loc: `${origin}/learn/advanced`, lastmod: today, priority: '0.7' }, { loc: `${origin}/learn/technical`, lastmod: today, priority: '0.7' }, { loc: `${origin}/technical`, lastmod: today, priority: '0.7' }, { loc: `${origin}/health-check`, lastmod: today, priority: '0.8' }, { loc: `${origin}/guides`, lastmod: today, priority: '0.8' }, { loc: `${origin}/property/cities`, lastmod: today, priority: '0.8' }, ...(await import('./comparePages.js')).compareSitemapEntries(origin, ((await (await import('./dataEngine.js')).readCompanies()).companies || null)), ...(await import('./newsPages.js')).resultSitemapEntries(origin), ...(await import('./topicHubPages.js')).hubSitemapEntries(origin));
   } catch (error) {
     console.error('[seo] Reports left out of sitemap:', error.message);
   }
@@ -305,7 +305,7 @@ function renderExplainItem(article, names = null, seen = null) {
           <div>
             ${lv ? `<span class="lvl-mini" style="--c:${LEVELS[lv].colour}">${escapeHtml(names[lv])}</span>` : ''}
             <h3>${escapeHtml(article.headline)}</h3>
-            <p>${escapeHtml(article.summary || '')}</p>${free ? '' : `<span class="lock-chip">${article.accessTier === 'premium' ? 'Pro' : 'Plus'} · opening free to read</span>`}
+            <p>${escapeHtml(article.summary || '')}</p>${free ? '' : `<span class="lock-chip">${article.accessTier === 'premium' ? 'Premium' : 'Regular'} · opening free to read</span>`}
           </div>
         </a>`;
 }
@@ -332,11 +332,11 @@ export async function renderLearnIndex(origin) {
       <section class="block">
         ${photoFigure(photo, 'Reading and learning about money', 'page-photo wide')}
         <div class="block-head">
-          <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with worked examples, infographics and a quick check at the end. ${articles.length} lesson${articles.length === 1 ? '' : 's'} so far, free for ${escapeHtml(names.beginner)} and ${escapeHtml(names.intermediate)}, with ${escapeHtml(names.lords)} lessons for Pro members.</p></div>
+          <div><h1 style="font-size:36px;margin:0">Explained simply</h1><p>Money ideas in everyday words, with worked examples, infographics and a quick check at the end. ${articles.length} lesson${articles.length === 1 ? '' : 's'} so far, free for ${escapeHtml(names.beginner)} and ${escapeHtml(names.intermediate)}, with ${escapeHtml(names.lords)} lessons for Premium members.</p></div>
         </div>
         ${chooser}
         ${list}
-        <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge mem">Plus</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in simple terms. Read other readers’ answers too.</span><em>Ask a question →</em></a>
+        <a class="lp-banner ak-banner" href="/ask"><span class="pf-badge mem">Regular</span><strong>Ask Dr MoneyWise</strong><span>Send us your money question and our team answers in simple terms. Read other readers’ answers too.</span><em>Ask a question →</em></a>
         <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge free">Free</span><strong>Shariah-compliant investing</strong><span>How Islamic screening works, the five main standards side by side, and Shariah funds and ETFs.</span><em>Read the guide →</em></a>
         <a class="lp-banner" href="/learn/path"><span class="pf-badge free">Free</span><strong>Your learning path</strong><span>Short steps from your first savings to running a portfolio. Tick them off as you go.</span><em>Start the path →</em></a>
         ${(await import('./newsletterPage.js')).newsletterSignupBox('learn')}
@@ -378,8 +378,8 @@ async function articleExtras(current, level, names) {
           ${more.length ? `<div class="ax-head" style="--c:${L.colour}">${levelEmblem(level, 30)}<h2>More for ${escapeHtml(names[level])}</h2><a href="/learn/${L.slug}">See the whole course →</a></div><div class="ax-cards">${more.map(card).join('')}</div>` : ''}
           <div class="ax-row">
             ${up && !up.premium ? `<a class="ax-promo" href="/learn/${up.slug}" style="--c:${up.colour}">${levelEmblem(up.id, 44)}<span><b>Ready for the next level?</b>Join the ${escapeHtml(names[up.id])}: ${escapeHtml(up.tagline.charAt(0).toLowerCase() + up.tagline.slice(1))} ${up.paid ? 'For members.' : 'Free.'}</span></a>` : ''}
-            ${level === 'lords' ? `<a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Pro: $19.99 a month or $179 a year</b>Every ${escapeHtml(names.lords)} lesson, the Financial Health Check in full, the portfolio check and no adverts.</span></a>`
-              : `<a class="ax-promo prem" href="/learn/advanced"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Join the ${escapeHtml(names.lords)}</b>Pro lessons that go deeper: valuing a company, the economy’s warning lights and advanced portfolio craft.</span></a>`}
+            ${level === 'lords' ? `<a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Premium: $19.99 a month or $179 a year</b>Every ${escapeHtml(names.lords)} lesson, the Financial Health Check in full, the portfolio check and no adverts.</span></a>`
+              : `<a class="ax-promo prem" href="/learn/advanced"><span class="ax-crown" aria-hidden="true">${crown}</span><span><b>Join the ${escapeHtml(names.lords)}</b>Premium lessons that go deeper: valuing a company, the economy’s warning lights and advanced portfolio craft.</span></a>`}
           </div>
           ${newsletterSignupBox('article')}
         </section>
@@ -388,7 +388,10 @@ async function articleExtras(current, level, names) {
 
 /* ── /learn/<slug>: one explainer with its text in the page ─────────── */
 export async function renderArticlePage(template, slug, origin) {
-  const stored = (await getPublishedLearningArticles()).find((article) => article.slug === slug);
+  // Any published article (lessons, explainers, reviews, news), so a link to one never ends in "not found"
+  await publishDueArticles();
+  const now = Date.now();
+  const stored = ((await readStore()).articles || []).find((article) => article.slug === slug && article.status === 'published' && new Date(article.publishAt || 0).getTime() <= now);
   if (!stored) {
     return null;
   }
@@ -555,21 +558,81 @@ export function renderNotFound() {
   return pageShell({ head, body, active: '' });
 }
 
-/* ── Shared header + footer for server-built pages ──────────────────── */
-export function pageShell({ head, body, active }) {
-  const nav = [
-    ['learn', '/learn', 'Learn'],
-    ['guides', '/guides', 'Guides'],
-    ['top10', '/top-10', 'Top 10s'],
-    ['markets', '/markets', 'Markets'],
-    ['property', '/property', 'Property'],
-    ['tools', '/tools', 'Tools'],
-    ...(isForumEnabled() ? [['forum', '/forum', 'Forum']] : []),
-    ['membership', '/membership', 'Membership'],
-  ];
-  const links = nav
+/* ── ONE header, menu and footer for every page ─────────────────────────
+   Server-built pages use pageShell(); the homepage and lesson pages (built
+   from public/index.html and public/article.html) get the same header and
+   footer swapped in by withSharedChrome(), so nothing can drift apart.
+   Sign-in state, the menu button and the search box are handled for every
+   page by public/nav.js (the homepage and lesson scripts add their extras). */
+const NAV = [
+  ['learn', '/learn', 'Learn'],
+  ['guides', '/guides', 'Guides'],
+  ['top10', '/top-10', 'Top 10s'],
+  ['markets', '/markets', 'Markets'],
+  ['property', '/property', 'Property'],
+  ['tools', '/tools', 'Tools'],
+  ['forum', '/forum', 'Forum'],
+  ['membership', '/membership', 'Membership'],
+];
+const TAGLINE = 'Become financially healthy, wealthy and wise.';
+
+export function siteHeader(active = '') {
+  const links = NAV.filter(([id]) => id !== 'forum' || isForumEnabled())
     .map(([id, href, label]) => `<a href="${href}"${id === active ? ' aria-current="page"' : ''}>${label}</a>`)
     .join('\n          ');
+  return `<header class="site-header">
+      <div class="wrap bar">
+        <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">${TAGLINE}</small></a>
+        <nav class="main-nav" aria-label="Main">
+          ${links}
+        </nav>
+        <label class="header-search">
+          <span class="sr-only">Search a company or topic</span>
+          <input id="headerSearchInput" type="search" placeholder="Search a company or topic" autocomplete="off" data-suggest="go" />
+        </label>
+        <div class="header-actions">
+          <span id="memberBadge" class="member-badge"></span>
+          <a id="headerSignInButton" class="pill-gold" href="/#join">Sign in</a>
+          <button id="signOutButton" class="pill-ghost hidden" type="button">Sign out</button>
+          <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobileNav">Menu</button>
+        </div>
+      </div>
+      <nav id="mobileNav" class="mobile-nav" aria-label="Main">
+        ${links}
+      </nav>
+    </header>`;
+}
+
+export function siteFooter() {
+  return `<footer class="site-footer">
+      <div class="wrap">
+        <div class="foot-grid">
+          <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">${TAGLINE}</small></a>
+          <div class="foot-links">
+            <a href="/about">About us</a>
+            <a href="/how-we-work">How we work</a>
+            <a href="/contact">Contact</a>
+            <a href="/disclaimer">Disclaimer</a>
+            <a href="/newsletter">Newsletter</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+          </div>
+        </div>
+        <nav class="foot-topics" aria-label="Guides"><a href="/learn/beginners">Beginners course</a><a href="/learn/intermediate">Intermediate course</a><a href="/health-check">Financial Health Check</a><a href="/personal-finance">Personal finance</a><a href="/retirement">Retirement</a><a href="/child-education">Child’s education</a><a href="/insurance">Insurance</a><a href="/currencies">Currencies</a><a href="/commodities">Commodities</a><a href="/shariah">Shariah investing</a><a href="/shariah/islamic-finance">Islamic finance</a><a href="/top-10">Top 10 lists</a><a href="/tools">Calculators</a><a href="/glossary">Money words</a></nav>
+        <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
+        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the World Bank, the BIS, the OECD, HM Land Registry and the European Central Bank (exchange rates). Share prices from Marketstack. Charts and the price ticker by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>. <a href="/how-we-work">How we check our data</a>.</p>
+      </div>
+    </footer>`;
+}
+
+/** Swap the header and footer of a template page for the shared ones. */
+export function withSharedChrome(html, active = '') {
+  return String(html)
+    .replace(/<header class="site-header">[\s\S]*?<\/header>/u, siteHeader(active))
+    .replace(/<footer class="site-footer">[\s\S]*?<\/footer>/u, siteFooter());
+}
+
+export function pageShell({ head, body, active }) {
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -579,50 +642,20 @@ export function pageShell({ head, body, active }) {
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <header class="site-header">
-      <div class="wrap bar">
-        <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Become financially healthy, wealthy and wise.</small></a>
-        <nav class="main-nav" aria-label="Main">
-          ${links}
-        </nav>
-        <div class="header-actions">
-          <a class="pill-gold" href="/#join" onclick="try{sessionStorage.setItem('dmw-back',location.pathname+location.search)}catch(e){}">Sign in</a>
-          <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobileNav" onclick="var n=document.getElementById('mobileNav');var o=n.classList.toggle('open');this.setAttribute('aria-expanded',o);this.textContent=o?'Close':'Menu';">Menu</button>
-        </div>
-      </div>
-      <nav id="mobileNav" class="mobile-nav" aria-label="Main">
-        ${links}
-      </nav>
-    </header>
+    ${siteHeader(active)}
     <div id="resultsStrip" class="rs-strip" hidden></div>
     <div id="tickerBar" class="tk-bar" aria-label="Live prices"></div>
     <main>
       <div class="wrap">${adSlot('top-banner')}${body}
       </div>
     </main>
-    <footer class="site-footer">
-      <div class="wrap">
-        <div class="foot-grid">
-          <a class="brand" href="/">Dr MoneyWise<small class="brand-tag">Become financially healthy, wealthy and wise.</small></a>
-          <div class="foot-links">
-            <a href="/about">About us</a>
-            <a href="/contact">Contact</a>
-            <a href="/disclaimer">Disclaimer</a>
-            <a href="/newsletter">Newsletter</a>
-            <a href="/privacy">Privacy</a>
-            <a href="/terms">Terms</a>
-          </div>
-        </div>
-        <nav class="foot-topics" aria-label="Guides"><a href="/learn/beginners">Beginners course</a><a href="/learn/intermediate">Intermediate course</a><a href="/health-check">Financial Health Check</a><a href="/personal-finance">Personal finance</a><a href="/retirement">Retirement</a><a href="/child-education">Child’s education</a><a href="/insurance">Insurance</a><a href="/currencies">Currencies</a><a href="/commodities">Commodities</a><a href="/shariah">Shariah investing</a><a href="/tools">Calculators</a><a href="/glossary">Money words</a></nav>
-        <p class="disclaimer">Dr MoneyWise is for education only and is not financial advice. Investing involves risk, including losing money. Prices may be delayed. Talk to a licensed adviser before making decisions.</p>
-        <p class="foot-credits">Data from official sources: US SEC filings, US Bureau of Labor Statistics, New York Fed, US Treasury, Freddie Mac, the World Bank, the BIS, the OECD, HM Land Registry and the European Central Bank (exchange rates). Charts, prices and news by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>. Photos from <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a>. <a href="https://logo.dev" target="_blank" rel="noopener">Logos provided by Logo.dev</a>.</p>
-      </div>
-    </footer>
+    ${siteFooter()}
     ${adSlot('bottom-strip')}
     ${AD_SCRIPT}
     <script src="/results.js" defer></script>
       <script src="/tickerbar.js" defer></script>
       <script src="/track.js" defer></script>
+      <script src="/suggest.js" defer></script>
       <script src="/nav.js" defer></script>
   </body>
 </html>

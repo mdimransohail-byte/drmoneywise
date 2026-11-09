@@ -140,7 +140,7 @@ export function renderIslamicFinance(origin) {
 
         <h2 id="investing"><span class="ifp-lvl" style="--c:#eda100">Level 3</span> Investing the halal way</h2>
         <div class="ifp-invest">${INVESTING.map((x) => `<div style="--c:${x.c}"><h3>${esc(x.t)}</h3>${x.p.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`).join('')}</div>
-        <div class="pf-panel ifp-example"><h3>Worked example: purification</h3><p>You receive <b>$200</b> of dividends from a company that earns <b>3%</b> of its income from interest. You give <b>3% × $200 = $6</b> to charity. Pro members see an estimate for each company on our Shariah market pages.</p></div>
+        <div class="pf-panel ifp-example"><h3>Worked example: purification</h3><p>You receive <b>$200</b> of dividends from a company that earns <b>3%</b> of its income from interest. You give <b>3% × $200 = $6</b> to charity. Premium members see an estimate for each company on our Shariah market pages.</p></div>
         <p class="ifp-links"><a class="pf-btn gold" href="/shariah">Which companies pass each standard</a> <a class="pf-btn" href="/shariah/funds">Shariah funds and ETFs</a></p>
 
         <h2 id="advanced"><span class="ifp-lvl" style="--c:#6250d6">Level 4</span> Advanced topics and debates</h2>

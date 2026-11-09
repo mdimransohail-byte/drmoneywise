@@ -247,7 +247,11 @@ export function economyTilesHtml({ title, figures = [], source = '' }) {
   const tiles = figures.map((fig) => {
     const diff = fig.previous === null || fig.previous === undefined ? null : fig.value - fig.previous;
     const move = diff === null || fmt(fig, fig.value) === fmt(fig, fig.previous) ? '● No change' : diff > 0 ? `▲ Up from ${fmt(fig, fig.previous)}` : `▼ Down from ${fmt(fig, fig.previous)}`;
-    return `<div class="ig-tile"><span>${esc(fig.label)}</span><strong>${esc(fmt(fig, fig.value))}</strong><small>${esc(move)}</small></div>`;
+    // Every figure shows the period it covers; out-of-date ones say so
+    const q = fig.quality || {};
+    const when = q.period ? `<em class="ig-when">${esc(q.freq === 'monthly' ? 'Monthly figure' : q.freq === 'weekly' ? 'Weekly figure' : 'Daily figure')} · ${esc(q.period)}</em>` : '';
+    const stale = q.status === 'stale' ? `<em class="ig-stale">Not updated: ${esc(q.reason)}</em>` : '';
+    return `<div class="ig-tile${q.status === 'stale' ? ' is-stale' : ''}"><span>${esc(fig.label)}</span><strong>${esc(fmt(fig, fig.value))}</strong><small>${esc(move)}</small>${when}${stale}</div>`;
   }).join('');
   return figureWrap(`<div class="ig-tiles">${tiles}</div>`, { title, subtitle: '', source });
 }

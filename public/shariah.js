@@ -1,4 +1,4 @@
-/* /shariah/<market>: filter buttons (everyone) and, for Pro members,
+/* /shariah/<market>: filter buttons (everyone) and, for Premium members,
    each company's ratios and the share of dividends to give to charity. */
 (function () {
   var table = document.querySelector('[data-sh-market]');

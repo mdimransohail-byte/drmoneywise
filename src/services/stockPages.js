@@ -153,8 +153,10 @@ export function companyLogo(company, name, size = 'lg') {
 /* ── Sector top 10s ─────────────────────────────────────────────────── */
 function priceText(p) {
   if (!p?.price) return '—';
-  const day = p.date ? new Date(p.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '';
-  return `$${p.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${day ? `<small>${esc(day)} close</small>` : ''}`;
+  const day = p.date ? new Date(p.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '';
+  // A price more than 5 days old is labelled as such, never shown as current
+  const stale = !p.date || (Date.now() - new Date(p.date).getTime()) > 5 * 86400000;
+  return `$${p.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${day ? `<small${stale ? ' class="price-stale"' : ''}>${stale ? `Not updated · last close ${esc(day)}` : `${esc(day)} close`}</small>` : ''}`;
 }
 
 /** Top 10 of one sector: by market value when we have prices, else by sales. */
@@ -350,7 +352,7 @@ export async function renderStockPage(origin, rawTicker) {
               <h2>In simple terms</h2>
               <p>${esc(plainEnglishSummary(company))}</p>
             </div>
-            ${compareLinksHtml(ticker)}
+            ${compareLinksHtml(ticker, pool)}
             <p class="st-links"><a class="pf-btn ghost" href="/screener?${region ? `region=${encodeURIComponent(region.id)}` : `sector=${encodeURIComponent(sector?.name || '')}`}">Find similar companies in the screener</a>${company.foreignFiler ? '' : ' <a class="pf-btn ghost" href="#insidersBox">Company bosses’ trades</a>'}</p>
             ${dividendRank >= 0 ? `<p class="note-box" style="margin-top:12px">Number ${dividendRank + 1} on this month's <a href="/top-10/dividend-stocks">Top 10 dividend stocks</a>.</p>` : ''}
           </div>
@@ -387,7 +389,7 @@ export async function renderStockPage(origin, rawTicker) {
       </section>
 
       <section class="block members-box" id="membersFinancials" data-ticker="${esc(ticker)}">
-        <div class="block-head"><div><h2>Deeper look <span class="members-badge">Plus</span></h2>
+        <div class="block-head"><div><h2>Deeper look <span class="members-badge">Regular</span></h2>
           <p>What the big funds are doing, "what if" growth scenarios, and ten years of results from ${esc(name)}'s official filings.</p></div></div>
         <div id="membersContent" class="members-teaser">
           <ul class="plain-list">

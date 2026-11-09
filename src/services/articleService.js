@@ -461,9 +461,23 @@ export async function saveAdminArticle(payload) {
     updatedAt: new Date().toISOString(),
   };
 
+  // Never publish an article that links to one of our pages that doesn't exist:
+  // it stays a draft, with the missing addresses listed (Admin → Article Inventory)
+  if (['published', 'scheduled'].includes(nextArticle.status)) {
+    try {
+      const { missingLinks } = await import('./linkAuditService.js');
+      const missing = await missingLinks(nextArticle);
+      if (missing.length) { nextArticle.status = 'draft'; nextArticle.linkProblems = missing; nextArticle.holdReason = `Kept as a draft: it links to ${missing.length === 1 ? 'a page that doesn’t' : 'pages that don’t'} exist (${missing.join(', ')}). Fix the link${missing.length === 1 ? '' : 's'}, then publish.`; }
+      else { nextArticle.linkProblems = []; }
+    } catch (error) { console.error('[articles] Link check skipped:', error.message); }
+  }
+
   await updateStore((store) => {
     const index = store.articles.findIndex((article) => article.id === nextArticle.id || article.slug === nextArticle.slug);
     if (index >= 0) {
+      // Address changed: keep the old one so links to it still work (server.js redirects)
+      const prev = store.articles[index];
+      if (prev.slug && prev.slug !== nextArticle.slug) nextArticle.oldSlugs = [...new Set([...(prev.oldSlugs || []), prev.slug])].filter((x) => x !== nextArticle.slug);
       store.articles[index] = {
         ...store.articles[index],
         ...nextArticle,
@@ -752,7 +766,7 @@ function learnFields(generated, level) {
     chart: generated.chart || { points: [] },
     format: sections ? 2 : 1,
     readingTime: `${Math.max(3, Math.round(wordsCount / 200))} min read`,
-    styleVersion: 2, // 2 = the simpler Pro style (Nov 2026); older Advanced lessons are rewritten in it
+    styleVersion: 2, // 2 = the simpler Premium style (Nov 2026); older Advanced lessons are rewritten in it
   };
 }
 
@@ -775,8 +789,8 @@ function toFullArticle(article, plan) {
     lockedMessage: accessible
       ? ''
       : article.accessTier === 'premium'
-        ? 'Upgrade to Pro to read the full article, visual breakdown, and learning extras.'
-        : 'Upgrade to Plus or Pro to read the full article and member extras.',
+        ? 'Upgrade to Premium to read the full article, visual breakdown, and learning extras.'
+        : 'Upgrade to Regular or Premium to read the full article and member extras.',
     visibleSections: accessible ? sections : sections.slice(0, 1),
     visibleTakeaways,
     visibleJargon: accessible ? article.jargonBuster || [] : (article.jargonBuster || []).slice(0, 1),
@@ -848,7 +862,7 @@ export async function runLearningAutopilot() {
    One per autopilot run: the oldest free explainer still in the short
    three-part format is written again (same web address, same headline,
    same photo). If the rewrite fails the checks, the old text stays. */
-/* Lessons are also kept fresh: Plus and Pro lessons are written again
+/* Lessons are also kept fresh: Regular and Premium lessons are written again
    with up-to-date examples and figures 6 months after they were last
    written, free lessons after 12 months (same web address and headline). */
 const MONTH = 30.44 * 86400000;
@@ -897,8 +911,8 @@ export async function upgradeOldLearningArticle() {
   return fields ? old.headline : null;
 }
 
-/* ── Deeper explainers (Pro) — data engine job "deeper" ──────────────
-   Writes one Pro explainer from DEEPER_TOPICS (src/data/explainerTopics.js)
+/* ── Deeper explainers (Premium) — data engine job "deeper" ──────────────
+   Writes one Premium explainer from DEEPER_TOPICS (src/data/explainerTopics.js)
    in the paid-tier style. Topics are used once before any repeats; quality
    checks decide whether it goes live or waits as a draft. */
 /** What the writer is told about a course lesson: headline, scope, must-cover points and (sector lessons) real figures. */
@@ -981,16 +995,16 @@ export async function writeDeeperExplainer() {
     return s2;
   });
   try { await attachPexelsImage(saved.id, generated.headline); } catch (error) { console.error('[articleService] Photo for deeper explainer failed:', error.message); }
-  return { ok: true, message: quality.ok ? `Written: "${generated.headline}" (Pro)` : `Written but held as a draft for a read: "${generated.headline}" (${quality.issues.join('; ')})` };
+  return { ok: true, message: quality.ok ? `Written: "${generated.headline}" (Premium)` : `Written but held as a draft for a read: "${generated.headline}" (${quality.issues.join('; ')})` };
 }
 
 
-/* ── Market review every two weeks (Pro) — data engine job "review" ──
+/* ── Market review every two weeks (Premium) — data engine job "review" ──
    Trends, sectors and themes from the last 14 days, written only from our
    own figures: share indexes and sector funds (daily prices), the economy,
    commodities, bond yields, results, dividends and bosses' trades. Every
    number is checked against those figures; if any doesn't match, the review
-   waits as a draft for a read in Admin. Featured in the Pro newsletter. */
+   waits as a draft for a read in Admin. Featured in the Premium newsletter. */
 const REVIEW_FUNDS = [
   ['SPY', 'S&P 500 (large US companies)', 'index'], ['QQQ', 'Nasdaq 100 (big technology companies)', 'index'], ['DIA', 'Dow Jones (30 US giants)', 'index'], ['IWM', 'Russell 2000 (smaller US companies)', 'index'],
   ['XLK', 'Technology', 'sector'], ['XLF', 'Banks and finance', 'sector'], ['XLE', 'Energy', 'sector'], ['XLV', 'Healthcare', 'sector'], ['XLY', 'Shops, cars and leisure', 'sector'],

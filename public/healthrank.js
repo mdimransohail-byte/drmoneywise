@@ -1,6 +1,6 @@
-/* Financial Health Check: Pro members see the company's place in its
+/* Financial Health Check: Premium members see the company's place in its
    industry, check by check (from /api/health/rank). Everyone else keeps the
-   "See Pro" box that the page already shows. */
+   "See Premium" box that the page already shows. */
 (function () {
   var box = document.querySelector('[data-health-rank]');
   if (!box) return;
@@ -21,7 +21,7 @@
       }).join('');
       var peers = r.peers.map(function (p, i) { return '<li><a href="/stock/' + encodeURIComponent(p.ticker) + '#healthCheck">' + (i + 1) + '. ' + esc(p.name) + '</a> <b>' + p.score + '</b></li>'; }).join('');
       box.className = 'fh-rank open';
-      box.innerHTML = '<div class="fh-rank-head"><span class="pf-badge prem">Pro</span><h3>Number ' + r.position + ' of ' + r.of + ' in ' + esc(r.group) + '</h3><p>Industry average score: ' + r.average + '/100.</p></div>' +
+      box.innerHTML = '<div class="fh-rank-head"><span class="pf-badge prem">Premium</span><h3>Number ' + r.position + ' of ' + r.of + ' in ' + esc(r.group) + '</h3><p>Industry average score: ' + r.average + '/100.</p></div>' +
         '<div class="fh-rank-grid"><table class="fh-cmp"><thead><tr><th>Check</th><th>This company</th><th>Industry average</th></tr></thead><tbody>' + rows + '</tbody></table>' +
         '<ol class="fh-peers">' + peers + '</ol></div>';
     })

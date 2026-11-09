@@ -229,7 +229,7 @@ function showShell() {
     const n = qs('#sideUserName');
     const p = qs('#sideUserPlan');
     if (n) n.textContent = STATE.user.name || 'Admin';
-    if (p) p.textContent = ({ free: 'Free', regular: 'Plus', premium: 'Pro' })[STATE.user.plan] || 'Admin';
+    if (p) p.textContent = ({ free: 'Free', regular: 'Regular', premium: 'Premium' })[STATE.user.plan] || 'Admin';
   }
 }
 
@@ -736,8 +736,8 @@ function render_writer() {
             <label class="field" for="wrTier">Access tier</label>
             <select id="wrTier">
               <option value="free"    ${STATE.writerTier==='free'    ?'selected':''}>Free</option>
-              <option value="regular" ${STATE.writerTier==='regular' ?'selected':''}>Plus</option>
-              <option value="premium" ${STATE.writerTier==='premium' ?'selected':''}>Pro</option>
+              <option value="regular" ${STATE.writerTier==='regular' ?'selected':''}>Regular</option>
+              <option value="premium" ${STATE.writerTier==='premium' ?'selected':''}>Premium</option>
             </select>
           </div>
           <div>
@@ -804,7 +804,7 @@ function render_guestCard() {
         <div><label class="field" for="gMode">How to publish</label>
           <select id="gMode"><option value="simplify" ${g.mode !== 'verbatim' ? 'selected' : ''}>Simplify into our style</option><option value="verbatim" ${g.mode === 'verbatim' ? 'selected' : ''}>Publish as written (word for word)</option></select></div>
         <div><label class="field" for="gTier">Who can read it</label>
-          <select id="gTier"><option value="free" ${g.tier === 'free' ? 'selected' : ''}>Free</option><option value="regular" ${g.tier === 'regular' ? 'selected' : ''}>Plus</option><option value="premium" ${g.tier === 'premium' ? 'selected' : ''}>Pro</option></select></div>
+          <select id="gTier"><option value="free" ${g.tier === 'free' ? 'selected' : ''}>Free</option><option value="regular" ${g.tier === 'regular' ? 'selected' : ''}>Regular</option><option value="premium" ${g.tier === 'premium' ? 'selected' : ''}>Premium</option></select></div>
         <div><label class="field" for="gStatus">When saved</label>
           <select id="gStatus"><option value="draft" ${g.status !== 'published' ? 'selected' : ''}>Keep as a draft so I can read it first</option><option value="published" ${g.status === 'published' ? 'selected' : ''}>Publish straight away</option></select></div>
       </div>
@@ -932,7 +932,7 @@ function bind_writer() {
 
   qs('#addGammaBtn')?.addEventListener('click', async () => {
     if (!STATE.generatedArticle) return;
-    const proceed = confirm('Generating a Gamma infographic can take 1-2 minutes and uses your Gamma Pro plan credits. Continue?');
+    const proceed = confirm('Generating a Gamma infographic can take 1-2 minutes and uses your Gamma Premium plan credits. Continue?');
     if (!proceed) return;
     STATE.visualBusy = true;
     STATE.visualStatus = 'Generating infographic with Gamma — this can take up to 2 minutes…';
@@ -1077,6 +1077,7 @@ function render_inventory() {
           </div>
           <h4>${h(a.headline)}</h4>
           ${(a.qualityIssues || []).length ? `<p style="font-size:.7rem;color:#a86200;margin:2px 0 6px">⚠ Held: ${h(a.qualityIssues.join('; '))}</p>` : ''}
+          ${(a.linkProblems || []).length && a.status === 'draft' ? `<p style="font-size:.7rem;color:#c62f3f;margin:2px 0 6px">⚠ Not published: links to page${a.linkProblems.length === 1 ? '' : 's'} that don’t exist: ${h(a.linkProblems.join(', '))}</p>` : ''}
 
           <div class="yt-row">
             <span style="font-size:1rem">▶</span>
@@ -1287,10 +1288,10 @@ const apiRows = [
   ];
 
   const stripeRows = [
-    { l: 'Plus Monthly',  k: 'stripeRegularMonthly' },
-    { l: 'Plus Annual',   k: 'stripeRegularAnnual'  },
-    { l: 'Pro Monthly',  k: 'stripePremiumMonthly' },
-    { l: 'Pro Annual',   k: 'stripePremiumAnnual'  },
+    { l: 'Regular Monthly',  k: 'stripeRegularMonthly' },
+    { l: 'Regular Annual',   k: 'stripeRegularAnnual'  },
+    { l: 'Premium Monthly',  k: 'stripePremiumMonthly' },
+    { l: 'Premium Annual',   k: 'stripePremiumAnnual'  },
   ];
 
   return `
@@ -1326,7 +1327,7 @@ const apiRows = [
           <p class="api-hint" style="margin:0 0 8px">The three course levels on /learn. Change the names any time; the web addresses (/learn/beginners, /learn/intermediate, /learn/advanced) stay the same.</p>
           <div class="api-row"><div class="api-dot" style="background:#1baf7a"></div><div class="api-label">Beginners (free)<div class="api-hint">default: Beginners</div></div><div class="api-val"><input id="lvlBeginner" maxlength="30" placeholder="Beginners"/></div></div>
           <div class="api-row"><div class="api-dot" style="background:#2a78d6"></div><div class="api-label">Mid-level (free)<div class="api-hint">default: Intermediate</div></div><div class="api-val"><input id="lvlIntermediate" maxlength="30" placeholder="Intermediate"/></div></div>
-          <div class="api-row"><div class="api-dot" style="background:#c9a227"></div><div class="api-label">Advanced (Pro)<div class="api-hint">default: Advanced</div></div><div class="api-val"><input id="lvlAdvanced" maxlength="30" placeholder="Advanced"/></div></div>
+          <div class="api-row"><div class="api-dot" style="background:#c9a227"></div><div class="api-label">Advanced (Premium)<div class="api-hint">default: Advanced</div></div><div class="api-val"><input id="lvlAdvanced" maxlength="30" placeholder="Advanced"/></div></div>
           <button class="btn btn-rose btn-sm" id="saveLvlBtn" style="margin-top:10px">Save names</button>
           <div id="lvlMsg" style="font-size:.72rem;color:#0f8a5a;margin-top:7px;min-height:16px"></div>
         </div>
@@ -1413,8 +1414,8 @@ const apiRows = [
               <div class="field">Applies to</div>
               <select id="newCouponScope">
                 <option value="all">All plans</option>
-                <option value="regular">Plus</option>
-                <option value="premium">Pro</option>
+                <option value="regular">Regular</option>
+                <option value="premium">Premium</option>
               </select>
             </div>
             <button class="btn btn-gold btn-sm" id="addCouponBtn" style="align-self:end">+ Add</button>
@@ -2009,7 +2010,7 @@ function render_ads() {
       <p>Spaces for adverts and affiliate links. Everything is off until you switch it on. Every ad is labelled "Advertisement" or "Partner offer" on the site.</p>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <label style="display:flex;gap:8px;align-items:center;font-size:.8rem;color:#2c3650"><input type="checkbox" id="adsHideMembers" ${set.hideForMembers !== false ? 'checked' : ''} style="width:auto"> Hide all ads from Pro members (a Pro benefit)</label>
+      <label style="display:flex;gap:8px;align-items:center;font-size:.8rem;color:#2c3650"><input type="checkbox" id="adsHideMembers" ${set.hideForMembers !== false ? 'checked' : ''} style="width:auto"> Hide all ads from Premium members (a Premium benefit)</label>
       <p style="font-size:.72rem;color:#a86200;margin:8px 0 0">Before switching on an ad network such as Google AdSense: those networks use cookies, so readers in the UK and Europe must be asked first (a cookie banner), which can be added when you are ready. Your own banners and partner links need no banner.</p>
     </div>
     <div class="card-grid two-col">${(a.slots || []).map(slotCard).join('')}</div>
@@ -2171,7 +2172,7 @@ function render_newsletter() {
     <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
       ${tile(st.counts.everyone || 0, 'Would get it (everyone)', '#c9a227')}
       ${tile(st.counts.members || 0, 'Members with it switched on', '#2a78d6')}
-      ${tile(st.subscribers.active || 0, `Confirmed subscribers${st.subscribers.byPlan ? ` (Free ${st.subscribers.byPlan.free || 0} · Plus ${st.subscribers.byPlan.regular || 0} · Pro ${st.subscribers.byPlan.premium || 0})` : ''}`, '#0f8a5a')}
+      ${tile(st.subscribers.active || 0, `Confirmed subscribers${st.subscribers.byPlan ? ` (Free ${st.subscribers.byPlan.free || 0} · Regular ${st.subscribers.byPlan.regular || 0} · Premium ${st.subscribers.byPlan.premium || 0})` : ''}`, '#0f8a5a')}
       ${tile(st.subscribers.pending || 0, 'Waiting to confirm', '#a86200')}
       ${tile((st.subscribers.unsubscribed || 0) + (st.membersOptedOut || 0), 'Unsubscribed', '#c62f3f')}
       ${tile(st.sentToday || 0, `Sent today (limit ${fmtNum(st.dailyLimit)})`, '#3cb5c4')}
@@ -2188,13 +2189,13 @@ function render_newsletter() {
         <div id="nlItems">${(ed.items || []).map(itemRow).join('')}</div>
         <button class="btn" data-nl="add">+ Add a story</button>
         <label style="margin-top:10px"><span class="field">Closing words</span><textarea name="closing" rows="3" maxlength="2000">${h(ed.closing)}</textarea></label>
-        <label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:.78rem;color:#2c3650"><input type="checkbox" name="premiumSection" ${ed.premiumSection !== false ? 'checked' : ''} style="width:auto;margin-top:2px"> <span>Add each Pro member's own section: their portfolio's week, their companies' news, results expected in the coming week and Pro extras</span></label>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:.78rem;color:#2c3650"><input type="checkbox" name="premiumSection" ${ed.premiumSection !== false ? 'checked' : ''} style="width:auto;margin-top:2px"> <span>Add each Premium member's own section: their portfolio's week, their companies' news, results expected in the coming week and Premium extras</span></label>
         <label style="display:block;margin:8px 0"><span class="field">Send to</span><select name="audience">${Object.entries(d.audiences).map(([k, v]) => `<option value="${k}" ${ed.audience === k ? 'selected' : ''}>${h(v)} — ${fmtNum(st.counts[k] || 0)} people</option>`).join('')}</select></label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
           ${locked ? '' : `<button class="btn" data-nl="save">Save draft</button>
           <button class="btn" data-nl="preview">Preview</button>
           <button class="btn" data-nl="test">Send me a test</button>
-          <button class="btn" data-nl="testp">Send me a test (Pro version)</button>
+          <button class="btn" data-nl="testp">Send me a test (Premium version)</button>
           <button class="btn btn-gold" data-nl="send">Send to everyone chosen</button>`}
           <span id="nlMsg" style="font-size:.76rem"></span>
         </div>
@@ -2207,9 +2208,9 @@ function render_newsletter() {
           <textarea class="input" id="nlPeople" rows="4" placeholder="friend@example.com, colleague@example.com"></textarea>
           <div style="margin-top:8px"><span class="field">Which newsletter do they get?</span>
             <div id="nlPlan" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-              ${[['free', 'Free', '#0f8a5a'], ['regular', 'Plus', '#4f9eff'], ['premium', 'Pro', '#c9a227']].map(([v, l, c], i) => `<label style="display:flex;align-items:center;gap:6px;border:1.5px solid ${c};border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.8rem"><input type="radio" name="nlPlan" value="${v}" ${i === 0 ? 'checked' : ''}/> ${l}</label>`).join('')}
+              ${[['free', 'Free', '#0f8a5a'], ['regular', 'Regular', '#4f9eff'], ['premium', 'Premium', '#c9a227']].map(([v, l, c], i) => `<label style="display:flex;align-items:center;gap:6px;border:1.5px solid ${c};border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.8rem"><input type="radio" name="nlPlan" value="${v}" ${i === 0 ? 'checked' : ''}/> ${l}</label>`).join('')}
             </div>
-            <p style="font-size:.7rem;color:#4a5570;margin:6px 0 0"><b>Free:</b> the normal newsletter. <b>Plus:</b> also included when you send to "Plus and Pro". <b>Pro:</b> also gets the Pro section and is included when you send to "Pro only". This is for the newsletter only; it doesn't give them a website login. Already-subscribed people get the new plan; members keep the plan on their account (change it in Users).</p>
+            <p style="font-size:.7rem;color:#4a5570;margin:6px 0 0"><b>Free:</b> the normal newsletter. <b>Regular:</b> also included when you send to "Regular and Premium". <b>Premium:</b> also gets the Premium section and is included when you send to "Premium only". This is for the newsletter only; it doesn't give them a website login. Already-subscribed people get the new plan; members keep the plan on their account (change it in Users).</p>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
             <button class="btn btn-gold" data-nl="once">Send the newsletter on the left once</button>
@@ -2220,7 +2221,7 @@ function render_newsletter() {
           <p style="font-size:.7rem;color:#4a5570;margin-top:8px"><b>Once:</b> they get this one email only and aren't added to the list. <b>Invite:</b> they get a "please confirm" email and join only if they click it. <b>Gift:</b> they're added straight away and get a short email saying someone gave them the newsletter, with an unsubscribe link. Only gift it to people you know would welcome it.</p>
         </div>
         <div class="card" style="border-left:5px solid #1baf7a"><h2 style="margin-top:0">Automatic Saturday newsletter</h2>
-          <p style="font-size:.8rem">Every Saturday morning the one newsletter builds itself from the site and goes to everyone: company results and business news first, then charts of the week (the stock market this year, the Big Seven, the economy), then the week’s lessons. Free and Plus readers get the same email; Pro readers also get their own section with more data. You get a copy by email. (There is no separate weekly members’ email any more.)</p>
+          <p style="font-size:.8rem">Every Saturday morning the one newsletter builds itself from the site and goes to everyone: company results and business news first, then charts of the week (the stock market this year, the Big Seven, the economy), then the week’s lessons. Free and Regular readers get the same email; Premium readers also get their own section with more data. You get a copy by email. (There is no separate weekly members’ email any more.)</p>
           <label style="display:flex;gap:8px;align-items:center;margin:8px 0;font-weight:600"><input type="checkbox" name="nlAuto" ${st.autoNewsletter !== false ? 'checked' : ''}> Send automatically every Saturday</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-green" data-nl="auto">Save</button><button class="btn" data-nl="auto-now" title="Builds and sends this week’s issue now, even if it isn’t Saturday">Build and send this week’s issue now</button></div>
         </div>
@@ -2299,7 +2300,7 @@ function bind_newsletter() {
       }
       if (act === 'save') { await saveDraft(); await redraw(); qs('#nlMsg').textContent = 'Draft saved.'; return; }
       if (act === 'preview') { await nlPreview(); say('Preview updated.'); }
-      if (act === 'testp') { const issue = await saveDraft(); const r = await API.nlPost('test', { id: issue.id, premium: true }); say(r.ok ? 'Pro test sent to your admin email.' : `Test failed: ${r.message}`, !r.ok); }
+      if (act === 'testp') { const issue = await saveDraft(); const r = await API.nlPost('test', { id: issue.id, premium: true }); say(r.ok ? 'Premium test sent to your admin email.' : `Test failed: ${r.message}`, !r.ok); }
       if (act === 'test') { const issue = await saveDraft(); const r = await API.nlPost('test', { id: issue.id }); say(r.ok ? 'Test sent to your admin email.' : `Test failed: ${r.message}`, !r.ok); }
       if (act === 'send') {
         const cur = nlRead();
@@ -2329,7 +2330,7 @@ function bind_newsletter() {
         } else {
           const plan = (qs('input[name=nlPlan]:checked') || {}).value || 'free';
           r = await API.nlPost('add-people', { emails, mode: act, plan });
-          const planName = { free: 'Free', regular: 'Plus', premium: 'Pro' }[plan];
+          const planName = { free: 'Free', regular: 'Regular', premium: 'Premium' }[plan];
           text = act === 'gift' ? `${r.added} added as ${planName} and told about their gift.` : `${r.invited} invited to confirm (as ${planName}).`;
           if (r.updated) text += ` ${r.updated} already on the list, moved to ${planName}.`;
           if (r.already) text += ` ${r.already} already on the list as ${planName}.`;
@@ -2784,7 +2785,7 @@ function bind_video() {
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// PAGE: OFFERS — the homepage pop-up, the free Pro trial, welcome emails
+// PAGE: OFFERS — the homepage pop-up, the free Premium trial, welcome emails
 // ════════════════════════════════════════════════════════════════════════════
 async function load_offers() {
   try { STATE.offers = await API.get('/api/admin/offers'); } catch (e) { STATE.offers = { error: e.message }; }
@@ -2803,7 +2804,7 @@ function render_offers() {
     <div class="pg-head">
       <div class="eyebrow" style="--ac:#e8730c">Growth</div>
       <h1>Offers</h1>
-      <p>A discount pop-up on the homepage for any occasion, the free Pro trial, and the welcome emails for new members.</p>
+      <p>A discount pop-up on the homepage for any occasion, the free Premium trial, and the welcome emails for new members.</p>
     </div>
 
     <div class="card">
@@ -2812,7 +2813,7 @@ function render_offers() {
       <div class="form-gap">
         <label><span class="field">Occasion</span><select class="input" name="ofOccasion">${Object.entries(occ).map(([k, v]) => `<option value="${k}" ${k === p.occasion ? 'selected' : ''}>${h(v)}</option>`).join('')}</select></label>
         <div class="form-row">
-          <label><span class="field">Discount on Pro (%)</span><input class="input" type="number" name="ofPercent" min="5" max="80" value="${h(p.percent || 20)}"></label>
+          <label><span class="field">Discount on Premium (%)</span><input class="input" type="number" name="ofPercent" min="5" max="80" value="${h(p.percent || 20)}"></label>
           <label><span class="field">Discount code</span><input class="input" name="ofCode" maxlength="20" value="${h(p.code || '')}" placeholder="e.g. RAMADAN20 (made for you if empty)"></label>
         </div>
         <div class="form-row">
@@ -2821,7 +2822,7 @@ function render_offers() {
         </div>
         <label><span class="field">How long the discount lasts</span><select class="input" name="ofDuration"><option value="once" ${p.duration !== 'forever' ? 'selected' : ''}>First payment only (first month, or first year on yearly)</option><option value="forever" ${p.duration === 'forever' ? 'selected' : ''}>Every payment, for as long as they stay</option></select></label>
         <label><span class="field">Headline</span><input class="input" name="ofHeadline" maxlength="70" value="${h(p.headline || '')}" placeholder="e.g. Ramadan offer"></label>
-        <label><span class="field">Short text</span><textarea name="ofText" rows="2" maxlength="220" placeholder="Left empty, a standard line about Pro is used">${h(p.text || '')}</textarea></label>
+        <label><span class="field">Short text</span><textarea name="ofText" rows="2" maxlength="220" placeholder="Left empty, a standard line about Premium is used">${h(p.text || '')}</textarea></label>
         <div class="form-row">
           <label><span class="field">Button words</span><input class="input" name="ofButton" maxlength="30" value="${h(p.button || '')}" placeholder="Claim 20% off"></label>
           <label><span class="field">Seconds before it appears</span><input class="input" type="number" name="ofDelay" min="0" max="30" value="${h(p.delay ?? 2)}"></label>
@@ -2855,14 +2856,14 @@ function render_offers() {
     </div>
 
     <div class="card">
-      <h2 style="margin-top:0">Free Pro trial</h2>
-      <p>New Pro members can try it free first. Their card is taken at the start and the first payment is made when the trial ends, unless they cancel. Each member can have one trial. We email them 2 days before it ends.</p>
+      <h2 style="margin-top:0">Free Premium trial</h2>
+      <p>New Premium members can try it free first. Their card is taken at the start and the first payment is made when the trial ends, unless they cancel. Each member can have one trial. We email them 2 days before it ends.</p>
       <div style="display:flex;gap:8px;align-items:end"><label style="flex:1"><span class="field">Trial length in days (0 switches it off)</span><input class="input" type="number" name="ofTrial" min="0" max="30" value="${h(d.trialDays ?? 7)}"></label><button class="btn btn-green" data-of="trial">Save</button></div>
     </div>
 
     <div class="card">
       <h2 style="margin-top:0">Welcome emails</h2>
-      <p>Five short emails in a new member’s first ten days: day 0 the first three lessons; day 2 the savings calculator; day 4 the Health Check; day 7 the topic guides; day 10 the free Pro trial (paying members get a “make the most of your plan” email instead). They send themselves every hour with the member emails.</p>
+      <p>Five short emails in a new member’s first ten days: day 0 the first three lessons; day 2 the savings calculator; day 4 the Health Check; day 7 the topic guides; day 10 the free Premium trial (paying members get a “make the most of your plan” email instead). They send themselves every hour with the member emails.</p>
       <label style="display:flex;gap:8px;align-items:center;font-weight:700;margin:6px 0 10px"><input type="checkbox" name="ofWelcome" ${d.welcomeOn !== false ? 'checked' : ''}> Send welcome emails to new members</label>
       <button class="btn btn-green" data-of="welcome">Save</button>
     </div>`;
@@ -2886,7 +2887,7 @@ function bind_offers() {
         const r = await API.post('/api/admin/offers/save', body);
         STATE.offerEdit = null; STATE.offers = await API.get('/api/admin/offers');
         setMain(render_offers()); bind_offers();
-        showToast(r.promo.on ? `Offer saved: code ${r.promo.code} for ${r.promo.percent}% off Pro` : 'Offer saved (switched off)');
+        showToast(r.promo.on ? `Offer saved: code ${r.promo.code} for ${r.promo.percent}% off Premium` : 'Offer saved (switched off)');
         return;
       }
       if (act === 'make') { btn.disabled = true; btn.textContent = 'Making the picture…'; const r = await API.post('/api/admin/offers/make-image', ofRead()); redraw({ ...ofRead(), image: r.image }); showToast('Picture made. Press Save offer to use it.'); return; }

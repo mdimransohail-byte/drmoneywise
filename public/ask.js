@@ -14,7 +14,7 @@
   }
   function draw(d, msg) {
     var form = !d.canAsk
-      ? '<div class="pf-upsell"><strong>Asking questions is part of Plus and Pro.</strong><a class="pf-btn gold" href="/membership#plans">See plans</a></div>'
+      ? '<div class="pf-upsell"><strong>Asking questions is part of Regular and Premium.</strong><a class="pf-btn gold" href="/membership#plans">See plans</a></div>'
       : '<form class="pf-panel ak-form" id="akForm"><h2>Ask your question</h2>' +
         '<label><span>What is it about?</span><select name="topic">' + d.topics.map(function (t) { return '<option value="' + esc(t[0]) + '">' + esc(t[1]) + '</option>'; }).join('') + '</select></label>' +
         '<label><span>Your question</span><textarea name="question" rows="5" maxlength="1200" placeholder="For example: What is the difference between an ETF and a mutual fund, and which costs less?"' + (d.left ? '' : ' disabled') + '></textarea></label>' +

@@ -168,7 +168,7 @@ export async function createCheckoutSession({ user, planId, cycle, couponCode, o
   const stripeCouponId = await ensureStripeCoupon(String(couponCode || '').trim().toUpperCase(), planId, billingCycle);
   const metadata = { userId: user.id, planId, billingCycle };
   if (via === 'popup') { metadata.via = 'popup'; if (/^[a-f0-9]{8}$/u.test(String(promo))) metadata.promo = promo; }
-  // 7-day free Pro trial, once per member (Admin → Offers sets the days; 0 switches it off)
+  // 7-day free Premium trial, once per member (Admin → Offers sets the days; 0 switches it off)
   const trialDays = planId === 'premium' && !member?.trialUsed ? Math.max(0, Math.min(30, Number(store.settings?.premiumTrialDays ?? 7))) : 0;
   if (trialDays) metadata.trial = String(trialDays);
 

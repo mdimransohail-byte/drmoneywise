@@ -37,7 +37,7 @@ export const CITY_CREDITS = [
   'US rents: US Bureau of Labor Statistics, consumer price index for rent of primary residence by metro area. BLS.gov cannot vouch for the data or analyses derived from these data after the data have been retrieved from BLS.gov.',
 ];
 
-/* The five things a city is scored on for the Pro scorecard (each 0-5
+/* The five things a city is scored on for the Premium scorecard (each 0-5
    stars). Fixed rules, shown on the page, so the stars always match the
    figures. A description, not advice. */
 export const CITY_CRITERIA = [

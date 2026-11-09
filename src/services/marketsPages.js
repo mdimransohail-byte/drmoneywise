@@ -71,7 +71,7 @@ function liveBox(symbol, title, height = 230) {
 function membersBox(kind, id, title, items) {
   return `
         <section class="block members-box" id="marketsMembers" data-kind="${esc(kind)}" data-id="${esc(id)}">
-          <div class="block-head"><div><h2>Deeper look <span class="members-badge">Plus</span></h2><p>${esc(title)}</p></div></div>
+          <div class="block-head"><div><h2>Deeper look <span class="members-badge">Regular</span></h2><p>${esc(title)}</p></div></div>
           <div id="marketsMembersContent" class="members-teaser">
             <ul class="plain-list">${items.map((x) => `<li>${x}</li>`).join('')}</ul>
             <p class="members-cta"><a class="pill-gold" href="/membership">Become a member</a> <a href="/#join">Already a member? Sign in</a></p>
@@ -112,10 +112,10 @@ export async function renderMarketsHub(origin) {
     ['/top-10/crypto', 'Crypto', 'The ten biggest cryptocurrencies, explained simply, with live prices.', 'Top 10 by size'],
     ['/property', 'Property', 'Home prices and rents in the US, UK, India and more.', 'Updated weekly'],
     ['/results', 'Company results', 'What big companies reported, explained simply the day it came out.', 'Checked every hour'],
-    ['/screener', 'Stock screener', 'Filter companies by growth, profit, debt and dividends. Pro adds what the big funds own.', 'Plus'],
-    ['/reports', 'Monthly research report', 'Each month in figures: economy, markets, results, bosses’ and big funds’ trades.', 'Pro'],
-    ['/insiders', 'Company bosses’ trades', 'When directors and top managers buy or sell their own company’s shares.', 'Pro'],
-    ['/portfolio-health', 'Portfolio health check', 'A score and heat map for every holding and your whole portfolio.', 'Pro'],
+    ['/screener', 'Stock screener', 'Filter companies by growth, profit, debt and dividends. Premium adds what the big funds own.', 'Regular'],
+    ['/reports', 'Monthly research report', 'Each month in figures: economy, markets, results, bosses’ and big funds’ trades.', 'Premium'],
+    ['/insiders', 'Company bosses’ trades', 'When directors and top managers buy or sell their own company’s shares.', 'Premium'],
+    ['/portfolio-health', 'Portfolio health check', 'A score and heat map for every holding and your whole portfolio.', 'Premium'],
   ];
   const body = `
       <section class="block pr-page">

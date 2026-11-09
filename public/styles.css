@@ -2443,3 +2443,26 @@ body.has-ad-strip { padding-bottom: 52px; }
 .t10-table td { padding: 10px 12px; border-bottom: 1px solid #eee6d6; vertical-align: top; } .t10-table tr:nth-child(even) td { background: #faf7f0; }
 .t10-table .num { text-align: right; white-space: nowrap; } .t10-table td small { display: block; color: #6a6f85; font-size: 12.5px; }
 .t10-table a { color: #0a1128; text-decoration: none; } .t10-table a b { color: #1a2a9e; }
+
+/* ── Data quality labels ──────────────────────────────────────────── */
+.ig-when { display: block; margin-top: 6px; font-style: normal; font-size: 12px; color: #4a5170; }
+.ig-stale { display: block; margin-top: 6px; font-style: normal; font-size: 12px; font-weight: 700; color: #b35c00; background: #fff1dc; border-radius: 8px; padding: 4px 8px; }
+.ig-tile.is-stale strong { color: #8a8576; }
+.dq-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 14px; }
+.dq-kinds > div { background: #fff; border-radius: 14px; padding: 12px 14px; border-left: 5px solid #2a78d6; } .dq-kinds > div + div { border-left-color: #1baf7a; }
+.dq-kinds b { display: block; margin-bottom: 4px; } .dq-kinds span { font-size: 14px; color: #3a4260; }
+.dq-alert { background: #fff1dc; border: 1px solid #f0b56b; color: #6b3a00; border-radius: 12px; padding: 12px 14px; font-weight: 600; }
+.dq-held { font-size: 14px; color: #6b3a00; background: #fff6e9; border-radius: 10px; padding: 10px 12px; }
+@media (max-width: 760px) { .dq-kinds { grid-template-columns: 1fr; } }
+.price-stale { color: #b35c00 !important; font-weight: 700; }
+
+/* Search box in the shared header: a magnifier that opens into a box, so the menu always fits */
+.header-search { position: relative; width: 42px !important; padding: 0; justify-content: center; flex: none; cursor: pointer; }
+.header-search::before { content: ''; position: absolute; left: 13px; top: 12px; width: 11px; height: 11px; border: 2px solid #e8ecf8; border-radius: 50%; pointer-events: none; }
+.header-search::after { content: ''; position: absolute; left: 26px; top: 25px; width: 7px; height: 2px; background: #e8ecf8; transform: rotate(45deg); pointer-events: none; }
+.header-search input { position: absolute; inset: 0; width: 42px; padding: 0 0 0 42px; border-radius: 999px; cursor: pointer; color: transparent; }
+.header-search input::placeholder { color: transparent; }
+.header-search input:focus, .header-search input:not(:placeholder-shown) { width: 300px; left: auto; right: 0; background: var(--navy-2); color: #fff; cursor: text; z-index: 80; box-shadow: 0 8px 26px rgba(0,0,0,.35); outline: 2px solid var(--gold); }
+.header-search input:focus::placeholder { color: var(--on-navy-2); }
+.header-search .sg-list, .header-search [class*="suggest"] { z-index: 90; }
+.header-search .sg-list { left: auto !important; right: 0; width: 300px !important; top: 46px; text-align: left; }

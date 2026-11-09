@@ -167,7 +167,7 @@ export function healthBoxHtml(c, name, { premiumSlot = true } = {}) {
           </div>
         </div>
         <ul class="fh-list">${rows}</ul>
-        ${premiumSlot ? `<div class="fh-rank" data-health-rank="${esc(ticker)}"><span class="ax-crown" aria-hidden="true"><svg viewBox="0 0 24 24" width="60%" height="60%"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#0a1128"/></svg></span><div><b>How does ${esc(name)} rank in its industry?</b><span>Pro members see its place among similar companies, check by check.</span></div><a class="pill-gold" href="/membership">See Pro</a></div>` : ''}
+        ${premiumSlot ? `<div class="fh-rank" data-health-rank="${esc(ticker)}"><span class="ax-crown" aria-hidden="true"><svg viewBox="0 0 24 24" width="60%" height="60%"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#0a1128"/></svg></span><div><b>How does ${esc(name)} rank in its industry?</b><span>Premium members see its place among similar companies, check by check.</span></div><a class="pill-gold" href="/membership">See Premium</a></div>` : ''}
         <details class="fh-how"><summary>How we score</summary><ul>${HEALTH_RULES.map(([k, v]) => `<li><strong>${esc(k)}:</strong> ${esc(v)}</li>`).join('')}</ul>
           <p>Overall score: the average of the checks we can work out, times ten. Stars: the score divided by 20, to the nearest half star. 80+ Excellent, 65+ Strong, 50+ Fair, 35+ Weak, below 35 Poor. This describes the company’s finances from its official reports; it is not advice to buy or sell. <a href="/health-check">Compare all companies</a>.</p></details>
       </section>`;

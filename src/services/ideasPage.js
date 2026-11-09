@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   /ideas — Ideas that match your rules (Pro). public/ideas.js draws
+   /ideas — Ideas that match your rules (Premium). public/ideas.js draws
    the page from /api/member/ideas.
    ════════════════════════════════════════════════════════════════════════ */
 

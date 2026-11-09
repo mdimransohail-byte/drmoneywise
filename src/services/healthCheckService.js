@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   PORTFOLIO HEALTH CHECK (Pro) — a score out of 100 for each holding
+   PORTFOLIO HEALTH CHECK (Premium) — a score out of 100 for each holding
    and for the whole portfolio, worked out by fixed rules from official
    figures. It describes the businesses and how each holding has done; it
    is NOT advice to buy or sell (the page says so).

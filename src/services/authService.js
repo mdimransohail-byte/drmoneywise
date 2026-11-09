@@ -11,7 +11,7 @@ import path from 'node:path';
 
    A session stores only the member's id (not a copy of their profile), and
    the member is looked up fresh on every request. That way a plan change
-   (e.g. a Stripe payment upgrading them to Plus) shows up immediately,
+   (e.g. a Stripe payment upgrading them to Regular) shows up immediately,
    without the member having to sign out and in again.
    ════════════════════════════════════════════════════════════════════════ */
 

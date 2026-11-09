@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════════
-   /portfolio-health — the Pro portfolio health check page.
+   /portfolio-health — the Premium portfolio health check page.
    The page itself is a shell; public/portfolio-health.js fills it in from
-   /api/member/portfolio-health (Pro) or, for everyone else, from a
+   /api/member/portfolio-health (Premium) or, for everyone else, from a
    live example portfolio (/api/site/portfolio-health-example).
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -24,7 +24,7 @@ export async function examplePortfolioHealth() {
 
 export function renderHealthCheckPage(origin) {
   const head = buildHeadTags({
-    title: 'Portfolio health check | Dr MoneyWise Pro',
+    title: 'Portfolio health check | Dr MoneyWise Premium',
     description: 'A score for every holding and for your whole portfolio, from official company figures: business quality, profit trend, outlook, big funds and how spread out you are.',
     canonical: `${origin}/portfolio-health`,
   });

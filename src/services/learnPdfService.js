@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   LESSON PDFs (Pro) — a printable workbook for each lesson, and one for
+   LESSON PDFs (Premium) — a printable workbook for each lesson, and one for
    a whole week of the course.
      GET /api/learn/pdf?slug=<lesson slug>          one lesson
      GET /api/learn/pdf-week?level=lords&week=9     the week's workbook
@@ -41,7 +41,7 @@ const GREY = '#5a6478';
 const TILE = ['#1baf7a', '#2a78d6', '#e8a33d', '#6250d6', '#e5566f', '#0fa3b1'];
 
 function newDoc(title) {
-  const doc = new PDFDocument({ size: 'A4', margins: { top: 64, bottom: 64, left: 54, right: 54 }, bufferPages: true, info: { Title: title, Author: 'Dr MoneyWise', Subject: 'Pro lesson workbook' } });
+  const doc = new PDFDocument({ size: 'A4', margins: { top: 64, bottom: 64, left: 54, right: 54 }, bufferPages: true, info: { Title: title, Author: 'Dr MoneyWise', Subject: 'Premium lesson workbook' } });
   doc.registerFont('serif', path.join(FONTS, 'LibreBaskerville-Bold.ttf'));
   doc.registerFont('body', path.join(FONTS, 'Lato-Regular.ttf'));
   doc.registerFont('bold', path.join(FONTS, 'Lato-Bold.ttf'));
@@ -209,7 +209,7 @@ function finish(doc, { forWho, site, skipHeader = [], headerRight = '' }) {
       logoMark(doc, x, 17, 26);
       doc.font('serif').fontSize(11).fillColor(NAVY).text('Dr MoneyWise', x + 34, 21, { lineBreak: false });
       doc.font('body').fontSize(7.5).fillColor(GREY).text(TAGLINE, x + 34, 34, { lineBreak: false });
-      doc.font('bold').fontSize(8).fillColor(PREM).text(headerRight || 'Pro workbook', x + w / 2, 26, { width: w / 2, align: 'right', lineBreak: false });
+      doc.font('bold').fontSize(8).fillColor(PREM).text(headerRight || 'Premium workbook', x + w / 2, 26, { width: w / 2, align: 'right', lineBreak: false });
       doc.save().moveTo(x, 50).lineTo(x + w, 50).lineWidth(0.8).stroke(GOLD).restore();
     }
     doc.page.margins.top = keepTop;
@@ -252,7 +252,7 @@ const toBuffer = (doc) => new Promise((resolve, reject) => {
 });
 
 /** PDF for one lesson. */
-export async function lessonPdf(article, { kicker = 'Pro lesson', forWho = '', site = 'https://drmoneywise.com' } = {}) {
+export async function lessonPdf(article, { kicker = 'Premium lesson', forWho = '', site = 'https://drmoneywise.com' } = {}) {
   const doc = newDoc(clean(article.headline));
   logoBlock(doc);
   const answers = lessonBody(doc, article, { kicker });
@@ -292,7 +292,7 @@ export async function weekPdf({ levelName, week, lessons, forWho = '', site = 'h
   doc.font('black').fontSize(11).fillColor(GOLD).text(`DR MONEYWISE · ${levelName.toUpperCase()}${week.module ? ` · ${week.module.toUpperCase()}` : ''}`, x, 150, { width: w, characterSpacing: 1.5 });
   doc.font('serif').fontSize(40).fillColor('#ffffff').text(`Week ${week.week}`, x, 190, { width: w });
   doc.font('serif').fontSize(26).fillColor(GOLD).text(week.title, x, doc.y + 6, { width: w, lineGap: 3 });
-  doc.font('body').fontSize(12).fillColor('#d9dcf0').text(`Pro workbook: ${week.lessons.length} lessons with worked examples, key figures, a self-check and space for your notes.`, x, doc.y + 18, { width: w * 0.85, lineGap: 2 });
+  doc.font('body').fontSize(12).fillColor('#d9dcf0').text(`Premium workbook: ${week.lessons.length} lessons with worked examples, key figures, a self-check and space for your notes.`, x, doc.y + 18, { width: w * 0.85, lineGap: 2 });
   doc.font('bold').fontSize(10).fillColor('#d9dcf0').text(forWho ? `Prepared for ${forWho}` : '', x, doc.page.height * 0.62 + 30, { width: w });
   // Big logo on the cover: the gold mark, the name and the tagline
   logoMark(doc, x, 64, 56);

@@ -42,7 +42,7 @@ export const INFO_PAGES = {
         paragraphs: [
           'Richard Feynman, the Nobel Prize-winning physicist, was famous for making the hardest ideas sound simple. He believed that if you truly understand something, you can explain it with everyday words and a good example. Jargon, he thought, often hides the fact that nobody has really understood the idea.',
           'Money is full of jargon: yields, margins, valuations, basis points. We believe none of it is too difficult for you. It has just rarely been explained well. So before anything goes on Dr MoneyWise, we ask one question: could a curious child follow the main idea? Only when the answer is yes does it go on the site.',
-          'Simple is not the same as shallow. Our Pro lessons go deep, into company accounts, valuation and portfolio building, but each step is explained in simple terms, with a real example and the numbers shown.',
+          'Simple is not the same as shallow. Our Premium lessons go deep, into company accounts, valuation and portfolio building, but each step is explained in simple terms, with a real example and the numbers shown.',
         ],
       },
       {
@@ -68,13 +68,68 @@ export const INFO_PAGES = {
       {
         heading: 'How we make money',
         paragraphs: [
-          'Most of the site is free. Members who want more depth pay for a Plus or Pro plan. In future we may also show advertising or earn a fee when readers sign up with partner services; when we do, we will label it clearly. Payments never change what we write.',
+          'Most of the site is free. Members who want more depth pay for a Regular or Premium plan. In future we may also show advertising or earn a fee when readers sign up with partner services; when we do, we will label it clearly. Payments never change what we write.',
         ],
       },
       {
         heading: 'Talk to us',
         paragraphs: [
           'Questions, ideas or a correction? Email hello@drmoneywise.com. We read every message.',
+        ],
+      },
+    ],
+  },
+
+  'how-we-work': {
+    title: 'How we work: sources, scores and data checks',
+    description: 'Where Dr MoneyWise gets its figures, how company scores and ratings are calculated, and how every figure is checked before it is published.',
+    intro: 'Everything on Dr MoneyWise is built on official, published figures. This page explains where they come from, how we turn them into simple scores, and how we check them before you see them.',
+    sections: [
+      {
+        heading: 'Where our figures come from',
+        paragraphs: [
+          'Company accounts (sales, profit, cash, debt, dividends, shares in issue): the companies’ own filings with the US Securities and Exchange Commission (SEC), downloaded from the SEC’s public database.',
+          'What big funds own: the funds’ quarterly 13F reports to the SEC. What company bosses buy and sell: their Form 4 filings to the SEC.',
+          'Share prices: end-of-day prices from Marketstack; the scrolling ticker and charts come from TradingView and may be delayed by up to 15 minutes.',
+          'Economy figures: inflation and jobs from the US Bureau of Labor Statistics; interest rates from the Federal Reserve (via the New York Fed); bond yields from the US Treasury; mortgage rates from Freddie Mac. Other countries’ figures come from the World Bank, the OECD and the BIS.',
+          'Property: official house-price and rent statistics (for example HM Land Registry in the UK) and the other sources named on each property page. Exchange rates: the European Central Bank and ExchangeRate-API.',
+          'Every page names its sources next to the figures.',
+        ],
+      },
+      {
+        heading: 'Live prices versus published figures',
+        paragraphs: [
+          'Two kinds of number appear on the site. Live market prices (shares, gold, oil, currencies) change through every trading day. Economic figures (inflation, interest rates, unemployment) are published by government agencies once a month or once a week, usually several weeks after the period they describe.',
+          'So every economic figure shows the period it covers (for example “Monthly figure · August 2026”), and every share price shows the date of its closing price. We also show when we last retrieved the figures.',
+        ],
+      },
+      {
+        heading: 'How company report cards and scores are calculated',
+        paragraphs: [
+          'Each company gets five ratings from its own latest accounts. Growth: sales up more than 5% on the year before is good; 0–5% okay; down is weak. Profit: more than 10 cents of profit from every $1 of sales is good; 0–10 cents okay; a loss is weak. Debt: long-term debt repayable with under 3 years of cash from operations is good; 3–6 years okay; more is weak. Cash: making more cash than it spends on running and investing in the business is good; otherwise weak. Dividend: raised 10 or more years in a row and paid for by spare cash is good; paying one is okay; no dividend is not rated.',
+          'The report-card score out of 100 is the average of the ratings: good counts as 100, okay as 60 and weak as 15. A company is never marked down for a rating that does not apply to it.',
+          'The Financial Health Check, Top 10 lists and screener use the same figures and show their ranking rule on the page. These are descriptions of a company’s finances, not recommendations to buy or sell.',
+        ],
+      },
+      {
+        heading: 'How data is checked before it is published',
+        paragraphs: [
+          'Every figure passes an automatic check before it appears. Missing figures are not shown. Impossible figures (for example inflation of 400%, or a value that jumps far more than it ever could in one period) are held back until a person has looked at them. Figures older than their source’s normal update cycle are still shown, but clearly marked as not updated, with the period they cover; we never present an old figure as current.',
+          'If a download from one of our data providers fails, the page says so and shows when the figures were last retrieved.',
+          'A weekly check opens every page on the site and follows every internal link; broken links are fixed or redirected. Articles are not published if they link to a page that does not exist.',
+          'Explanations are written around the figures, never instead of them: the numbers on a page always come from the data, not from the writing.',
+        ],
+      },
+      {
+        heading: 'Shariah screening',
+        paragraphs: [
+          'Companies are checked against five published Shariah standards (AAOIFI, Dow Jones Islamic, S&P, MSCI and FTSE) using the business-activity rules and financial-ratio limits each one publishes. Each standard’s method and ratio limits are explained on the Shariah pages.',
+        ],
+      },
+      {
+        heading: 'Corrections',
+        paragraphs: [
+          'If you spot a mistake, email hello@drmoneywise.com. We check every report and correct errors as quickly as we can.',
         ],
       },
     ],
@@ -219,7 +274,7 @@ export const INFO_PAGES = {
       {
         heading: 'Plans and prices',
         paragraphs: [
-          'Dr MoneyWise has three plans: Free, Plus and Pro. Plus and Pro can be paid monthly or yearly. The current prices are shown on the Membership page before you pay, in US dollars. Your bank may add its own charge for paying in a foreign currency.',
+          'Dr MoneyWise has three plans: Free, Regular and Premium. Regular and Premium can be paid monthly or yearly. The current prices are shown on the Membership page before you pay, in US dollars. Your bank may add its own charge for paying in a foreign currency.',
           'Payments are handled securely by Stripe. We never see or store your full card number.',
         ],
       },
@@ -231,11 +286,11 @@ export const INFO_PAGES = {
         ],
       },
       {
-        heading: 'Free trial of Pro',
+        heading: 'Free trial of Premium',
         paragraphs: [
-          'New Pro members may be offered a free trial. The length of the trial (currently 7 days) is shown on the Membership page and at checkout. You give your card details when the trial starts, but you are not charged during the trial.',
-          'We email you about 2 days before the trial ends. If you do not cancel before the trial ends, your Pro plan starts automatically and the first payment for the plan you chose (monthly or yearly) is taken on the day the trial ends. It then renews as above.',
-          'If you cancel during the trial, you pay nothing, and your Pro access ends when the trial ends. The free trial is limited to one per person.',
+          'New Premium members may be offered a free trial. The length of the trial (currently 7 days) is shown on the Membership page and at checkout. You give your card details when the trial starts, but you are not charged during the trial.',
+          'We email you about 2 days before the trial ends. If you do not cancel before the trial ends, your Premium plan starts automatically and the first payment for the plan you chose (monthly or yearly) is taken on the day the trial ends. It then renews as above.',
+          'If you cancel during the trial, you pay nothing, and your Premium access ends when the trial ends. The free trial is limited to one per person.',
         ],
       },
       {

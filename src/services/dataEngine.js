@@ -52,8 +52,9 @@ const JOBS = {
   photos: { label: 'Photos for explainers (Pexels)', every: 20 * HOUR },
   funds: { label: 'Big-fund holdings (SEC 13F)', every: 7 * 24 * HOUR },
   learning: { label: 'Homepage explainers (autopilot)', every: 6 * HOUR },
-  deeper: { label: 'Advanced lessons for Pro (one a day until the course is complete)', every: 24 * HOUR },
-  review: { label: 'Market review for Pro (every two weeks)', every: 24 * HOUR },
+  links: { label: 'Link check: every page and link on the site (weekly)', every: 7 * 24 * HOUR },
+  deeper: { label: 'Advanced lessons for Premium (one a day until the course is complete)', every: 24 * HOUR },
+  review: { label: 'Market review for Premium (every two weeks)', every: 24 * HOUR },
   report: { label: 'Monthly research report (built on the 1st)', every: 20 * HOUR },
   health: { label: 'Daily health check + email', every: 24 * HOUR },
   property: { label: 'Property and city rents (monthly figures; looks weekly, downloads only when new figures are due)', every: 7 * 24 * HOUR },
@@ -86,7 +87,13 @@ async function writeJson(file, data) {
   await fs.rename(tmp, file);
 }
 
-export const readEconomy = () => readJson(FILES.economy, { updatedAt: null, figures: {} });
+export const readEconomyRaw = () => readJson(FILES.economy, { updatedAt: null, figures: {} });
+// What pages get: impossible or missing figures held back, each figure marked
+// with its reporting period and whether it is up to date (dataQuality.js)
+export const readEconomy = async () => {
+  const { screenEconomy } = await import('./dataQuality.js');
+  return screenEconomy(await readEconomyRaw());
+};
 export const readCompanies = () => readJson(FILES.companies, { updatedAt: null, companies: {} });
 // Marketstack's FREE plan is "Non-Commercial Use" (checked 17 Oct 2026), so
 // prices are only shown once the paid Basic plan is on
@@ -120,7 +127,7 @@ async function runEconomy() {
   if (!count) {
     return { ok: false, message: `No economy figures could be downloaded (${failures.map((f) => `${f.series}: ${f.reason}`).join('; ')})` };
   }
-  const existing = await readEconomy();
+  const existing = await readEconomyRaw();
   await writeJson(FILES.economy, { updatedAt: new Date().toISOString(), figures: { ...existing.figures, ...economy } });
   return { ok: true, message: `${count} figures updated${failures.length ? `, ${failures.length} failed` : ''}` };
 }
@@ -220,7 +227,7 @@ async function runPrices({ manual = false } = {}) {
     const h = await fillMissingHistories(us, 40);
     if (h.added || h.missing) console.log(`[data] Prices: ${h.added} price histories added for the Top 10 lists, ${h.missing} still to come`);
   } catch (error) { console.error('[data] Price histories:', error.message); }
-  // Keep a short daily history so the Pro newsletter can show the week's change
+  // Keep a short daily history so the Premium newsletter can show the week's change
   try {
     const { savePriceSnapshot } = await import('./premiumWeekService.js');
     await savePriceSnapshot(prices);
@@ -331,7 +338,12 @@ async function runAlertsJob() {
   return { ...r, message: `${r.message} · ${w.message}` };
 }
 
-const RUNNERS = { newsletter: runNewsletter, report: runReport, deeper: runDeeper, review: runReview, alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
+async function runLinks() {
+  const { runLinkAudit } = await import('./linkAuditService.js');
+  return runLinkAudit();
+}
+
+const RUNNERS = { links: runLinks, newsletter: runNewsletter, report: runReport, deeper: runDeeper, review: runReview, alerts: runAlertsJob, results: runResults, news: runNews, commodities: runCommodities, bonds: runBonds, etfs: runEtfs, property: runProperty, economy: runEconomy, companies: runCompanies, prices: runPrices, top10: runTop10, photos: runPhotos, funds: runFunds, learning: runLearning, health: runHealth };
 
 /** Runs one job now. Used by the scheduler and by Admin → "Run now". */
 export async function runJob(name, { manual = false } = {}) {

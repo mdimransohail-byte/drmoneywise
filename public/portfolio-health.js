@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════════════════
-   Portfolio health check (Pro) — draws the scores, heat maps and the
-   holdings editor. Pro members see their own portfolio; everyone
+   Portfolio health check (Premium) — draws the scores, heat maps and the
+   holdings editor. Premium members see their own portfolio; everyone
    else sees a live example and an upgrade box.
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -47,8 +47,8 @@
     var etfCols = { business: 'fee', trend: 'spread', outlook: 'conc' };
     var html = '';
     html += '<div class="pf-hero">' +
-      '<div class="pf-hero-text"><span class="pf-badge prem">★ Pro</span><h1>' + (example ? 'Portfolio health check' : 'Your portfolio health check') + '</h1>' +
-      '<p>' + (example ? 'Here is a real check of an <strong>example portfolio</strong> (VOO 40%, Apple, JPMorgan, Coca-Cola and ExxonMobil 15% each), worked out from today’s official figures. Pro members get this for their own holdings.' : 'Every holding scored out of 100 from official company figures, and your whole portfolio scored for quality and spread.') + '</p>' +
+      '<div class="pf-hero-text"><span class="pf-badge prem">★ Premium</span><h1>' + (example ? 'Portfolio health check' : 'Your portfolio health check') + '</h1>' +
+      '<p>' + (example ? 'Here is a real check of an <strong>example portfolio</strong> (VOO 40%, Apple, JPMorgan, Coca-Cola and ExxonMobil 15% each), worked out from today’s official figures. Premium members get this for their own holdings.' : 'Every holding scored out of 100 from official company figures, and your whole portfolio scored for quality and spread.') + '</p>' +
       '<div class="pf-hero-stats">' +
         stat('Holdings', d.holdingsScore, bandOf(d.holdingsScore)) +
         stat('Spread', d.spread, d.spreadBand) +
@@ -105,7 +105,7 @@
   function stat(label, score, band) { return '<div class="pf-stat"><span>' + esc(label) + '</span><strong style="color:' + colour(score) + '">' + (score == null ? '–' : score) + '</strong><em>' + esc(band.label) + '</em></div>'; }
   function legend() { return '<div class="pf-legend">' + [['Strong', 90], ['Healthy', 72], ['Fair', 57], ['Watch', 42], ['Weak', 20]].map(function (x) { return '<span><i style="background:' + colour(x[1]) + '"></i>' + x[0] + '</span>'; }).join('') + '<span><i style="background:' + colour(null) + '"></i>Not rated</span></div>'; }
 
-  /* ── Holdings editor (Pro) ── */
+  /* ── Holdings editor (Premium) ── */
   function editor(holdings) {
     var rows = (holdings.length ? holdings : [{}, {}, {}]).map(rowHtml).join('');
     return '<div class="pf-panel pf-editor"><h2>Your holdings</h2><p class="pf-sub">Up to 30. Shares and price paid make the check much richer; you can leave them blank.</p>' +
@@ -148,16 +148,16 @@
 
   function showExample(reason) {
     fetch('/api/site/portfolio-health-example').then(function (r) { return r.json(); }).then(function (d) {
-      app.innerHTML = '<div class="pf-upsell"><strong>' + esc(reason) + '</strong><a class="pf-btn gold" href="/membership#plans">See Pro</a></div>' + render(d, { example: true });
+      app.innerHTML = '<div class="pf-upsell"><strong>' + esc(reason) + '</strong><a class="pf-btn gold" href="/membership#plans">See Premium</a></div>' + render(d, { example: true });
     }).catch(function () { app.innerHTML = '<p class="note-box">The health check could not load. Please try again.</p>'; });
   }
 
-  if (!token) { showExample('This is a Pro tool. Sign in as a Pro member to check your own portfolio.'); return; }
+  if (!token) { showExample('This is a Premium tool. Sign in as a Premium member to check your own portfolio.'); return; }
   fetch('/api/member/portfolio-health', { headers: { 'x-session-token': token } })
     .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
     .then(function (x) {
-      if (x.status === 403 || x.status === 401) { showExample('Upgrade to Pro to check your own portfolio like this.'); return; }
+      if (x.status === 403 || x.status === 401) { showExample('Upgrade to Premium to check your own portfolio like this.'); return; }
       show(x.d.health, x.d.holdings);
     })
-    .catch(function () { showExample('This is a Pro tool.'); });
+    .catch(function () { showExample('This is a Premium tool.'); });
 }());

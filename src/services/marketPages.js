@@ -126,15 +126,18 @@ export async function getEconomyFigures() {
   return {
     updatedAt: economy.updatedAt,
     // Never show a figure that can't be a real percentage (see economyService)
-    figures: order.map((key) => economy.figures?.[key]).filter((f) => f && f.value > -30 && f.value < 50),
+    figures: order.map((key) => economy.figures?.[key]).filter((f) => f && Number.isFinite(Number(f.value))),
+    held: economy.held || [],
   };
 }
 
 /* ── /today ──────────────────────────────────────────────────────────── */
 export async function renderToday(origin) {
-  const [{ figures, updatedAt }, news] = await Promise.all([
+  const { providerNotice } = await import('./dataQuality.js');
+  const [{ figures, updatedAt, held }, news, failNote] = await Promise.all([
     getEconomyFigures(),
     getLiveHeadlines().catch(() => ({ items: [] })),
+    providerNotice('economy'),
   ]);
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const head = buildHeadTags({
@@ -179,7 +182,13 @@ export async function renderToday(origin) {
       </section>
 
       <section class="block">
+        <div class="dq-kinds">
+          <div><b>Live market prices</b><span>Share, gold, oil and Bitcoin prices change through every trading day. They come from TradingView and Marketstack and may be delayed by up to 15 minutes.</span></div>
+          <div><b>Economic figures</b><span>Inflation, interest rates and jobs are published by government agencies once a month or once a week. Each tile shows the period it covers, so you can see how recent it is.</span></div>
+        </div>
+        ${failNote ? `<p class="dq-alert" role="status">⚠ ${esc(failNote)}</p>` : ''}
         ${economy}
+        ${held.length ? `<p class="dq-held">Not shown: ${held.map((h) => esc(h.label || h.key)).join(', ')}. The latest figure failed our checks (${esc(held[0].reason)}), so we held it back rather than show something wrong.</p>` : ''}
         ${meanings}
         <div id="credits">${figures.length ? credits : ''}</div>
       </section>

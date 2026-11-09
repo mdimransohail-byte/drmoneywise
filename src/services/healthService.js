@@ -73,6 +73,27 @@ export async function getHealthReport() {
   add('Data', 'Companies saved', c.companies >= c.universe * 0.9 ? 'ok' : c.companies ? 'warn' : 'fail', `${c.companies} of ${c.universe}`);
   add('Data', 'Economy figures', c.economyFigures >= 5 ? 'ok' : c.economyFigures ? 'warn' : 'fail', `${c.economyFigures} of 5`);
 
+  /* Links: the weekly link check and pages visitors found missing (linkAuditService.js) */
+  try {
+    const { lastLinkAudit, notFoundLog } = await import('./linkAuditService.js');
+    const audit = await lastLinkAudit();
+    if (!audit) add('Links', 'Link check', 'warn', 'Not run yet. Admin → APIs & More → Data engine → Link check → Run now.');
+    else add('Links', 'Link check', audit.broken.length ? 'fail' : 'ok', `${audit.pages} pages checked on ${audit.checkedAt.slice(0, 10)}. ${audit.broken.length ? `Broken: ${audit.broken.slice(0, 8).map((b) => `${b.path}${b.from.length ? ` (linked from ${b.from.slice(0, 2).join(', ')})` : ''}`).join('; ')}` : 'No broken links.'}`);
+    const nf = (await notFoundLog()).filter((x) => Date.now() - new Date(x.last).getTime() < 7 * 86400000);
+    add('Links', 'Pages visitors couldn’t find (last 7 days)', nf.length > 10 ? 'warn' : 'ok', nf.length ? nf.slice(0, 8).map((x) => `${x.path} ×${x.count}${x.from.length ? ` from ${x.from[0]}` : ''}`).join('; ') : 'None');
+    const { readStore } = await import('./storeService.js');
+    const held = ((await readStore()).articles || []).filter((a) => a.linkProblems?.length && a.status === 'draft');
+    if (held.length) add('Links', 'Articles held back for broken links', 'warn', held.slice(0, 5).map((a) => `“${a.headline}”: ${a.linkProblems.join(', ')}`).join('; '));
+  } catch (error) { add('Links', 'Link check', 'warn', `Could not read: ${error.message}`); }
+
+  /* Data quality: every figure checked for missing, out-of-date or impossible values (dataQuality.js) */
+  try {
+    const { qualityReport } = await import('./dataQuality.js');
+    const q = await qualityReport();
+    if (!q.issues.length) add('Data quality', 'Every figure checked', 'ok', 'Nothing missing, out of date or impossible');
+    for (const i of q.issues) add('Data quality', `${i.area}: ${i.item}`, i.status === 'stale' ? 'warn' : 'fail', `${i.status === 'failed' ? 'Last download failed' : i.status === 'stale' ? 'Out of date' : i.status === 'missing' ? 'Missing' : 'Held back (looks wrong)'}: ${i.reason}`);
+  } catch (error) { add('Data quality', 'Quality check', 'warn', `Could not run: ${error.message}`); }
+
   /* Property pages */
   try {
     const { getPropertyStatus } = await import('./propertyService.js');

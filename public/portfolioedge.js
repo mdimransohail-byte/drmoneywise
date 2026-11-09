@@ -1,6 +1,6 @@
-/* Homepage portfolio: the Pro "edge" panel (/api/member/portfolio-edge).
-   Pro members see health scores, sector mix, yield and Shariah status for
-   their holdings; everyone else sees what Pro adds. Refreshes after the
+/* Homepage portfolio: the Premium "edge" panel (/api/member/portfolio-edge).
+   Premium members see health scores, sector mix, yield and Shariah status for
+   their holdings; everyone else sees what Premium adds. Refreshes after the
    portfolio changes. */
 (function () {
   var box = document.getElementById('portfolioEdge');
@@ -9,9 +9,9 @@
   function token() { try { return JSON.parse(localStorage.getItem('drmoneywise-session') || '{}').token || ''; } catch (e) { return ''; } }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function teaser(signedIn) {
-    box.innerHTML = '<div class="pe-teaser"><span class="pf-badge prem">★ Pro</span><h3>Your portfolio’s extra edge</h3>' +
+    box.innerHTML = '<div class="pe-teaser"><span class="pf-badge prem">★ Premium</span><h3>Your portfolio’s extra edge</h3>' +
       '<ul><li>A Financial Health score for every holding, and one for your whole portfolio</li><li>Your mix by area of the economy, with warnings if one company or area is too big</li><li>Your estimated dividend yield, and each price against what you paid</li><li>Shariah status for each holding, and the full <a href="/portfolio-health">portfolio health check</a></li></ul>' +
-      '<a class="mb-btn" href="/membership">' + (signedIn ? 'Upgrade to Pro' : 'See Pro') + '</a></div>';
+      '<a class="mb-btn" href="/membership">' + (signedIn ? 'Upgrade to Premium' : 'See Premium') + '</a></div>';
   }
   function donut(sectors) {
     var r = 42, len = 2 * Math.PI * r, off = 0;
@@ -21,7 +21,7 @@
     return '<svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">' + arcs + '</svg>';
   }
   function draw(d) {
-    if (!d.rows || !d.rows.length) { box.innerHTML = '<div class="pe-teaser"><span class="pf-badge prem">★ Pro</span><h3>Your portfolio’s extra edge</h3><p>Add a holding above to see health scores, your sector mix, yield and Shariah status.</p></div>'; return; }
+    if (!d.rows || !d.rows.length) { box.innerHTML = '<div class="pe-teaser"><span class="pf-badge prem">★ Premium</span><h3>Your portfolio’s extra edge</h3><p>Add a holding above to see health scores, your sector mix, yield and Shariah status.</p></div>'; return; }
     var s = d.summary;
     var rows = d.rows.map(function (r) {
       return '<tr><td><a href="/stock/' + encodeURIComponent(r.ticker) + '#healthCheck"><strong>' + esc(r.name) + '</strong></a><small>' + esc(r.ticker) + ' · ' + esc(r.sector) + '</small></td>' +
@@ -31,7 +31,7 @@
         '<td>' + (r.yield != null ? r.yield.toFixed(2) + '%' : '<span class="pe-muted">–</span>') + '</td>' +
         '<td>' + (r.shariah ? esc(r.shariah) : '<span class="pe-muted">–</span>') + '</td></tr>';
     }).join('');
-    box.innerHTML = '<div class="pe-panel"><div class="pe-head"><span class="pf-badge prem">★ Pro</span><h3>Your portfolio’s extra edge</h3></div>' +
+    box.innerHTML = '<div class="pe-panel"><div class="pe-head"><span class="pf-badge prem">★ Premium</span><h3>Your portfolio’s extra edge</h3></div>' +
       '<div class="pe-tiles"><div><strong>' + (s.health == null ? '–' : s.health) + '</strong><span>Portfolio health' + (s.band ? ': ' + esc(s.band) : '') + '</span></div>' +
       '<div><strong>' + (s.estYield == null ? '–' : s.estYield.toFixed(2) + '%') + '</strong><span>Estimated dividend yield</span></div>' +
       '<div><strong>' + s.sectors.length + '</strong><span>Areas of the economy</span></div>' +

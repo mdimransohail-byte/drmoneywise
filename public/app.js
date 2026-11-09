@@ -1,3 +1,4 @@
+window.__dmwHome = true; // nav.js leaves the header to this script on the homepage
 const SESSION_KEY = 'drmoneywise-session';
 const GUEST_KEY = 'drmoneywise-guest';
 
@@ -202,7 +203,7 @@ async function refreshPortfolioReview() {
       <div class="review-column rv-guest" style="--c:#2a78d6">
         <span class="rv-icon" aria-hidden="true">→</span>
         <h3>Next steps</h3>
-        <p>Simple points to check, never buy or sell tips. <a href="#join" class="rv-join">Create a free account</a> to save your list; Plus and Pro members get the full review.</p>
+        <p>Simple points to check, never buy or sell tips. <a href="#join" class="rv-join">Create a free account</a> to save your list; Regular and Premium members get the full review.</p>
       </div>
     `;
     return;
@@ -558,7 +559,7 @@ function renderLearningPoints() {
           <span class="topic">${badge}</span>
           <div>
             <h3>${escapeHtml(article.headline)}</h3>
-            <p>${escapeHtml(description)}</p>${article.accessible ? '' : `<span class="lock-chip">${article.accessTier === 'premium' ? 'Pro' : 'Plus'} · opening free to read</span>`}
+            <p>${escapeHtml(description)}</p>${article.accessible ? '' : `<span class="lock-chip">${article.accessTier === 'premium' ? 'Premium' : 'Regular'} · opening free to read</span>`}
           </div>
         </a>
       `;
@@ -807,7 +808,7 @@ function renderStoryCard(article, options = {}) {
   const actionLabel = options.actionLabel || 'Read';
   const currentPlan = state.user?.plan || 'free';
   const saved = Boolean(state.user?.savedArticleSlugs?.includes(article.slug));
-  const accessTag = article.accessTier === 'free' ? 'Free' : article.accessTier === 'regular' ? 'Plus' : 'Pro';
+  const accessTag = article.accessTier === 'free' ? 'Free' : article.accessTier === 'regular' ? 'Regular' : 'Premium';
   const regionLabel = getLookupLabel(state.bootstrap.regions, article.region);
   const interestLabel = getLookupLabel(state.bootstrap.interests, article.interest);
   const saveButton = state.user

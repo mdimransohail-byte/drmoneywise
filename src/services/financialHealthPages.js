@@ -2,7 +2,7 @@
    /health-check — the Financial Health Check for every company we cover,
    ranked, grouped by industry, with the scoring rules. Free (good for
    search: "is Coca-Cola financially healthy" etc.). Each row links to the
-   company page with the full check. Pro members also see each
+   company page with the full check. Premium members also see each
    company's industry ranking on its own page (public/healthrank.js).
    ════════════════════════════════════════════════════════════════════════ */
 
@@ -77,7 +77,7 @@ export async function renderHealthCheckIndex(origin) {
             <div class="fh-rule" style="--c:#0a1128"><strong>The overall score</strong><span>The average of the checks we can work out, times ten; a company needs at least four. Stars: the score divided by 20, to the nearest half. 80+ Excellent, 65+ Strong, 50+ Fair, 35+ Weak, under 35 Poor.</span></div></div>
           <p class="note-box">A health score describes a company’s finances from its official reports. It says nothing about whether the share price is cheap or expensive, and it is not advice to buy or sell. Learn more in <a href="/learn/intermediate">the Intermediate course</a>.</p>
         </div>
-        <a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true"><svg viewBox="0 0 24 24" width="60%" height="60%"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#0a1128"/></svg></span><span><b>Pro: the Health Check in full</b>See where each company ranks in its industry, check by check against the industry average, plus the health check for your own portfolio.</span></a>
+        <a class="ax-promo prem" href="/membership"><span class="ax-crown" aria-hidden="true"><svg viewBox="0 0 24 24" width="60%" height="60%"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#0a1128"/></svg></span><span><b>Premium: the Health Check in full</b>See where each company ranks in its industry, check by check against the industry average, plus the health check for your own portfolio.</span></a>
       </section>
       <script>
         (function () {

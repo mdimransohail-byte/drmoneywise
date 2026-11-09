@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    STOCK SCREENER — every company we cover, with the figures to filter on.
-     Plus  growth, profit, debt, cash, dividends, report-card score
-     Pro  + what the ~20 big funds own: how many hold it, buying vs
+     Regular  growth, profit, debt, cash, dividends, report-card score
+     Premium  + what the ~20 big funds own: how many hold it, buying vs
               selling, share of each fund's money, share of the company
               they own between them; and the Fund explorer (each fund's
               biggest holdings and what it bought or sold)
@@ -31,7 +31,7 @@ async function readFunds() {
 }
 
 /** Builds the table (cached for 10 minutes, always with the big-fund
- *  figures; they are removed for anyone who is not Pro). */
+ *  figures; they are removed for anyone who is not Premium). */
 export async function screenerRows({ premium = false } = {}) {
   if (!memo || Date.now() - memo.at > 10 * 60 * 1000) {
     const [{ companies }, extra, prices, funds, insiders] = await Promise.all([readCompanies(), readExtraCompanies(), readPrices(), readFunds(), insiderCounts().catch(() => ({}))]);
@@ -96,7 +96,7 @@ export async function screenerRows({ premium = false } = {}) {
   return { rows: premium ? memo.rowsPremium : memo.rowsPremium.map(strip), fundsPeriod: premium ? memo.period : null, pricesOn: memo.pricesOn, regions };
 }
 
-/** Pro: one company's big-fund owners (for the pie chart). */
+/** Premium: one company's big-fund owners (for the pie chart). */
 export async function fundOwners(ticker) {
   const funds = await readFunds();
   const { companies } = await readCompanies();
@@ -113,7 +113,7 @@ export async function fundOwners(ticker) {
   };
 }
 
-/** Pro: Fund explorer — each fund's biggest holdings and what it changed. */
+/** Premium: Fund explorer — each fund's biggest holdings and what it changed. */
 export async function fundExplorer() {
   const funds = await readFunds();
   const byFund = {};

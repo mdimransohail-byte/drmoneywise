@@ -86,7 +86,7 @@
 })();
 
 /* Locked content: a visitor or member without the right plan sees one clear
-   line above each upgrade button: join Pro, with the free trial if they
+   line above each upgrade button: join Premium, with the free trial if they
    can still have one. Works on every page's lock boxes, including those
    drawn later by page scripts. */
 (function () {
@@ -97,7 +97,7 @@
   function note() {
     var p = document.createElement('div'); p.className = 'trial-note';
     var trial = info.trialDays > 0 && !info.trialUsed;
-    p.innerHTML = '<span>🔓 You can view this content by joining <strong>Pro</strong>.' + (trial ? ' Would you like a <strong>' + info.trialDays + '-day free trial</strong>?' : '') + '</span>' +
+    p.innerHTML = '<span>🔓 You can view this content by joining <strong>Premium</strong>.' + (trial ? ' Would you like a <strong>' + info.trialDays + '-day free trial</strong>?' : '') + '</span>' +
       '<a href="/membership#plans">' + (trial ? 'Yes, start my free trial' : 'See membership plans') + ' →</a>';
     return p;
   }
@@ -131,6 +131,58 @@
         var main = document.querySelector('main');
         if (main && window.MutationObserver) new MutationObserver(soon).observe(main, { childList: true, subtree: true });
       });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+/* Shared header behaviour on every page: the Menu button, the search box,
+   and the member badge / Sign in / Sign out. (The homepage script does
+   these itself; lesson pages handle Sign out themselves.) */
+(function () {
+  if (window.__dmwHeader) return; window.__dmwHeader = true;
+  var LABELS = { free: 'Free', regular: 'Regular', premium: 'Premium' };
+  function start() {
+    var home = !!window.__dmwHome;
+    var toggle = document.getElementById('menuToggle');
+    var mob = document.getElementById('mobileNav');
+    if (!home && toggle && mob) {
+      toggle.addEventListener('click', function () {
+        var o = mob.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', o ? 'true' : 'false');
+        toggle.textContent = o ? 'Close' : 'Menu';
+      });
+    }
+    var search = document.getElementById('headerSearchInput');
+    if (!home && search) {
+      search.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || e.defaultPrevented) return;
+        e.preventDefault();
+        var q = search.value.trim();
+        location.href = q ? '/stocks?q=' + encodeURIComponent(q) : '/stocks';
+      });
+    }
+    var signIn = document.getElementById('headerSignInButton');
+    if (!home && signIn) signIn.addEventListener('click', function () { try { sessionStorage.setItem('dmw-back', location.pathname + location.search); } catch (e) { /* private window */ } });
+    if (home) return;
+    var token = '';
+    try { token = JSON.parse(localStorage.getItem('drmoneywise-session') || '{}').token || ''; } catch (e) { token = ''; }
+    if (!token) return;
+    fetch('/api/auth/me', { headers: { 'x-session-token': token } }).then(function (r) { return r.ok ? r.json() : {}; }).then(function (d) {
+      var u = d && d.user; if (!u) return;
+      var badge = document.getElementById('memberBadge');
+      if (badge) badge.textContent = (u.role === 'admin' ? 'Admin' : (LABELS[u.plan] || 'Free')) + ' member';
+      if (signIn) signIn.classList.add('hidden');
+      var out = document.getElementById('signOutButton');
+      if (out) {
+        out.classList.remove('hidden');
+        if (!window.__dmwArticle) out.addEventListener('click', function () {
+          fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-session-token': token }, body: '{}' }).catch(function () {}).then(function () {
+            try { localStorage.removeItem('drmoneywise-session'); } catch (e) { /* ignore */ }
+            location.reload();
+          });
+        });
+      }
+    }).catch(function () {});
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

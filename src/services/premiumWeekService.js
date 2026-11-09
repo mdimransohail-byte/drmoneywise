@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════════════
-   PRO PART OF THE NEWSLETTER — one personal section per Pro member
+   PRO PART OF THE NEWSLETTER — one personal section per Premium member
    ───────────────────────────────────────────────────────────────────────
    1. Your portfolio last week: health score, value and its change over
       7 days (from our own daily price history), best and worst mover,
@@ -9,7 +9,7 @@
    3. The coming week: results we expect, estimated from when each company
       filed results a year earlier (SEC 8-K item 2.02), clearly labelled
       as an estimate.
-   4. Pro extras: where bosses bought most across all companies,
+   4. Premium extras: where bosses bought most across all companies,
       the newest deeper explainer, the latest research report, idea lists.
    Everything comes from figures the site already collects; nothing is
    made up. If something isn't available yet it says so plainly.
@@ -104,7 +104,7 @@ function expectedSoon(tickers, reportDates) {
   return out.sort((a, b) => a.guess.localeCompare(b.guess));
 }
 
-/** The Pro section for one member, as email HTML ('' if not Pro). */
+/** The Premium section for one member, as email HTML ('' if not Premium). */
 export async function premiumWeekHtml(user, ctx, site = '') {
   const { canAccess } = await import('../config.js');
   if (!user || !canAccess(user.plan || 'free', 'premium')) return '';
@@ -113,7 +113,7 @@ export async function premiumWeekHtml(user, ctx, site = '') {
   const watch = (user.watchlist || []).map((t) => String(t).toUpperCase());
   const mine = [...new Set([...holdings.map((h) => String(h.ticker).toUpperCase()), ...watch])].slice(0, 30);
   const parts = [];
-  parts.push(`<div style="background:#0a1128;color:#c9a227;border-radius:10px;padding:10px 16px;margin:6px 0 14px;font:700 15px Georgia,serif">★ Your Pro section${user.name ? `, ${esc(String(user.name).split(' ')[0])}` : ''}</div>`);
+  parts.push(`<div style="background:#0a1128;color:#c9a227;border-radius:10px;padding:10px 16px;margin:6px 0 14px;font:700 15px Georgia,serif">★ Your Premium section${user.name ? `, ${esc(String(user.name).split(' ')[0])}` : ''}</div>`);
 
   // 1. Portfolio last week
   if (holdings.length) {
@@ -190,7 +190,7 @@ export async function premiumWeekHtml(user, ctx, site = '') {
     ].join('')));
   }
 
-  // 5. Pro extras
+  // 5. Premium extras
   const extras = [];
   if (ctx.topBuys.length) extras.push(p(`<strong>Where company bosses bought most this week:</strong> ${ctx.topBuys.map((b) => `${link(`/stock/${b.ticker}`, b.ticker)} (${money(b.value)} by ${b.people.size} ${b.people.size === 1 ? 'person' : 'people'})`).join(', ')}. ${link('/insiders', 'All bosses’ trades')}`));
   if (ctx.deeper) extras.push(p(`<strong>Deeper explainer:</strong> ${link(`/learn/${ctx.deeper.slug}`, ctx.deeper.headline)}`));
@@ -205,7 +205,7 @@ export async function premiumWeekHtml(user, ctx, site = '') {
     extras.push(p(`${link('/ideas', 'See all your idea lists')}. These companies match the rules you chose; they are not recommendations.`));
   }
   else extras.push(p(`<strong>Idea lists:</strong> save your own rules in the screener and we’ll tell you when new companies match. ${link('/screener', 'Open the screener')}`));
-  parts.push(box('#6250d6', 'Pro extras', extras.join('')));
+  parts.push(box('#6250d6', 'Premium extras', extras.join('')));
   parts.push(p('<span style="font-size:12px;color:#4a5170">This section is for your learning, based on figures from company filings and our own price records. It isn’t advice to buy or sell anything.</span>'));
   return parts.join('');
 }

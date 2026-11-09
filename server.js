@@ -122,7 +122,13 @@ export const server = http.createServer(async (request, response) => {
     // is added to every response this request sends.
     const robotsHeaders = robotsHeaderFor(requestUrl.pathname);
     const originalWriteHead = response.writeHead.bind(response);
-    response.writeHead = (statusCode, headers = {}) => originalWriteHead(statusCode, { ...headers, ...robotsHeaders });
+    response.writeHead = (statusCode, headers = {}) => {
+      // Log every page that answers "not found", with the page that linked to it (Admin → Health → Links)
+      if (statusCode === 404 && !requestUrl.pathname.startsWith('/api/') && !request.headers['x-link-check']) {
+        import('./src/services/linkAuditService.js').then((m) => m.logNotFound(requestUrl.pathname, request.headers.referer || '')).catch(() => {});
+      }
+      return originalWriteHead(statusCode, { ...headers, ...robotsHeaders });
+    };
 
     // ── Public pages built on the server (readable by Google) ──────────
     // Email apps "one-click unsubscribe" with a POST to the same link
@@ -1125,7 +1131,8 @@ async function handlePublicPage(requestUrl, request, response) {
   }
 
   if (pathname === '/' || pathname === '/index' || pathname === '/index.html') {
-    const template = await readFile(path.join(publicDir, 'index.html'), 'utf8');
+    const { withSharedChrome } = await import('./src/services/seoService.js');
+    const template = withSharedChrome(await readFile(path.join(publicDir, 'index.html'), 'utf8'), '');
     return sendHtml(response, 200, await renderHomePage(template, origin));
   }
 
@@ -1406,8 +1413,15 @@ async function handlePublicPage(requestUrl, request, response) {
   const learnMatch = pathname.match(/^\/learn\/([^/]+)$/u);
   if (learnMatch) {
     const slug = decodeURIComponent(learnMatch[1]);
-    const template = await readFile(path.join(publicDir, 'article.html'), 'utf8');
+    const { withSharedChrome } = await import('./src/services/seoService.js');
+    const template = withSharedChrome(await readFile(path.join(publicDir, 'article.html'), 'utf8'), 'learn');
     const html = await renderArticlePage(template, slug, origin);
+    if (!html) {
+      // An article whose address changed: send readers to its new address
+      const { readStore: rs } = await import('./src/services/storeService.js');
+      const moved = ((await rs()).articles || []).find((a) => a.status === 'published' && (a.oldSlugs || []).includes(slug));
+      if (moved) { response.writeHead(301, { Location: `/learn/${encodeURIComponent(moved.slug)}` }); response.end(); return true; }
+    }
     return sendHtml(response, html ? 200 : 404, html || renderNotFound());
   }
 

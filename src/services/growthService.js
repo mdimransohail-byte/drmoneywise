@@ -8,7 +8,7 @@
       in Admin → Analytics → "How members joined".
    2. The offer pop-up (Admin → Offers): a picture with a discount for an
       occasion (Ramadan, Diwali, New Year…), shown on the homepage two
-      seconds after it opens, to visitors who aren't Pro yet. It links
+      seconds after it opens, to visitors who aren't Premium yet. It links
       to /membership with the coupon filled in. Saving the offer also saves
       the coupon, ending the day after the offer ends.
    ════════════════════════════════════════════════════════════════════════ */
@@ -130,7 +130,7 @@ function cleanPromo(raw = {}) {
     on: Boolean(raw.on),
     occasion,
     headline: clip(raw.headline || OCCASIONS[occasion].headline, 70),
-    text: clip(raw.text || `Get ${percent}% off Pro: every lesson and PDF workbook, the full Health Check, portfolio check and chart alerts.`, 220),
+    text: clip(raw.text || `Get ${percent}% off Premium: every lesson and PDF workbook, the full Health Check, portfolio check and chart alerts.`, 220),
     button: clip(raw.button || `Claim ${percent}% off`, 30),
     percent, code,
     duration: raw.duration === 'forever' ? 'forever' : 'once',
@@ -279,7 +279,7 @@ export async function makePromoImage(raw) {
   <text x="168" y="136" font-family="Lato" font-size="22" fill="${d.sub}">Become financially healthy, wealthy and wise.</text>
   <text x="70" y="192" font-family="Lato" font-weight="900" font-size="26" fill="${d.ink}" letter-spacing="4">${x(d.tag)}</text>
   <text x="62" y="410" font-family="Lato" font-weight="900" font-size="220" fill="${d.big}">${p.percent}%</text>
-  <text x="70" y="490" font-family="Libre Baskerville" font-weight="700" font-size="56" fill="${d.ink}">off Pro</text>
+  <text x="70" y="490" font-family="Libre Baskerville" font-weight="700" font-size="56" fill="${d.ink}">off Premium</text>
   <text x="70" y="565" font-family="Lato" font-size="24" fill="${d.sub}">${x(lines[0])}</text>
   <text x="70" y="600" font-family="Lato" font-size="24" fill="${d.sub}">${x(lines[1])}</text>
   <rect x="70" y="650" width="${pillW}" height="80" rx="40" fill="${d.pill}"/>

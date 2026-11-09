@@ -3,7 +3,7 @@
    ───────────────────────────────────────────────────────────────────────
      beginner      /learn/beginners     default name "Beginners"   free
      intermediate  /learn/intermediate  default name "Intermediate"      free
-     lords         /learn/advanced      default name "Advanced"        Pro
+     lords         /learn/advanced      default name "Advanced"        Premium
    Each level is taught week by week (src/data/learnCourse.js).
    The names can be changed in Admin → APIs & More → "Learn level names"
    without breaking any links, because the web addresses stay the same.
@@ -30,7 +30,7 @@ export const LEVELS = {
     promise: ['One or two useful ratios per lesson, worked through', 'How professionals think about the same idea', 'Common mistakes and how to avoid them'],
   },
   technical: {
-    id: 'technical', slug: 'technical', defaultName: 'Chart reading', who: 'Plus and Pro members', paid: true,
+    id: 'technical', slug: 'technical', defaultName: 'Chart reading', who: 'Regular and Premium members', paid: true,
     colour: '#e8730c', colour2: '#ffb066', pathLevel: 'build',
     tagline: 'Learn to read a share price chart, step by step.',
     intro: 'Technical analysis, explained with pictures: candlesticks, trends, support and resistance, moving averages, RSI, MACD, chart patterns, and how to manage risk. Each lesson has worked examples and a chart, and you can try every idea on any company with our Chart check.',
@@ -40,7 +40,7 @@ export const LEVELS = {
     id: 'lords', slug: 'advanced', defaultName: 'Advanced', who: 'Confident investors', premium: true,
     colour: '#5b2a9e', colour2: '#8a4fd8', pathLevel: 'confident',
     tagline: 'Read the accounts and the economy like a professional.',
-    intro: 'The deeper lessons, for Pro members: cash flow statements, what a share is really worth, the economy’s warning lights, advanced chart reading, company events and building a lasting income. Then the Intensive: accounting red flags, valuing any kind of business, a portfolio with clear rules for buying and selling, charts for long-term owners, honest short-term trading, sector deep dives with real company figures, and smart research tools. Every lesson works through real figures and comes as a printable PDF workbook.',
+    intro: 'The deeper lessons, for Premium members: cash flow statements, what a share is really worth, the economy’s warning lights, advanced chart reading, company events and building a lasting income. Then the Intensive: accounting red flags, valuing any kind of business, a portfolio with clear rules for buying and selling, charts for long-term owners, honest short-term trading, sector deep dives with real company figures, and smart research tools. Every lesson works through real figures and comes as a printable PDF workbook.',
     promise: ['How professionals read the accounts and value a company', 'A portfolio framework with buying and selling rules', 'A PDF workbook for every lesson, plus a market review every two weeks'],
   },
 };
@@ -110,7 +110,7 @@ export function levelOf(article) {
 /** The names currently in use, e.g. { beginner: 'Beginners', intermediate: 'Intermediate', lords: 'Advanced' }. */
 export async function levelNames() {
   let saved = {};
-  // Names saved before the Free / Plus / Pro renaming (Nov 2026) are ignored
+  // Names saved before the Free / Regular / Premium renaming (Nov 2026) are ignored
   try { const st = (await readStore()).settings || {}; saved = st.learnLevelNamesV === 2 ? st.learnLevelNames || {} : {}; } catch { /* defaults */ }
   return {
     beginner: String(saved.beginner || '').trim() || LEVELS.beginner.defaultName,

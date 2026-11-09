@@ -24,10 +24,10 @@ import { premiumWeekContext, premiumWeekHtml } from './premiumWeekService.js';
 
 export const AUDIENCES = {
   everyone: 'Everyone (members and newsletter subscribers)',
-  members: 'All members (Free, Plus and Pro)',
+  members: 'All members (Free, Regular and Premium)',
   free: 'Free members and Free subscribers',
-  paid: 'Plus and Pro (members and subscribers you added as Plus or Pro)',
-  premium: 'Pro only (members and subscribers you added as Pro)',
+  paid: 'Regular and Premium (members and subscribers you added as Regular or Premium)',
+  premium: 'Premium only (members and subscribers you added as Premium)',
   subscribers: 'Newsletter subscribers only (not members)',
 };
 const DEFAULT_DAILY = 90;
@@ -231,7 +231,7 @@ async function courseWeekItems(site) {
     if (!ready.length) continue;
     out.push({
       heading: `${names[level]}, Week ${week.week}: ${week.title}`,
-      text: `${LEVELS[level].premium ? 'For Pro members. ' : LEVELS[level].paid ? 'For Plus and Pro members. ' : ''}${ready.map((a) => `• ${a.headline}`).join('\n')}`,
+      text: `${LEVELS[level].premium ? 'For Premium members. ' : LEVELS[level].paid ? 'For Regular and Premium members. ' : ''}${ready.map((a) => `• ${a.headline}`).join('\n')}`,
       url: `${site}/learn/${LEVELS[level].slug}#week-${week.week}`,
       button: `Start Week ${week.week}`,
     });
@@ -294,7 +294,7 @@ export async function draftFromSite() {
     ...results.map((r) => ({ heading: `${r.name}: ${r.headline}`, text: r.simple || '', url: `${site}${resultPath(r)}`, button: 'Read the results, explained' })),
     ...business.map((n) => ({ heading: n.title, text: `${n.source}${n.when ? ` · ${n.when}` : ''}`, url: n.url, button: `Read on ${n.source}` })),
     ...charts,
-    ...(report ? [{ heading: `Research report: ${report.text.headline}`, text: String((report.text.summary || [])[0] || ''), url: `${site}/reports/${report.id}`, button: 'Read the report (Pro)' }] : []),
+    ...(report ? [{ heading: `Research report: ${report.text.headline}`, text: String((report.text.summary || [])[0] || ''), url: `${site}/reports/${report.id}`, button: 'Read the report (Premium)' }] : []),
     ...course,
     ...explainers.map((a) => ({ heading: a.headline, text: a.summary || '', url: `${site}/learn/${a.slug}`, button: 'Read the explainer' })),
     { heading: 'Learning something new this week?', text: 'Our free learning path takes you from your first savings to running a portfolio, in short steps.', url: `${site}/learn/path`, button: 'Start the learning path' },
@@ -334,7 +334,7 @@ export async function sendTest(id, to, { premiumAs = null } = {}) {
     extra = await premiumWeekHtml({ ...me, plan: 'premium' }, await premiumWeekContext(), site);
   }
   const html = newsletterHtml({ ...issue, dateLabel: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site, extra, webUrl: `${site}/newsletter/${issue.id}`, unsubscribeUrl: `${site}/newsletter` });
-  return sendEmail({ to, subject: `[Test${extra ? ', Pro version' : ''}] ${issue.subject}`, html });
+  return sendEmail({ to, subject: `[Test${extra ? ', Premium version' : ''}] ${issue.subject}`, html });
 }
 
 /** Starts sending: takes a snapshot of who should get it, then sends in batches. */
@@ -378,7 +378,7 @@ export async function continueSending() {
       const reader = r.kind === 'member' ? users.get(r.id) : r.plan === 'premium' ? { plan: 'premium', email: r.email } : null;
       if (issue.premiumSection !== false && reader) {
         if (!ctx) ctx = await premiumWeekContext().catch(() => null);
-        if (ctx) extra = await premiumWeekHtml(reader, ctx, site).catch((error) => { console.error(`[newsletter] Pro section for ${r.email}: ${error.message}`); return ''; });
+        if (ctx) extra = await premiumWeekHtml(reader, ctx, site).catch((error) => { console.error(`[newsletter] Premium section for ${r.email}: ${error.message}`); return ''; });
       }
       emails.push({
         from, to: [r.email], subject: issue.subject,
@@ -427,7 +427,7 @@ export async function saveDailyLimit(n) {
    Checked every hour by the data engine. On Saturday from 06:00 Dubai time
    (02:00 UTC) it builds the issue from the site (news, charts, lessons),
    saves it, starts sending to everyone, and emails the admin a copy of the
-   Pro version. Once per week only. Switch off in Admin → Newsletter. */
+   Premium version. Once per week only. Switch off in Admin → Newsletter. */
 const isoWeek = (d) => {
   const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
@@ -493,7 +493,7 @@ export async function sendOnce(id, text, plan = 'free') {
   if (!issue.subject) throw Object.assign(new Error('Add a subject line first.'), { status: 400 });
   const site = await siteUrl();
   const html = newsletterHtml({ ...issue, dateLabel: issue.dateLabel || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) }, { site, webUrl: issue.status === 'sent' ? `${site}/newsletter/${issue.id}` : '', unsubscribeUrl: `${site}/newsletter` });
-  // Pro: the same email with the Pro section added
+  // Premium: the same email with the Premium section added
   let premHtml = html;
   if (plan === 'premium' && issue.premiumSection !== false) {
     const extra = await premiumWeekHtml({ plan: 'premium' }, await premiumWeekContext(), site).catch(() => '');
@@ -544,8 +544,8 @@ export async function addSubscribers(text, mode = 'invite', rawPlan = 'free') {
     if (!isNew) { if (await setPlan(email)) out.updated += 1; else out.already += 1; continue; }
     out.added += 1;
     const html = newsletterHtml({
-      subject: plan === 'premium' ? 'A free subscription to the Dr MoneyWise newsletter, Pro edition' : 'A free subscription to the Dr MoneyWise newsletter',
-      intro: (plan === 'premium' ? 'Someone thought you’d enjoy the Pro edition of the Dr MoneyWise newsletter, so you now get it for free, including the extra Pro section each week: ' : 'Someone thought you’d enjoy the Dr MoneyWise newsletter, so you now get it for free: ') + 'our best simple explainers on saving and investing, the biggest company results and new research, about once a week.\n\nIf you’d rather not get it, use the unsubscribe link at the bottom of this email and you won’t hear from us again.',
+      subject: plan === 'premium' ? 'A free subscription to the Dr MoneyWise newsletter, Premium edition' : 'A free subscription to the Dr MoneyWise newsletter',
+      intro: (plan === 'premium' ? 'Someone thought you’d enjoy the Premium edition of the Dr MoneyWise newsletter, so you now get it for free, including the extra Premium section each week: ' : 'Someone thought you’d enjoy the Dr MoneyWise newsletter, so you now get it for free: ') + 'our best simple explainers on saving and investing, the biggest company results and new research, about once a week.\n\nIf you’d rather not get it, use the unsubscribe link at the bottom of this email and you won’t hear from us again.',
       items: [{ heading: '', text: '', url: `${site}/newsletter`, button: 'See past issues' }],
     }, { site, unsubscribeUrl: `${site}/newsletter/unsubscribe?t=${sub.token}` });
     const r = await sendEmail({ to: email, subject: 'You’ve been given the Dr MoneyWise newsletter', html, unsubscribeUrl: `${site}/newsletter/unsubscribe?t=${sub.token}` });

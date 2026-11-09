@@ -6,7 +6,7 @@
      Day 2   The bank versus prices: the savings calculator
      Day 4   How healthy are your companies? (Health Check, watchlist)
      Day 7   Find your corner: Shariah, dividends, retirement, property
-     Day 10  Try Pro free for 7 days (members already paying get a
+     Day 10  Try Premium free for 7 days (members already paying get a
              "make the most of your plan" email instead)
    Only members who joined in the last 14 days get them (no backlog for
    older accounts), each email once. Members can turn them off in
@@ -101,17 +101,17 @@ async function email(step, user, site, trialDays) {
     };
   }
   return {
-    subject: trialDays ? `Try Pro free for ${trialDays} days` : 'What Pro adds',
-    title: trialDays ? `Pro, free for ${trialDays} days` : 'What Pro adds',
-    intro: trialDays ? `See everything for ${trialDays} days, free. If it isn’t for you, cancel before the trial ends and you pay nothing. We’ll email you two days before.` : 'Pro is for readers who want to go deeper.',
+    subject: trialDays ? `Try Premium free for ${trialDays} days` : 'What Premium adds',
+    title: trialDays ? `Premium, free for ${trialDays} days` : 'What Premium adds',
+    intro: trialDays ? `See everything for ${trialDays} days, free. If it isn’t for you, cancel before the trial ends and you pay nothing. We’ll email you two days before.` : 'Premium is for readers who want to go deeper.',
     sections: [
       section('What you get', [
         line('• Every Advanced lesson, including the Intensive, each with a printable PDF workbook'),
         line('• The full Financial Health Check and your portfolio health check'),
         line('• Chart alerts on your own companies, big-fund and insider moves'),
-        line('• A market review every two weeks, and your own Pro section in the Saturday newsletter'),
+        line('• A market review every two weeks, and your own Premium section in the Saturday newsletter'),
         line('• No adverts'),
-      ].join('') + btn(`${site}/membership#plans`, trialDays ? `Start my free ${trialDays}-day trial` : 'See Pro')),
+      ].join('') + btn(`${site}/membership#plans`, trialDays ? `Start my free ${trialDays}-day trial` : 'See Premium')),
       line('<span style="color:#4a5170">$19.99 a month or $179 a year after the trial. Cancel any time.</span>'),
     ],
   };
@@ -151,7 +151,7 @@ export async function runWelcomeEmails() {
         const mail = {
           subject: `Your free trial ends on ${when}`,
           title: 'Your free trial ends soon',
-          intro: `Your Pro trial ends on ${when}. After that your plan continues and your first payment is taken, unless you cancel before then.`,
+          intro: `Your Premium trial ends on ${when}. After that your plan continues and your first payment is taken, unless you cancel before then.`,
           sections: [
             section('Keep it', line('Nothing to do: everything stays unlocked.')),
             section('Not for you?', `${line('Cancel in a few clicks and you won’t pay anything.')}${btn(`${site}/membership`, 'Manage my plan')}`),

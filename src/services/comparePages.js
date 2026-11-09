@@ -144,7 +144,12 @@ function pickerHtml(a = '', b = '') {
 }
 
 export async function renderCompareIndex(origin) {
-  const pairs = popularPairs();
+  // Only pairs we can show (both companies' accounts saved)
+  const { readCompanies } = await import('./dataEngine.js');
+  const known = (await readCompanies()).companies || {};
+  const have = (t) => !!known[t]?.revenue?.length;
+  const all = popularPairs();
+  const pairs = Object.keys(known).length ? all.filter(([a, b]) => have(a) && have(b)) : all;
   const bySector = new Map();
   pairs.forEach(([a, b, s]) => { if (!bySector.has(s)) bySector.set(s, []); bySector.get(s).push([a, b]); });
   const head = buildHeadTags({
@@ -163,15 +168,19 @@ export async function renderCompareIndex(origin) {
   return pageShell({ head, body, active: 'markets' });
 }
 
-export function compareSitemapEntries(origin) {
+export function compareSitemapEntries(origin, available = null) {
   const today = new Date().toISOString().slice(0, 10);
-  return [{ loc: `${origin}/compare`, lastmod: today, priority: '0.7' }, ...popularPairs().map(([a, b]) => ({ loc: `${origin}/compare/${[a, b].sort().join('-vs-')}`, lastmod: today, priority: '0.5' }))];
+  const ok = (t) => !available || !!available[t]?.revenue?.length;
+  return [{ loc: `${origin}/compare`, lastmod: today, priority: '0.7' }, ...popularPairs().filter(([a, b]) => ok(a) && ok(b)).map(([a, b]) => ({ loc: `${origin}/compare/${[a, b].sort().join('-vs-')}`, lastmod: today, priority: '0.5' }))];
 }
 
 /** "Compare with…" links for a company page (its sector neighbours). */
-export function compareLinksHtml(ticker) {
+export function compareLinksHtml(ticker, available = null) {
   const s = SECTORS.find((x) => x.tickers.includes(ticker));
   if (!s) return '';
-  const others = s.tickers.filter((t) => t !== ticker).slice(0, 5);
+  // Only link to comparisons we can actually show (both companies' accounts saved)
+  const ok = (t) => !available || !!available[t]?.revenue?.length;
+  const others = s.tickers.filter((t) => t !== ticker && ok(t)).slice(0, 5);
+  if (!ok(ticker) || !others.length) return `<p class="cp-also"><a href="/compare">Compare ${esc(ticker)} with another company</a></p>`;
   return `<p class="cp-also">Compare ${esc(ticker)} with: ${others.map((t) => `<a href="/compare/${ticker}-vs-${t}">${t}</a>`).join(' · ')} · <a href="/compare">any company</a></p>`;
 }

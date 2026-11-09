@@ -56,6 +56,8 @@ export async function renderResultArticle(origin, slug) {
   });
   const { resultCardHtml } = await import('./resultsPages.js');
   const { compareLinksHtml } = await import('./comparePages.js');
+  const { readCompanies: rc } = await import('./dataEngine.js');
+  const known = (await rc()).companies || {};
   const body = `
       <section class="block nx-page">
         <p class="crumbs"><a href="/results">Company results</a> › ${esc(r.name)}</p>
@@ -64,7 +66,7 @@ export async function renderResultArticle(origin, slug) {
         ${resultCardHtml(r, { showCompany: true })}
         <div class="nx-more">
           <a href="/stock/${esc(r.ticker)}#healthCheck">${esc(r.name)}: Financial Health Check and report card →</a>
-          ${compareLinksHtml(r.ticker)}
+          ${compareLinksHtml(r.ticker, known)}
         </div>
         <p class="note-box">We explain what the company reported in its official filing. This is news and education, not advice to buy or sell.</p>
       </section>

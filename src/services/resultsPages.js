@@ -4,8 +4,8 @@
      company pages     "Latest results" box (free)
      every page        scrolling "Latest results" strip under the menu
                        (filled by public/results.js from /api/site/results-strip)
-   "What it means" is Pro: public/results.js fills it in from
-   /api/results/impact for Pro members.
+   "What it means" is Premium: public/results.js fills it in from
+   /api/results/impact for Premium members.
    ════════════════════════════════════════════════════════════════════════ */
 
 import { latestResults, readResults, resultsFor } from './resultsService.js';
@@ -28,7 +28,7 @@ export function resultCardHtml(r, { showCompany = true } = {}) {
           <h3>${r.simple ? `<a href="${resultPathOf(r)}">${esc(r.headline)}</a>` : esc(r.headline)}</h3>
           ${r.simple ? `<p class="rs-simple"><strong>In simple words:</strong> ${esc(r.simple)}</p>` : '<p class="rs-simple">A simple explanation is on its way. Meanwhile, read the company’s own announcement below.</p>'}
           ${numbers}
-          ${r.simple ? `<div class="rs-impact" data-impact-for="${esc(r.id)}"><h4>What it means <span class="members-badge prem">Pro</span></h4><p>Pro members see what changed, what the company expects next, and what to keep an eye on. <a href="/membership">See Pro</a></p></div>` : ''}
+          ${r.simple ? `<div class="rs-impact" data-impact-for="${esc(r.id)}"><h4>What it means <span class="members-badge prem">Premium</span></h4><p>Premium members see what changed, what the company expects next, and what to keep an eye on. <a href="/membership">See Premium</a></p></div>` : ''}
           <p class="rs-source"><a href="${esc(r.url)}" target="_blank" rel="noopener">Read the company’s announcement</a> (official filing with the US Securities and Exchange Commission). Not advice.</p>
         </article>`;
 }

@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════════
    Stock screener + Fund explorer (runs in the browser).
-   Plus: filters, ready-made screens, sector donut, growth/profit map,
-   sortable table. Pro: big-fund columns and filters, "most owned by
+   Regular: filters, ready-made screens, sector donut, growth/profit map,
+   sortable table. Premium: big-fund columns and filters, "most owned by
    big funds" chart, a pie of each company's fund owners, Fund explorer.
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -136,13 +136,13 @@
     if (S.premium) cols = cols.concat([['funds', 'Big funds'], ['buyers', 'Bought / sold'], ['ownedPct', 'Owned by funds'], ['bigBet', 'Biggest bet'], ['bossBuys', 'Bosses’ trades (90 days)']]);
     var sectors = Array.from(new Set(S.data.rows.map(function (r) { return r.sector; }))).sort();
     var locked = S.preview;
-    var html = '<div class="sc-hero"><div><span class="pf-badge' + (S.premium ? ' prem' : '') + '">' + (S.premium ? '★ Pro' : 'Plus') + '</span><h1>Stock screener</h1><p>Find companies by growth, profit, debt and dividends, from their official filings.' + (S.premium ? ' Plus what the big funds own.' : '') + '</p></div>' +
-      '<div class="sc-tabs" role="tablist"><button data-tab="screen" class="' + (S.tab === 'screen' ? 'on' : '') + '">Screener</button><button data-tab="funds" class="' + (S.tab === 'funds' ? 'on' : '') + '">Fund explorer <span class="sc-prem">Pro</span></button></div></div>';
+    var html = '<div class="sc-hero"><div><span class="pf-badge' + (S.premium ? ' prem' : '') + '">' + (S.premium ? '★ Premium' : 'Regular') + '</span><h1>Stock screener</h1><p>Find companies by growth, profit, debt and dividends, from their official filings.' + (S.premium ? ' Regular what the big funds own.' : '') + '</p></div>' +
+      '<div class="sc-tabs" role="tablist"><button data-tab="screen" class="' + (S.tab === 'screen' ? 'on' : '') + '">Screener</button><button data-tab="funds" class="' + (S.tab === 'funds' ? 'on' : '') + '">Fund explorer <span class="sc-prem">Premium</span></button></div></div>';
     if (locked) html += '<div class="pf-upsell"><strong>' + esc(S.lockText) + '</strong><a class="pf-btn gold" href="/membership#plans">See plans</a></div>';
     if (S.tab === 'funds') { app.innerHTML = html + fundsTab(); bind(); return; }
     html += '<div class="sc-presets">' + PRESETS.map(function (p) {
       var prem = p[3]; var dis = locked || (prem && !S.premium);
-      return '<button class="sc-preset' + (S.preset === p[0] ? ' on' : '') + '" data-preset="' + p[0] + '"' + (dis ? ' disabled' : '') + '>' + esc(p[1]) + (prem ? ' <span class="sc-prem">Pro</span>' : '') + '</button>';
+      return '<button class="sc-preset' + (S.preset === p[0] ? ' on' : '') + '" data-preset="' + p[0] + '"' + (dis ? ' disabled' : '') + '>' + esc(p[1]) + (prem ? ' <span class="sc-prem">Premium</span>' : '') + '</button>';
     }).join('') + '</div>';
     html += '<div class="sc-filters' + (locked ? ' locked' : '') + '">' +
       field('Region', '<select data-f="region"' + (locked ? ' disabled' : '') + '><option value="">Every region</option><option value="abroad"' + (S.f.region === 'abroad' ? ' selected' : '') + '>Outside the US</option>' + (S.data.regions || []).map(function (g) { return '<option value="' + esc(g.id) + '"' + (S.f.region === g.id ? ' selected' : '') + '>' + esc(g.name) + '</option>'; }).join('') + '</select>') +
@@ -153,13 +153,13 @@
       (S.premium ? field('Held by at least (big funds)', inp('funds', 'e.g. 3')) + '<label class="sc-check"><input type="checkbox" data-f="buying"' + (S.f.buying ? ' checked' : '') + '> More funds buying than selling</label>' : '') +
       '<button class="pf-btn ghost" data-reset' + (locked ? ' disabled' : '') + '>Clear</button></div>';
     if (S.premium && !locked) html += '<form class="sc-save" data-save><span><strong>Like these rules?</strong> Save them and we’ll show you every match, with what’s new each week.</span><input name="name" maxlength="60" placeholder="Name your list, e.g. My dividend ideas" aria-label="List name"><button class="pf-btn gold" type="submit">Save as an idea list</button><a href="/ideas">Your idea lists</a><em data-save-msg>' + esc(S.saveMsg || '') + '</em></form>';
-    else if (!S.premium && !locked) html += '<p class="sc-save-lock">★ Pro members can save these rules as an idea list and get new matches by email. <a href="/membership#plans">See Pro</a></p>';
+    else if (!S.premium && !locked) html += '<p class="sc-save-lock">★ Premium members can save these rules as an idea list and get new matches by email. <a href="/membership#plans">See Premium</a></p>';
     html += '<p class="sc-count"><strong>' + rows.length + '</strong> ' + (locked ? 'of the best-scoring companies shown (' + S.data.total + ' in the full screener)' : 'companies match') + '</p>';
     html += '<div class="sc-charts"><div class="pf-panel"><h2>By area of the economy</h2>' + (rows.length ? donut(sectorSlices(rows), { center: rows.length, sub: 'companies', title: 'Companies by area' }) + summaryTiles(rows) : '<p class="pf-sub">No companies match.</p>') + '</div>' +
       '<div class="pf-panel"><h2>Growth and profit map</h2>' + scatter(rows) + '</div></div>';
     if (S.premium && rows.length) {
       var owned = rows.filter(function (r) { return r.funds; }).sort(function (a, b) { return b.funds - a.funds || (b.fundsValue || 0) - (a.fundsValue || 0); }).slice(0, 10);
-      if (owned.length) html += '<div class="pf-panel"><h2>Most owned by the big funds <span class="sc-prem">Pro</span></h2><p class="pf-sub">How many of the famous funds we follow own each company (quarter to ' + esc(S.data.fundsPeriod || '—') + '). Green = more buying than selling last quarter, orange = more selling.</p>' +
+      if (owned.length) html += '<div class="pf-panel"><h2>Most owned by the big funds <span class="sc-prem">Premium</span></h2><p class="pf-sub">How many of the famous funds we follow own each company (quarter to ' + esc(S.data.fundsPeriod || '—') + '). Green = more buying than selling last quarter, orange = more selling.</p>' +
         hbars(owned.map(function (r) { return { label: r.ticker + ' · ' + r.name, v: r.funds, r: r, href: '#sc-' + r.ticker }; }), function (x) { return x.v + ' funds · ' + (x.r.ownedPct != null ? x.r.ownedPct + '% of the company' : ''); }, function (x) { return x.r.buyers > x.r.sellers ? '#1baf7a' : x.r.sellers > x.r.buyers ? '#eb6834' : '#2a78d6'; }) + '</div>';
     }
     html += '<div class="pf-panel sc-table-wrap"><table class="sc-table"><thead><tr>' + cols.map(function (c) {
@@ -186,9 +186,9 @@
   function field(label, control) { return '<label class="sc-field"><span>' + esc(label) + '</span>' + control + '</label>'; }
   function inp(name, ph) { return '<input data-f="' + name + '" inputmode="decimal" placeholder="' + esc(ph) + '" value="' + esc(S.f[name]) + '"' + (S.preview ? ' disabled' : '') + '>'; }
 
-  /* ── Fund explorer (Pro) ── */
+  /* ── Fund explorer (Premium) ── */
   function fundsTab() {
-    if (!S.premium) return '<div class="pf-panel"><h2>Fund explorer <span class="sc-prem">Pro</span></h2><p>See what each of about 20 famous investors (Warren Buffett’s Berkshire Hathaway, Bridgewater, Pershing Square and more) owns: their biggest holdings as a share of their money, and what they bought and sold last quarter.</p><a class="pf-btn gold" href="/membership#plans">See Pro</a></div>';
+    if (!S.premium) return '<div class="pf-panel"><h2>Fund explorer <span class="sc-prem">Premium</span></h2><p>See what each of about 20 famous investors (Warren Buffett’s Berkshire Hathaway, Bridgewater, Pershing Square and more) owns: their biggest holdings as a share of their money, and what they bought and sold last quarter.</p><a class="pf-btn gold" href="/membership#plans">See Premium</a></div>';
     if (!S.funds) { loadFunds(); return '<div class="pf-loading">Loading the funds…</div>'; }
     var list = S.funds.funds || [];
     if (!list.length) return '<div class="pf-panel"><p>The fund reports are being collected. Please check back soon.</p></div>';
@@ -209,7 +209,7 @@
     api('/api/screener/funds').then(function (d) { S.funds = d; draw(); }).catch(function () { S.funds = { funds: [] }; draw(); });
   }
 
-  /* ── Company drawer (Pro): who owns it ── */
+  /* ── Company drawer (Premium): who owns it ── */
   function openOwners(ticker) {
     var box = document.getElementById('scDrawer');
     if (!box) return;
@@ -222,7 +222,7 @@
       var slices = top.map(function (x, i) { return { label: x.fund, v: x.value || 0, c: PALETTE[i], text: big(x.value) }; });
       if (rest) slices.push({ label: 'Other funds', v: rest, c: OTHER, text: big(rest) });
       var w = { new: 'New', added: 'Bought more', reduced: 'Sold some', same: 'No change', unknown: '—' };
-      box.innerHTML = '<div class="pf-panel sc-drawer"><button class="sc-close" aria-label="Close">×</button><h2>Who owns ' + esc(ticker) + ' <span class="sc-prem">Pro</span></h2><p class="pf-sub">Big funds’ holdings at the end of the quarter to ' + esc(d.period || '—') + ', from their 13F reports.</p>' +
+      box.innerHTML = '<div class="pf-panel sc-drawer"><button class="sc-close" aria-label="Close">×</button><h2>Who owns ' + esc(ticker) + ' <span class="sc-prem">Premium</span></h2><p class="pf-sub">Big funds’ holdings at the end of the quarter to ' + esc(d.period || '—') + ', from their 13F reports.</p>' +
         '<div class="sc-owner-grid">' + donut(slices, { center: o.length, sub: 'big funds', title: 'Big-fund owners of ' + ticker }) +
         '<table class="sc-owners"><thead><tr><th>Fund</th><th>Value</th><th>% of the fund’s money</th><th>% of the company</th><th>Last quarter</th></tr></thead><tbody>' + o.map(function (x) {
           return '<tr><td><b>' + esc(x.fund) + '</b><small>' + esc(x.manager) + '</small></td><td>' + big(x.value) + '</td><td><span class="sc-pctbar"><i style="width:' + Math.min(100, (x.pctOfFund || 0) * 3) + '%"></i></span> ' + (x.pctOfFund != null ? x.pctOfFund + '%' : '—') + '</td><td>' + (x.pctOfCompany != null ? x.pctOfCompany + '%' : '—') + '</td><td><span class="sc-tag ' + (x.change === 'new' || x.change === 'added' ? 'up' : x.change === 'reduced' ? 'down' : '') + '">' + (w[x.change] || '') + '</span></td></tr>';
@@ -288,5 +288,5 @@
   }
   if (!token) { preview('The screener is for members. Sign in or join to use every filter.'); return; }
   api('/api/screener').then(function (d) { S.data = d; S.premium = Boolean(d.premium); draw(); loadIdea(); })
-    .catch(function (e) { preview(e.status === 403 ? 'The screener is part of Plus and Pro. Upgrade to use every filter.' : 'Sign in to use the screener.'); });
+    .catch(function (e) { preview(e.status === 403 ? 'The screener is part of Regular and Premium. Upgrade to use every filter.' : 'Sign in to use the screener.'); });
 }());
