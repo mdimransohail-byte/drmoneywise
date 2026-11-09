@@ -16,6 +16,8 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import { canAccess } from '../config.js';
 import { readStore, updateStore } from './storeService.js';
@@ -55,7 +57,8 @@ export function newsletterHtml(issue, { site = '', unsubscribeUrl = '', webUrl =
       <h1 style="font:700 24px Georgia,serif;margin:0 0 12px">${esc(issue.subject || '')}</h1>
       ${name ? `<p style="margin:0 0 12px">Hello ${esc(name)},</p>` : ''}
       ${para(issue.intro || '')}
-      ${items.map((x, i) => `
+      ${items.map((x, i) => `${x.section && x.section !== items[i - 1]?.section ? `
+      <div style="background:#0a1128;color:#c9a227;border-radius:10px;padding:9px 16px;margin:18px 0 12px;font:700 15px Georgia,serif">${esc(x.section)}</div>` : ''}
       <div style="border-left:5px solid ${colours[i % colours.length]};background:#fff;border-radius:10px;padding:14px 16px;margin:0 0 14px">
         ${x.image ? `<a href="${esc(x.url ? (x.url.startsWith('/') ? `${site}${x.url}` : x.url) : x.image)}"><img src="${esc(x.image)}" alt="${esc(x.heading || 'Chart')}" width="560" style="display:block;width:100%;max-width:560px;height:auto;border-radius:8px;margin:0 0 10px;border:0"></a>` : ''}
         ${x.heading ? `<h2 style="font:700 18px Georgia,serif;margin:0 0 8px">${x.url ? `<a href="${esc(x.url.startsWith('/') ? `${site}${x.url}` : x.url)}" style="color:#0a1128;text-decoration:none">${esc(x.heading)}</a>` : esc(x.heading)}</h2>` : ''}
@@ -180,6 +183,7 @@ function cleanIssue(raw = {}) {
       heading: clean(x.heading, 160), text: clean(x.text, 2000),
       image: /^https?:\/\//u.test(String(x.image || '')) ? clean(x.image, 400) : '',
       url: /^https?:\/\/|^\//u.test(String(x.url || '')) ? clean(x.url, 400) : '', button: clean(x.button, 40),
+      section: clean(x.section, 60),
     })).filter((x) => x.heading || x.text || x.url),
     ...(raw.auto ? { auto: String(raw.auto).slice(0, 12) } : {}),
   };
@@ -271,39 +275,105 @@ async function businessNews(limit = 5) {
   return pick.map((x) => ({ title: x.title, url: x.url, source: String(x.domain || '').replace(/^www\./u, '') || 'news site', when: x.date ? new Date(x.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '' }));
 }
 
+/* The newsletter in seven parts, always in this order (parts with nothing
+   new that week are left out, never padded):
+     1. Markets this week       charts of the markets and the Big Seven, business news
+     2. Company results         the week's results from large companies, explained
+     3. Dividend changes        raised, cut, started or stopped, from company filings
+     4. ETFs we follow          funds whose holdings report came out this week
+     5. The economy             the latest figures, each with the period it covers
+     6. What the big funds changed  the latest quarterly 13F reports
+     7. Before you decide       lessons, explainers and a checklist
+   Premium readers also get their personal section (their own watchlist
+   results and holdings changes) from premiumWeekService.js. */
 export async function draftFromSite() {
   const site = await siteUrl();
   const { getPublishedLearningArticles } = await import('./seoService.js');
-  const { latestResults } = await import('./resultsService.js');
+  const { latestResults, readDividends } = await import('./resultsService.js');
   const { biggestTickers } = await import('./resultsPages.js');
   const { listReports } = await import('./reportService.js');
   const week = Date.now() - 8 * 86400000;
+  const weekIso = new Date(week).toISOString().slice(0, 10);
   const explainers = (await getPublishedLearningArticles()).filter((a) => new Date(a.publishAt).getTime() > week && !(a.tags || []).includes('deeper')).slice(0, 2);
   const big = await biggestTickers();
   const results = latestResults(300, 8).filter((r) => r.simple && big.has(r.ticker)).slice(0, 4);
   const report = (await listReports())[0];
   const { resultPath } = await import('./newsPages.js');
-  const business = await businessNews(results.length >= 3 ? 5 : 7);
-  // Pictures of the week's figures (markets this year, the Big Seven, the economy)
+  const business = await businessNews(results.length >= 3 ? 4 : 6);
   const { newsletterChartItems } = await import('./newsletterCharts.js');
   const charts = await newsletterChartItems(site).catch(() => []);
-  // The course, one week per issue: Week 1 in the first issue, Week 2 in the next…
+  const economyPic = charts.filter((c) => /economy/iu.test(`${c.url} ${c.image}`));
+  const marketPics = charts.filter((c) => !economyPic.includes(c));
   const course = await courseWeekItems(site);
-  // News first (results, then other company news), then learning
+
+  // 3. Dividend changes this week
+  const divWord = { raised: 'raised its dividend', cut: 'cut its dividend', started: 'started paying a dividend', stopped: 'stopped its dividend', special: 'announced a one-off special dividend' };
+  const dividends = readDividends().filter((d) => d.filed >= weekIso && d.action && d.action !== 'kept').slice(0, 5);
+
+  // 4. ETFs whose latest holdings report came out in the last week
+  const etfItems = [];
+  try {
+    const { CURATED_ETFS, readEtf } = await import('./etfService.js');
+    for (const e of CURATED_ETFS.slice(0, 40)) {
+      const d = await readEtf(e.ticker);
+      if (d?.asOf && d.fetchedAt && new Date(d.fetchedAt).getTime() > week && d.top?.length) {
+        etfItems.push({ heading: `${e.ticker}: new holdings report`, text: `${e.name || e.ticker} holds ${d.count} investments (report dated ${new Date(d.asOf).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}). Largest: ${d.top.slice(0, 3).map((x) => `${x.name} ${Number(x.pct).toFixed(1)}%`).join(', ')}.`, url: `${site}/etfs/${e.ticker}`, button: 'See what is inside' });
+      }
+      if (etfItems.length >= 3) break;
+    }
+  } catch { /* no ETF data yet */ }
+
+  // 5. The economy: each figure with the period it covers
+  let economyText = '';
+  try {
+    const { readEconomy } = await import('./dataEngine.js');
+    const eco = await readEconomy();
+    economyText = Object.values(eco.figures || {}).filter((f) => Number.isFinite(f.value))
+      .map((f) => `• ${f.label}: ${f.value}${f.unit || ''}${f.quality?.period ? ` (${f.quality.freq} figure, ${f.quality.period})` : ''}${f.quality?.status === 'stale' ? ', not yet updated' : ''}`).join('\n');
+  } catch { /* no economy figures yet */ }
+
+  // 6. What the big funds changed (13F reports, quarterly; shown for 30 days after each update)
+  let fundsText = '';
+  try {
+    const raw = JSON.parse(await fs.readFile(path.join(process.cwd(), 'data', 'market', 'sec-funds.json'), 'utf8'));
+    if (raw.updatedAt && Date.now() - new Date(raw.updatedAt).getTime() < 30 * 86400000) {
+      const tally = Object.entries(raw.positions || {}).map(([t, rows]) => ({ t, added: rows.filter((r) => r.change === 'added' || r.change === 'new').length, cut: rows.filter((r) => r.change === 'reduced').length, period: rows[0]?.period }))
+        .filter((x) => x.added >= 2).sort((a, b) => b.added - a.added).slice(0, 5);
+      if (tally.length) fundsText = `In their latest quarterly reports${tally[0].period ? ` (quarter to ${tally[0].period})` : ''}, the most big funds added to:\n${tally.map((x) => `• ${x.t}: ${x.added} funds added, ${x.cut} reduced`).join('\n')}\n\nFunds report up to 45 days after each quarter ends, so these are past moves, not this week’s.`;
+    }
+  } catch { /* no fund data yet */ }
+
+  const S = ['Markets this week', 'Company results', 'Dividend changes', 'ETFs we follow', 'The economy', 'What the big funds changed', 'Before you decide'];
+  const tag = (section, list) => list.map((x) => ({ ...x, section }));
   const items = [
-    ...results.map((r) => ({ heading: `${r.name}: ${r.headline}`, text: r.simple || '', url: `${site}${resultPath(r)}`, button: 'Read the results, explained' })),
-    ...business.map((n) => ({ heading: n.title, text: `${n.source}${n.when ? ` · ${n.when}` : ''}`, url: n.url, button: `Read on ${n.source}` })),
-    ...charts,
-    ...(report ? [{ heading: `Research report: ${report.text.headline}`, text: String((report.text.summary || [])[0] || ''), url: `${site}/reports/${report.id}`, button: 'Read the report (Premium)' }] : []),
-    ...course,
-    ...explainers.map((a) => ({ heading: a.headline, text: a.summary || '', url: `${site}/learn/${a.slug}`, button: 'Read the explainer' })),
-    { heading: 'Learning something new this week?', text: 'Our free learning path takes you from your first savings to running a portfolio, in short steps.', url: `${site}/learn/path`, button: 'Start the learning path' },
+    ...tag(S[0], [
+      ...marketPics,
+      ...business.map((n) => ({ heading: n.title, text: `${n.source}${n.when ? ` · ${n.when}` : ''}`, url: n.url, button: `Read on ${n.source}` })),
+    ]),
+    ...tag(S[1], results.map((r) => ({ heading: `${r.name}: ${r.headline}`, text: r.simple || '', url: `${site}${resultPath(r)}`, button: 'Read the results, explained' }))),
+    ...tag(S[2], dividends.map((d) => ({ heading: `${d.name || d.ticker} ${divWord[d.action] || 'changed its dividend'}`, text: `${d.amount ? `New amount: ${d.amount}. ` : ''}From the company’s filing on ${new Date(d.filed).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}.`, url: `${site}/stock/${d.ticker}`, button: 'See the company' }))),
+    ...tag(S[3], etfItems),
+    ...tag(S[4], [
+      ...economyPic,
+      ...(economyText ? [{ heading: 'The latest figures', text: `${economyText}\n\nMonthly and weekly figures describe a past period; they are not live.`, url: `${site}/today`, button: 'See today’s numbers' }] : []),
+    ]),
+    ...tag(S[5], fundsText ? [{ heading: 'Where the big funds added', text: fundsText, url: `${site}/insiders`, button: 'See the funds (Premium)' }] : []),
+    ...tag(S[6], [
+      ...(report ? [{ heading: `Research report: ${report.text.headline}`, text: String((report.text.summary || [])[0] || ''), url: `${site}/reports/${report.id}`, button: 'Read the report (Premium)' }] : []),
+      ...course,
+      ...explainers.map((a) => ({ heading: a.headline, text: a.summary || '', url: `${site}/learn/${a.slug}`, button: 'Read the explainer' })),
+      { heading: 'Five checks before you buy any share', text: '• Do you understand how the company makes money?\n• Are its sales and profits growing over several years?\n• Can it cover its debts from its cash flow?\n• Is the price reasonable compared with its profits?\n• Would you be comfortable holding it if the price fell by a third?', url: `${site}/health-check`, button: 'Check a company’s health' },
+    ]),
   ];
+  const INTRO_WORDS = { 'Markets this week': 'the markets', 'Company results': 'company results', 'Dividend changes': 'dividend changes', 'ETFs we follow': 'the ETFs we follow', 'The economy': 'the economy', 'What the big funds changed': 'what the big funds changed', 'Before you decide': 'things to check before you decide' };
+  // Number the parts that have something this week: 1, 2, 3…
+  const present = S.filter((name) => items.some((x) => x.section === name));
+  for (const x of items) x.section = `${present.indexOf(x.section) + 1}. ${x.section}`;
   const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
   return {
     subject: `Your week in money: ${date}`,
     preheader: results[0] ? `${results[0].name}: ${results[0].headline}` : business[0]?.title || explainers[0]?.headline || 'The week’s money news, explained simply',
-    intro: 'The week’s company news first: results explained simply and what businesses are doing, then the week in pictures. After that, this week’s lessons from our course, from the basics up.',
+    intro: `This week: ${present.map((n) => INTRO_WORDS[n]).join(', ').replace(/, ([^,]*)$/u, ' and $1')}. Parts with nothing new this week are left out.`,
     closing: 'Have a good week,\nThe Dr MoneyWise team',
     audience: 'everyone',
     items,

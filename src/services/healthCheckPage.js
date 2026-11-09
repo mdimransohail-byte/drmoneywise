@@ -24,7 +24,7 @@ export async function examplePortfolioHealth() {
 
 export function renderHealthCheckPage(origin) {
   const head = buildHeadTags({
-    title: 'Portfolio health check | Dr MoneyWise Premium',
+    title: 'Portfolio health check: score your shares, see your mix and spot risks | Dr MoneyWise',
     description: 'A score for every holding and for your whole portfolio, from official company figures: business quality, profit trend, outlook, big funds and how spread out you are.',
     canonical: `${origin}/portfolio-health`,
   });

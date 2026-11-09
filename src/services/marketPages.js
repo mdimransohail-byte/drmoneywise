@@ -264,7 +264,10 @@ export async function renderHomePulse() {
     const diff = fig.previous === null || fig.previous === undefined ? 0 : fig.value - fig.previous;
     const same = fig.previous === null || fig.previous === undefined || fig.previous.toFixed(fig.kind === 'yoy' ? 1 : 2) === fig.value.toFixed(fig.kind === 'yoy' ? 1 : 2);
     const arrow = same ? '●' : diff > 0 ? '▲' : '▼';
-    return `<div class="pulse-row"><span class="pulse-name">${esc(fig.label)}</span><span class="pulse-move flat">${arrow} ${esc(value)}</span><span class="pulse-plain">${esc(ECONOMY_MEANING[fig.key]?.(fig.value) || '')}</span></div>`;
+    const q = fig.quality || {};
+    const when = q.period ? `<em class="ig-when">${esc(q.freq === 'weekly' ? 'Weekly' : q.freq === 'daily' ? 'Daily' : 'Monthly')} figure · ${esc(q.period)}</em>` : '';
+    const stale = q.status === 'stale' ? '<em class="ig-stale">Not updated recently</em>' : '';
+    return `<div class="pulse-row"><span class="pulse-name">${esc(fig.label)}</span><span class="pulse-move flat">${arrow} ${esc(value)}</span><span class="pulse-plain">${esc(ECONOMY_MEANING[fig.key]?.(fig.value) || '')}${when}${stale}</span></div>`;
   }).join('');
   return `${rows}
             <div class="pulse-foot">Sources: BLS, New York Fed, Freddie Mac${updatedAt ? `, retrieved ${esc(updatedAt.slice(0, 10))}` : ''}. <a href="/today#credits">Credits</a> · <a href="/today">The economy today</a></div>`;

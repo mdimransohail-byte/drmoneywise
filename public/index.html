@@ -55,16 +55,13 @@
 
     <main>
       <div class="wrap"><div data-ad-fill="top-banner"></div></div>
-      <!-- ═══ HERO: TODAY IN 60 SECONDS ═════════════════════════════════
-           The headline + reading aid are filled by app.js from the daily
-           market summary once the data engine is running (Day 6/9). Until
-           then the default copy below shows. -->
+      <!-- ═══ HERO ═══════════════════════════════════════════════════════ -->
       <section id="today" class="hero">
         <div class="wrap hero-grid">
           <div>
-            <p id="heroDateline" class="dateline">Dr MoneyWise</p>
-            <h1 id="heroHeadline">Money and Investing Made Simple</h1>
-            <p id="heroLede" class="lede">Free courses from the basics up, a health score for every company, live market maps, calculators and guides. Clear, short and jargon-free.</p>
+            <p id="heroDateline" class="dateline">Dr MoneyWise · Financial intelligence, simplified</p>
+            <h1 id="heroHeadline">Money and investing, explained simply.</h1>
+            <p id="heroLede" class="lede">Understand your money, research companies and follow the markets. Make better-informed decisions, no finance degree needed.</p>
             <div class="hero-find">
               <form id="lookupForm" method="get" action="/stocks" role="search">
                 <label for="lookupInput">Look up any company: what it does, whether it’s growing, its debt and dividend, explained simply</label>
@@ -72,10 +69,10 @@
               </form>
               <p id="lookupMessage" class="hf-pop">Popular: <a href="/stock/AAPL">Apple</a> <a href="/stock/MSFT">Microsoft</a> <a href="/stock/NVDA">Nvidia</a> <a href="/stock/KO">Coca-Cola</a> <a href="/stock/TSLA">Tesla</a> <a href="/stocks">All companies →</a></p>
             </div>
-            <div class="hero-paths">
-              <a href="/learn" style="--c:#1baf7a"><i aria-hidden="true">✎</i><strong>Learn</strong><span>Free courses, from the basics up</span></a>
-              <a href="/health-check" style="--c:#2a78d6"><i aria-hidden="true">✓</i><strong>Check</strong><span>A health score for every company</span></a>
-              <a href="/guides" style="--c:#e8a33d"><i aria-hidden="true">◎</i><strong>Plan</strong><span>Calculators and guides for saving and retiring</span></a>
+            <div class="hero-paths pillars">
+              <a href="/learn" style="--c:#1baf7a"><i aria-hidden="true">✎</i><strong>Understand</strong><span>Money ideas in everyday words: free courses, guides and money words</span></a>
+              <a href="/stocks" style="--c:#2a78d6"><i aria-hidden="true">⌕</i><strong>Research</strong><span>Company report cards, markets, screeners and Top 10 lists</span></a>
+              <a href="/tools" style="--c:#e8a33d"><i aria-hidden="true">↗</i><strong>Improve</strong><span>Check your financial health, plan ahead and know your risks</span></a>
             </div>
           </div>
           <div id="homeCalcs" class="hc-box" aria-label="Money calculators">
@@ -90,11 +87,58 @@
       </section>
 
       <div class="wrap">
-        <!-- ═══ TOP 10s ═══════════════════════════════════════════════ -->
-        <section id="homeResults" class="block rs-box" hidden></section>
+        <!-- ═══ WHY WE'RE DIFFERENT ═══════════════════════════════════════ -->
+        <section class="block why-box" id="why">
+          <div class="block-head"><div><h2>Why Dr MoneyWise is different</h2><p>Most money websites give you headlines and jargon. We give you understanding.</p></div><a class="go-link" href="/how-we-work">How we work →</a></div>
+          <div class="why-grid">
+            <div style="--c:#1baf7a"><b>Everyday words</b><span>Every idea is explained so anyone can follow it, with a real example. If a term needs a dictionary, we explain it on the spot.</span></div>
+            <div style="--c:#2a78d6"><b>Official figures</b><span>Company scores come from companies’ own filings with the SEC; economy figures from government statisticians. Every figure shows its date.</span></div>
+            <div style="--c:#eb6834"><b>Rules you can see</b><span>Every score, rating and Top 10 list shows exactly how it was worked out, so you can judge it for yourself.</span></div>
+            <div style="--c:#6250d6"><b>Learning, not noise</b><span>No hot tips and no “buy now”. We help you understand what you own and why, so you make your own decisions with confidence.</span></div>
+          </div>
+        </section>
 
-        <!-- ═══ BUSINESS NEWS BY REGION (public/regionnews.js) ═══ -->
-        <!-- ═══ STOCK MARKET HEAT MAP (public/heatmap.js) ═══ -->
+        <!-- ═══ 1. YOUR FINANCIAL INTERESTS ═══════════════════════════════ -->
+        <section class="block" id="interests">
+          <div class="block-head"><div><p class="sec-num">1</p><h2>Start with your financial interests</h2><p>Pick where you are, and we’ll show you what matters.</p></div></div>
+          <div class="interest-grid">
+            <a href="/personal-finance" style="--c:#0f8a76"><i aria-hidden="true">◈</i><b>Personal finance</b><span>Saving, budgeting, debt and your financial goals</span></a>
+            <a href="/learn/beginners" style="--c:#2a78d6"><i aria-hidden="true">↗</i><b>Investing</b><span>Shares, ETFs and building a portfolio</span></a>
+            <a href="/stocks/world" style="--c:#6250d6"><i aria-hidden="true">◍</i><b>Global markets</b><span>The US, India, Europe, the Gulf and Asia</span></a>
+            <a href="/property" style="--c:#e8a33d"><i aria-hidden="true">⌂</i><b>Property</b><span>Prices, rents, rental yields and returns</span></a>
+          </div>
+          <details class="more-guides"><summary>All money guides</summary><!-- GUIDES --></details>
+        </section>
+
+        <!-- ═══ 2. MONEY AND MARKETS TODAY ════════════════════════════════ -->
+        <section class="block" id="markets-today">
+          <div class="block-head"><div><p class="sec-num">2</p><h2>Your money and markets today</h2><p>The figures that move savings, loans and investments, each with its date, and what the markets are doing.</p></div><a class="go-link" href="/today">The economy today →</a></div>
+          <div class="today-split">
+            <div class="surface hn-box">
+              <h3>Today’s numbers</h3>
+              <p class="helper-note">Official figures, published monthly or weekly. Each shows the period it covers.</p>
+              <div id="marketPulse" class="pulse hn-pulse" aria-label="Today's numbers">
+                <div class="pulse-row"><span class="pulse-name">Economy figures</span><span class="pulse-move flat">Soon</span><span class="pulse-plain">Inflation, interest rates and mortgage rates will show here.</span></div>
+              </div><!-- /PULSE -->
+            </div>
+            <div class="top-stories">
+<div class="rn-box surface" id="regionNews">
+          <div class="rn-head">
+            <div><h3>The stories that matter</h3><p>The latest headlines from news sites. Choose a region; click a headline to read it on the publisher’s site.</p></div>
+            <label class="rn-pick"><span>Region</span><select id="rnRegion" aria-label="Choose a region">
+              <option value="us">United States</option><option value="uk">United Kingdom</option><option value="europe">Europe</option>
+              <option value="india">India</option><option value="china">China</option><option value="japan">Japan</option>
+              <option value="south-korea">South Korea</option><option value="brazil">Brazil</option><option value="gulf">Gulf (Middle East)</option>
+            </select></label>
+          </div>
+          <div class="rn-window" id="rnWindow"><ul class="rn-list" id="rnList"><li class="rn-empty">Loading headlines…</li></ul></div>
+          <p class="rn-credit">Headlines found with <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">the GDELT Project</a>. Articles belong to their publishers; we don’t check or endorse them. <a id="rnMore" href="/stocks/world">More on this region</a></p>
+        </div>
+              <div hidden><span id="feedState"></span><a id="briefFeatured" href="#"></a><div id="briefBoard"></div></div>
+            </div>
+          </div>
+        </section>
+        <section id="homeResults" class="block rs-box" hidden></section>
         <section class="block hm-box" id="heatmap">
           <div class="block-head">
             <div><h2>US stock market heat map</h2><p>Each box is a company: bigger box = bigger company; green = share price up today, red = down. Pick a list.</p></div>
@@ -103,8 +147,6 @@
           <div id="hmWidget" class="hm-widget"></div>
           <p class="rn-credit">Live heat map by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>; prices may be delayed. <a href="/today">The economy and this week’s announcements →</a></p>
         </section>
-
-        <!-- ═══ LIVE CURRENCY RATES (public/fxlive.js) ═══ -->
         <section class="block fx-box" id="fxLive">
           <div class="block-head">
             <div><h2>Live currency rates</h2><p>How much of each currency one unit buys, live. Choose the currencies you care about.</p></div>
@@ -115,26 +157,9 @@
           <p class="rn-credit">Live rates by <a href="https://www.tradingview.com/" target="_blank" rel="noopener nofollow">TradingView</a>; may be delayed. Banks and exchange shops add their own margin: see the <a href="/tools/currency-converter">currency converter</a>.</p>
         </section>
 
-        <section class="block rn-box" id="regionNews">
-          <div class="rn-head">
-            <div><h2>Business news by region</h2><p>The latest headlines from news sites. Choose a region; click a headline to read it on the publisher’s site.</p></div>
-            <label class="rn-pick"><span>Region</span><select id="rnRegion" aria-label="Choose a region">
-              <option value="us">United States</option><option value="uk">United Kingdom</option><option value="europe">Europe</option>
-              <option value="india">India</option><option value="china">China</option><option value="japan">Japan</option>
-              <option value="south-korea">South Korea</option><option value="brazil">Brazil</option><option value="gulf">Gulf (Middle East)</option>
-            </select></label>
-          </div>
-          <div class="rn-window" id="rnWindow"><ul class="rn-list" id="rnList"><li class="rn-empty">Loading headlines…</li></ul></div>
-          <p class="rn-credit">Headlines found with <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">the GDELT Project</a>. Articles belong to their publishers; we don’t check or endorse them. <a id="rnMore" href="/stocks/world">More on this region</a></p>
-        </section>
-
-        <section class="block home-guides-box">
-          <div class="block-head"><div><h2>Money guides</h2><p>Everything on one topic in one place: lessons, calculators, companies and common questions.</p></div><a class="go-link" href="/guides">All guides →</a></div>
-          <!-- GUIDES -->
-        </section>
-
-        <section class="block home-tools">
-          <div class="block-head"><div><h2>Research tools</h2><p>Built from companies’ and funds’ official reports.</p></div></div>
+        <!-- ═══ 3. RESEARCH BEFORE YOU INVEST ═════════════════════════════ -->
+        <section class="block home-tools" id="research">
+          <div class="block-head"><div><p class="sec-num">3</p><h2>Research before you invest</h2><p>Built from companies’ and funds’ official reports. Free tools first; members get the deeper ones.</p></div><a class="go-link" href="/stocks">All companies →</a></div>
           <div class="mk-cards">
             <a class="mk-card" href="/technical"><strong>Chart check</strong><span>What any share’s price chart shows: trend, RSI, MACD, support and resistance.</span><em>Free · full for members</em></a>
             <a class="mk-card" href="/compare"><strong>Compare two companies</strong><span>Health scores, sales, profit, debt and dividends side by side.</span><em>Free</em></a>
@@ -147,10 +172,9 @@
           </div>
           <a class="lp-banner sh-banner" href="/shariah"><span class="pf-badge free">Free</span><strong>Shariah-compliant investing</strong><span>Which big companies pass the five main Shariah standards, and the Shariah funds and ETFs you can buy.</span><em>See the guide →</em></a>
         </section>
-
         <section id="top10" class="block">
           <div class="block-head">
-            <div><h2>Top 10 lists</h2><p>Each list shows how it's ranked, so you know exactly what you're looking at.</p></div>
+            <div><h2>Top 10 lists</h2><p>Each list shows how it's ranked, so you know exactly what you're looking at.</p></div><a class="go-link" href="/top-10">All 20+ lists →</a>
           </div>
           <div id="topTenPanels" class="tens">
             <article class="ten">
@@ -173,83 +197,26 @@
           </div>
         </section>
 
-        <!-- ═══ EXPLAINED SIMPLY (Learning Points) ════════════════════ -->
+        <!-- ═══ 4. LEARN MONEY MATTERS ════════════════════════════════════ -->
         <section id="learning" class="block">
           <div class="block-head">
-            <div><h2>Explained simply</h2><p>Money ideas in everyday words, with real-life examples.</p></div>
+            <div><p class="sec-num">4</p><h2>Learn money matters</h2><p>Simple explanations, practical examples and guided learning.</p></div><a class="go-link" href="/learn">All courses →</a>
           </div>
+          <div class="course-strip">
+            <a href="/learn/beginners" style="--c:#1baf7a"><b>Beginners</b><span>Free · start here</span></a>
+            <a href="/learn/intermediate" style="--c:#2a78d6"><b>Intermediate</b><span>Free · the next step</span></a>
+            <a href="/learn/technical" style="--c:#eb6834"><b>Chart reading</b><span>Regular and Premium</span></a>
+            <a href="/learn/advanced" style="--c:#6250d6"><b>Advanced</b><span>Premium · with PDF workbooks</span></a>
+            <a href="/glossary" style="--c:#8a5a2b"><b>Money words</b><span>Every term, explained</span></a>
+          </div>
+          <h3 class="sub-h">Explained simply</h3>
           <div id="learningPoints" class="explain"></div>
         </section>
 
-        <!-- ═══ NEWSLETTER SIGN-UP (public/newsletter.js) ═══ -->
-        <section class="block nl-home">
-          <form class="nl-box" data-nl-form data-source="home">
-          <div class="nl-text"><span class="nl-icon" aria-hidden="true">✉</span><div><strong>Get the free weekly newsletter</strong><span>Our best simple explainers, the biggest company results and new research. About once a week, easy to stop.</span></div></div>
-          <div class="nl-fields"><label class="sr-only" for="nl-home">Your email</label><input id="nl-home" type="email" name="email" required maxlength="160" placeholder="Your email address" autocomplete="email"><button class="pf-btn gold" type="submit">Sign me up</button></div>
-          <p class="nl-msg" aria-live="polite"></p>
-        </form>
-        </section>
-
-        <!-- ═══ TOP STORIES ═══════════════════════════════════════════ -->
-        <section id="news" class="block">
-          <div class="block-head">
-            <div><h2>Top stories</h2><p>The biggest money news, linked to the original source.</p></div>
-            <span id="feedState" class="subtle-chip">Loading</span>
-          </div>
-          <div class="news">
-            <a id="briefFeatured" class="lead-story" href="#" target="_blank" rel="noopener"></a>
-            <div id="briefBoard" class="story-list"></div>
-          </div>
-        </section>
-
-        <!-- ═══ NEWS BY TOPIC (Explore by Interest) ═══════════════════ -->
-        <section id="topics" class="block">
-          <div class="block-head">
-            <div><h2>News by topic</h2><p>Pick the topics and regions you care about.</p></div>
-            <div class="topic-controls">
-              <div class="picker-dropdown">
-                <button type="button" class="picker-trigger" id="regionPickerTrigger"><span id="regionPickerLabel">Region: Global</span></button>
-                <div id="regionFilterChips" class="chip-grid picker-panel hidden"></div>
-              </div>
-              <div class="picker-dropdown">
-                <button type="button" class="picker-trigger" id="interestPickerTrigger"><span id="interestPickerLabel">Topics</span></button>
-                <div id="interestFilterChips" class="chip-grid picker-panel hidden"></div>
-              </div>
-              <button id="refreshHomeButton" class="picker-trigger" type="button">Refresh</button>
-            </div>
-          </div>
-          <div id="feedAreas" class="area-grid"></div>
-        </section>
-
-        <!-- ═══ LOOK UP A COMPANY + TODAY'S NUMBERS ═══════════════════════ -->
-        <section id="lookup" class="block">
-          <div class="split">
-            <div class="split-col">
-            <div class="finder">
-              <h2>Not sure of the name?</h2>
-              <p>Browse every company we cover by area of the economy, or compare two side by side.</p>
-              <p class="soon"><a href="/stocks" style="color:#fff">All companies</a> · <a href="/compare" style="color:#fff">Compare two companies</a> · <a href="/stocks/world" style="color:#fff">Stocks around the world</a></p>
-            </div>
-            <a class="surface gloss-tile" href="/glossary">
-              <h3>Glossary</h3>
-              <p>New to a word? See our money words, each explained simply with an everyday example.</p>
-              <span class="go">Open the glossary</span>
-            </a>
-            </div>
-            <div class="surface hn-box">
-              <h3>Today’s numbers</h3>
-              <p class="helper-note">The official figures that move savings, loans and markets.</p>
-              <div id="marketPulse" class="pulse hn-pulse" aria-label="Today's numbers">
-                <div class="pulse-row"><span class="pulse-name">Economy figures</span><span class="pulse-move flat">Soon</span><span class="pulse-plain">Inflation, interest rates and mortgage rates will show here.</span></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══ MY TOOLS: WATCHLIST, PORTFOLIO, REVIEW ════════════════ -->
+        <!-- ═══ 5. YOUR OWN FINANCIAL DASHBOARD ═══════════════════════════ -->
         <section id="tools" class="block">
           <div class="block-head">
-            <div><h2>My watchlist and portfolio</h2><p>Keep an eye on companies and see your holdings in one place.</p></div>
+            <div><p class="sec-num">5</p><h2>Build your own financial dashboard</h2><p>Watchlists, portfolios, alerts and research shaped around you. Free to start.</p></div>
           </div>
           <div class="tools-grid">
             <div class="surface">
@@ -290,11 +257,18 @@
           <div id="portfolioReview" class="review-board"></div>
           <div id="portfolioEdge" class="pe-box"></div>
         </section>
+        <section class="block nl-home">
+          <form class="nl-box" data-nl-form data-source="home">
+          <div class="nl-text"><span class="nl-icon" aria-hidden="true">✉</span><div><strong>Get the free weekly newsletter</strong><span>Our best simple explainers, the biggest company results and new research. About once a week, easy to stop.</span></div></div>
+          <div class="nl-fields"><label class="sr-only" for="nl-home">Your email</label><input id="nl-home" type="email" name="email" required maxlength="160" placeholder="Your email address" autocomplete="email"><button class="pf-btn gold" type="submit">Sign me up</button></div>
+          <p class="nl-msg" aria-live="polite"></p>
+        </form>
+        </section>
 
-        <!-- ═══ MEMBERSHIP ════════════════════════════════════════════ -->
+        <!-- ═══ 6. CHOOSE YOUR MEMBERSHIP ═════════════════════════════════ -->
         <section id="membership" class="block">
           <div class="block-head">
-            <div><h2>Membership</h2><p>Start free. Members get the deeper look on every company: what the big funds are doing, "what if" scenarios and 10 years of results.</p></div>
+            <div><p class="sec-num">6</p><h2>Choose your membership</h2><p>Start free. Regular adds the research tools; Premium adds the deepest lessons, portfolio checks and fund data.</p></div>
             <div class="coupon-row">
               <label class="sr-only" for="couponInput">Coupon code</label>
               <input id="couponInput" type="text" placeholder="Coupon code" />
@@ -303,8 +277,29 @@
           </div>
           <div id="couponMessage" class="helper-note"></div>
           <div id="pricingCards" class="pricing-grid"></div>
-          <p class="helper-note" style="margin-top:14px"><a href="/membership">See all membership details, questions and answers, and manage your plan →</a></p>
+          <p class="helper-note" style="margin-top:14px"><a href="/membership">Compare Free, Regular and Premium in detail, see samples of each feature, and manage your plan →</a></p>
         </section>
+
+        <!-- ═══ MORE NEWS (kept lower: we are not a news site) ════════════ -->
+        <details class="block more-news" id="topics">
+          <summary><h2>More news, by region and topic</h2><span>Headlines from news sites, for when you want them</span></summary>
+          
+          <div class="block-head" style="margin-top:20px">
+            <div><h3 style="margin:0">News by topic</h3><p>Pick the topics and regions you care about.</p></div>
+            <div class="topic-controls">
+              <div class="picker-dropdown">
+                <button type="button" class="picker-trigger" id="regionPickerTrigger"><span id="regionPickerLabel">Region: Global</span></button>
+                <div id="regionFilterChips" class="chip-grid picker-panel hidden"></div>
+              </div>
+              <div class="picker-dropdown">
+                <button type="button" class="picker-trigger" id="interestPickerTrigger"><span id="interestPickerLabel">Topics</span></button>
+                <div id="interestFilterChips" class="chip-grid picker-panel hidden"></div>
+              </div>
+              <button id="refreshHomeButton" class="picker-trigger" type="button">Refresh</button>
+            </div>
+          </div>
+          <div id="feedAreas" class="area-grid"></div>
+        </details>
 
         <!-- ═══ JOIN / SIGN IN ════════════════════════════════════════ -->
         <section id="join" class="block">

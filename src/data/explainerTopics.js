@@ -13,7 +13,21 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+const SEARCH_PRIORITY_COUNT = 12;
 export const EVERGREEN_TOPICS = [
+  // Search priorities (written first): what people most often search for
+  'How to invest in stocks: a step-by-step guide for beginners',
+  'How to read financial statements: the three reports every investor should know',
+  'How to calculate your investment returns, including dividends',
+  'Diversification explained: how many investments is enough?',
+  'Dividend yield explained: how to calculate it and when a high yield is a warning',
+  'Compound interest explained, with worked examples',
+  'How to buy US stocks from the UK, India or the UAE',
+  'Investing as an NRI: what non-resident Indians need to know',
+  'Retirement planning in your 30s, 40s and 50s: what to do at each stage',
+  'Planning your money in India: SIPs, PPF, NPS and fixed deposits compared',
+  'Where to look for global investment opportunities: markets beyond the US',
+  'Halal investing for beginners: how Shariah screening works',
   // Getting started
   'How compound growth turns small savings into big sums',
   'Saving versus investing: which money goes where',
@@ -140,6 +154,10 @@ export async function pickEvergreenTopic({ excludeTopics = [] } = {}) {
       if (!used.has(label.toLowerCase())) return { label, sampleHeadline: fact, score: 1 };
     }
   } catch { /* no economy file yet */ }
+
+  // 1b. The search-priority topics at the top of EVERGREEN_TOPICS, before more course lessons
+  const priority = EVERGREEN_TOPICS.slice(0, SEARCH_PRIORITY_COUNT).find((t) => !used.has(t.toLowerCase()));
+  if (priority) return { label: priority, sampleHeadline: priority, score: 1 };
 
   // 2. The next free course lesson not written yet (Week 1 of Beginners and
   //    Intermediate first, then Week 2…; src/data/learnCourse.js)

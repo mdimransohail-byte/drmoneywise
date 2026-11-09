@@ -32,7 +32,7 @@ export async function renderHealthCheckIndex(origin) {
   const counts = RATING_BANDS.map((b) => ({ ...b, n: rows.filter((r) => r.h.band.id === b.id).length }));
   const groups = [...new Map(rows.filter((r) => r.g).map((r) => [r.g.id, r.g.name])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   const head = buildHeadTags({
-    title: 'Financial Health Check: scores for every company we cover | Dr MoneyWise',
+    title: 'Stock health check: free financial health scores for every company we cover | Dr MoneyWise',
     description: `Is a company financially healthy? ${rows.length} companies scored out of 100 on growth, profit, debt, spare cash, balance sheet and dividends, from official figures. Free and explained simply.`,
     canonical: `${origin}/health-check`,
     jsonLd: {

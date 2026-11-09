@@ -8,6 +8,7 @@
    Signed-out visitors see Plans only. Filled in by public/membership.js.
    ════════════════════════════════════════════════════════════════════════ */
 
+import { showcaseHtml } from './membershipShowcase.js';
 import { getPlanCatalog, INTEREST_OPTIONS, REGION_OPTIONS } from '../config.js';
 import { PROFILE_OPTIONS, OTHER_TEXT_MAX } from '../data/profileOptions.js';
 import { buildHeadTags, pageShell } from './seoService.js';
@@ -178,6 +179,7 @@ export function renderMembershipPage(origin, { trialDays = 7 } = {}) {
           <thead><tr><th>What’s included</th>${plans.map((p) => `<th${p.id === 'premium' ? ' class="pp-prem"' : ''}>${esc(p.shortName || p.name)}<small>${esc(p.priceLabel)}</small></th>`).join('')}</tr></thead>
           <tbody>${COMPARE.map(([t, ...v]) => `<tr><td>${esc(t)}</td>${v.map((x, i) => `<td class="${i === 2 ? 'pp-prem' : ''}">${x ? '<span class="pp-yes" aria-label="Included">✓</span>' : '<span class="pp-no" aria-label="Not included">–</span>'}</td>`).join('')}</tr>`).join('')}</tbody>
         </table></div>
+        ${showcaseHtml({ trialDays })}
         <div class="mb-under">
           <div class="mb-coupon">
             <label for="mbCoupon">Coupon code</label>

@@ -248,8 +248,8 @@ async function injectNewsWidget(html) {
 export async function renderHomePage(template, origin) {
   const articles = (await getPublishedLearningArticles()).slice(0, 10);
   const head = buildHeadTags({
-    title: 'Dr MoneyWise — Money and Investing Made Simple',
-    description: 'Money and investing made simple: free courses from the basics up, a health score for every company, live market heat maps, calculators and guides for everyday investors.',
+    title: 'Dr MoneyWise: money and investing, explained simply',
+    description: 'Financial intelligence, simplified: understand your money, research companies with official figures, follow the markets and learn investing step by step. Free courses, company report cards, stock screener, calculators and Shariah screening.',
     canonical: `${origin}/`,
     jsonLd: {
       '@context': 'https://schema.org',
@@ -493,8 +493,8 @@ async function injectPulse(html) {
     const pulse = await renderHomePulse();
     if (!pulse) return html;
     return html.replace(
-      /(<div id="marketPulse" class="pulse hn-pulse" aria-label="Today's numbers">)[\s\S]*?(<\/div>\s*<\/div>\s*<\/div>\s*<\/section>)/u,
-      (match, open, close) => `${open}\n            ${pulse}\n          ${close}`,
+      /(<div id="marketPulse" class="pulse hn-pulse" aria-label="Today's numbers">)[\s\S]*?<!-- \/PULSE -->/u,
+      (match, open) => `${open}\n            ${pulse}\n          </div><!-- /PULSE -->`,
     );
   } catch (error) {
     console.error('[home] Markets box could not be filled:', error.message);

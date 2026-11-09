@@ -1393,7 +1393,7 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, await renderLearnIndex(origin));
   }
   if (pathname === '/learn/path') return sendHtml(response, 200, await renderLearningPath(origin));
-  if (['/personal-finance', '/retirement', '/child-education', '/insurance', '/currencies'].includes(pathname)) {
+  if (/^\/[a-z-]+$/u.test(pathname) && (await import('./src/services/topicHubPages.js')).isHub(pathname.slice(1))) {
     const { renderHub } = await import('./src/services/topicHubPages.js');
     return sendHtml(response, 200, await renderHub(pathname.slice(1), origin));
   }

@@ -2152,10 +2152,10 @@ function render_newsletter() {
   const statusBadge = { draft: ['Draft', '#4a5570'], sending: ['Sending', '#a86200'], sent: ['Sent', '#0f8a5a'], stopped: ['Stopped', '#c62f3f'] };
   const itemRow = (x, i) => `
       <div class="card nl-item" data-i="${i}" style="background:#f6f8fc;margin:0 0 10px">
-        <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.78rem;color:#8a6a10">Story ${i + 1}</strong><button class="btn" data-nl="remove" data-i="${i}" style="padding:4px 10px">Remove</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.78rem;color:#8a6a10">${x.section ? `Section: ${h(x.section)} · ` : ''}Story ${i + 1}</strong><button class="btn" data-nl="remove" data-i="${i}" style="padding:4px 10px">Remove</button></div>
         <label style="display:block;margin:8px 0"><span class="field">Heading</span><input class="input" name="heading" value="${h(x.heading)}" maxlength="160"></label>
         ${x.image ? `<img src="${h(x.image)}" alt="" style="display:block;width:100%;max-width:420px;border-radius:8px;margin:8px 0">` : ''}
-        <input type="hidden" name="image" value="${h(x.image || '')}">
+        <input type="hidden" name="image" value="${h(x.image || '')}"><input type="hidden" name="section" value="${h(x.section || '')}">
         <label style="display:block;margin:8px 0"><span class="field">Text (a blank line starts a new paragraph)</span><textarea name="text" rows="4" maxlength="2000">${h(x.text)}</textarea></label>
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
           <label style="display:block;margin:8px 0"><span class="field">Link (optional)</span><input class="input" name="url" value="${h(x.url)}" placeholder="https://drmoneywise.com/learn/..."></label>
@@ -2265,7 +2265,7 @@ function nlRead() {
     ...(STATE.nlEdit || {}),
     premiumSection: Boolean(ed.querySelector('[name=premiumSection]')?.checked),
     subject: v('subject'), preheader: v('preheader'), intro: v('intro'), closing: v('closing'), audience: v('audience') || 'everyone',
-    items: qsa('#nlItems .nl-item').map((el) => ({ heading: el.querySelector('[name=heading]').value, text: el.querySelector('[name=text]').value, url: el.querySelector('[name=url]').value, button: el.querySelector('[name=button]').value, image: el.querySelector('[name=image]')?.value || '' })),
+    items: qsa('#nlItems .nl-item').map((el) => ({ heading: el.querySelector('[name=heading]').value, text: el.querySelector('[name=text]').value, url: el.querySelector('[name=url]').value, button: el.querySelector('[name=button]').value, image: el.querySelector('[name=image]')?.value || '', section: el.querySelector('[name=section]')?.value || '' })),
   };
 }
 
