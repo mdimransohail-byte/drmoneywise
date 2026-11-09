@@ -147,21 +147,28 @@ export const EXTRA_CALCS = {
     ],
   },
   zakat: {
-    title: 'Zakat on savings and shares', short: 'Work out the zakat due on your wealth', photo: 'charity giving hands coins',
-    intro: 'Add up the wealth you have held for a full lunar year, check it against the nisab, and see the 2.5% zakat due, including on shares held to trade.',
+    title: 'Zakat on savings, gold, shares and property', short: 'Work out the zakat due on your wealth', photo: 'charity giving hands coins',
+    intro: 'Add up the wealth you have held for a full lunar year, check it against the nisab, and see the 2.5% zakat due. Where scholars differ, choose the ruling you follow.',
     fields: [
-      ['cash', 'Cash at home and in bank accounts', 8000, 'money'],
-      ['gold', 'Value of gold and silver you own', 2000, 'money', 'Scholars differ on jewellery worn regularly; ask your local scholar whether to include it.'],
+      ['cash', 'Cash at home and in bank accounts', 8000, 'money', 'Include savings, current accounts, cash ISAs and rent or salary you have saved.'],
+      ['gold', 'Gold and silver coins, bars and investments', 2000, 'money'],
+      ['jewellery', 'Gold and silver jewellery you wear', 0, 'money'],
+      ['jewelleryRule', 'Jewellery you wear', 'include', 'select', 'Scholars differ: see “Where scholars differ” below.', [['include', 'Include it (Hanafi view)'], ['exclude', 'Leave it out (Maliki, Shafi’i and Hanbali view)']]],
+      ['crypto', 'Cryptocurrency', 0, 'money', 'Its value in your currency on your zakat date.'],
       ['owed', 'Money owed to you that you expect to get back', 0, 'money'],
-      ['trade', 'Market value of shares and funds you hold to trade', 3000, 'money', 'Shares bought to sell for a profit: zakat is on their full market value (Fiqh Academy ruling).'],
-      ['longterm', 'Zakatable part of shares you hold for the long term', 0, 'money', 'Leave at 0 if you don’t know it. The Fiqh Academy ruled that a long-term investor who can’t work out the company’s own zakatable assets pays 2.5% on the dividends received; dividends you still hold are already in your cash above.'],
-      ['business', 'Business stock for sale', 0, 'money'],
-      ['debts', 'Debts and bills due now', 1000, 'money', 'Only amounts due now, such as this month’s bills and repayments, not the whole of a long-term loan.'],
-      ['basis', 'Nisab based on', 'gold', 'select', 'Gold (85 g) is the more common choice; silver (595 g) gives a lower threshold, so more people pay.', [['gold', 'Gold: 85 grams'], ['silver', 'Silver: 595 grams']]],
+      ['trade', 'Shares, funds and crypto you hold to trade', 3000, 'money', 'Bought to sell for a profit: zakat is on the full market value.'],
+      ['longterm', 'Shares and funds you hold for the long term (market value)', 10000, 'money'],
+      ['shareMethod', 'How to count long-term shares', 'proxy', 'select', 'Scholars and zakat bodies use different methods: see below.', [['proxy', '25% of market value (National Zakat Foundation proxy)'], ['known', 'I entered the zakatable part myself, not the market value'], ['full', 'Full market value (the most cautious view)'], ['dividends', 'Leave them out; I pay on dividends in my cash (Fiqh Academy option)']]],
+      ['pension', 'Zakatable part of pensions you have a pot in', 0, 'money', 'Personal and workplace pensions with a pot (SIPPs and similar). Final salary and state pensions are not counted until paid. If unsure, many use 25% of an equity pension pot.'],
+      ['propertySale', 'Property bought to sell on', 0, 'money', 'Market value of homes or land bought to resell. Your own home and property you rent out are not counted here: see below.'],
+      ['business', 'Business cash, stock for sale and money owed to your business', 0, 'money'],
+      ['debts', 'Debts and bills due in the next 12 months', 1000, 'money', 'Bills due now and the next 12 months of repayments on longer loans, without interest. Not the whole of a mortgage or student loan.'],
+      ['basis', 'Nisab based on', 'gold85', 'select', 'Scholars accept both gold and silver; silver gives a lower threshold, so more people pay.', [['gold85', 'Gold: 85 grams'], ['gold87', 'Gold: 87.48 grams (National Zakat Foundation)'], ['silver595', 'Silver: 595 grams'], ['silver612', 'Silver: 612.36 grams (National Zakat Foundation)']]],
       ['goldGram', 'Gold price per gram', 0, 'money'],
       ['silverGram', 'Silver price per gram', 0, 'money'],
     ],
     metals: true,
+    after: 'zakat',
   },
   'trade-risk': {
     title: 'Trading risk', short: 'What leverage does to a small price move', photo: 'stock market screen chart',
@@ -392,6 +399,7 @@ async function renderExtraCalculator(origin, slug) {
         </div>
         ${c.currency ? `<p class="calc-hint">${Object.keys(fx?.usdPer || {}).length} currencies${fx?.date ? `, rates for ${esc(fx.date)}` : ''}, updated once a day. ${fx?.source === 'erapi' ? '<a href="https://www.exchangerate-api.com" rel="noopener" target="_blank">Rates By Exchange Rate API</a>.' : 'Reference rates from the European Central Bank; dirham, riyal and other fixed rates from their official pegs.'} Real rates from banks and exchange shops include their margin.</p>` : ''}
         <p class="calc-hint">These are rough estimates to help you think, not financial advice. Read our <a href="/disclaimer">disclaimer</a>.</p>
+        ${c.after === 'zakat' ? (await import('../data/zakatGuide.js')).zakatGuideHtml() : ''}
         ${embedBoxHtml(origin, slug)}
         <div class="surface"><h2 style="margin-top:0">Other calculators</h2><ul class="calc-others">${others}</ul></div>
       </section>

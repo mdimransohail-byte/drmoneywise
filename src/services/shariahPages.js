@@ -20,6 +20,7 @@ import { readCompanies } from './dataEngine.js';
 import { companyLogo } from './stockPages.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 import { esc, tile } from './chartsSvg.js';
+import { SOURCES, sourcesHtml } from '../data/islamicSources.js';
 
 /* The four statuses a company can have under each standard */
 const RESULT = {
@@ -34,6 +35,15 @@ const REASON = { adr: 'US shares are ADRs, so only MSCI and FTSE (based on total
 const marketById = (id) => SHARIAH_MARKETS.find((m) => m.id === id) || null;
 const fundsFor = (id) => SHARIAH_FUNDS.filter((f) => f.market === id || (f.also || []).includes(id));
 const GULF = new Set(['saudi-arabia', 'uae']);
+/* Sources listed at the bottom of every Shariah page */
+const SHARIAH_SRC = sourcesHtml([
+  ...METHODS.map((m) => [m.source.label, m.source.url]),
+  SOURCES.aaoifi21, SOURCES.iifaMarkets, SOURCES.iifaShares, SOURCES.qaradawiMarkets,
+  ['US SEC: company filings (EDGAR), the source of every company figure', 'https://www.sec.gov/edgar/search/'],
+  ['US SEC: fund holdings reports (Form N-PORT)', 'https://www.sec.gov/data-research/sec-markets-data/form-n-port-data-sets'],
+  ...SHARIAH_SOURCES.map((x) => [x.label, x.url]),
+  SOURCES.nzfProxy,
+]);
 const NOT_ADVICE = `<p class="note-box">Our lists apply each standard’s published rules to the companies’ own SEC figures. They are not the providers’ official index lists, and not a religious ruling (fatwa). The providers use 24- or 36-month average company values and more detailed business data, so their answer can differ from ours. For your own decisions, ask a qualified Shariah scholar or use a fund with its own Shariah board. Read our <a href="/disclaimer">disclaimer</a>.</p>`;
 
 function cell(method, res) {
@@ -133,7 +143,7 @@ export async function renderShariahHub(origin) {
         </div>
         <p class="pf-sub">You can also tick a Shariah standard in the <a href="/screener?shariah=any">stock screener</a> (members).</p>
         ${NOT_ADVICE}
-        <p class="sh-sources">Sources: ${[...METHODS.map((m) => m.source), ...SHARIAH_SOURCES].map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`).join(' · ')}</p>
+        ${SHARIAH_SRC}
       </section>`;
   return pageShell({ head, body, active: 'learn' });
 }
@@ -198,6 +208,7 @@ export async function renderShariahMarket(origin, id) {
         </div>
         <p class="sh-other">Other markets: ${SHARIAH_MARKETS.filter((m) => m.id !== id).map((m) => `<a href="/shariah/${m.id}" style="--c:${m.colour}">${esc(m.name)}</a>`).join('')}</p>
         ${NOT_ADVICE}
+        ${SHARIAH_SRC}
       </section>
       <script src="/shariah.js" defer></script>`;
   return pageShell({ head, body, active: 'learn' });
@@ -244,6 +255,7 @@ export async function renderShariahFunds(origin) {
         ${GROUPS.map(([g, title, sub]) => { const list = SHARIAH_FUNDS.filter((f) => f.market === g); return list.length ? `<h2>${esc(title)}</h2>${sub ? `<p class="pf-sub">${esc(sub)}</p>` : ''}<div class="sh-fund-grid">${list.map(card).join('')}</div>${MARKET_NOTES[g] ? `<p class="pf-sub">${esc(MARKET_NOTES[g])}</p>` : ''}` : ''; }).join('')}
         <p class="pf-sub">Indonesia: see <a href="/shariah/indonesia">the official sharia list and indices</a>.</p>
         <p class="note-box">Listing a fund is not a recommendation. Holdings of US funds come from their reports to the SEC (Form N-PORT), which are published a few months after the date shown. Read our <a href="/disclaimer">disclaimer</a>.</p>
+        ${sourcesHtml([...SHARIAH_FUNDS.filter((f) => f.url).map((f) => [`${f.name}: fund page`, f.url]), ['US SEC: fund holdings reports (Form N-PORT)', 'https://www.sec.gov/data-research/sec-markets-data/form-n-port-data-sets'], ...METHODS.map((m) => [m.source.label, m.source.url])])}
       </section>`;
   return pageShell({ head, body, active: 'learn' });
 }
@@ -385,6 +397,7 @@ export async function renderShariahMethod(origin) {
           <a href="/membership#plans" style="--c:#6250d6"><b>Advanced Shariah research <small>Premium</small></b><span>Every ratio and purification figure, plus a Shariah filter in the screener.</span></a>
         </div>
         ${NOT_ADVICE}
+        ${SHARIAH_SRC}
       </section>`;
   return pageShell({ head, body, active: 'learn' });
 }

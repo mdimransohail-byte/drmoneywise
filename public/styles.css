@@ -2554,3 +2554,16 @@ body.has-ad-strip { padding-bottom: 52px; }
 .cc-table tbody th { text-align: left; font-weight: 600; color: #0a1128; }
 .cc-table .cc-me { background: #fbf4dc; } .cc-table td.cc-top { color: #0f8a54; font-weight: 700; }
 .sh-ratio p { font-weight: 400; }
+/* Zakat guide and source boxes */
+.zk-guide { margin-top: 28px; }
+.zk-guide > p { max-width: 820px; line-height: 1.7; }
+.zk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 12px 0 20px; }
+.zk-card { background: #fff; border: 1px solid #e3dccb; border-left: 6px solid var(--c); border-radius: 14px; padding: 14px; }
+.zk-card b { display: block; color: #0a1128; margin-bottom: 4px; } .zk-card span { font-size: 14px; color: #4a5170; }
+.zk-diff { background: #fff; border: 1px solid #e3dccb; border-radius: 14px; padding: 12px 16px; margin: 10px 0; }
+.zk-diff summary { font-weight: 700; cursor: pointer; color: #0a1128; } .zk-diff li { margin: 6px 0; font-size: 14.5px; }
+.zk-adjust { background: #eef6f2; border-radius: 8px; padding: 8px 12px; font-size: 14px; margin: 8px 0 2px; }
+.zk-list li { margin: 6px 0; }
+.src-box { background: #fff; border: 1px solid #e3dccb; border-top: 5px solid #c9a227; border-radius: 14px; padding: 14px 18px; margin: 22px 0; }
+.src-box h2 { margin: 0 0 8px; font-size: 20px; } .src-box ol { margin: 0; padding-left: 22px; } .src-box li { margin: 5px 0; font-size: 14px; overflow-wrap: anywhere; }
+.src-box li span { color: #6b6f80; font-size: 12px; }

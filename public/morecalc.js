@@ -109,19 +109,28 @@
         '<p class="calc-hint">Real returns go up and down from year to year; these smooth averages show a range, not a forecast. Fees and tax are not included.</p>';
     },
     'zakat': function () {
-      var basisEl = document.getElementById('basis');
-      var basis = basisEl ? basisEl.value : 'gold';
-      var nisab = basis === 'silver' ? 595 * num('silverGram') : 85 * num('goldGram');
-      var assets = num('cash') + num('gold') + num('owed') + num('trade') + num('longterm') + num('business');
+      function pick(id, d) { var el = document.getElementById(id); return el ? el.value : d; }
+      var basis = pick('basis', 'gold85');
+      var grams = { gold85: 85, gold87: 87.48, silver595: 595, silver612: 612.36 }[basis] || 85;
+      var isSilver = basis.indexOf('silver') === 0;
+      var nisab = grams * num(isSilver ? 'silverGram' : 'goldGram');
+      var method = pick('shareMethod', 'proxy');
+      var lt = num('longterm') * ({ proxy: 0.25, known: 1, full: 1, dividends: 0 }[method]);
+      var jew = pick('jewelleryRule', 'include') === 'include' ? num('jewellery') : 0;
+      var parts = [['Cash', num('cash')], ['Gold and silver', num('gold') + jew], ['Crypto', num('crypto')], ['Owed to you', num('owed')], ['Shares to trade', num('trade')], ['Long-term shares', lt], ['Pensions', num('pension')], ['Property to sell', num('propertySale')], ['Business', num('business')]];
+      var assets = parts.reduce(function (a, p) { return a + p[1]; }, 0);
       var net = Math.max(0, assets - num('debts'));
       var due = nisab > 0 && net >= nisab ? net * 0.025 : 0;
-      var head = nisab <= 0 ? 'Enter the price of ' + basis + ' per gram to work out the nisab.'
+      var label = (isSilver ? 'silver' : 'gold') + ', ' + grams + ' g';
+      var head = nisab <= 0 ? 'Enter the price of ' + (isSilver ? 'silver' : 'gold') + ' per gram to work out the nisab.'
         : net >= nisab ? 'Your zakatable wealth of <strong>' + esc(money(net)) + '</strong> is above the nisab of ' + esc(money(nisab)) + '. Zakat due: <strong>' + esc(money(due)) + '</strong> (2.5%).'
         : 'Your zakatable wealth of <strong>' + esc(money(net)) + '</strong> is below the nisab of ' + esc(money(nisab)) + ', so no zakat is due on it this year.';
+      var rows = parts.filter(function (p) { return p[1] > 0; }).map(function (p) { return [p[0], p[1], money(p[1])]; });
+      if (num('debts') > 0) rows.push(['Less debts due', -num('debts'), '-' + money(num('debts')), '#e5566f']);
       return sentence(head, due > 0 ? '' : 'good') +
-        tiles([['Zakatable wealth', money(net)], ['Nisab (' + (basis === 'silver' ? '595 g silver' : '85 g gold') + ')', money(nisab)], ['Zakat due', money(due), '#1baf7a']]) +
-        bars('What makes up your zakatable wealth', [['Cash', num('cash'), money(num('cash'))], ['Gold and silver', num('gold'), money(num('gold'))], ['Owed to you', num('owed'), money(num('owed'))], ['Shares to trade', num('trade'), money(num('trade'))], ['Long-term shares', num('longterm'), money(num('longterm'))], ['Business stock', num('business'), money(num('business'))], ['Less debts due now', -num('debts'), '-' + money(num('debts')), '#e5566f']].filter(function (r) { return r[1] !== 0; })) +
-        '<p class="calc-hint">Zakat is due on wealth held for a full lunar year (hawl). Enter all amounts in the same currency as the gold or silver price. This follows the rulings explained in our <a href="/shariah/islamic-finance">Islamic finance guide</a>; ask a qualified scholar about your own situation.</p>';
+        tiles([['Zakatable wealth', money(net)], ['Nisab (' + label + ')', money(nisab)], ['Zakat due', money(due), '#1baf7a']]) +
+        bars('What makes up your zakatable wealth', rows) +
+        '<p class="calc-hint">' + (method === 'proxy' && num('longterm') > 0 ? 'Long-term shares counted at 25% of ' + esc(money(num('longterm'))) + '. ' : '') + (num('jewellery') > 0 ? (jew ? 'Worn jewellery included. ' : 'Worn jewellery left out. ') : '') + 'Zakat is due on wealth held for a full lunar year. Enter every amount in the same currency as the gold or silver price.</p>';
     },
     'trade-risk': function () {
       var dep = num('deposit'), lev = Math.max(1, num('leverage')), mv = num('move') / 100;

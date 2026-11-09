@@ -8,6 +8,7 @@
 
 import { buildHeadTags, pageShell } from './seoService.js';
 import { esc } from './chartsSvg.js';
+import { SOURCES, sourcesHtml } from '../data/islamicSources.js';
 
 const IIFA = 'International Islamic Fiqh Academy (OIC)';
 
@@ -155,6 +156,11 @@ export function renderIslamicFinance(origin) {
         <h2>Common questions</h2>
         <div class="ifp-adv">${FAQ.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</div>
 
+        ${sourcesHtml([
+          ...RULINGS.map((r) => [`${r.who}: ${r.t} (${r.where})`, r.src[1]]),
+          SOURCES.aaoifi21, ['World Gold Council: AAOIFI Shariah Standard on gold', 'https://www.gold.org/news-and-events/press-releases/launch-aaoifi-shariah-standard-gold-developed-collaboration-world'],
+          SOURCES.nzfGuide, SOURCES.nzfProxy, SOURCES.seekersShares, SOURCES.musaffaGold, SOURCES.zfaRental, SOURCES.irPensions, SOURCES.ifgPensions,
+        ], 'All sources for this guide')}
         <p class="note-box">This guide explains Islamic finance and summarises published rulings for learning. It is not a fatwa or a religious ruling, and scholars differ on many points. For your own situation, ask a qualified scholar or use a bank or fund with its own Shariah board. Nothing here is financial advice; read our <a href="/disclaimer">disclaimer</a>.</p>
       </section>`;
   return pageShell({ head, body, active: 'learn' });
