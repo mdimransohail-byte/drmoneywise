@@ -142,10 +142,10 @@ const REGION_Q = {
   europe: [['("Euro Stoxx" OR "European Central Bank" OR "eurozone economy" OR DAX OR "CAC 40")', 3], ['("European stocks" OR eurozone)', 7]],
   uk: [['("FTSE 100" OR "Bank of England" OR "UK economy" OR "London Stock Exchange")', 3], ['("FTSE 100" OR "UK economy")', 14]],
   japan: [['(Nikkei OR "Bank of Japan" OR "Japanese economy" OR TOPIX)', 3], ['(Nikkei OR "Japan economy")', 14]],
-  china: [['("Hang Seng" OR "Shanghai Composite" OR "China economy" OR "Chinese economy" OR PBOC)', 3], ['("China stocks" OR "Chinese economy")', 14]],
+  singapore: [['("Straits Times Index" OR "Singapore Exchange" OR "Singapore economy" OR "Monetary Authority of Singapore" OR SGX)', 3], ['("Singapore stocks" OR "Singapore economy")', 14]],
   india: [['(Sensex OR Nifty OR "Reserve Bank of India" OR "Indian economy")', 3], ['(Sensex OR "Indian economy")', 14]],
   'south-korea': [['(KOSPI OR "Bank of Korea" OR "South Korean economy" OR "Korean stocks")', 3], ['(KOSPI OR "Korean economy")', 14]],
-  brazil: [['(Ibovespa OR "Brazilian economy" OR "Brazil economy" OR "Banco Central do Brasil")', 3], ['(Ibovespa OR "Brazil economy")', 14]],
+  malaysia: [['("Bursa Malaysia" OR KLCI OR "Malaysia economy" OR "Malaysian economy" OR "Bank Negara")', 3], ['("Malaysia stocks" OR "Malaysian economy")', 14]],
   gulf: [['(Tadawul OR "Saudi economy" OR "UAE economy" OR "Dubai Financial Market" OR "Abu Dhabi Securities Exchange" OR "Gulf stocks")', 3], ['("Saudi economy" OR "UAE economy" OR "Gulf stocks")', 14]],
 };
 /* Headline test for each region. GDELT matches words anywhere in an
@@ -158,10 +158,10 @@ const REGION_TITLE = {
   europe: { market: /\b(euro stoxx|stoxx|european central bank|ecb|eurozone|euro zone|dax|cac 40|ftse mib|ibex)\b/iu, place: /\b(europe\w*|eu|germany|german|france|french|italy|italian|spain|spanish|netherlands|dutch|eurozone)\b/iu },
   uk: { market: /\b(ftse|bank of england|boe|london stock exchange|lse-listed|gilts?|sterling|reeves|hmrc)\b/iu, place: /\b(uk|u\.k\.|britain|british|england|english|london|scotland)\b/iu },
   india: { market: /\b(sensex|nifty|reserve bank of india|rbi|sebi|bse|nse|dalal street|rupee)\b/iu, place: /\b(india|indian|mumbai|delhi|bengaluru|bangalore)\b/iu },
-  china: { market: /\b(hang seng|shanghai composite|csi 300|pboc|people's bank of china|yuan|renminbi|shenzhen)\b/iu, place: /\b(china|chinese|beijing|shanghai|hong kong)\b/iu },
+  singapore: { market: /\b(straits times index|sti|sgx|singapore exchange|monetary authority of singapore|mas|singapore dollar|dbs|ocbc|uob|singtel)\b/iu, place: /\b(singapore\w*)\b/iu },
   japan: { market: /\b(nikkei|topix|bank of japan|boj|yen)\b/iu, place: /\b(japan|japanese|tokyo)\b/iu },
   'south-korea': { market: /\b(kospi|kosdaq|bank of korea|korean won|chaebol)\b/iu, place: /\b(south korea\w*|korean|korea's|seoul|samsung|hyundai|sk hynix)\b/iu },
-  brazil: { market: /\b(ibovespa|bovespa|b3|banco central do brasil|brazilian real|petrobras|vale)\b/iu, place: /\b(brazil|brazilian|sao paulo|são paulo|lula)\b/iu },
+  malaysia: { market: /\b(bursa malaysia|klci|bank negara|ringgit|maybank|cimb|petronas|tenaga)\b/iu, place: /\b(malaysia\w*|kuala lumpur)\b/iu },
   gulf: { market: /\b(tadawul|tasi|dfm|adx|aramco|adnoc|emaar|qatarenergy|riyal|dirham|sama)\b/iu, place: /\b(gulf|gcc|saudi\w*|uae|emirat\w*|dubai|abu dhabi|qatar\w*|kuwait\w*|bahrain\w*|oman\w*|riyadh|doha)\b/iu },
 };
 
@@ -173,8 +173,8 @@ export function regionHeadlineOk(id, title) {
 
 /** Regions for the homepage news box (id, name), in display order. */
 export const HOME_NEWS_REGIONS = [
-  ['us', 'United States'], ['uk', 'United Kingdom'], ['europe', 'Europe'], ['india', 'India'], ['china', 'China'],
-  ['japan', 'Japan'], ['south-korea', 'South Korea'], ['brazil', 'Brazil'], ['gulf', 'Gulf (Middle East)'],
+  ['us', 'United States'], ['uk', 'United Kingdom'], ['europe', 'Europe'], ['india', 'India'],
+  ['japan', 'Japan'], ['south-korea', 'South Korea'], ['singapore', 'Singapore'], ['malaysia', 'Malaysia'], ['gulf', 'Gulf (Middle East)'],
 ];
 
 

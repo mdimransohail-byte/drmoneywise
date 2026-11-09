@@ -133,6 +133,36 @@ export const EXTRA_CALCS = {
     ],
     currency: true,
   },
+  'what-if': {
+    title: 'What-If investment simulator', short: 'Best, likely and poor outcomes for your money', photo: 'growing plant coins jar',
+    intro: 'See what your money could grow to under a poor, a middle and a good outcome, and what that is worth in today’s money after inflation.',
+    fields: [
+      ['start', 'Amount you invest now', 10000, 'money'],
+      ['monthly', 'Amount you add each month', 200, 'money'],
+      ['years', 'Years you leave it invested', 15, 'years'],
+      ['inflation', 'Yearly inflation', 2.5, 'percent', 'Central banks in many countries aim for about 2%. Use a higher figure to be cautious.'],
+      ['poor', 'Yearly return in a poor case', 2, 'percent', 'A bad run for markets, or money left mostly in cash.'],
+      ['base', 'Yearly return in the middle case', 6, 'percent', 'Broad share markets have returned about 6–8% a year over long periods, with big swings along the way. Not a promise.'],
+      ['best', 'Yearly return in a good case', 9, 'percent'],
+    ],
+  },
+  zakat: {
+    title: 'Zakat on savings and shares', short: 'Work out the zakat due on your wealth', photo: 'charity giving hands coins',
+    intro: 'Add up the wealth you have held for a full lunar year, check it against the nisab, and see the 2.5% zakat due, including on shares held to trade.',
+    fields: [
+      ['cash', 'Cash at home and in bank accounts', 8000, 'money'],
+      ['gold', 'Value of gold and silver you own', 2000, 'money', 'Scholars differ on jewellery worn regularly; ask your local scholar whether to include it.'],
+      ['owed', 'Money owed to you that you expect to get back', 0, 'money'],
+      ['trade', 'Market value of shares and funds you hold to trade', 3000, 'money', 'Shares bought to sell for a profit: zakat is on their full market value (Fiqh Academy ruling).'],
+      ['longterm', 'Zakatable part of shares you hold for the long term', 0, 'money', 'Leave at 0 if you don’t know it. The Fiqh Academy ruled that a long-term investor who can’t work out the company’s own zakatable assets pays 2.5% on the dividends received; dividends you still hold are already in your cash above.'],
+      ['business', 'Business stock for sale', 0, 'money'],
+      ['debts', 'Debts and bills due now', 1000, 'money', 'Only amounts due now, such as this month’s bills and repayments, not the whole of a long-term loan.'],
+      ['basis', 'Nisab based on', 'gold', 'select', 'Gold (85 g) is the more common choice; silver (595 g) gives a lower threshold, so more people pay.', [['gold', 'Gold: 85 grams'], ['silver', 'Silver: 595 grams']]],
+      ['goldGram', 'Gold price per gram', 0, 'money'],
+      ['silverGram', 'Silver price per gram', 0, 'money'],
+    ],
+    metals: true,
+  },
   'trade-risk': {
     title: 'Trading risk', short: 'What leverage does to a small price move', photo: 'stock market screen chart',
     intro: 'See how borrowed money (leverage) multiplies gains and losses when trading currencies or commodities, and how much you could lose on a move against you.',
@@ -147,10 +177,18 @@ export const EXTRA_CALCS = {
 
 const COUNTRY_ORDER = ['us', 'uk', 'in', 'ae', 'other'];
 
-function field([id, label, value, type, hint]) {
+function field([id, label, value, type, hint, options]) {
+  if (type === 'select') {
+    return `
+            <div class="calc-field">
+              <label for="${id}">${esc(label)}</label>
+              <select id="${id}" name="${id}">${(options || []).map(([v, l]) => `<option value="${esc(v)}"${v === value ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>
+              ${hint ? `<p class="calc-hint">${esc(hint)}</p>` : ''}
+            </div>`;
+  }
   const unit = type === 'percent' ? '<span class="calc-unit">%</span>' : type === 'years' ? '<span class="calc-unit">yrs</span>' : '';
   const prefix = type === 'money' ? '<span class="calc-unit pre" data-symbol>$</span>' : '';
-  const step = type === 'percent' ? '0.1' : type === 'money' ? '50' : '1';
+  const step = type === 'percent' ? '0.1' : type === 'money' ? 'any' : '1';
   return `
             <div class="calc-field">
               <label for="${id}">${esc(label)}</label>
@@ -296,7 +334,7 @@ export async function renderCalculator(origin, slug) {
 const CURRENCY_LIST = ['USD', 'GBP', 'EUR', 'INR', 'AED', 'SAR', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'HKD', 'SGD', 'PKR', 'BRL', 'MXN', 'KRW', 'ZAR', 'NZD', 'SEK', 'NOK', 'TRY'];
 
 async function renderExtraCalculator(origin, slug) {
-  const c = EXTRA_CALCS[slug];
+  let c = EXTRA_CALCS[slug];
   const head = buildHeadTags({
     title: `${c.title} calculator: ${c.short.toLowerCase().replace(/\?$/u, '')} | Dr MoneyWise`,
     description: c.intro,
@@ -311,6 +349,18 @@ async function renderExtraCalculator(origin, slug) {
     const rates = await getAllRates();
     const list = Object.keys(CURRENCIES).filter((k) => rates.usdPer?.[k]);
     fx = { date: rates.date, source: rates.source, flagBase: `${origin}/flags/`, usdPer: Object.fromEntries(list.map((k) => [k, rates.usdPer[k]])), words: Object.fromEntries(list.map((k) => [k, CURRENCIES[k][1]])), flags: Object.fromEntries(list.map((k) => [k, CURRENCIES[k][0]])) };
+  }
+  let metals = null;
+  if (c.metals) {
+    const { readCommodities } = await import('./commodityService.js');
+    const com = await readCommodities().catch(() => null);
+    const last = (k) => com?.items?.[k]?.series?.at(-1) || null;
+    const g = last('gold'); const sv = last('silver');
+    if (g && sv) {
+      const OZ = 31.1035;
+      metals = { gold: Math.round((g.v / OZ) * 100) / 100, silver: Math.round((sv.v / OZ) * 1000) / 1000, month: new Date(`${g.p}-01T00:00:00Z`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) };
+      c = { ...c, fields: c.fields.map((f) => (f[0] === 'goldGram' ? [f[0], f[1], metals.gold, 'money', `In US dollars: the World Bank’s average for ${metals.month}. For an exact figure, use today’s price from a local dealer, in your own currency.`] : f[0] === 'silverGram' ? [f[0], f[1], metals.silver, 'money', `In US dollars: the World Bank’s average for ${metals.month}.`] : f)) };
+    }
   }
   const symbolPicker = c.currency ? '' : `<div class="calc-field"><label for="symbol">Currency</label><select id="symbol">${[['$', 'US dollar ($)'], ['£', 'Pound (£)'], ['€', 'Euro (€)'], ['₹', 'Rupee (₹)'], ['AED ', 'Dirham (AED)']].map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select></div>`;
   const pick = (id, label, def) => {

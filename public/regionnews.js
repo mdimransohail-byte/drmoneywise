@@ -13,7 +13,7 @@
   var win = document.getElementById('rnWindow');
   var more = document.getElementById('rnMore');
   var KEY = 'dmw-news-region';
-  var PAGES = { uk: '/stocks/world/uk', india: '/stocks/world/india', china: '/stocks/world/china', japan: '/stocks/world/japan', 'south-korea': '/stocks/world/south-korea', brazil: '/stocks/world/brazil', gulf: '/stocks/world/gulf', us: '/stocks', europe: '/stocks/world/europe' };
+  var PAGES = { uk: '/stocks/world/uk', india: '/stocks/world/india', japan: '/stocks/world/japan', 'south-korea': '/stocks/world/south-korea', singapore: '/stocks/world/singapore', malaysia: '/stocks/world/malaysia', gulf: '/stocks/world/gulf', us: '/stocks', europe: '/stocks/world/europe' };
   var esc = function (v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
   var ago = function (iso) {
     if (!iso) return '';
@@ -29,9 +29,9 @@
     if (/Dubai|Riyadh|Qatar|Kuwait|Bahrain|Muscat/.test(tz)) return 'gulf';
     if (/London/.test(tz)) return 'uk';
     if (/Tokyo/.test(tz)) return 'japan';
-    if (/Shanghai|Hong_Kong|Chongqing|Urumqi/.test(tz)) return 'china';
+    if (/Singapore/.test(tz)) return 'singapore';
+    if (/Kuala_Lumpur|Kuching/.test(tz)) return 'malaysia';
     if (/Seoul/.test(tz)) return 'south-korea';
-    if (/Sao_Paulo|Fortaleza|Recife|Bahia|Manaus/.test(tz)) return 'brazil';
     if (/^Europe\//.test(tz)) return 'europe';
     return 'us';
   }

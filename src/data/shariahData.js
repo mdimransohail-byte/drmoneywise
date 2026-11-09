@@ -150,7 +150,7 @@ export const SHARIAH_MARKETS = [
     intro: 'Companies based in Ireland that report to the US SEC. Ireland is also where many of Europe’s ETFs are registered, including the main Islamic ETFs sold in London.' },
   { id: 'europe', name: 'Europe', colour: '#6250d6', regions: ['europe'], fundCountries: ['DE', 'FR', 'NL', 'CH', 'DK', 'SE', 'NO', 'IT', 'ES', 'BE', 'FI', 'LU'],
     intro: 'Big companies from mainland Europe that also report to the US SEC, so their figures are free and official.' },
-  { id: 'hong-kong', name: 'Hong Kong & China', colour: '#e34948', regions: ['china'], fundCountries: ['HK', 'CN', 'KY'],
+  { id: 'hong-kong', name: 'Hong Kong & China', colour: '#e34948', fundsOnly: true, regions: [], fundCountries: ['HK', 'CN', 'KY'],
     intro: 'Chinese companies listed in New York, most of which also have shares in Hong Kong. Their figures come from their SEC reports.' },
   { id: 'india', name: 'India', colour: '#eda100', regions: ['india'], fundCountries: ['IN'],
     intro: 'Indian companies with US-listed shares. Most big Indian companies only list at home, so this list is short; see the Indian Shariah funds and indices below.' },

@@ -52,15 +52,15 @@ export async function renderTop10Hub(origin) {
         <h2 style="font-size:28px;margin:34px 0 6px">Stock lists</h2>
         <p class="helper-note" style="margin:0 0 14px">Large US companies, ranked from their official accounts and share prices. Some lists mix two or three measures.</p>
         ${groups.map((g) => `<h3 class="t10-group" style="--c:${GROUP_COLOURS[g] || '#2a78d6'}">${esc(g)}</h3>
-        <div class="t10-grid">${lists.filter((x) => x.group === g).map((x) => `<a class="t10-card" href="/top-10/stocks/${x.slug}" style="--c:${GROUP_COLOURS[g] || '#2a78d6'}"><b>${esc(x.short)}</b><span>No. 1: ${esc(x.first.name)} (${esc(x.first.ticker)}) · ${esc(x.firstLabel)}</span></a>`).join('')}</div>`).join('')}` : '';
+        <div class="t10-grid">${lists.filter((x) => x.group === g).map((x) => `<a class="t10-card" href="/top-10/stocks/${x.slug}" style="--c:${GROUP_COLOURS[g] || '#2a78d6'}"><b>${esc(x.short)}</b><span>${esc(x.explain)}</span><em>See the top 10 →</em></a>`).join('')}</div>`).join('')}` : '';
   const body = `
       <section class="block">
         ${photoFigure(photo, 'Charts on a desk', 'page-photo wide')}
         <div class="block-head"><div><h1 style="font-size:36px;margin:0">Top 10 lists</h1>
           <p>Each list shows exactly how it's ranked. They are a starting point for learning, not a shopping list.</p></div></div>
         <div class="tens">
-          ${card('/top-10/dividend-stocks', 'Dividend stocks', 'Companies that raised their payout 10+ years in a row.', top ? `This month's number 1: ${esc(top.name)} (${esc(top.ticker)}).` : '')}
-          ${card('/top-10/etfs', 'ETFs for beginners', 'Simple, broad funds, ranked by lowest yearly fee.', `Cheapest: ${esc(etf.rows[0].ticker)} at $${etf.rows[0].feePer1000.toFixed(2)} a year per $1,000.`)}
+          ${card('/top-10/dividend-stocks', 'Dividend stocks', 'Companies that raised their payout 10+ years in a row.', 'Ranked by how many years in a row each company has raised its dividend, checked against its cash and debt. Updated monthly.')}
+          ${card('/top-10/etfs', 'ETFs for beginners', 'Simple, broad funds, ranked by lowest yearly fee.', 'Ranked by yearly fee: what each fund costs you a year for every $1,000 invested.')}
           <a class="ten hub crypto" href="/top-10/crypto"><h2>Crypto by size</h2><p class="rule">The 10 largest coins by total value, live.</p><span class="risk-note">High risk: prices can halve in months</span><p class="meaning">What each coin is, in simple terms, with a risk note.</p><span class="go">See the list</span></a>
         </div>
         ${stockGroups}

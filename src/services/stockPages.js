@@ -310,6 +310,8 @@ export async function renderStockPage(origin, rawTicker) {
   const world = worldTickerInfo()[ticker] || null;
   const region = world ? worldRegion(world.region) : null;
   const last6 = (series) => (series || []).slice(-6);
+  let competitors = '';
+  if (!company.foreignFiler) { try { competitors = await (await import('./competitorCompare.js')).competitorsHtml(ticker); } catch { competitors = ''; } }
   let shariahBox = '';
   try { const { shariahBoxHtml } = await import('./shariahPages.js'); shariahBox = await shariahBoxHtml(ticker); } catch { shariahBox = ''; }
 
@@ -387,6 +389,8 @@ export async function renderStockPage(origin, rawTicker) {
         ${company.netIncome.length ? yearBarsHtml({ title: 'Profit each year', subtitle: 'What was left after all costs (losses show as zero)', series: last6(company.netIncome), format: short, source }) : ''}
         ${company.dividendsPerShare.length ? yearBarsHtml({ title: 'Dividend per share each year', subtitle: 'Cash paid to shareholders for each share they own', series: company.dividendsPerShare, format: (v) => `$${v.toFixed(2)}`, source }) : ''}
       </section>
+
+      ${competitors}
 
       <section class="block members-box" id="membersFinancials" data-ticker="${esc(ticker)}">
         <div class="block-head"><div><h2>Deeper look <span class="members-badge">Regular</span></h2>

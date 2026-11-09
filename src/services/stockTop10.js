@@ -131,6 +131,33 @@ const C = {
   yield: ['Dividend yield', (r) => pctPlain(r.divYield, 2)],
 };
 
+
+/* What each list card on /top-10 says: a clear name and one line on what
+   the list measures. No company names on the cards. */
+export const CARD_TEXT = {
+  'largest-companies': ['Largest by market value', 'The 10 companies the stock market values most: share price × number of shares.'],
+  'biggest-sales': ['Biggest sales', 'The 10 companies that sold the most last year, in dollars of revenue.'],
+  'most-profitable': ['Most profit', 'The 10 companies that made the most profit (net income) last year.'],
+  'fastest-growing': ['Fastest sales growth', 'Large companies whose sales grew the most last year, in percentage terms.'],
+  'highest-margins': ['Highest profit margins', 'Large companies that keep the most profit from every $100 of sales.'],
+  'earnings-growth': ['Fastest earnings growth', 'Profitable companies whose earnings per share have grown fastest each year over several years.'],
+  'cash-machines': ['Most spare cash', 'Companies with the most free cash flow: cash left after running and investing in the business.'],
+  'strongest-balance-sheets': ['Least debt', 'Large companies that could repay their debt fastest from the cash their business brings in.'],
+  'best-report-cards': ['Best report cards', 'Highest overall scores out of 100 for growth, profit, debt, cash and dividends.'],
+  'best-1-year': ['Best 1-year share price rise', 'Shares that rose the most in price over the past 12 months.'],
+  'worst-1-year': ['Biggest 1-year share price falls', 'Shares that fell the most in price over the past 12 months.'],
+  'best-this-year': ['Best share price rise this year', 'Shares that rose the most in price since 1 January.'],
+  'near-52-week-high': ['Near their 52-week high', 'Shares trading closest to their highest price of the past year.'],
+  'near-52-week-low': ['Near their 52-week low', 'Shares trading closest to their lowest price of the past year.'],
+  'lowest-pe': ['Lowest P/E', 'Large profitable companies with the lowest share price compared with their yearly earnings.'],
+  'highest-dividend-yield': ['Highest dividend yields', 'Large companies paying the most in yearly dividends compared with their share price.'],
+  'quality-growers': ['Quality growers', 'Companies growing sales 10%+ a year with high profit margins and strong report cards.'],
+  'growth-at-a-fair-price': ['Growth at a fair price', 'Companies whose share price looks lowest compared with how fast their earnings grow.'],
+  'strong-companies-near-low': ['Strong but near their low', 'Companies with strong report cards whose shares are near their lowest price of the year.'],
+  'strong-and-rising': ['Strong and rising', 'Companies with strong report cards whose shares are up over the past year.'],
+  'dividend-growers-with-cash': ['Dividend raisers', 'Companies that have raised their dividend 5+ years in a row and have cash to keep paying.'],
+};
+
 export const STOCK_LISTS = [
   // Size
   { slug: 'largest-companies', group: 'Size', title: 'Largest companies by market value', short: 'Largest companies', needs: 'prices', value: (r) => r.marketCap, show: [C.cap, C.price, C.sales, C.score],
@@ -218,7 +245,7 @@ export async function stockListSummaries() {
   const out = [];
   for (const l of STOCK_LISTS) {
     const b = await buildStockList(l.slug).catch(() => null);
-    if (b?.ready && b.rows.length >= 3) out.push({ slug: l.slug, group: l.group, title: l.title, short: l.short, rule: l.rule, first: b.rows[0], firstLabel: l.barLabel(b.rows[0]) });
+    if (b?.ready && b.rows.length >= 3) out.push({ slug: l.slug, group: l.group, title: l.title, short: CARD_TEXT[l.slug]?.[0] || l.short, explain: CARD_TEXT[l.slug]?.[1] || l.rule, rule: l.rule, first: b.rows[0], firstLabel: l.barLabel(b.rows[0]) });
   }
   return out;
 }

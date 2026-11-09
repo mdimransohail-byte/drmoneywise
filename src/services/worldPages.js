@@ -125,8 +125,8 @@ export async function renderWorldHub(origin) {
   const us = rows.filter((x) => x.region === 'us');
   const withUs = [{ r: { id: '', name: 'United States', short: 'US' }, n: us.length, growth: avg(us.map((x) => x.salesGrowth)), margin: avg(us.map((x) => x.margin)) }, ...stats].filter((s) => s.n >= 3);
   const head = buildHeadTags({
-    title: 'Stocks around the world: UK, Europe, Japan, China, India, Korea, Brazil and the Gulf | Dr MoneyWise',
-    description: 'Big companies in the UK, Europe, Japan, China, India, South Korea, Brazil and the Gulf, explained simply, with report cards from their official yearly reports.',
+    title: 'Stocks around the world: UK, Europe, Japan, India, Korea, Singapore, Malaysia and the Gulf | Dr MoneyWise',
+    description: 'Big companies in the UK, Europe, Japan, India, South Korea, Singapore, Malaysia and the Gulf, explained simply, with report cards from their official yearly reports.',
     canonical: `${origin}/stocks/world`,
   });
   const cards = stats.map(({ r, n, score }) => `
@@ -198,7 +198,7 @@ export async function renderRegionPage(origin, id) {
   }).join('');
   const fundsPanel = (region.etfs || []).length ? `
         <div class="pf-panel"><h2>${esc(region.name)} markets through US-listed funds</h2><p class="pf-sub">Each fund owns the biggest companies in one country. Prices from TradingView; what each fund owns comes from its official holdings report to the US regulator (Form N-PORT).</p>
-          ${marketOverview([{ title: 'Gulf funds', symbols: region.etfs.map((e) => ({ s: e.tv, d: `${e.country} (${e.ticker})` })) }], 440)}
+          ${marketOverview([{ title: `${region.short} funds`, symbols: region.etfs.map((e) => ({ s: e.tv, d: `${e.country} (${e.ticker})` })) }], 440)}
           <div class="wd-funds">${region.etfs.map((e) => {
             const f = funds[e.ticker];
             if (!f) return `<div class="wd-fund"><h3>${esc(e.country)} <small>${esc(e.ticker)}</small></h3><p class="pf-sub">The holdings report is being downloaded; it appears here shortly.</p></div>`;

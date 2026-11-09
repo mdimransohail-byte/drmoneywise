@@ -123,7 +123,9 @@ export const INFO_PAGES = {
       {
         heading: 'Shariah screening',
         paragraphs: [
-          'Companies are checked against five published Shariah standards (AAOIFI, Dow Jones Islamic, S&P, MSCI and FTSE) using the business-activity rules and financial-ratio limits each one publishes. Each standard’s method and ratio limits are explained on the Shariah pages.',
+          'Companies are checked against five published Shariah standards (AAOIFI, Dow Jones Islamic, S&P, MSCI and FTSE) using the business-activity rules and financial-ratio limits each one publishes.',
+          'Each company gets one of four statuses under each standard: Pass, Fail, Business activity excluded, or Not checked. Not checked means a figure the standard needs is missing, so we make no claim either way rather than guess.',
+          'Being held by a Shariah fund is shown separately and is never treated as a pass. The full method, how every ratio and purification are calculated, and the date of the last screening are on our page How we screen (/shariah/method).',
         ],
       },
       {

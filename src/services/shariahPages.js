@@ -21,12 +21,15 @@ import { companyLogo } from './stockPages.js';
 import { buildHeadTags, pageShell } from './seoService.js';
 import { esc, tile } from './chartsSvg.js';
 
+/* The four statuses a company can have under each standard */
 const RESULT = {
-  pass: { mark: '✓', word: 'Passes', cls: 'pass' },
-  fail: { mark: '✗', word: 'Fails', cls: 'fail' },
-  out: { mark: '⊘', word: 'Business ruled out', cls: 'out' },
-  na: { mark: '?', word: 'Not checked', cls: 'na' },
+  pass: { mark: '✓', word: 'Pass', cls: 'pass', explain: 'Its main business is allowed and every money test is below the standard’s limit.' },
+  fail: { mark: '✗', word: 'Fail', cls: 'fail', explain: 'Its main business is allowed, but at least one money test (debt, cash, money owed or interest income) is over the limit.' },
+  out: { mark: '⊘', word: 'Business activity excluded', cls: 'out', explain: 'Its main business is one the standard rules out, such as conventional banking, alcohol or gambling, so the money tests are not needed.' },
+  na: { mark: '?', word: 'Not checked', cls: 'na', explain: 'We don’t yet have every figure the standard needs (for example a share price or a figure missing from the filing), so we make no claim either way.' },
 };
+const dateText = (d) => { const x = new Date(d); return Number.isNaN(x.getTime()) ? '' : x.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+const STATUS_KEY = `<div class="sh-status-key">${Object.values(RESULT).map((r) => `<div class="${r.cls}"><b>${r.mark}</b><div><strong>${r.word}</strong><span>${r.explain}</span></div></div>`).join('')}</div>`;
 const REASON = { adr: 'US shares are ADRs, so only MSCI and FTSE (based on total assets) are checked', debt: 'too much debt', cash: 'too much cash and interest-bearing investments', recv: 'too much owed by customers plus cash', income: 'too much interest income', price: 'waiting for share prices', figures: 'figures missing from its filings' };
 const marketById = (id) => SHARIAH_MARKETS.find((m) => m.id === id) || null;
 const fundsFor = (id) => SHARIAH_FUNDS.filter((f) => f.market === id || (f.also || []).includes(id));
@@ -48,7 +51,7 @@ function stack(rows, m) {
     <span class="sh-stack" role="img" aria-label="${esc(`${m.short}: ${parts.map((p) => `${p.v} ${RESULT[p.k].word.toLowerCase()}`).join(', ')}`)}">${parts.filter((p) => p.v).map((p) => `<i style="width:${(p.v / n) * 100}%;background:${p.c}" title="${p.v} ${esc(RESULT[p.k].word.toLowerCase())}"></i>`).join('')}</span>
     <b>${parts[0].v}</b></div>`;
 }
-const LEGEND = '<p class="sh-legend"><span><i style="background:#1baf7a"></i>Passes</span><span><i style="background:#e34948"></i>Fails a money test</span><span><i style="background:#8a5a2b"></i>Business ruled out</span><span><i style="background:#c9c2b0"></i>Not checked yet</span></p>';
+const LEGEND = '<p class="sh-legend"><span><i style="background:#1baf7a"></i>Pass</span><span><i style="background:#e34948"></i>Fail</span><span><i style="background:#8a5a2b"></i>Business activity excluded</span><span><i style="background:#c9c2b0"></i>Not checked</span></p>';
 
 function standardsTable() {
   const allEx = Object.keys(BUSINESS_WORDS).filter((k) => METHODS.some((m) => m.excludes.includes(k)));
@@ -103,6 +106,15 @@ export async function renderShariahHub(origin) {
           <div style="--c:#6250d6"><b>4</b><h3>How much income is not permitted?</h3><p>Interest and other non-permitted income must be under 5% of total income. Many scholars ask investors to give that share of their dividends to charity (“purification”).</p></div>
         </div>
 
+        <h2>The four statuses we give</h2>
+        <p class="pf-sub">Every company gets one of these under each of the five standards. Being held by a Shariah fund is shown separately and is not a status.</p>
+        ${STATUS_KEY}
+        <div class="sh-links3">
+          <a href="/shariah/method" style="--c:#2a78d6"><b>How we screen</b><span>Each standard’s method, how every ratio and purification are calculated, and when we last screened.</span></a>
+          <a href="/tools/zakat" style="--c:#1baf7a"><b>Zakat calculator</b><span>Work out the 2.5% due on your savings, gold and shares, against the gold or silver nisab.</span></a>
+          <a href="/membership#plans" style="--c:#6250d6"><b>Advanced Shariah research <small>Premium</small></b><span>Every company’s debt, cash and receivables ratios, the share of each dividend to purify, and a Shariah filter in the screener.</span></a>
+        </div>
+
         <h2>The five standards side by side</h2>
         <p class="pf-sub">Checked against each provider’s own rules, October 2026. S&amp;P and Dow Jones tightened theirs on 21 September 2026.</p>
         ${standardsTable()}
@@ -130,7 +142,7 @@ export async function renderShariahHub(origin) {
 export async function renderShariahMarket(origin, id) {
   const mk = marketById(id);
   if (!mk) return null;
-  const [{ rows: allRows, pricesOn }, { companies }, fundData] = await Promise.all([shariahTable(), readCompanies(), shariahFundsData()]);
+  const [{ rows: allRows, pricesOn, updatedAt }, { companies }, fundData] = await Promise.all([shariahTable(), readCompanies(), shariahFundsData()]);
   const rows = allRows.filter((r) => r.market === id);
   if (mk.fundsOnly) return renderFundCountry(origin, mk, fundData);
   const head = buildHeadTags({
@@ -149,14 +161,16 @@ export async function renderShariahMarket(origin, id) {
           <div class="sh-filter" role="group" aria-label="Show companies that pass">
             <span>Show:</span><button class="on" data-sh-filter="">All ${rows.length}</button>${METHODS.map((m) => `<button data-sh-filter="${m.id}" style="--c:${m.colour}">Passes ${esc(m.short)}</button>`).join('')}<button data-sh-filter="all5">Passes all five</button><button data-sh-filter="held">Held by a Shariah fund</button>
           </div>
-          <div class="sh-scroll"><table class="sh-table" data-sh-market="${esc(id)}"><thead><tr><th>Company</th>${METHODS.map((m) => `<th style="--c:${m.colour}">${esc(m.short)}</th>`).join('')}<th>Held by Shariah funds</th><th class="sh-prem-col">Debt / assets <span class="sc-prem">Premium</span></th><th class="sh-prem-col">Give to charity <span class="sc-prem">Premium</span></th></tr></thead><tbody>
+          <div class="sh-scroll"><table class="sh-table" data-sh-market="${esc(id)}"><thead><tr><th>Company</th>${METHODS.map((m) => `<th style="--c:${m.colour}">${esc(m.short)}</th>`).join('')}<th class="sh-held-col">Held by Shariah funds<small>ownership, not a status</small></th><th class="sh-prem-col">Debt / assets <span class="sc-prem">Premium</span></th><th class="sh-prem-col">Give to charity <span class="sc-prem">Premium</span></th></tr></thead><tbody>
           ${rows.map((r) => `<tr data-passes="${esc(r.passes.join(' '))}" data-held="${r.heldBy.length}" data-t="${esc(r.ticker)}">
             <td class="sc-co"><a href="/stock/${esc(r.ticker)}" class="wd-co">${companyLogo(companies?.[r.ticker] || { ticker: r.ticker }, r.name, 'sm')}<span><b>${esc(r.ticker)}</b> ${esc(r.name)}<small>${esc(r.business ? BUSINESS_WORDS[r.business] : r.sector)}</small></span></a></td>
             ${METHODS.map((m) => cell(m, r.results[m.id])).join('')}
-            <td>${r.heldBy.length ? r.heldBy.map((t) => `<a class="sh-fund-chip" href="/etfs/${esc(t)}">${esc(t)}</a>`).join('') : '<span class="sh-dash">—</span>'}</td>
+            <td class="sh-held-col">${r.heldBy.length ? r.heldBy.map((t) => `<a class="sh-fund-chip" href="/etfs/${esc(t)}">${esc(t)}</a>`).join('') : '<span class="sh-dash">—</span>'}</td>
             <td class="sh-prem-col" data-ratio>🔒</td><td class="sh-prem-col" data-purify>🔒</td></tr>`).join('')}
           </tbody></table></div>
-          <p class="sh-legend"><span><b class="pass">✓</b> Passes</span><span><b class="fail">✗</b> Fails (the small word says which test)</span><span><b class="out">⊘</b> Main business ruled out</span><span><b class="na">?</b> Not checked yet${pricesOn ? '' : ' (AAOIFI, Dow Jones and S&amp;P need share prices, which switch on soon)'}</span></p>
+          <p class="sh-legend"><span><b class="pass">✓</b> Pass</span><span><b class="fail">✗</b> Fail (the small word says which test)</span><span><b class="out">⊘</b> Business activity excluded</span><span><b class="na">?</b> Not checked${pricesOn ? '' : ' (AAOIFI, Dow Jones and S&amp;P need share prices, which switch on soon)'}</span></p>
+          <p class="sh-dates">Last screened: <b>${esc(dateText(updatedAt))}</b>. Each company’s figures come from its latest balance sheet (the date is on its own page); company value uses the latest closing price. We re-screen whenever new filings or prices arrive. <a href="/shariah/method">How we screen, step by step</a></p>
+          <p class="pf-sub">Being held by a Shariah fund is shown separately from the status: a fund may follow a different standard, use older figures, or be selling the shares.</p>
           <p class="pf-sub" data-sh-prem-note>Premium members also see each company’s debt and cash ratios and the share of its dividends to give to charity. <a href="/membership#plans">See Premium</a></p>
           ${rows.some((r) => r.foreign) ? '<p class="pf-sub">These companies’ US shares are usually ADRs (one ADR can stand for several local shares), so we check them with the two standards based on total assets: MSCI and FTSE.</p>' : ''}
         </div>` : '<div class="pf-panel"><p>We’re still collecting the figures for this market. Please check back soon.</p></div>';
@@ -275,15 +289,102 @@ function renderFundCountry(origin, mk, fundData) {
 }
 
 export function shariahSitemapEntries(origin, today) {
-  return [`${origin}/shariah`, `${origin}/shariah/funds`, `${origin}/shariah/islamic-finance`, ...SHARIAH_MARKETS.map((m) => `${origin}/shariah/${m.id}`)].map((loc) => ({ loc, lastmod: today, priority: '0.6' }));
+  return [`${origin}/shariah`, `${origin}/shariah/funds`, `${origin}/shariah/islamic-finance`, `${origin}/shariah/method`, ...SHARIAH_MARKETS.map((m) => `${origin}/shariah/${m.id}`)].map((loc) => ({ loc, lastmod: today, priority: '0.6' }));
 }
 
-/** Small box for a company page. */
+/** Small box for a company page: status under each standard, then fund ownership, kept apart. */
 export async function shariahBoxHtml(ticker) {
-  const { shariahFor } = await import('./shariahService.js');
-  const r = await shariahFor(ticker).catch(() => null);
+  const { shariahTable } = await import('./shariahService.js');
+  const table = await shariahTable().catch(() => null);
+  const r = table?.rows.find((x) => x.ticker === ticker);
   if (!r) return '';
-  return `<section class="block sh-box"><div class="block-head"><div><h2>Shariah check</h2><p>How this company does against the five main Islamic screening standards.</p></div></div>
-    <div class="sh-box-row">${METHODS.map((m) => { const res = r.results[m.id]; const x = RESULT[res.result]; return `<span class="sh-pill ${x.cls}" style="--c:${m.colour}" title="${esc(res.result === 'out' ? BUSINESS_WORDS[res.reason] || '' : REASON[res.reason] || '')}"><b>${x.mark}</b> ${esc(m.short)}</span>`; }).join('')}</div>
-    <p class="pf-sub">${r.business ? `Main business: ${esc(BUSINESS_WORDS[r.business])}, which ${METHODS.filter((m) => m.excludes.includes(r.business)).length === 5 ? 'all five standards rule out' : 'some standards rule out'}. ` : ''}${r.heldBy.length ? `Held by ${r.heldBy.length} Shariah fund${r.heldBy.length === 1 ? '' : 's'}: ${r.heldBy.map((t) => `<a href="/etfs/${esc(t)}">${esc(t)}</a>`).join(', ')}. ` : ''}Our check of published rules, not a fatwa. <a href="/shariah/${esc(r.market)}">See the full list and how we check</a></p></section>`;
+  return `<section class="block sh-box"><div class="block-head"><div><h2>Shariah check</h2><p>This company’s status under the five main Islamic screening standards.</p></div></div>
+    <div class="sh-box-row">${METHODS.map((m) => { const res = r.results[m.id]; const x = RESULT[res.result]; return `<span class="sh-pill ${x.cls}" style="--c:${m.colour}" title="${esc(`${x.word}${res.result === 'out' ? `: ${BUSINESS_WORDS[res.reason] || ''}` : REASON[res.reason] ? `: ${REASON[res.reason]}` : ''}`)}"><b>${x.mark}</b> ${esc(m.short)}<small>${esc(x.word)}</small></span>`; }).join('')}</div>
+    <p class="pf-sub">${r.business ? `Main business: ${esc(BUSINESS_WORDS[r.business])}, which ${METHODS.filter((m) => m.excludes.includes(r.business)).length === 5 ? 'all five standards exclude' : 'some standards exclude'}. ` : ''}Last screened ${esc(dateText(table.updatedAt))}${r.asOf ? `, using the balance sheet dated ${esc(dateText(r.asOf))}` : ''}.</p>
+    <div class="sh-own"><b>Fund ownership</b> <span>${r.heldBy.length ? `Held by ${r.heldBy.length} Shariah fund${r.heldBy.length === 1 ? '' : 's'}: ${r.heldBy.map((t) => `<a href="/etfs/${esc(t)}">${esc(t)}</a>`).join(', ')}.` : 'Not in the latest reports of the Shariah funds we follow.'} This is shown separately: a fund may use a different standard or older figures.</span></div>
+    <p class="pf-sub">Our check of published rules, not a fatwa. <a href="/shariah/${esc(r.market)}">See the full list</a> · <a href="/shariah/method">How we screen</a></p></section>`;
+}
+
+/* ── /shariah/method ─────────────────────────────────────────────── */
+export async function renderShariahMethod(origin) {
+  const { updatedAt, rows } = await shariahTable();
+  const head = buildHeadTags({
+    title: 'How we screen for Shariah compliance: methods, ratios and purification | Dr MoneyWise',
+    description: 'Our Shariah screening method step by step: the four statuses, each standard’s rules, how the debt, cash, receivables and interest-income ratios are calculated, how purification is worked out, and when we last screened.',
+    canonical: `${origin}/shariah/method`,
+  });
+  const f = (a, b) => `<span class="sh-frac"><span>${a}</span><span>${b}</span></span>`;
+  const RATIOS = [
+    ['Debt ratio', `${f('Interest-bearing debt', 'Company value <em>or</em> total assets')} × 100`, 'Debt = long-term debt + short-term borrowing + the part of long-term debt due within a year, from the latest balance sheet. Company value = latest share price × shares in issue.'],
+    ['Cash ratio', `${f('Cash + short-term interest-bearing investments', 'Company value <em>or</em> total assets')} × 100`, 'Cash and short-term investments from the latest balance sheet.'],
+    ['Receivables ratio (MSCI and FTSE)', `${f('Money owed by customers + cash', 'Total assets')} × 100`, 'Accounts receivable from the latest balance sheet.'],
+    ['Interest-income ratio', `${f('Interest income', 'Sales + interest income')} × 100`, 'Interest and investment income from the latest yearly profit and loss account. Many companies don’t report it separately; when it is missing this test doesn’t block a pass on its own.'],
+  ];
+  const counts = Object.fromEntries(Object.keys(RESULT).map((k) => [k, rows.reduce((a, r) => a + Object.values(r.results).filter((x) => x.result === k).length, 0)]));
+  const body = `
+      <section class="block sh-page">
+        <p class="nl-back"><a href="/shariah">← Shariah-compliant investing</a></p>
+        <div class="sh-hero"><div><span class="pf-badge free">Our method</span><h1>How we screen for Shariah compliance</h1>
+          <p>Every step we take to give a company its status under each standard, so you can check our working, repeat it yourself, or ask a scholar about it.</p></div><div class="sh-mark" aria-hidden="true">⚖</div></div>
+
+        <div class="pr-tiles">
+          ${tile('Last screened', esc(dateText(updatedAt)), 'updated as new filings and prices arrive')}
+          ${tile('Companies screened', String(rows.length), 'from their own SEC filings')}
+          ${tile('Standards', String(METHODS.length), METHODS.map((m) => m.short).join(', '))}
+        </div>
+
+        <h2>1. The four statuses</h2>
+        ${STATUS_KEY}
+        <p class="pf-sub">Across all companies and standards right now: ${Object.entries(counts).map(([k, v]) => `${v} ${RESULT[k].word.toLowerCase()}`).join(' · ')}.</p>
+
+        <h2>2. The order of the checks</h2>
+        <ol class="sh-order">
+          <li><b>Business activity.</b> We take the company’s main industry code from its SEC filings (plus a short list of well-known companies whose code doesn’t show their real business). If that business is on the standard’s excluded list, the status is <em>Business activity excluded</em> and we stop.</li>
+          <li><b>Figures.</b> We take debt, cash, short-term investments, money owed by customers, total assets and interest income from the latest filings, and the latest closing share price.</li>
+          <li><b>Money tests.</b> We work out each ratio the standard uses (below) and compare it with its limit. Any ratio at or over its limit gives <em>Fail</em>.</li>
+          <li><b>Missing figures.</b> If a ratio the standard needs can’t be worked out, the status is <em>Not checked</em> rather than a guess.</li>
+          <li><b>Otherwise</b> the status is <em>Pass</em>.</li>
+        </ol>
+
+        <h2>3. How each ratio is calculated</h2>
+        <div class="sh-ratio-grid">${RATIOS.map(([n, formula, note]) => `<div class="sh-ratio"><h3>${n}</h3><div class="sh-formula">${formula}</div><p>${note}</p></div>`).join('')}</div>
+        <p class="pf-sub">AAOIFI, Dow Jones and S&amp;P divide by <b>company value</b>; MSCI and FTSE divide by <b>total assets</b>. Dow Jones and S&amp;P use a 24- or 36-month average company value; we use today’s, so after a big price move our answer can differ from theirs. For overseas companies whose US shares are ADRs, we only apply MSCI and FTSE, because one ADR can stand for several local shares.</p>
+
+        <h2>4. Each standard’s method</h2>
+        <div class="sh-method-grid">${METHODS.map((m) => `<div class="sh-method" style="--c:${m.colour}"><h3>${esc(m.name)}</h3><p>${esc(m.who)}</p>
+          <ul>${m.tests.map((t) => `<li>${esc(t.label)} under <b>${t.max}%</b> of ${esc(t.of)}</li>`).join('')}</ul>
+          <p class="pf-sub"><b>Excluded businesses:</b> ${m.excludes.map((k) => esc(BUSINESS_WORDS[k] || k)).join(', ')}${m.partly ? `; partly: ${Object.entries(m.partly).map(([k, v]) => `${esc(BUSINESS_WORDS[k] || k)} (${esc(v)})`).join(', ')}` : ''}.</p>
+          <p class="pf-sub">${esc(m.note)}</p><a href="${esc(m.source.url)}" target="_blank" rel="noopener">${esc(m.source.label)} ↗</a></div>`).join('')}</div>
+
+        <h2>5. How purification is calculated</h2>
+        <div class="sh-two">
+          <div class="pf-panel"><h3>The idea</h3><p>Even a company that passes may earn a little income that is not permitted, usually interest on its cash. Many scholars ask investors to give that share of their dividends to charity, without expecting reward. This is purification, and it is separate from zakat.</p>
+            <div class="sh-formula">Amount to give = dividends you received × ${f('Interest and other non-permitted income', 'Total income')}</div></div>
+          <div class="pf-panel"><h3>A worked example</h3><p>You received <b>$400</b> in dividends from a company this year. Its yearly report shows interest income of <b>$1.2 billion</b> and sales of <b>$58.8 billion</b>, so total income is $60 billion.</p>
+            <p>Non-permitted share = 1.2 ÷ 60 = <b>2%</b>. Amount to give = $400 × 2% = <b>$8</b>.</p>
+            <p class="pf-sub">Some scholars purify capital gains as well as dividends; ask your own scholar. Premium members see this percentage for every company on the market pages.</p></div>
+        </div>
+
+        <h2>6. Fund ownership is kept separate</h2>
+        <p>Next to each company we show which Shariah funds held it in their latest SEC holdings report (Form N-PORT). This is <b>not</b> part of the status: a fund may follow a different standard, use averaged figures, report holdings weeks after the date, or be in the middle of selling. It is a useful second opinion, not a pass.</p>
+
+        <h2>7. When we screen</h2>
+        <ul class="sh-order">
+          <li><b>Company accounts:</b> checked after each new quarterly or yearly SEC filing.</li>
+          <li><b>Share prices:</b> latest daily close, so company-value tests can change from day to day.</li>
+          <li><b>Fund holdings:</b> each fund’s latest SEC report, published monthly or quarterly.</li>
+          <li><b>The standards’ rules:</b> checked against each provider’s own document; last reviewed October 2026.</li>
+        </ul>
+
+        <h2>8. What our screening can’t do</h2>
+        <p>We use each company’s main industry code, not a line-by-line breakdown of its income, so a company with a small excluded business inside a larger permitted one may show as <em>Pass</em> when a provider would look deeper. Our lists are our own calculation of published rules, not the providers’ official index lists and not a religious ruling (fatwa).</p>
+
+        <div class="sh-links3">
+          <a href="/tools/zakat" style="--c:#1baf7a"><b>Zakat calculator</b><span>The 2.5% due on savings, gold and shares.</span></a>
+          <a href="/shariah/islamic-finance" style="--c:#c9a227"><b>Islamic finance guide</b><span>From the basics to the scholars’ rulings.</span></a>
+          <a href="/membership#plans" style="--c:#6250d6"><b>Advanced Shariah research <small>Premium</small></b><span>Every ratio and purification figure, plus a Shariah filter in the screener.</span></a>
+        </div>
+        ${NOT_ADVICE}
+      </section>`;
+  return pageShell({ head, body, active: 'learn' });
 }

@@ -103,7 +103,7 @@ export async function renderMarketsHub(origin) {
     ['/today', 'The economy today', 'Inflation, interest rates, bond yields, mortgage rates and jobs, what each means for you, and this week’s announcements.', 'Updated daily'],
     ['/compare', 'Compare two companies', 'Any two US-listed companies side by side: health scores, sales, profit, debt and dividends.', 'Free'],
     ['/health-check', 'Financial Health Check', 'Every company we cover scored out of 100 on growth, profit, debt, spare cash and dividends, with stars and a simple rating.', 'Free'],
-    ['/stocks/world', 'Stocks around the world', 'The UK, Europe, Japan, China, India, South Korea, Brazil and the Gulf: report cards, prices and news.', '8 regions'],
+    ['/stocks/world', 'Stocks around the world', 'The UK, Europe, Japan, India, South Korea, Singapore, Malaysia and the Gulf: report cards, prices and news.', '8 regions'],
     ['/shariah', 'Shariah-compliant investing', 'Which big companies pass the AAOIFI, Dow Jones, S&P, MSCI and FTSE Shariah checks, plus Shariah funds and ETFs.', '5 standards, 12 countries'],
     ['/etfs', 'ETFs', 'Funds that hold many investments at once: what is inside, the yearly fee and recent returns.', `${CURATED_ETFS.length} popular ETFs, look up any other`],
     ['/bonds', 'Bonds', 'Loans to governments: what they pay, how that has changed, and why it matters for mortgages.', us10 ? `US 10-year: ${us10.v.toFixed(2)}% (${periodWords(us10.p)})` : `${BOND_PLACES.length} countries`],

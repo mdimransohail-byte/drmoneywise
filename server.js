@@ -1140,6 +1140,8 @@ async function handlePublicPage(requestUrl, request, response) {
     return sendHtml(response, 200, renderInfoPage(pathname.slice(1), origin));
   }
 
+  // China and Brazil pages were removed (November 2026): send readers to the world page
+  if (/^\/stocks\/world\/(china|brazil)(\/|$)/u.test(pathname)) { response.writeHead(301, { Location: '/stocks/world' }); response.end(); return true; }
   if (pathname === '/stocks/world') return sendHtml(response, 200, await renderWorldHub(origin));
   const worldMatch = pathname.match(/^\/stocks\/world\/([a-z-]{2,20})(?:\/([a-z0-9-]{2,60}))?$/u);
   if (worldMatch) {
@@ -1214,6 +1216,7 @@ async function handlePublicPage(requestUrl, request, response) {
   // Shariah-compliant investing
   if (pathname === '/shariah') return sendHtml(response, 200, await renderShariahHub(origin));
   if (pathname === '/shariah/funds') return sendHtml(response, 200, await renderShariahFunds(origin));
+  if (pathname === '/shariah/method') return sendHtml(response, 200, await (await import('./src/services/shariahPages.js')).renderShariahMethod(origin));
   if (pathname === '/shariah/islamic-finance') return sendHtml(response, 200, (await import('./src/services/islamicFinancePage.js')).renderIslamicFinance(origin));
   const shariahMatch = pathname.match(/^\/shariah\/([a-z-]{2,20})$/u);
   if (shariahMatch) {

@@ -248,7 +248,7 @@ async function courseWeekItems(site) {
    already collect for each region (GDELT). Each links to the publisher. */
 async function businessNews(limit = 5) {
   const { readNews, refreshNews, HOME_NEWS_REGIONS } = await import('./newsLinksService.js');
-  const ids = ['us', 'uk', 'europe', 'gulf', 'india', 'china', 'japan', 'south-korea', 'brazil'];
+  const ids = ['us', 'uk', 'europe', 'gulf', 'india', 'japan', 'south-korea', 'singapore', 'malaysia'];
   // Make sure the headlines are this week's (each region refreshes at most every 6 hours)
   const names = Object.fromEntries(HOME_NEWS_REGIONS);
   await Promise.all(ids.map((id) => Promise.race([

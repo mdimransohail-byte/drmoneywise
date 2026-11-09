@@ -88,6 +88,41 @@
         tiles([['1 ' + from + ' =', f(rate, to)], ['1 ' + to + ' =', f(1 / rate, from)], ['You would receive', f(got, to)], ['Cost of the margin', f(fair - got, to)]]) +
         bars('What different margins cost you', [0.5, 1, 3, 5, 10].map(function (m, i) { return [m + '% margin', fair * m / 100, f(fair * m / 100, to), COLOURS[i]]; }));
     },
+    'what-if': function () {
+      var years = Math.max(1, Math.min(60, Math.round(num('years'))));
+      var start = num('start'), monthly = num('monthly'), infl = num('inflation') / 100;
+      var cases = [['Poor case', num('poor'), '#e5566f'], ['Middle case', num('base'), '#2a78d6'], ['Good case', num('best'), '#1baf7a']];
+      function grow(rate, y) {
+        var m = Math.pow(1 + rate / 100, 1 / 12) - 1, v = start;
+        for (var i = 0; i < y * 12; i++) v = v * (1 + m) + monthly;
+        return v;
+      }
+      var paidIn = start + monthly * 12 * years;
+      var ends = cases.map(function (c) { var v = grow(c[1], years); return { name: c[0], rate: c[1], colour: c[2], v: v, real: v / Math.pow(1 + infl, years) }; });
+      var marks = [1, 3, 5, 10, 15, 20, 25, 30, 40].filter(function (y) { return y < years; }).slice(-3).concat([years]);
+      var table = '<div class="mc-table-wrap"><table class="mc-table"><thead><tr><th>After</th>' + ends.map(function (e) { return '<th style="color:' + e.colour + '">' + esc(e.name) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        marks.map(function (y) { return '<tr><td>' + y + ' year' + (y === 1 ? '' : 's') + '</td>' + cases.map(function (c) { return '<td>' + esc(money(grow(c[1], y))) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+      return sentence('You would put in <strong>' + esc(money(paidIn)) + '</strong>. After ' + years + ' years that could be <strong>' + esc(money(ends[0].v)) + '</strong> in a poor case, <strong>' + esc(money(ends[1].v)) + '</strong> in the middle case and <strong>' + esc(money(ends[2].v)) + '</strong> in a good case.') +
+        tiles(ends.map(function (e) { return [e.name + ' (' + e.rate + '% a year)', money(e.v), e.colour]; }).concat([['Money you put in', money(paidIn), '#c9a227']])) +
+        bars('In today’s money, after ' + (infl * 100).toFixed(1) + '% yearly inflation', ends.map(function (e) { return [e.name, e.real, money(e.real), e.colour]; })) +
+        table +
+        '<p class="calc-hint">Real returns go up and down from year to year; these smooth averages show a range, not a forecast. Fees and tax are not included.</p>';
+    },
+    'zakat': function () {
+      var basisEl = document.getElementById('basis');
+      var basis = basisEl ? basisEl.value : 'gold';
+      var nisab = basis === 'silver' ? 595 * num('silverGram') : 85 * num('goldGram');
+      var assets = num('cash') + num('gold') + num('owed') + num('trade') + num('longterm') + num('business');
+      var net = Math.max(0, assets - num('debts'));
+      var due = nisab > 0 && net >= nisab ? net * 0.025 : 0;
+      var head = nisab <= 0 ? 'Enter the price of ' + basis + ' per gram to work out the nisab.'
+        : net >= nisab ? 'Your zakatable wealth of <strong>' + esc(money(net)) + '</strong> is above the nisab of ' + esc(money(nisab)) + '. Zakat due: <strong>' + esc(money(due)) + '</strong> (2.5%).'
+        : 'Your zakatable wealth of <strong>' + esc(money(net)) + '</strong> is below the nisab of ' + esc(money(nisab)) + ', so no zakat is due on it this year.';
+      return sentence(head, due > 0 ? '' : 'good') +
+        tiles([['Zakatable wealth', money(net)], ['Nisab (' + (basis === 'silver' ? '595 g silver' : '85 g gold') + ')', money(nisab)], ['Zakat due', money(due), '#1baf7a']]) +
+        bars('What makes up your zakatable wealth', [['Cash', num('cash'), money(num('cash'))], ['Gold and silver', num('gold'), money(num('gold'))], ['Owed to you', num('owed'), money(num('owed'))], ['Shares to trade', num('trade'), money(num('trade'))], ['Long-term shares', num('longterm'), money(num('longterm'))], ['Business stock', num('business'), money(num('business'))], ['Less debts due now', -num('debts'), '-' + money(num('debts')), '#e5566f']].filter(function (r) { return r[1] !== 0; })) +
+        '<p class="calc-hint">Zakat is due on wealth held for a full lunar year (hawl). Enter all amounts in the same currency as the gold or silver price. This follows the rulings explained in our <a href="/shariah/islamic-finance">Islamic finance guide</a>; ask a qualified scholar about your own situation.</p>';
+    },
     'trade-risk': function () {
       var dep = num('deposit'), lev = Math.max(1, num('leverage')), mv = num('move') / 100;
       var size = dep * lev, loss = size * mv, cost = size * num('spread') / 100;

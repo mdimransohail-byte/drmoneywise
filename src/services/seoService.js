@@ -483,7 +483,9 @@ export function renderInfoPage(slug, origin) {
 }
 
 function linkEmails(html) {
-  return html.replace(/([a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,})/giu, '<a href="mailto:$1">$1</a>');
+  return html.replace(/([a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,})/giu, '<a href="mailto:$1">$1</a>')
+    // "Page name (/path)" becomes a link to our own page
+    .replace(/([A-Z][A-Za-z ’']{2,40}) \((\/[a-z0-9/-]+)\)/gu, '<a href="$2">$1</a>');
 }
 
 /* ── Homepage "Markets today" box: real economy figures ─────────────── */
