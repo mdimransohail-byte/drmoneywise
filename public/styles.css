@@ -2478,6 +2478,7 @@ body.has-ad-strip { padding-bottom: 52px; }
 .interest-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .interest-grid a { --c: #2a78d6; display: block; padding: 20px; border-radius: 18px; background: linear-gradient(160deg, var(--c), color-mix(in srgb, var(--c) 70%, #0a1128)); color: #fff; text-decoration: none; min-height: 150px; }
 .interest-grid a:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(10,17,40,.18); }
+.interest-grid a.ig-bright { background: linear-gradient(160deg, #ff9a1f, #ff6a00); }
 .interest-grid i { font-style: normal; font-size: 30px; display: block; margin-bottom: 8px; } .interest-grid b { display: block; font-size: 21px; margin-bottom: 6px; } .interest-grid span { font-size: 15px; opacity: .92; }
 .more-guides { margin-top: 16px; background: #fff; border-radius: 14px; padding: 6px 16px; } .more-guides summary { cursor: pointer; font-weight: 800; padding: 10px 0; }
 .today-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px; align-items: start; }
