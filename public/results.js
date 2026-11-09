@@ -23,10 +23,16 @@
       }).join('<span aria-hidden="true">•</span>');
       var label = (d && d.label) || 'Latest results';
       var labelHref = label === 'Business news' ? '/markets' : '/results';
-      // Only scroll when there are enough results to fill the strip
-      var moving = items.length >= 4;
-      strip.innerHTML = '<div class="wrap rs-strip-inner"><a class="rs-strip-label" href="' + labelHref + '">' + esc(label) + '</a><div class="rs-strip-scroll"><div class="rs-strip-track' + (moving ? '' : ' still') + '">' + links + (moving ? '<span aria-hidden="true">•</span>' + links.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ') : '') + '</div></div></div>';
+      strip.innerHTML = '<div class="wrap rs-strip-inner"><a class="rs-strip-label" href="' + labelHref + '">' + esc(label) + '</a><div class="rs-strip-scroll"><div class="rs-strip-track still">' + links + '</div></div></div>';
       strip.hidden = false;
+      // Scroll whenever the items are wider than the strip; speed set by length
+      var scroll = strip.querySelector('.rs-strip-scroll'), track = strip.querySelector('.rs-strip-track');
+      var w = track.scrollWidth;
+      if (w > scroll.clientWidth - 20) {
+        track.innerHTML = links + '<span aria-hidden="true">•</span>' + links.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ') + '<span aria-hidden="true">•</span>';
+        track.style.animationDuration = Math.max(25, Math.round(w / 60)) + 's';
+        track.className = 'rs-strip-track';
+      }
     }).catch(function () { strip.remove(); });
   }
 

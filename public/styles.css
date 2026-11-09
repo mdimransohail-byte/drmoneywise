@@ -965,11 +965,11 @@ body.has-ad-strip { padding-bottom: 52px; }
 .rs-strip-label { flex: 0 0 auto; background: var(--gold); color: var(--navy); font: 800 12px var(--sans); text-transform: uppercase; letter-spacing: .05em; padding: 4px 10px; border-radius: 999px; text-decoration: none; }
 .rs-strip-scroll { overflow: hidden; flex: 1; min-width: 0; }
 .rs-strip-track { display: inline-flex; gap: 18px; white-space: nowrap; animation: ad-scroll 60s linear infinite; }
-.rs-strip-scroll:hover .rs-strip-track { animation-play-state: paused; }
+.rs-strip-scroll:hover .rs-strip-track, .rs-strip-scroll:focus-within .rs-strip-track { animation-play-state: paused; }
 .rs-strip-track a { color: var(--on-navy); text-decoration: none; font-size: 14px; }
 .rs-strip-track a b { color: var(--gold-soft); margin-right: 4px; }
 .rs-strip-track span { color: var(--on-navy-2); }
-@media (prefers-reduced-motion: reduce) { .rs-strip-track { animation: none; } .rs-strip-scroll { overflow-x: auto; } }
+
 .rs-box[hidden] { display: none; }
 .rs-card { background: var(--paper); border: 1px solid var(--line); border-left: 5px solid var(--gold); border-radius: var(--radius-md); padding: 16px 20px; margin: 0 0 14px; }
 .rs-card header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; align-items: baseline; }
@@ -2332,9 +2332,7 @@ body.has-ad-strip { padding-bottom: 52px; }
 .home-guides .hg-ico { width: 52px; height: 52px; border-radius: 14px; font-size: 27px; background: var(--c) !important; color: #fff !important; }
 .home-guides a:hover { border-color: var(--c); }
 
-/* Region headlines: in the page, no scrolling box */
-.rn-window { height: auto !important; overflow: visible !important; }
-.rn-window::before, .rn-window::after { display: none !important; }
+/* Region headlines (older flat layout, no longer used) */
 .rn-list.rn-flat { display: grid; grid-template-columns: 1fr 1fr; animation: none; }
 .rn-list.rn-flat li a { border-right: 1px solid #efe8d8; }
 .rn-more-li { grid-column: 1 / -1; text-align: center; padding: 10px; }
@@ -2567,3 +2565,5 @@ body.has-ad-strip { padding-bottom: 52px; }
 .src-box { background: #fff; border: 1px solid #e3dccb; border-top: 5px solid #c9a227; border-radius: 14px; padding: 14px 18px; margin: 22px 0; }
 .src-box h2 { margin: 0 0 8px; font-size: 20px; } .src-box ol { margin: 0; padding-left: 22px; } .src-box li { margin: 5px 0; font-size: 14px; overflow-wrap: anywhere; }
 .src-box li span { color: #6b6f80; font-size: 12px; }
+
+.rn-list.rn-roll { will-change: transform; }

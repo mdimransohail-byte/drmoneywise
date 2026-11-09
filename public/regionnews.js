@@ -45,12 +45,17 @@
       return;
     }
     var row = function (x) { return '<li><a href="' + esc(x.url) + '" target="_blank" rel="noopener nofollow"><strong>' + esc(x.title) + '</strong><span>' + esc(site(x.domain)) + (x.date ? ' · ' + esc(ago(x.date)) : '') + '</span></a></li>'; };
-    // No scrolling box inside the page: the first 8 headlines, then "Show more"
-    var first = items.slice(0, 8), rest = items.slice(8);
-    list.className = 'rn-list rn-flat';
-    list.innerHTML = first.map(row).join('') + (rest.length ? '<li class="rn-more-li"><button type="button" class="rn-more-btn">Show ' + rest.length + ' more headlines</button></li>' : '');
-    var btn = list.querySelector('.rn-more-btn');
-    if (btn) btn.addEventListener('click', function () { btn.parentNode.outerHTML = rest.map(row).join(''); });
+    // Headlines roll slowly upwards; hovering or tapping pauses them.
+    // Too few to fill the box: shown still.
+    var html = items.map(row).join('');
+    list.className = 'rn-list';
+    list.innerHTML = html;
+    var win = list.parentNode;
+    if (items.length >= 5 && list.scrollHeight > win.clientHeight) {
+      list.innerHTML = html + items.map(row).join('').replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ');
+      list.style.setProperty('--rn-time', Math.max(40, items.length * 6) + 's');
+      list.className = 'rn-list rn-roll';
+    }
   }
 
   function load(region) {
