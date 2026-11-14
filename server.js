@@ -765,6 +765,13 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, await portfolioEdge(sessionUser));
     }
 
+    // My watchlist / My portfolio pages: facts cut to the member's plan
+    if ((requestUrl.pathname === '/api/member/my-watchlist' || requestUrl.pathname === '/api/member/my-portfolio') && request.method === 'GET') {
+      if (!sessionUser) return sendJson(response, 401, { error: 'Sign in first.' });
+      const lists = await import('./src/services/myListsService.js');
+      return sendJson(response, 200, requestUrl.pathname.endsWith('watchlist') ? await lists.myWatchlist(sessionUser) : await lists.myPortfolio(sessionUser));
+    }
+
     if (requestUrl.pathname === '/api/member/portfolio-review' && request.method === 'GET') {
       return sendJson(response, 200, await getPortfolioReview(token));
     }
@@ -1201,6 +1208,8 @@ async function handlePublicPage(requestUrl, request, response) {
   }
 
   if (pathname === '/results') return sendHtml(response, 200, await renderResultsPage(origin));
+  if (pathname === '/my/watchlist' || pathname === '/my/portfolio') return sendHtml(response, 200, (await import('./src/services/myListsPages.js')).renderMyList(origin, pathname.slice(4)));
+  if (pathname === '/my' || pathname === '/watchlist' || pathname === '/portfolio') { response.writeHead(302, { Location: pathname === '/portfolio' ? '/my/portfolio' : '/my/watchlist' }); response.end(); return true; }
   if (pathname === '/portfolio-health') return sendHtml(response, 200, renderHealthCheckPage(origin));
   if (pathname === '/screener') return sendHtml(response, 200, renderScreenerPage(origin));
   if (pathname === '/insiders') return sendHtml(response, 200, renderInsidersPage(origin));
