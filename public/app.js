@@ -1010,22 +1010,49 @@ async function handleInterestToggle(event) {
 async function handleAddWatchlist(event) {
   event.preventDefault();
   const ticker = elements.watchlistTickerInput.value.trim().toUpperCase();
+  const safe = escapeHtml(ticker);
   if (!ticker) {
+    notifyNear(elements.watchlistForm, 'Type a company name or ticker first, then choose it from the list.', 'warn');
     return;
   }
-
-  if (state.user) {
-    const nextWatchlist = [...new Set([...getCurrentWatchlist(), ticker])].slice(0, 20);
-    const response = await apiPost('/api/member/watchlist', { tickers: nextWatchlist });
-    state.user.watchlist = response.watchlist;
-  } else {
-    state.guestWatchlist = [...new Set([...state.guestWatchlist, ticker])].slice(0, 20);
-    persistLocalState();
-    setAuthMessage('Ticker saved locally. Create a free account to keep it permanently.');
+  if (getCurrentWatchlist().includes(ticker)) {
+    notifyNear(elements.watchlistForm, `${safe} is already on your watchlist.`, 'warn');
+    elements.watchlistTickerInput.value = '';
+    return;
   }
-
+  try {
+    if (state.user) {
+      const nextWatchlist = [...new Set([...getCurrentWatchlist(), ticker])].slice(0, 20);
+      const response = await apiPost('/api/member/watchlist', { tickers: nextWatchlist });
+      state.user.watchlist = response.watchlist;
+      notifyNear(elements.watchlistForm, `✓ ${safe} added to your watchlist. <a href="/my/watchlist">View my watchlist →</a>`, 'ok');
+    } else {
+      state.guestWatchlist = [...new Set([...state.guestWatchlist, ticker])].slice(0, 20);
+      persistLocalState();
+      notifyNear(elements.watchlistForm, `✓ ${safe} added on this device. <a href="#join">Join free</a> to keep it and see the full analysis.`, 'ok');
+    }
+  } catch (error) {
+    notifyNear(elements.watchlistForm, `Sorry, ${safe} could not be added: ${escapeHtml(error.message || 'please try again')}.`, 'error');
+    return;
+  }
   elements.watchlistTickerInput.value = '';
   await refreshWatchlistQuotes();
+}
+
+/* A short message just under a form, e.g. "✓ KO added to your watchlist" */
+function notifyNear(form, html, kind) {
+  if (!form) return;
+  let box = form.parentNode.querySelector('.add-note');
+  if (!box) {
+    box = document.createElement('p');
+    box.className = 'add-note';
+    box.setAttribute('role', 'status');
+    form.insertAdjacentElement('afterend', box);
+  }
+  box.className = `add-note ${kind || ''}`;
+  box.innerHTML = html;
+  clearTimeout(box._t);
+  box._t = setTimeout(() => { box.innerHTML = ''; box.className = 'add-note'; }, 9000);
 }
 
 async function handleRemoveWatchlist(event) {
@@ -1066,18 +1093,25 @@ async function handleAddPortfolioHolding(event) {
   holding.cost = holding.buyPrice ? String(holding.buyPrice) : '';
 
   if (!holding.ticker) {
+    notifyNear(elements.portfolioForm, 'Choose a company first: type its name and pick it from the list.', 'warn');
     return;
   }
 
-  if (state.user) {
-    const response = await apiPost('/api/member/portfolio', {
-      holdings: [...getCurrentPortfolio(), holding],
-    });
-    state.user.portfolio = response.portfolio;
-  } else {
-    state.guestPortfolio = [...state.guestPortfolio, holding].slice(0, 20);
-    persistLocalState();
-    setAuthMessage('Holding saved locally. Sign in to keep it with your account.');
+  try {
+    if (state.user) {
+      const response = await apiPost('/api/member/portfolio', {
+        holdings: [...getCurrentPortfolio(), holding],
+      });
+      state.user.portfolio = response.portfolio;
+      notifyNear(elements.portfolioForm, `✓ ${escapeHtml(holding.ticker)} added to your portfolio. <a href="/my/portfolio">View my portfolio and health check →</a>`, 'ok');
+    } else {
+      state.guestPortfolio = [...state.guestPortfolio, holding].slice(0, 20);
+      persistLocalState();
+      notifyNear(elements.portfolioForm, `✓ ${escapeHtml(holding.ticker)} added on this device. <a href="#join">Join free</a> to keep it and see the health check.`, 'ok');
+    }
+  } catch (error) {
+    notifyNear(elements.portfolioForm, `Sorry, ${escapeHtml(holding.ticker)} could not be added: ${escapeHtml(error.message || 'please try again')}.`, 'error');
+    return;
   }
 
   elements.portfolioForm.reset();

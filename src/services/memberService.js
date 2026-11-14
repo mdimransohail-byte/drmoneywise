@@ -43,6 +43,11 @@ export async function saveMemberWatchlist(token, tickers) {
     ? tickers.map((ticker) => String(ticker).trim().toUpperCase()).filter(Boolean).slice(0, 20)
     : [];
 
+  if (user.id === 'admin') {
+    // The admin login is not a stored member: keep its list separately
+    const saved = await updateStore((store) => { store.adminLists = { ...(store.adminLists || {}), watchlist: nextTickers }; return store; });
+    return saved.adminLists.watchlist;
+  }
   const updated = await updateStore((store) => {
     const target = store.users.find((entry) => entry.id === user.id);
     if (!target) {
@@ -84,6 +89,11 @@ export async function saveMemberPortfolio(token, holdings) {
         .slice(0, 20)
     : [];
 
+  if (user.id === 'admin') {
+    // The admin login is not a stored member: keep its list separately
+    const saved = await updateStore((store) => { store.adminLists = { ...(store.adminLists || {}), portfolio: nextHoldings }; return store; });
+    return saved.adminLists.portfolio;
+  }
   const updated = await updateStore((store) => {
     const target = store.users.find((entry) => entry.id === user.id);
     if (!target) {

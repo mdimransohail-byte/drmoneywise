@@ -72,7 +72,7 @@ function buildAdminUser() {
     regions: ['global'],
     region: 'global',
     interests: ['equities', 'etfs', 'fixed-income'],
-    watchlist: ['SPY', 'QQQ', 'GLD'],
+    watchlist: [],
     portfolio: [],
     savedArticleSlugs: [],
     createdAt: new Date().toISOString(),
@@ -206,12 +206,15 @@ export async function getSessionUser(token) {
     return null;
   }
 
-  if (session.userId === 'admin') {
-    return buildAdminUser();
-  }
-
   const { readStore } = await import('./storeService.js');
   const store = await readStore();
+  if (session.userId === 'admin') {
+    // The admin is not a stored member: their own watchlist and portfolio are kept in store.adminLists
+    const admin = buildAdminUser();
+    if (Array.isArray(store.adminLists?.watchlist)) admin.watchlist = store.adminLists.watchlist;
+    if (Array.isArray(store.adminLists?.portfolio)) admin.portfolio = store.adminLists.portfolio;
+    return admin;
+  }
   const user = store.users.find((u) => u.id === session.userId);
   if (!user) {
     // Member was deleted — end the session.

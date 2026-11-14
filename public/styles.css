@@ -2613,3 +2613,8 @@ body.has-ad-strip { padding-bottom: 52px; }
 /* Signed-in header: keep "Premium member" from pushing Sign out off the edge */
 @media (max-width: 1400px) { .member-badge { display: none; } }
 .my-notes .my-stars { display: block; margin-top: 2px; }
+/* "✓ KO added to your watchlist" under the add forms */
+.add-note:empty { display: none; }
+.add-note { margin: 10px 0 0; padding: 9px 12px; border-radius: 10px; font-size: 14px; font-weight: 600; }
+.add-note.ok { background: #dff3ea; color: #0b6b43; } .add-note.warn { background: #fdf0d5; color: #8a5c00; } .add-note.error { background: #fbe3e3; color: #a32a2a; }
+.add-note a { color: inherit; text-decoration: underline; margin-left: 4px; }
