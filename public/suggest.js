@@ -10,10 +10,12 @@
     var box = document.createElement('ul'); box.className = 'sg-list'; box.hidden = true; box.setAttribute('role', 'listbox');
     var holder = input.parentNode; if (getComputedStyle(holder).position === 'static') holder.style.position = 'relative';
     holder.appendChild(box);
-    var timer = null, items = [], pick = -1;
+    var timer = null, items = [], pick = -1, seq = 0, chosen = '';
     function choose(it) {
       if (!it) return;
       if (input.dataset.suggest === 'go') { location.href = '/stock/' + encodeURIComponent(it.ticker); return; }
+      // Close the list and ignore the "input" event we send ourselves
+      clearTimeout(timer); seq++; items = []; pick = -1; chosen = it.ticker;
       input.value = it.ticker; box.hidden = true;
       input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
       var note = input.closest('form, .pf-row, label, div'); if (note) { var n = note.querySelector('[data-suggest-name]'); if (n) n.textContent = it.name; }
@@ -25,9 +27,12 @@
     input.addEventListener('input', function () {
       clearTimeout(timer);
       var q = input.value.trim();
+      if (chosen && q === chosen) { box.hidden = true; return; }
+      chosen = '';
       if (q.length < 1) { items = []; draw(); return; }
+      var mine = ++seq;
       timer = setTimeout(function () {
-        fetch('/api/site/suggest?q=' + encodeURIComponent(q)).then(function (r) { return r.ok ? r.json() : { items: [] }; }).then(function (d) { items = d.items || []; pick = -1; draw(); }).catch(function () {});
+        fetch('/api/site/suggest?q=' + encodeURIComponent(q)).then(function (r) { return r.ok ? r.json() : { items: [] }; }).then(function (d) { if (mine !== seq || document.activeElement !== input) return; items = d.items || []; pick = -1; draw(); }).catch(function () {});
       }, 180);
     });
     input.addEventListener('keydown', function (e) {
@@ -39,6 +44,9 @@
     });
     box.addEventListener('mousedown', function (e) { var li = e.target.closest('[data-i]'); if (li) { e.preventDefault(); choose(items[+li.dataset.i]); } });
     input.addEventListener('blur', function () { setTimeout(function () { box.hidden = true; }, 150); });
+    // Close the list when the form is sent (for example "Add" or Enter)
+    if (input.form) input.form.addEventListener('submit', function () { clearTimeout(timer); seq++; items = []; box.hidden = true; });
+    document.addEventListener('mousedown', function (e) { if (e.target !== input && !box.contains(e.target)) box.hidden = true; });
   }
   function scan() { document.querySelectorAll('input[data-suggest]').forEach(attach); }
   scan();
