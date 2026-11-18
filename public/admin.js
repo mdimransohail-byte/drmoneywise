@@ -188,6 +188,19 @@ function showToast(msg) {
 function setMain(html) {
   const el = document.getElementById('mainArea');
   if (el) el.innerHTML = html;
+  hibBanner();
+}
+
+/* While hibernating, a reminder sits at the top of every Admin page */
+let HIB_ON = false;
+function hibBanner() {
+  const main = document.getElementById('mainArea');
+  let banner = qs('#hibBanner');
+  if (HIB_ON && main) {
+    if (!banner) { banner = document.createElement('div'); banner.id = 'hibBanner'; banner.className = 'hib-banner'; main.prepend(banner); }
+    banner.innerHTML = 'The site is <b>hibernating</b>: no writing-service tokens are used, so writing and the writing jobs are paused. <button type="button" id="hibWakeTop">Wake up</button>';
+    qs('#hibWakeTop').onclick = () => qs('#hibBtn')?.click();
+  } else if (banner) banner.remove();
 }
 
 function qs(sel, ctx) { return (ctx || document).querySelector(sel); }
@@ -225,12 +238,41 @@ function makeLine(values, w, h, color, fill) {
 function showShell() {
   qs('#loginPanel').classList.add('hidden');
   qs('#adminShell').classList.remove('hidden');
+  setupHibernate();
   if (STATE.user) {
     const n = qs('#sideUserName');
     const p = qs('#sideUserPlan');
     if (n) n.textContent = STATE.user.name || 'Admin';
     if (p) p.textContent = ({ free: 'Free', regular: 'Regular', premium: 'Premium' })[STATE.user.plan] || 'Admin';
   }
+}
+
+/* ── HIBERNATE switch (sidebar) ─────────────────────────────────────────
+   Hibernating = no writing-service calls (Claude, OpenAI, Gemini,
+   Perplexity) and the writing jobs wait. Saved on the server
+   (data/hibernate.json), so it stays as set after a redeploy. */
+async function setupHibernate() {
+  const box = qs('#hibBox'); const btn = qs('#hibBtn');
+  if (!box || !btn) return;
+  const draw = (st) => {
+    box.classList.toggle('asleep', Boolean(st.on));
+    box.classList.toggle('awake', !st.on);
+    qs('#hibLabel').textContent = st.on ? 'Hibernating' : 'Awake';
+    qs('#hibNote').textContent = st.on
+      ? `No writing-service tokens are used${st.since ? ` (since ${new Date(st.since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})` : ''}. Pages and free data keep working.`
+      : 'Writing services are on: explainers, results, summaries and lessons are written automatically.';
+    btn.textContent = st.on ? 'Wake up' : 'Hibernate';
+    btn.disabled = false;
+    HIB_ON = Boolean(st.on);
+    hibBanner();
+  };
+  const toggle = async (on) => {
+    if (on && !confirm('Hibernate? Automatic explainers, results explanations, news summaries and Premium lessons will stop until you press “Wake up”.')) return;
+    btn.disabled = true;
+    try { draw(await API.post('/api/admin/hibernate', { on })); } catch (e) { alert(e.message); btn.disabled = false; }
+  };
+  btn.onclick = () => toggle(!box.classList.contains('asleep'));
+  try { draw(await API.get('/api/admin/hibernate')); } catch { qs('#hibLabel').textContent = 'Unknown'; }
 }
 
 function showLogin(msg) {

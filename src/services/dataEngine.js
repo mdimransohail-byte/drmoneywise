@@ -349,6 +349,10 @@ const RUNNERS = { links: runLinks, newsletter: runNewsletter, report: runReport,
 export async function runJob(name, { manual = false } = {}) {
   if (!RUNNERS[name]) throw new Error(`Unknown data job: ${name}`);
   if (running.has(name)) return { ok: false, message: 'Already running — check back in a few minutes' };
+  {
+    const { isHibernating, WRITING_JOBS } = await import('./hibernateService.js');
+    if (isHibernating() && WRITING_JOBS.has(name)) return { ok: false, skipped: true, message: 'Paused: the site is hibernating. Use “Wake up” in the Admin sidebar first.' };
+  }
   running.add(name);
   const startedAt = Date.now();
   console.log(`[data] ${JOBS[name].label}: starting${manual ? ' (Run now from Admin)' : ''}`);
@@ -392,7 +396,10 @@ export async function getDataStatus() {
 /* ── Scheduler ──────────────────────────────────────────────────────── */
 async function checkSchedule() {
   const jobs = await readJobs();
+  const { isHibernating, WRITING_JOBS, noteSkipped } = await import('./hibernateService.js');
   for (const [name, job] of Object.entries(JOBS)) {
+    // Hibernating: jobs that use the writing services wait until "Wake up"
+    if (isHibernating() && WRITING_JOBS.has(name)) { noteSkipped('scheduled writing jobs'); continue; }
     const lastSuccess = jobs[name]?.lastSuccessAt ? new Date(jobs[name].lastSuccessAt).getTime() : 0;
     const lastRun = jobs[name]?.lastRunAt ? new Date(jobs[name].lastRunAt).getTime() : 0;
     const due = Date.now() - lastSuccess > job.every;

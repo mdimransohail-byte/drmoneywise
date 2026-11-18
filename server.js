@@ -343,6 +343,17 @@ export const server = http.createServer(async (request, response) => {
       return sendJson(response, 200, { ok: true });
     }
 
+    // Admin → Hibernate switch (stops all writing-service spending)
+    if (requestUrl.pathname === '/api/admin/hibernate') {
+      await requireAdminUser(token);
+      const h = await import('./src/services/hibernateService.js');
+      if (request.method === 'POST') {
+        const body = await parseJsonBody(request);
+        return sendJson(response, 200, h.setHibernate(Boolean(body.on)));
+      }
+      return sendJson(response, 200, h.hibernateStatus());
+    }
+
     // Admin → Offers (pop-up, trial) and Analytics → How members joined
     if (requestUrl.pathname.startsWith('/api/admin/offers') || requestUrl.pathname === '/api/admin/join-stats') {
       await requireAdminUser(token);

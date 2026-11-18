@@ -277,6 +277,19 @@
     .login-title,.login-brand strong{color:#0a1128}
     .login-sub,.login-form label,.login-hint,.login-brand small{color:#4a5570}
     .login-form input{background:#fff;border:1px solid #c9d2e3;color:#0a1128}
+    /* hibernate switch (sidebar) */
+    .hib-box{margin:0 0 12px;padding:12px;border-radius:12px;background:#f7f5ef;border:1px solid #e4dfd2}
+    .hib-box.asleep{background:#fff4dc;border-color:#f5a623}.hib-box.awake{background:#e9f8ef;border-color:#9fdcb7}
+    .hib-state{display:flex;align-items:center;gap:8px;color:#0a1128;font-size:14px}
+    .hib-dot{width:10px;height:10px;border-radius:50%;background:#888;flex:0 0 10px}
+    .hib-box.awake .hib-dot{background:#2ecc71;box-shadow:0 0 8px #2ecc71}
+    .hib-box.asleep .hib-dot{background:#f5a623;box-shadow:0 0 8px #f5a623}
+    .hib-box small{display:block;color:#4a5170;font-size:12px;margin:4px 0 8px;line-height:1.35}
+    .hib-btn{width:100%;padding:8px 10px;border-radius:9px;border:0;font-weight:700;cursor:pointer}
+    .hib-box.awake .hib-btn{background:#f5a623;color:#1a1200}
+    .hib-box.asleep .hib-btn{background:#2ecc71;color:#06210f}
+    .hib-banner{background:#fff4dc;border:1px solid #f5a623;color:#5c3d00;border-radius:12px;padding:10px 14px;margin:0 0 16px;font-size:14px}
+    .hib-banner button{margin-left:8px;padding:4px 10px;border-radius:8px;border:0;background:#2ecc71;color:#06210f;font-weight:700;cursor:pointer}
     /* sidebar */
     .side{background:#ffffff;border-right:1px solid #dfe4ef;box-shadow:2px 0 12px rgba(30,50,110,.05)}
     .side-brand{border-bottom:1px solid #e6eaf3}
@@ -483,6 +496,12 @@
       </button>
 
       <div class="side-foot">
+        <!-- HIBERNATE switch: stops all spending on writing services (admin.js → setupHibernate) -->
+        <div id="hibBox" class="hib-box">
+          <div class="hib-state"><span id="hibDot" class="hib-dot"></span><strong id="hibLabel">Checking…</strong></div>
+          <small id="hibNote">Writing services</small>
+          <button type="button" id="hibBtn" class="hib-btn" disabled>…</button>
+        </div>
         <div class="side-user">
           <strong id="sideUserName">Admin</strong>
           <span id="sideUserPlan">Premium</span>

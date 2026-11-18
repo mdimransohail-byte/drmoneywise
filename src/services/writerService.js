@@ -25,6 +25,8 @@ const MODEL_ENV_KEYS = {
 };
 
 export async function summarizeNewsItem(item) {
+  // While hibernating, never save a stand-in draft in place of a real article
+  if ((await import('./hibernateService.js')).isHibernating()) throw new Error('The site is hibernating, so nothing is written. Use “Wake up” in the Admin sidebar first.');
   const writer = await getNextWriter();
   const sourceNotes = [
     `Summary: ${item.summary}`,
@@ -49,6 +51,8 @@ export async function summarizeNewsItem(item) {
 }
 
 export async function createLearningArticleFromTopic(topic, accessTier = 'free', region = 'global', interest = 'equities', forceProvider = '', context = '', level = '') {
+  // While hibernating, never save a stand-in draft in place of a real article
+  if ((await import('./hibernateService.js')).isHibernating()) throw new Error('The site is hibernating, so nothing is written. Use “Wake up” in the Admin sidebar first.');
   const writer = await getNextWriter(forceProvider);
   const sourceNotes = [
     `Region: ${region}`,
@@ -388,6 +392,9 @@ async function writeWithFallback(writer, prompt, forced = false) {
 }
 
 async function requestStructuredWriting(writer, prompt) {
+  // Hibernating (Admin switch): no writing-service calls at all
+  const { isHibernating, noteSkipped } = await import('./hibernateService.js');
+  if (isHibernating()) { noteSkipped('a writing request'); return null; }
   const hasKey = {
     openai: Boolean(process.env.OPENAI_API_KEY),
     claude: Boolean(process.env.CLAUDE_API_KEY),
